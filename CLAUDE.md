@@ -72,22 +72,48 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   token made during a run (`::add-mask::`) and never echo one.
 - **Checking a deploy:** Vercel reports each deploy on its commit
   (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
-  Build and runtime logs need a Vercel connection to the maintainer's personal account.
+  Build and runtime logs need access to the maintainer's personal Vercel account; the
+  maintainer reads them in the Vercel dashboard.
 - **Keep it separate from Senior Stylist.** Don't use Senior Stylist's accounts, keys, data, or
-  rules here.
+  rules here. In particular:
+  - Work on RabAI in a session that has only this repo. A session that also has Senior
+    Stylist's repo loads Senior Stylist's rules.
+  - The Vercel and Supabase connectors in the maintainer's Claude account belong to Senior
+    Stylist. Never use them for RabAI. Check RabAI deploys through the GitHub commit status
+    above.
+  - Pushes from Claude's cloud sessions currently arrive as the `SeniorStylist` GitHub
+    account, which has write access to this repo. That changes only if the maintainer moves
+    Claude's GitHub connection; see "Where things stand".
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Pinned for later (2026-10-06)
+## Where things stand (2026-10-06)
 
-The maintainer will finish this setup on a computer and wants exact, step-by-step directions
-then:
+Moving RabAI off Senior Stylist:
+- The maintainer is creating a RabAI cloud environment (Custom network access with the default
+  list, plus `rab-ai-ecru.vercel.app` and `www.sefaria.org`) and will start RabAI sessions
+  there with only this repo.
+- Undecided: which GitHub account Claude's sessions push as. One Claude account connects one
+  GitHub account, and today it is `SeniorStylist`. The choices are a separate Claude account
+  for RabAI connected to `KingofHardts`, or leaving it as is. Once RabAI no longer pushes as
+  `SeniorStylist`, that account can be removed from this repo's collaborators.
+- To confirm: `ANTHROPIC_API_KEY` in the `rab-ai` Vercel project should come from the
+  maintainer's own Anthropic account, not Senior Stylist's.
+- Optional: the maintainer's Vercel token for `rab-ai` can be added to the RabAI environment
+  as an API credential for `api.vercel.com`, so sessions can read deploy logs without the
+  Senior Stylist connector.
 
-- Give RabAI its own Claude Code cloud environment, started from this repo, so sessions load
-  only RabAI's rules. Under Network access, add `rab-ai-ecru.vercel.app` so the live site can
-  be tested.
-- Connect the Vercel connector to the personal Vercel account, unless doing so would remove
-  Senior Stylist's Vercel connection.
+Open items:
+- The second testing-library build (run #2, commit `11bf8c9`) adds Pirkei Avot and Rashi on
+  Rosh Hashanah. Check its log and summary.
+- Still missing from the testing library because Sefaria lists no license: Esther Rabbah, and
+  the Hebrew of the Ramban on Shemot (his English is there).
+- Waiting on the maintainer's yes or no: an outside check that compares a claim against the
+  library. Proposed design: automatic lookups only on trusted Orthodox sites; the open web
+  only for a claim the person brings; outside content is never treated as a source.
+- For the board: the core premises, including "Talking about anything" (open question 14 in
+  the founding spec).
+- Letters to Aish and Chabad.org are drafted in `docs/outreach/` and not yet sent.
 - The repo stays public; the maintainer is fine with that.
 
 ## Writing style for anything a user or a rav will read
