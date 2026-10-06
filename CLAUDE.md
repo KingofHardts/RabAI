@@ -104,8 +104,8 @@ Moving RabAI off Senior Stylist:
   Senior Stylist connector.
 
 Open items:
-- The second testing-library build (run #2, commit `11bf8c9`) adds Pirkei Avot and Rashi on
-  Rosh Hashanah. Check its log and summary.
+- The testing library on Turso was rebuilt 2026-10-06 (run #2, commit `11bf8c9`): 1,117,614
+  passages, 1,222 books, 92 editions, now including Pirkei Avot and Rashi on Rosh Hashanah.
 - Still missing from the testing library because Sefaria lists no license: Esther Rabbah, and
   the Hebrew of the Ramban on Shemot (his English is there).
 - Waiting on the maintainer's yes or no: an outside check that compares a claim against the
