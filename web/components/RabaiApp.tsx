@@ -73,6 +73,7 @@ const STARTERS = [
   "What did Hillel tell the man who wanted the whole Torah on one foot?",
   "How can two opposite opinions both be “the words of the living God”?",
   "Help me read the first words of the Torah myself",
+  "My friend and I had a falling out. How do I make it right?",
 ];
 
 const ACTIONS: Array<{ id: LineAction; label: string }> = [
@@ -733,9 +734,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
                 <div className="body">
                   <p>
-                    Shalom, and welcome. I’m RabAI, an AI Torah teacher. Ask me anything about Torah: a pasuk, a Gemara,
-                    a halacha, a question you’ve always wondered about. I’ll answer from the sources and open them with
-                    you, so you can see the words yourself.
+                    Shalom, and welcome. I’m RabAI, an AI Torah teacher. Ask me about a pasuk, a Gemara, a halacha, or a
+                    question you’ve always wondered about, and I’ll answer from the sources and open them with you, so
+                    you can see the words yourself. Or just tell me what’s on your mind. I’m glad to talk about anything.
                   </p>
                   <p>I’m a teacher, not a rav. For a question about your own situation, your rav is the one to ask.</p>
                   {!connected && (

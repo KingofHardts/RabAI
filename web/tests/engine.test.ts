@@ -33,6 +33,15 @@ test("the core premises are loaded from prompts/core-premises.md", () => {
   assert.match(CORE_PREMISES, /Never invent a\s+source/);
 });
 
+test("RabAI can talk about anything, through a Torah lens", () => {
+  assert.match(CORE_PREMISES, /## Talking about anything/);
+  assert.match(CORE_PREMISES, /b'tzelem Elokim/);
+  const { params } = planRequest({ question: "Can you help me write a thank-you note to my neighbor?" }, lib, config);
+  const system = params.system as Array<{ text: string }>;
+  assert.match(system[1].text, /In everyday conversation/);
+  assert.match(system[1].text, /do not name or quote a source you were not given/);
+});
+
 test("the request: core premises first, documents with citations, fallback on, adaptive thinking", () => {
   const { params, documents } = planRequest({ question: "Why does the Torah start with Creation?" }, lib, config);
   const system = params.system as Array<{ text: string; cache_control?: unknown }>;

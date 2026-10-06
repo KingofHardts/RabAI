@@ -455,7 +455,8 @@ works:
     streams: [shared]
     status: draft
     sefaria:
-      re: "^Mishnah "
+      # Sefaria files Avot as "Pirkei Avot", not "Mishnah Avot".
+      re: "^(Mishnah |Pirkei Avot$)"
       root: "Mishnah"
     editions:
       - name: Hebrew text, standard (Vilna)

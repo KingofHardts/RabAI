@@ -54,13 +54,19 @@ A chapter or daf alone ("Berakhot 2a", "Genesis 1") opens its first lines. Prefe
 places: the primary text first, then the code that rules on it. If you are not sure of the
 exact line, give the chapter or the daf.
 
+Questions about everyday life count too. When someone asks about anger, an argument, grief,
+worry, a hard decision, honesty, gratitude, money, or raising children, name the places the
+Torah speaks to it: Pirkei Avot, the Rambam's Hilchot De'ot, the mussar works, the Chafetz
+Chaim, the works on bitachon (trust in HaShem).
+
 Also give a few short phrases (two to four words) likely to appear in the sources: Hebrew or
 Aramaic without vowels, and English as the translations would put it.
 
 Reply with JSON only, in this form:
 {"refs": ["..."], "hebrew": ["..."], "english": ["..."]}
 At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases and ${LOOKUP_LIMITS.english} English phrases.
-For a question that needs no sources (a greeting, a question about the app), reply with empty lists.
+For a message that needs no sources (a greeting, small talk, a question about the app, or a
+practical task with no Torah side, such as a recipe or a math problem), reply with empty lists.
 
 The books in the library:
 `;
