@@ -61,6 +61,8 @@ ANTHROPIC_API_KEY=your-key
 
 ## Put it online (Vercel)
 
+The live app is at https://rab-ai-ecru.vercel.app (locked with an access code).
+
 1. Get an Anthropic API key at console.anthropic.com. Set up billing there first, and set a
    monthly spend limit (Settings → Limits) so a mistake can't run up a large bill.
 2. At vercel.com, sign in with the GitHub account that owns this repo and choose
