@@ -29,6 +29,21 @@ forbid it (CC BY-NC), and texts used by special permission. A non-commercial lic
 cover a paid product. If the assistant will ever charge, or be part of anything that charges,
 non-commercial texts need a separate agreement with the publisher.
 
+**Free with donations (Josh's choice, 2026-10-06).** Creative Commons defines NonCommercial as
+"not primarily intended for or directed towards commercial advantage or monetary
+compensation." Two things follow:
+
+- A free app that accepts voluntary donations is a strong fit for that definition. Ads,
+  paywalls, or paid features would not be.
+- It is the *use* that counts, not who is using it. Being a nonprofit does not by itself make
+  a use non-commercial, though it makes the case clearer.
+
+Because the definition leaves room for interpretation, get written confirmation from each
+publisher whose text is licensed non-commercial (for example, Koren for the Steinsaltz Talmud
+on Sefaria) before relying on it. Most of the Orthodox translations in the canon are under
+full copyright anyway and need an agreement whatever the model. Publishers often offer better
+terms to nonprofits, so the choice of legal structure is worth settling with a lawyer early.
+
 **Public domain.** The printed Vilna Shas or Mikraot Gedolot may be public domain, but a
 digital edition of it may carry its own license. Check the source you actually download.
 

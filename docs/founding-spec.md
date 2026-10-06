@@ -143,7 +143,9 @@ These need a decision before launch. Each one changes behavior.
 7. **Women's voices.** Should Orthodox women teachers be included as hashkafah sources?
 8. **Topics the assistant refers out immediately** rather than discussing at all.
 9. **Disclaimer wording** at the top of halachic answers.
-10. **Audience and tone.** One voice for kiruv and frum learners, or a setting?
+10. **Audience and tone.** Decided by Josh (2026-10-06): one warm voice, like a kind rebbe,
+    for everyone, adapting to each person's level. The board reviews the voice rules in the
+    core premises.
 11. **Mentioning the growth option.** The draft offers growth help only at sign-up and in
     settings. May the assistant ever mention that the option exists, for example when someone
     asks about tefillah?

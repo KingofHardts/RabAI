@@ -223,15 +223,16 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
         <div class="msg-ai">
           <div class="mark" aria-hidden="true">ר</div>
           <div class="body">
-            <p>A beautiful question, and Rashi asks it himself, on the very first word of the Torah.</p>
+            <p>What a wonderful question. You’re in very good company: Rashi asks exactly this, on the very first word of the Torah.</p>
             <p>Rabbi Yitzchak says the Torah could have begun with the first mitzvah given to the Jewish people as a nation, “This month shall be for you” <button class="cite" data-open="shemos-12-2">Shemos 12:2</button>. Why begin with Creation instead?</p>
             <p>Because of the verse “He told His people the power of His works, to give them the inheritance of the nations” <button class="cite" data-open="tehillim-111-6">Tehillim 111:6</button>. If anyone ever says to the Jewish people, “You took this land from seven nations,” the answer is that the whole world belongs to HaShem. He created it, and He gives it to whom He sees fit <button class="cite" data-open="rashi-1-1">Rashi on Bereishit 1:1</button>.</p>
             <p>The Ramban looks at it differently. Beginning with Creation is essential in itself, because it is the root of emunah: the world has a Creator <button class="cite" data-open="ramban-1-1">Ramban on Bereishit 1:1</button>.</p>
-            <p>Would you like to read Rashi’s words together?</p>
+            <p>Would you like to read Rashi’s words together? I’d love to learn them with you.</p>
             <div class="follow">
-              <button class="chip-btn" data-open="rashi-1-1">Open Rashi</button>
               <button class="chip-btn" data-go-learn>Learn it with me</button>
-              <button class="chip-btn" data-open="ramban-1-1">What else does the Ramban say?</button>
+              <button class="chip-btn" data-open="rashi-1-1">Open Rashi</button>
+              <button class="chip-btn" data-level="simpler">Explain more simply</button>
+              <button class="chip-btn" data-level="deeper">Go deeper</button>
             </div>
           </div>
         </div>
@@ -242,7 +243,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
         <div class="msg-ai">
           <div class="mark" aria-hidden="true">ר</div>
           <div class="body">
-            <p>Let’s learn the first Rashi together, a piece at a time. Here is how it opens:</p>
+            <p>Let’s learn the first Rashi together, a little at a time. Take your time with it. Here is how it opens:</p>
             <div class="quote">
               <div class="he" lang="he">אמר רבי יצחק: לא היה צריך להתחיל את התורה אלא מ״החדש הזה לכם״, שהיא מצוה ראשונה שנצטוו בה ישראל.</div>
               <div class="en">Rabbi Yitzchak said: The Torah should have begun only from “This month shall be for you,” the first mitzvah the Jewish people were commanded.</div>
@@ -468,6 +469,19 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
       '</div></div>';
   }
 
+  // ---------------- simpler / deeper ----------------
+  var LEVEL = {
+    simpler: "<p>Of course. Here it is simply.</p><p>The Torah starts with Creation to teach that the whole world belongs to HaShem. Because it’s His, He can give the Land of Israel to whomever He chooses <button class=\"cite\" data-open=\"rashi-1-1\">Rashi on Bereishit 1:1</button>.</p><p>The Ramban adds one more idea: believing that HaShem created the world is the foundation of everything else in the Torah.</p>",
+    deeper: "<p>Gladly. There’s a lot here.</p><p>Notice what Rabbi Yitzchak assumes: that the Torah is first of all a book of mitzvos. The Ramban questions that, since Creation is the root of emunah <button class=\"cite\" data-open=\"ramban-1-1\">Ramban on Bereishit 1:1</button>. The commentators on Rashi, such as the Maharal in Gur Aryeh, discuss why Rashi asks the question at all.</p><p>In the full app, “Go deeper” brings each of these in with its source open beside you.</p>"
+  };
+  function levelReply(kind, label) {
+    var x = document.getElementById("extra");
+    x.insertAdjacentHTML("beforeend",
+      '<div class="msg-user" style="margin-left:auto;margin-bottom:18px;width:max-content;max-width:85%">' + esc(label) + '</div>' +
+      '<div class="msg-ai" style="margin-bottom:18px"><div class="mark" aria-hidden="true">ר</div><div class="body">' + LEVEL[kind] + '</div></div>');
+    var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
+  }
+
   // ---------------- tabs ----------------
   function showTab(name) {
     var ask = name === "ask";
@@ -493,6 +507,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     if (t.dataset.act) { var w = t.closest(".line-wrap"); runAction(w.dataset.line, t.dataset.act, w); return; }
     if (t.dataset.choice) { learnStep(t.dataset.choice); return; }
     if (t.hasAttribute("data-go-learn")) { showTab("learn"); return; }
+    if (t.dataset.level) { levelReply(t.dataset.level, t.textContent); return; }
     if (t.id === "tab-ask") { showTab("ask"); return; }
     if (t.id === "tab-learn") { showTab("learn"); return; }
   });
@@ -510,7 +525,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
       var x = document.getElementById("extra");
       x.insertAdjacentHTML("beforeend",
         '<div class="msg-user" style="margin-left:auto;margin-bottom:18px;width:max-content;max-width:85%">' + esc(q) + '</div>' +
-        '<div class="msg-ai" style="margin-bottom:18px"><div class="mark" aria-hidden="true">ר</div><div class="body"><p>This mockup can only show the sample above. In the real app, I would answer from the approved library, cite every source, and let you open each one.</p></div></div>');
+        '<div class="msg-ai" style="margin-bottom:18px"><div class="mark" aria-hidden="true">ר</div><div class="body"><p>I’d love to answer that. This mockup can only show the sample above, but in the real app I’ll answer from the approved library, show you every source, and open each one for you.</p></div></div>');
       input.value = "";
       var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
     } else if (f.hasAttribute("data-askline")) {

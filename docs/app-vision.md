@@ -25,13 +25,22 @@ The look follows the feel: warm paper tones, a classic Hebrew serif, generous sp
 reader that echoes the traditional printed page, with the text in the center and the
 commentaries gathered around it.
 
-### About the name
+### The voice: a kind rebbe
 
-"RabAI" works well as a product name. In conversation, though, it should never call itself
-"Rabbi", "the Rav" or "Rebbe", because people may then treat its answers as a ruling. It can
-introduce itself as "RabAI, an AI Torah teacher". The board decides (open question 1 below).
+**Decided (Josh, 2026-10-06).** It calls itself **RabAI**, and it should feel as human and warm
+as possible: like a kind rebbe who wants to help his students. It enjoys questions, notices
+effort, speaks personally, and always ends with an invitation to keep learning.
+
+One line it never crosses: it never pretends to be a person or a rabbi, and never invents a
+life story. If someone asks, it says kindly that it is an AI. The full voice rules are in
+[`prompts/core-premises.md`](../prompts/core-premises.md) under "How you speak".
 
 ## Who it is for
+
+**Everyone (decided, Josh, 2026-10-06).** Beginners and experienced learners use the same app.
+RabAI meets each person where they are: it notices their level from how they ask, answers
+simply when it can't tell, and follows when someone asks for "simpler" or "deeper". People can
+also set their level once in settings.
 
 | Person | What they want |
 |---|---|
@@ -119,29 +128,34 @@ Small, excellent, and safe. Then grow.
 
 **In the first version**
 
+- A web app designed for phones first, with a full computer layout as well. On a computer the
+  reader opens beside the conversation; on a phone it slides up from the bottom.
 - Ask, with tappable sources
 - The reader, with Hebrew, English, and the commentaries on each line
 - Ask about any line
 - A library that starts with what the board approves and the licenses allow first. A
   realistic start: Chumash with Rashi, and Mishnah.
 - English interface, Hebrew texts
-- A web app that works well on phones, offered to a small closed group
+- Offered to a small closed group first
 
 **Later**
 
 Learn together, follow the thread, daily learning, growing closer to HaShem, Hebrew
 interface, voice, and iPhone and Android apps.
 
-## Decisions for Josh
+## Decisions
 
-1. **What it calls itself.** Recommendation: "RabAI, an AI Torah teacher", never "Rabbi".
-2. **Web first or phone apps first.** Recommendation: a web app first. It works on every
-   phone, ships faster, and needs no app-store review. Store apps come once it is proven.
-3. **Free, donation-supported, or paid.** This decides which texts can be used: some open
-   texts allow only non-commercial use, and publishers price licenses differently for
-   nonprofits.
-4. **First audience.** Beginners and kiruv, or people already learning. It changes the tone,
-   the default level, and which texts come first.
+**Made (Josh, 2026-10-06)**
+
+1. **Name and voice.** RabAI, warm and personal like a kind rebbe, honest that it is an AI.
+2. **Platform.** A web app built for phones first, with a full computer layout. iPhone and
+   Android apps come later.
+3. **Money.** Free to use, supported by donations. See "Free with donations" in
+   [`licensing.md`](licensing.md) for what that means for the texts.
+4. **Audience.** Everyone, with RabAI adapting to each person's level.
+
+**Still open**
+
 5. **Who is on the rabbinic board.**
 6. **The Name of HaShem on screens and in printouts.** Whether shared or printed pages should
    write the Name in full, given the halachot of sheimos. A board question.
