@@ -1359,3 +1359,154 @@ works:
         status: proposed
         license: needs_agreement
     notes: A chassidic rabbi and psychiatrist. Useful where spiritual growth meets emotional health, including religious anxiety.
+
+  # ---------------------------------------------------------------------------
+  # Proposed for deep Gemara learning (lomdus and method). Each needs board review.
+  # Rashi, Tosafot and the Rishonim are already in the canon (rishonim-shas).
+  # ---------------------------------------------------------------------------
+
+  - id: acharonim-shas-classic
+    title: Classic Acharonim on Shas (Maharsha, Pnei Yehoshua, Rabbi Akiva Eiger)
+    hebrew: מהרש״א; פני יהושע; רבי עקיבא איגר
+    author: Rabbi Shmuel Eidels; Rabbi Yaakov Yehoshua Falk; Rabbi Akiva Eiger
+    dates: 1555-1631; 1680-1756; 1761-1837
+    era: acharonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew texts (printed in or alongside the Vilna Shas)
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: ketzos-nesivos
+    title: Ketzos HaChoshen and Nesivos HaMishpat
+    hebrew: קצות החושן; נתיבות המשפט
+    author: Rabbi Aryeh Leib Heller; Rabbi Yaakov Lorberbaum of Lissa
+    dates: c. 1745-1813; 1760-1832
+    era: acharonim
+    category: halacha
+    kind: commentary
+    streams: [shared]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew texts
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: On Choshen Mishpat. Their back-and-forth is a foundation of the yeshiva method of learning.
+
+  - id: brisk
+    title: The Brisker method (Chiddushei Rabbeinu Chaim HaLevi on the Rambam; Chiddushei HaGriz)
+    hebrew: חידושי רבנו חיים הלוי; חידושי הגרי״ז
+    author: Rabbi Chaim Soloveitchik; Rabbi Yitzchak Zev Soloveitchik
+    dates: 1853-1918; 1886-1959
+    era: contemporary
+    category: halacha
+    kind: commentary
+    streams: [litvish]
+    minhag: both
+    status: proposed
+    editions:
+      - name: Hebrew texts
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: The source of conceptual analysis (chakirot) in the yeshiva world.
+
+  - id: kovetz-shiurim
+    title: Kovetz Shiurim and Kovetz He'aros
+    hebrew: קובץ שיעורים
+    author: Rabbi Elchanan Wasserman
+    dates: 1874-1941
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: kehillos-yaakov
+    title: Kehillos Yaakov
+    hebrew: קהילות יעקב
+    author: Rabbi Yaakov Yisrael Kanievsky (the Steipler)
+    dates: 1899-1985
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: shaarei-yosher
+    title: Shaarei Yosher
+    hebrew: שערי יושר
+    author: Rabbi Shimon Shkop
+    dates: 1860-1939
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: Its introduction, on the purpose of a person and how a mind trained in Torah should serve others, is widely studied on its own.
+
+  - id: talmud-method-classics
+    title: Classic works on the method of the Talmud (Mevo HaTalmud, Halichot Olam, Yad Malachi)
+    hebrew: מבוא התלמוד; הליכות עולם; יד מלאכי
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew texts
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The rules the Gemara follows, and how to decide halacha from it.
+
+  - id: talmud-reference-english
+    title: English guides to learning Gemara (The Talmud, A Reference Guide; The Practical Talmud Dictionary)
+    author: Rabbi Adin Even-Israel Steinsaltz; Rabbi Yitzhak Frank
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: The Talmud, A Reference Guide
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+      - name: The Practical Talmud Dictionary
+        language: en
+        publisher: Ariel / Feldheim (verify)
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Help beginners with the Gemara's terms and Aramaic.

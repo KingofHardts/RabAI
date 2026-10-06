@@ -234,6 +234,10 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
               <button class="chip-btn" data-level="simpler">Explain more simply</button>
               <button class="chip-btn" data-level="deeper">Go deeper</button>
             </div>
+            <p class="try" style="margin:16px 0 6px;font-family:var(--font-ui);font-size:13px;color:var(--muted)">Try a Gemara question</p>
+            <div class="follow" style="margin-top:0" id="sample-row">
+              <button class="chip-btn" data-sample="chanukah">Why do we add a Chanukah light each night?</button>
+            </div>
           </div>
         </div>
         <div id="extra"></div>
@@ -310,6 +314,16 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
         { id: "s2", num: "2", hnum: "ב", he: "החדש הזה לכם ראש חדשים ראשון הוא לכם לחדשי השנה׃", en: "This month shall be for you the head of the months; it shall be the first of the months of the year for you." }
       ]
     },
+    shabbat: {
+      title: "Shabbat 21b", he: "שבת כא:",
+      lines: [
+        { id: "g1", label: "The baraita", hnum: "ברייתא", he: "תנו רבנן: מצות חנוכה נר איש וביתו, והמהדרין נר לכל אחד ואחד.", en: "The Sages taught: The mitzvah of Chanukah is one light for a man and his household. Those who beautify the mitzvah light one for each person." },
+        { id: "g2", label: "Beis Shammai and Beis Hillel", hnum: "ב״ש וב״ה", he: "והמהדרין מן המהדרין, בית שמאי אומרים: יום ראשון מדליק שמנה, מכאן ואילך פוחת והולך. ובית הלל אומרים: יום ראשון מדליק אחת, מכאן ואילך מוסיף והולך.", en: "And those who beautify it most: Beis Shammai say, on the first day one lights eight, and from then on, one fewer each night. Beis Hillel say, on the first day one lights one, and from then on, one more each night." },
+        { id: "g3", label: "Ulla", hnum: "עולא", he: "אמר עולא: פליגי בה תרי אמוראי במערבא, רבי יוסי בר אבין ורבי יוסי בר זבידא.", en: "Ulla said: Two Amoraim in the West (Eretz Yisrael) disagree about this, Rabbi Yosi bar Avin and Rabbi Yosi bar Zevida." },
+        { id: "g4", label: "The first explanation", hnum: "חד אמר", he: "חד אמר: טעמא דבית שמאי כנגד ימים הנכנסין, וטעמא דבית הלל כנגד ימים היוצאין.", en: "One said: Beis Shammai’s reason corresponds to the days still to come, and Beis Hillel’s reason corresponds to the days that have gone by." },
+        { id: "g5", label: "The second explanation", hnum: "וחד אמר", he: "וחד אמר: טעמא דבית שמאי כנגד פרי החג, וטעמא דבית הלל דמעלין בקדש ואין מורידין.", en: "The other said: Beis Shammai’s reason corresponds to the bulls of the festival of Sukkos, and Beis Hillel’s reason is that we go up in holiness and do not go down." }
+      ]
+    },
     tehillim: {
       title: "Tehillim 111", he: "תהלים קיא",
       lines: [
@@ -325,13 +339,17 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     "ramban-1-1": { text: "bereishit", cite: "ramban1" },
     "bereishit-1-1": { text: "bereishit", cite: "b1" },
     "shemos-12-2": { text: "shemos", cite: "s2" },
-    "tehillim-111-6": { text: "tehillim", cite: "t6" }
+    "tehillim-111-6": { text: "tehillim", cite: "t6" },
+    "shabbat-21b": { text: "shabbat", cite: "g2" },
+    "shabbat-21b-reasons": { text: "shabbat", cite: "g4" }
   };
 
-  var WORDS_B1 = [
-    ["בראשית", "In the beginning"], ["ברא", "created"], ["אלהים", "God"],
-    ["את", "(marks what was created)"], ["השמים", "the heavens"], ["ואת", "and"], ["הארץ", "the earth"]
-  ];
+  var WORDS = {
+    b1: [["בראשית", "In the beginning"], ["ברא", "created"], ["אלהים", "God"],
+      ["את", "(marks what was created)"], ["השמים", "the heavens"], ["ואת", "and"], ["הארץ", "the earth"]],
+    g4: [["חד אמר", "One said"], ["טעמא", "the reason"], ["דבית שמאי", "of Beis Shammai"], ["כנגד", "corresponds to"],
+      ["ימים הנכנסין", "the days coming in (still ahead)"], ["וטעמא דבית הלל", "and the reason of Beis Hillel"], ["ימים היוצאין", "the days going out (already passed)"]]
+  };
 
   var ANSWERS = {
     b1: {
@@ -349,6 +367,14 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     s2: {
       explain: "This is the first mitzvah given to the Jewish people as a nation: sanctifying the new month. Rashi says the Torah could have begun here. <button class=\"cite\" data-open=\"rashi-1-1\">Rashi on Bereishit 1:1</button>"
     },
+    g1: { explain: "The basic mitzvah is one light per household each night. The Gemara then describes two higher levels of beautifying the mitzvah." },
+    g2: {
+      explain: "Both houses agree that the finest way is to change the number of lights each night. They disagree about the direction: Beis Shammai count down from eight, Beis Hillel count up from one.",
+      comments: "In the full app, Rashi, Tosafot and the later commentators on this line appear right below it. The halacha follows Beis Hillel (Shulchan Aruch, Orach Chaim 671:2)."
+    },
+    g3: { explain: "Notice the Gemara’s move. Once it knows what each side holds, it asks why. Ulla reports two different answers from Amoraim in Eretz Yisrael." },
+    g4: { explain: "The first explanation: the lights mark the days of Chanukah. On the first night eight days remain, so Beis Shammai light eight. Beis Hillel count the days that have passed: one on the first night. Both agree the lights stand for the days. They argue about which days." },
+    g5: { explain: "The second explanation brings in other principles from the Torah: the bulls offered on Sukkos, which went down in number each day, and the rule that in matters of holiness we go up, not down." },
     t6: {
       explain: "Rashi reads this verse as the reason the Torah tells us about Creation: by showing His power as Creator, HaShem shows that the land is His to give. <button class=\"cite\" data-open=\"rashi-1-1\">Rashi on Bereishit 1:1</button>"
     }
@@ -370,7 +396,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
   function lineHtml(l, citeId, extraClass) {
     return '<div class="line-wrap" data-line="' + l.id + '">' +
       '<button class="line ' + (extraClass || "") + (l.id === citeId ? " cited" : "") + '" data-select="' + l.id + '" aria-expanded="false">' +
-      '<span class="num"><span>' + (l.num ? "Verse " + l.num : l.who) + '</span><span class="he" lang="he">' + (l.hnum || l.whoHe || "") + '</span></span>' +
+      '<span class="num"><span>' + (l.label || (l.num ? "Verse " + l.num : l.who)) + '</span><span class="he" lang="he">' + (l.hnum || l.whoHe || "") + '</span></span>' +
       '<span class="he" lang="he">' + l.he + '</span>' +
       '<span class="en">' + l.en + '</span>' +
       '</button><div class="slot"></div></div>';
@@ -434,11 +460,11 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     wrap.querySelectorAll(".actions button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.act === act)); });
     var a = ANSWERS[id] || {};
     if (act === "words") {
-      if (id === "b1") {
-        var rows = WORDS_B1.map(function (w) { return '<tr><td class="he" lang="he">' + w[0] + '</td><td>' + w[1] + '</td></tr>'; }).join("");
+      if (WORDS[id]) {
+        var rows = WORDS[id].map(function (w) { return '<tr><td class="he" lang="he">' + w[0] + '</td><td>' + w[1] + '</td></tr>'; }).join("");
         out.innerHTML = answerBox('<table class="words"><tbody>' + rows + '</tbody></table>');
       } else {
-        out.innerHTML = answerBox("In this mockup, word by word is filled in for verse 1 of Bereishit. In the full app it works on any line.");
+        out.innerHTML = answerBox("In this mockup, word by word is filled in for Bereishit 1:1 and for the first explanation in the Gemara. In the full app it works on any line.");
       }
     } else if (act === "ask") {
       out.innerHTML = answerBox('Ask anything about this line.<form class="ask-line" data-askline><label for="al-' + id + '" style="position:absolute;left:-9999px">Your question about this line</label><input id="al-' + id + '" placeholder="For example: why does Rashi say “robbers”?"><button class="send" type="submit">Ask</button></form>');
@@ -482,6 +508,23 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
   }
 
+  // ---------------- a Gemara question, answered the way a lamdan thinks ----------------
+  var CHANUKAH = '<p>Yes, there was, and it’s one of the most beautiful machlokesos in Shas. Let’s look at it the way the Gemara does, one step at a time.</p>' +
+    '<p><b>What they hold.</b> Beis Shammai light eight on the first night and go down. Beis Hillel light one and go up <button class="cite" data-open="shabbat-21b">Shabbat 21b</button>.</p>' +
+    '<p><b>Why.</b> The Gemara isn’t satisfied with knowing what each side does. It wants the reason, and it brings two. In one, Beis Shammai count the days still ahead and Beis Hillel count the days already passed. In the other, Beis Shammai follow the bulls of Sukkos, which went down each day, and Beis Hillel follow the rule that in holiness we go up <button class="cite" data-open="shabbat-21b-reasons">Shabbat 21b</button>.</p>' +
+    '<p><b>Underneath.</b> Here a learner slows down. In the first explanation, both sides agree the lights stand for the days of Chanukah. They only disagree about which days matter: the ones still ahead, or the ones already lived. Before I show you how the commentators understand it, which way would you lean, and why?</p>' +
+    '<p><b>The halacha.</b> We follow Beis Hillel and add a light each night (Shulchan Aruch, Orach Chaim 671:2). And yet Chazal say of both houses, “these and these are the words of the living God” (Eruvin 13b). To understand a machlokes, you need to understand the other side well enough to argue it.</p>' +
+    '<p>That is what years of Gemara do to a mind. You learn to ask why, to hear both sides at full strength, and to look for the idea underneath. The Tanya, the basic work of Chabad Chassidus, says that when you truly understand a halacha, your mind takes hold of HaShem’s own will and wisdom, and is clothed in it (Tanya, chapter 5).</p>' +
+    '<div class="follow"><button class="chip-btn" data-open="shabbat-21b">Open the Gemara</button><button class="chip-btn" data-open="shabbat-21b-reasons">Look at the two reasons</button></div>';
+  function sampleReply(btn) {
+    var x = document.getElementById("extra");
+    x.insertAdjacentHTML("beforeend",
+      '<div class="msg-user" style="margin-left:auto;margin-bottom:18px;width:max-content;max-width:85%">Why do we add a Chanukah light each night? Wasn’t there an opinion to do it the other way?</div>' +
+      '<div class="msg-ai" style="margin-bottom:18px"><div class="mark" aria-hidden="true">ר</div><div class="body">' + CHANUKAH + '</div></div>');
+    var row = document.getElementById("sample-row"); if (row) { row.previousElementSibling.remove(); row.remove(); }
+    var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
+  }
+
   // ---------------- tabs ----------------
   function showTab(name) {
     var ask = name === "ask";
@@ -508,6 +551,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     if (t.dataset.choice) { learnStep(t.dataset.choice); return; }
     if (t.hasAttribute("data-go-learn")) { showTab("learn"); return; }
     if (t.dataset.level) { levelReply(t.dataset.level, t.textContent); return; }
+    if (t.dataset.sample) { sampleReply(t); return; }
     if (t.id === "tab-ask") { showTab("ask"); return; }
     if (t.id === "tab-learn") { showTab("learn"); return; }
   });

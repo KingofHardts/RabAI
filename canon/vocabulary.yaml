@@ -3,7 +3,7 @@
 
 category:
   mikra_meforshim: Tanakh and its commentaries
-  torah_shebaal_peh: Mishnah, Talmud, Midrash, and the Rishonim on them
+  torah_shebaal_peh: Mishnah, Talmud, Midrash, and the commentaries on them
   halacha: Codes, commentaries on the codes, and responsa
   hashkafah_mussar: Jewish thought, mussar, and Chassidus
 
@@ -19,6 +19,7 @@ kind:
   chassidus: Chassidus
   liturgy: Siddur and machzor
   history: History of the mesorah
+  reference: Guides to method, dictionaries, and reference works
 
 era:
   mikra: Tanakh
