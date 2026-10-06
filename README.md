@@ -21,6 +21,8 @@ premises, and the reference answers for sensitive questions all wait on the rabb
 | [`evals/questions.yaml`](evals/questions.yaml) | The test questions |
 | [`docs/rabbinic-review.md`](docs/rabbinic-review.md) | How the board reviews and signs off |
 | [`docs/approvals-log.md`](docs/approvals-log.md) | Every board decision, in order |
+| [`docs/library-growth.md`](docs/library-growth.md) | What the library is missing, and six ways to get more authentic sources |
+| [`canon/partners.yaml`](canon/partners.yaml) | Organizations and publishers to approach, and where each conversation stands |
 | [`docs/licensing.md`](docs/licensing.md) | What to check before any text goes into the library |
 | [`docs/roadmap.md`](docs/roadmap.md) | Build phases, from spec to pilot |
 | [`prototype/mockup.html`](prototype/mockup.html) | A clickable mockup of the app (sample content only). Open it in a browser. |

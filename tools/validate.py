@@ -153,6 +153,31 @@ def check_questions(vocab: dict, questions: dict, canon_ids: dict) -> list:
     return items
 
 
+PARTNER_STATUS = {"not_contacted", "contacted", "in_talks", "agreed", "declined"}
+PARTNER_KIND = {"organization", "publisher", "library"}
+
+
+def check_partners(vocab: dict, partners: dict) -> list:
+    items = partners.get("partners") or []
+    seen = set()
+    for item in items:
+        pid = item.get("id")
+        where = f"partners.yaml {pid}"
+        if not pid or not ID_RE.match(str(pid)):
+            fail(f"{where}: id must be lowercase words joined by hyphens")
+        if pid in seen:
+            fail(f"{where}: duplicate id")
+        seen.add(pid)
+        for field in ("name", "offers"):
+            if not item.get(field):
+                fail(f"{where}: missing {field}")
+        check_value(where, "kind", item.get("kind"), PARTNER_KIND)
+        check_value(where, "status", item.get("status"), PARTNER_STATUS)
+        for stream in item.get("streams") or []:
+            check_value(where, "stream", stream, vocab["stream"])
+    return items
+
+
 def whitelist(canon_ids: dict) -> list:
     entries = []
     for wid, work in canon_ids.items():
@@ -183,6 +208,7 @@ def main() -> int:
     canon_ids = check_canon(vocab, load("canon/canon.yaml"))
     check_excluded(load("canon/excluded.yaml"), canon_ids)
     questions = check_questions(vocab, load("evals/questions.yaml"), canon_ids)
+    partners = check_partners(vocab, load("canon/partners.yaml"))
     allowed = whitelist(canon_ids)
 
     if "--whitelist" in sys.argv:
@@ -200,6 +226,8 @@ def main() -> int:
     print("  edition licenses:  " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(e.get('license') for e in editions).items())))
     print(f"Test questions: {len(questions)}")
     print("  by sensitivity:    " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(q.get('sensitivity') for q in questions).items())))
+    print(f"Partners: {len(partners)}")
+    print("  by status:         " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(p.get('status') for p in partners).items())))
     print(f"Retrieval whitelist: {len(allowed)} editions")
     if not allowed:
         print("  (empty until the board approves works and editions and their licenses are cleared)")

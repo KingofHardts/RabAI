@@ -1510,3 +1510,321 @@ works:
         status: proposed
         license: needs_agreement
     notes: Help beginners with the Gemara's terms and Aramaic.
+
+  # ---------------------------------------------------------------------------
+  # Proposed to fill gaps listed in docs/library-growth.md. Each needs board review.
+  # All are classic Hebrew works, so the printed text is free to use; check each digital edition.
+  # ---------------------------------------------------------------------------
+
+  - id: metzudot
+    title: "Metzudat David and Metzudat Tzion on Nach"
+    hebrew: מצודת דוד; מצודת ציון
+    author: "Rabbi David Altschuler and Rabbi Yechiel Hillel Altschuler"
+    dates: 18th century
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The standard plain-meaning commentary on Nach.
+
+  - id: radak
+    title: "Radak on Tanakh"
+    hebrew: רד״ק
+    author: "Rabbi David Kimchi"
+    dates: c. 1160-1235
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: targum-yonatan
+    title: "Targum Yonatan on Nevi'im"
+    hebrew: תרגום יונתן
+    author: "Yonatan ben Uziel (attributed)"
+    era: tannaim
+    category: mikra_meforshim
+    kind: targum
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: bartenura
+    title: "Bartenura on the Mishnah"
+    hebrew: ברטנורא
+    author: "Rabbi Ovadia of Bartenura"
+    dates: c. 1445-1515
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The standard commentary printed with the Mishnah.
+
+  - id: tosafot-yom-tov
+    title: "Tosafot Yom Tov on the Mishnah"
+    hebrew: תוספות יום טוב
+    author: "Rabbi Yom Tov Lipmann Heller"
+    dates: 1578-1654
+    era: acharonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: tiferet-yisrael
+    title: "Tiferet Yisrael on the Mishnah"
+    hebrew: תפארת ישראל
+    author: "Rabbi Yisrael Lipschitz"
+    dates: 1782-1860
+    era: acharonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: ein-yaakov
+    title: "Ein Yaakov"
+    hebrew: עין יעקב
+    author: "Rabbi Yaakov ibn Chaviv"
+    dates: c. 1460-1516
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The aggadah of the Talmud, gathered in one work.
+
+  - id: chayei-adam
+    title: "Chayei Adam and Chochmat Adam"
+    hebrew: חיי אדם; חכמת אדם
+    author: "Rabbi Avraham Danzig"
+    dates: 1748-1820
+    era: acharonim
+    category: halacha
+    kind: practical_halacha
+    streams: [shared]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: shut-chasam-sofer
+    title: "Responsa of the Chasam Sofer"
+    hebrew: שו״ת חתם סופר
+    author: "Rabbi Moshe Sofer"
+    dates: 1762-1839
+    era: acharonim
+    category: halacha
+    kind: responsa
+    streams: [shared]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: kli-yakar
+    title: "Kli Yakar on the Torah"
+    hebrew: כלי יקר
+    author: "Rabbi Shlomo Ephraim Luntschitz"
+    dates: 1550-1619
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: A favorite source for divrei Torah.
+
+  - id: haamek-davar
+    title: "Ha'amek Davar on the Torah"
+    hebrew: העמק דבר
+    author: "Rabbi Naftali Tzvi Yehuda Berlin (the Netziv)"
+    dates: 1816-1893
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: meshech-chochmah
+    title: "Meshech Chochmah on the Torah"
+    hebrew: משך חכמה
+    author: "Rabbi Meir Simcha of Dvinsk"
+    dates: 1843-1926
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: sfas-emes
+    title: "Sfas Emes on the Torah"
+    hebrew: שפת אמת
+    author: "Rabbi Yehudah Aryeh Leib Alter of Ger"
+    dates: 1847-1905
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: One of the most learned works of Chassidus on the parsha.
+
+  - id: kedushas-levi
+    title: "Kedushas Levi"
+    hebrew: קדושת לוי
+    author: "Rabbi Levi Yitzchak of Berditchev"
+    dates: 1740-1809
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: noam-elimelech
+    title: "Noam Elimelech"
+    hebrew: נועם אלימלך
+    author: "Rabbi Elimelech of Lizhensk"
+    dates: 1717-1787
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: shem-mishmuel
+    title: "Shem MiShmuel"
+    hebrew: שם משמואל
+    author: "Rabbi Shmuel Bornsztain of Sochatchov"
+    dates: 1855-1926
+    era: contemporary
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: or-yisrael
+    title: "Or Yisrael"
+    hebrew: אור ישראל
+    author: "Rabbi Yisrael Salanter (compiled by Rabbi Yitzchak Blazer)"
+    dates: 1810-1883
+    era: acharonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The letters of the founder of the mussar movement.
+
+  - id: chochmah-umussar
+    title: "Chochmah U'Mussar"
+    hebrew: חכמה ומוסר
+    author: "Rabbi Simcha Zissel Ziv (the Alter of Kelm)"
+    dates: 1824-1898
+    era: acharonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify

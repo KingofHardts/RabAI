@@ -1,0 +1,160 @@
+# Organizations and publishers we want to bring into the library.
+# One entry per conversation. See docs/library-growth.md.
+#
+# status: not_contacted | contacted | in_talks | agreed | declined
+# kind:   organization (divrei Torah, articles, Q&A) | publisher | library (large digital collection)
+# Contact details and agreement terms go in the maintainer's records, not in this public file.
+
+partners:
+
+  - id: aish
+    name: Aish
+    kind: organization
+    offers: Articles, divrei Torah, 48 Ways, kiruv material
+    streams: [kiruv, litvish]
+    status: not_contacted
+    notes: Start here, through Josh's connection.
+
+  - id: chabad-org
+    name: Chabad.org
+    kind: organization
+    offers: Articles, Q&A, Chumash with Rashi, Rambam, Tanya
+    streams: [chabad, chassidish]
+    status: not_contacted
+
+  - id: ou-torah
+    name: OU Torah
+    kind: organization
+    offers: Divrei Torah, articles, halacha
+    streams: [modern_orthodox]
+    status: not_contacted
+
+  - id: torah-org
+    name: Torah.org
+    kind: organization
+    offers: Weekly divrei Torah and classes
+    streams: [shared]
+    status: not_contacted
+
+  - id: ohr-somayach
+    name: Ohr Somayach
+    kind: organization
+    offers: Divrei Torah, Q&A, kiruv material
+    streams: [kiruv, litvish]
+    status: not_contacted
+
+  - id: yutorah
+    name: YUTorah
+    kind: organization
+    offers: Recorded shiurim and written divrei Torah
+    streams: [modern_orthodox]
+    status: not_contacted
+    notes: Mostly audio. Transcripts need each speaker's permission.
+
+  - id: yeshiva-org-il
+    name: Yeshiva.org.il
+    kind: organization
+    offers: Ask-the-rabbi archive, articles
+    streams: [religious_zionist]
+    status: not_contacted
+
+  - id: peninei-halakha
+    name: Peninei Halakha
+    kind: organization
+    offers: The Peninei Halakha series, Hebrew and English
+    streams: [religious_zionist]
+    status: not_contacted
+
+  - id: rabbi-sacks-legacy
+    name: The Rabbi Sacks Legacy
+    kind: organization
+    offers: Covenant & Conversation and other essays
+    streams: [modern_orthodox]
+    status: not_contacted
+
+  - id: koren
+    name: Koren / Maggid
+    kind: publisher
+    offers: Koren Tanakh, Steinsaltz Talmud and Mishnah, Rav Kook and Rav Soloveitchik translations
+    streams: [shared]
+    status: not_contacted
+    notes: A reasonable first publisher, since it already licenses its Talmud to Sefaria.
+
+  - id: artscroll
+    name: ArtScroll / Mesorah
+    kind: publisher
+    offers: Stone Tanach, Schottenstein Talmud, Kleinman Midrash, Sapirstein Rashi, siddur
+    streams: [shared]
+    status: not_contacted
+
+  - id: feldheim
+    name: Feldheim
+    kind: publisher
+    offers: Translations of mussar, hashkafah and halacha classics
+    streams: [shared]
+    status: not_contacted
+
+  - id: kehot
+    name: Kehot
+    kind: publisher
+    offers: Tanya and Chabad works in English
+    streams: [chabad, chassidish]
+    status: not_contacted
+
+  - id: moznaim
+    name: Moznaim
+    kind: publisher
+    offers: Rambam (Touger), The Living Torah, Rav Aryeh Kaplan
+    streams: [shared]
+    status: not_contacted
+
+  - id: mossad-harav-kook
+    name: Mossad HaRav Kook
+    kind: publisher
+    offers: Critical Hebrew editions of Rishonim, Da'at Mikra, Rav Kafih's Rambam
+    streams: [shared]
+    status: not_contacted
+
+  - id: sefaria
+    name: Sefaria
+    kind: library
+    offers: Open digital texts with per-text licenses, and an API
+    streams: [shared]
+    status: not_contacted
+    notes: Use only individually whitelisted Orthodox editions. Never import whole collections.
+
+  - id: bar-ilan-responsa
+    name: Bar-Ilan Responsa Project
+    kind: library
+    offers: A large database of responsa and classic texts
+    streams: [shared]
+    status: not_contacted
+
+  - id: otzar-hachochma
+    name: Otzar HaChochma
+    kind: library
+    offers: A very large library of scanned seforim
+    streams: [shared]
+    status: not_contacted
+
+  - id: hebrewbooks
+    name: HebrewBooks.org
+    kind: library
+    offers: Scans of public-domain seforim
+    streams: [shared]
+    status: not_contacted
+    notes: Scans need OCR and proofreading.
+
+  - id: alhatorah
+    name: AlHaTorah
+    kind: library
+    offers: Digital Mikraot Gedolot and parshanut tools
+    streams: [shared]
+    status: not_contacted
+
+  - id: dicta
+    name: Dicta
+    kind: library
+    offers: Hebrew text tools (for example, adding nikud and finding citations)
+    streams: [shared]
+    status: not_contacted
