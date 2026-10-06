@@ -48,6 +48,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   (`.github/workflows/validate.yml`).
 - **Vercel:** project `rab-ai` on the maintainer's personal Vercel account
   (`joshsgerhardt-5492`, Hobby plan), Root Directory `web`. Every push to `main` deploys.
+  The live address is https://rab-ai-ecru.vercel.app.
 - **Settings in Vercel:** `ANTHROPIC_API_KEY` and `RABAI_ACCESS_CODE` are required. The
   optional ones are listed in `web/README.md`. Never print, log, or commit their values, and
   never ask anyone to paste a key or code into a chat.
@@ -58,6 +59,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   rules here.
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
+
+## Pinned for later (2026-10-06)
+
+The maintainer will finish this setup on a computer and wants exact, step-by-step directions
+then:
+
+- Give RabAI its own Claude Code cloud environment, started from this repo, so sessions load
+  only RabAI's rules. Under Network access, add `rab-ai-ecru.vercel.app` so the live site can
+  be tested.
+- Connect the Vercel connector to the personal Vercel account, unless doing so would remove
+  Senior Stylist's Vercel connection.
+- The repo stays public; the maintainer is fine with that.
 
 ## Writing style for anything a user or a rav will read
 
