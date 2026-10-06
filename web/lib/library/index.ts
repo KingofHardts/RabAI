@@ -1,4 +1,5 @@
 import { DEV_PASSAGES, DEV_WORKS } from "./dev-library";
+import { testingDbUrl } from "./testing-config";
 import type { Passage, Work } from "./types";
 
 export type { Passage, Work } from "./types";
@@ -7,13 +8,18 @@ export type { Passage, Work } from "./types";
  * Which texts the app may use.
  *
  * - "development": the team's typed texts, for building and testing only.
+ * - "testing": the private testing library (tools/validate.py --testing, built into a database by
+ *   tools/library_build.py): published Orthodox editions not yet approved by the board. Used
+ *   whenever its database is configured, unless RABAI_LIBRARY says otherwise. Never public.
  * - "approved": only works and editions the rabbinic board has approved and whose licenses are
  *   cleared (canon/canon.yaml + tools/validate.py --whitelist). Empty until the board approves.
  */
-export type LibraryMode = "development" | "approved";
+export type LibraryMode = "development" | "testing" | "approved";
 
-export function libraryMode(): LibraryMode {
-  return process.env.RABAI_LIBRARY === "approved" ? "approved" : "development";
+export function libraryMode(env: Record<string, string | undefined> = process.env): LibraryMode {
+  if (env.RABAI_LIBRARY === "approved") return "approved";
+  if (env.RABAI_LIBRARY === "development") return "development";
+  return testingDbUrl(env) ? "testing" : "development";
 }
 
 export interface Library {
@@ -22,8 +28,14 @@ export interface Library {
   passages: Passage[];
 }
 
+/**
+ * The texts held in memory. In testing mode they live in the database instead
+ * (lib/library/testing.ts), so this is empty.
+ */
 export function loadLibrary(mode: LibraryMode = libraryMode()): Library {
-  const works = DEV_WORKS.filter((w) => (mode === "approved" ? w.library === "approved" : true));
+  const works = DEV_WORKS.filter((w) =>
+    mode === "approved" ? w.library === "approved" : mode === "testing" ? false : true,
+  );
   const ids = new Set(works.map((w) => w.id));
   const passages = DEV_PASSAGES.filter((p) => ids.has(p.work));
   return { mode, works, passages };

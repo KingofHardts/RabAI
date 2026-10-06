@@ -31,13 +31,25 @@ ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 QUESTION_ID_RE = re.compile(r"^T\d{2,3}$")
 LANGUAGES = {"he", "en"}
 ORTHODOX_VALUES = {True, False, "review"}
-SEFARIA_KEYS = {"re", "root", "cat"}
+# How a work names its titles in Sefaria's table of contents (see tools/sefaria_lib.py).
+SEFARIA_KEYS = {"re", "not", "root", "cat", "under"}
 # Licenses (as Sefaria writes them, normalized) that allow private, non-commercial testing.
-TESTING_LICENSES = {"publicdomain", "cc0", "ccby", "ccbysa", "ccbync", "ccbyncsa"}
+TESTING_LICENSES = {"publicdomain", "pd", "cc0", "ccby", "ccbysa", "ccbync", "ccbyncsa"}
 
 
 def norm_license(value) -> str:
     return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
+
+
+def licenses_open(value) -> bool:
+    """A recorded license; several may be joined with '/' when titles differ."""
+    parts = [p for p in str(value or "").split("/") if p.strip()]
+    return bool(parts) and all(norm_license(p) in TESTING_LICENSES for p in parts)
+
+
+def version_key(name) -> str:
+    """Sefaria's export drops some punctuation from version names, so compare loosely."""
+    return re.sub(r"[\W_]+", "", str(name).lower())
 
 errors: list[str] = []
 
@@ -100,8 +112,15 @@ def check_canon(vocab: dict, canon: dict) -> dict:
         if sefaria is not None:
             if not isinstance(sefaria, dict) or not (set(sefaria) <= SEFARIA_KEYS):
                 fail(f"{where}: sefaria may only have the keys {sorted(SEFARIA_KEYS)}")
-            elif not (sefaria.get("re") or sefaria.get("cat")):
-                fail(f"{where}: sefaria needs 're' or 'cat'")
+            elif not (sefaria.get("re") or sefaria.get("cat") or sefaria.get("under")):
+                fail(f"{where}: sefaria needs 're', 'cat' or 'under'")
+            else:
+                for field in ("re", "not"):
+                    if sefaria.get(field):
+                        try:
+                            re.compile(sefaria[field])
+                        except re.error as e:
+                            fail(f"{where}: sefaria {field} is not a valid pattern ({e})")
 
         editions = work.get("editions") or []
         if not editions:
@@ -115,10 +134,23 @@ def check_canon(vocab: dict, canon: dict) -> dict:
             check_value(ewhere, "status", edition.get("status"), vocab["status"])
             check_value(ewhere, "license", edition.get("license"), vocab["license"])
             check_approval(ewhere, edition)
-            if edition.get("sefaria_version") and not work.get("sefaria"):
-                fail(f"{ewhere}: has sefaria_version but the work has no sefaria titles")
-            if edition.get("sefaria_version") and not edition.get("sefaria_license"):
-                fail(f"{ewhere}: record the sefaria_license that Sefaria lists for this version")
+            versions = edition.get("sefaria_versions")
+            if versions is not None:
+                if not work.get("sefaria"):
+                    fail(f"{ewhere}: lists sefaria_versions but the work has no sefaria titles")
+                if not isinstance(versions, list) or not versions:
+                    fail(f"{ewhere}: sefaria_versions must be a non-empty list")
+                    versions = []
+                seen_versions = set()
+                for v in versions:
+                    if not isinstance(v, dict) or not v.get("version") or set(v) - {"version", "license", "note"}:
+                        fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have 'note')")
+                        continue
+                    if version_key(v["version"]) in seen_versions:
+                        fail(f"{ewhere}: version '{v['version']}' is listed twice")
+                    seen_versions.add(version_key(v["version"]))
+                    if not licenses_open(v.get("license")):
+                        fail(f"{ewhere}: version '{v['version']}' has license '{v.get('license')}', which does not allow testing; leave it out")
             if edition.get("status") == "approved":
                 if edition.get("orthodox") is not True:
                     fail(f"{ewhere}: only editions marked orthodox: true can be approved")
@@ -147,11 +179,12 @@ def check_excluded(excluded: dict, canon_ids: dict) -> set:
         if not isinstance(item.get("board_may_reconsider"), bool):
             fail(f"{where}: board_may_reconsider must be true or false")
         for version in item.get("sefaria_versions") or []:
-            barred.add(version)
+            barred.add(version_key(version))
     for wid, work in canon_ids.items():
         for edition in work.get("editions") or []:
-            if edition.get("sefaria_version") in barred:
-                fail(f"canon.yaml work {wid}: edition '{edition.get('name')}' uses an excluded Sefaria version")
+            for v in edition.get("sefaria_versions") or []:
+                if isinstance(v, dict) and version_key(v.get("version")) in barred:
+                    fail(f"canon.yaml work {wid}: edition '{edition.get('name')}' uses the excluded Sefaria version '{v.get('version')}'")
     return barred
 
 
@@ -243,13 +276,14 @@ def testing(canon_ids: dict, barred: set) -> list:
         if work.get("status") not in ("draft", "proposed", "approved") or not work.get("sefaria"):
             continue
         for edition in work.get("editions") or []:
+            versions = [v for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)]
             if (
                 edition.get("orthodox") is True
                 and edition.get("license") in ("verify", "cleared")
                 and edition.get("status") != "excluded"
-                and edition.get("sefaria_version")
-                and edition.get("sefaria_version") not in barred
-                and norm_license(edition.get("sefaria_license")) in TESTING_LICENSES
+                and versions
+                and all(version_key(v.get("version")) not in barred for v in versions)
+                and all(licenses_open(v.get("license")) for v in versions)
             ):
                 entries.append(
                     {
@@ -258,8 +292,7 @@ def testing(canon_ids: dict, barred: set) -> list:
                         "edition": edition.get("name"),
                         "language": edition.get("language"),
                         "sefaria": work.get("sefaria"),
-                        "sefaria_version": edition.get("sefaria_version"),
-                        "sefaria_license": edition.get("sefaria_license"),
+                        "sefaria_versions": versions,
                         "approved": work.get("status") == "approved" and edition.get("status") == "approved",
                         "category": work.get("category"),
                         "streams": work.get("streams"),

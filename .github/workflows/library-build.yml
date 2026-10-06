@@ -1,0 +1,48 @@
+name: Build the testing library
+
+# Builds the private testing library (tools/library_plan.py, then tools/library_build.py) from
+# the editions canon/canon.yaml maps to open-license Sefaria versions, and uploads it to Turso
+# (tools/library_upload.py). Run it by hand: Actions, "Build the testing library", Run workflow.
+#
+# The built file is never kept as an artifact: artifacts of a public repository can be
+# downloaded by anyone, and the testing library stays private.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload to Turso when the build finishes"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: library-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Check the canon
+        run: python3 tools/validate.py
+      - name: Plan the library (licenses checked file by file)
+        run: python3 tools/library_plan.py
+      - name: Build the library
+        run: python3 tools/library_build.py
+      - name: Upload to Turso
+        if: ${{ inputs.upload }}
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: python3 tools/library_upload.py

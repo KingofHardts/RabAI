@@ -93,6 +93,19 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
 
   `python3 tools/validate.py --testing` prints the list. The public app (`RABAI_LIBRARY=approved`)
   reads only the whitelist.
+
+  How it is built (2026-10-06): each edition in the list names its exact Sefaria version
+  (`sefaria_versions` in `canon.yaml`), and `excluded.yaml` names the versions that are barred.
+  `tools/library_plan.py` reads Sefaria's public export and keeps a file only when its own
+  license is open, its language and version name match, and it is not barred.
+  `tools/library_build.py` turns those files into one database with a search index and
+  Sefaria's cross-references (only where both ends are in the library). The database is hosted
+  privately (Turso) and read only by the locked app. It is never published, never committed, and
+  never kept as a public build artifact.
+
+  Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
+  reference point for what is good and true. That guides judgment calls; their own content
+  still enters only with their written permission.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.

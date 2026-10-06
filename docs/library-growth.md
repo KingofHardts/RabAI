@@ -127,7 +127,9 @@ content from anyone the board has not approved.
 ## Next steps
 
 1. Board approves the first editions of the public-domain core.
-2. Write the import script that pulls those editions, with their license details, into the
-   library (it runs in GitHub Actions, which can reach Sefaria's API).
+2. Import those editions with their license details. The tools exist: the private testing
+   library is built from Sefaria's public export by `tools/library_plan.py` and
+   `tools/library_build.py` (GitHub Actions, "Build the testing library"), and the approved
+   library will use the same tools on the whitelist.
 3. Contact Aish about divrei Torah and articles.
 4. Contact one publisher about an English translation.

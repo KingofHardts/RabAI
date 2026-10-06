@@ -5,6 +5,8 @@ import { mapAnswer, answerText, type AnswerBlock, type AnswerSource } from "./ci
 import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from "./safety";
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
+import { testingStore, type TestingStore } from "../library/testing";
+import { retrieveFromTesting } from "./lookup";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -43,6 +45,8 @@ export interface AskResult {
   model?: string;
   /** A short message for the person when there is no answer. */
   notice?: string;
+  /** In the testing library: the places the lookup step chose to open. */
+  lookedUp?: string[];
 }
 
 /** The one call the engine makes. Injected so tests never touch the network. */
@@ -92,6 +96,10 @@ Sources:
   quote a translation that is not in a document.
 - Some documents are marked as development texts. Quote and cite them normally; the app labels
   them for the person.
+- Documents from the private testing library are published Orthodox editions that the rabbinic
+  board has not yet approved. Quote and cite them normally; the app labels them for the person.
+  When a document has no English, translate the words you use yourself and say that the
+  translation is yours.
 
 Shape of an answer:
 - Start with a short, warm, direct answer. Then the sources and the reasoning, step by step.
@@ -142,10 +150,24 @@ export const LIMITS = {
 // The engine
 
 export function documentText(passage: Passage): string {
-  return `${passage.he}\n\n${passage.en}`;
+  return [passage.he, passage.en].filter((t) => t.trim()).join("\n\n");
+}
+
+function testingContext(passage: Passage): string {
+  const s = passage.source!;
+  const parts = [
+    `Work: ${s.workTitle} (${s.book}).`,
+    / on /.test(s.book) ? "This is a commentary." : "",
+    "From the private testing library: a published Orthodox edition, not yet approved by the rabbinic board.",
+    s.heEdition ? `Original text: ${s.heEdition}.` : "",
+    s.enEdition ? `English: ${s.enEdition}.` : "There is no English translation of this passage in the library.",
+    s.heEdition && s.enEdition ? "The first part is the original text; the second is the English translation." : "",
+  ];
+  return parts.filter(Boolean).join(" ");
 }
 
 function documentContext(passage: Passage, lib: Library): string {
+  if (passage.source?.library === "testing") return testingContext(passage);
   const work = getWork(lib, passage.work);
   const parts = [
     `Work: ${work?.title ?? passage.work}${work?.author ? ` (${work.author})` : ""}.`,
@@ -201,23 +223,34 @@ export interface RequestPlan {
   documentTexts: string[];
 }
 
-export function planRequest(input: AskInput, lib: Library, config = engineConfig()): RequestPlan {
+/** What to search with: the question and the last thing the person said before it, so a
+ * follow-up like "and what does the Ramban say?" still finds the right text. */
+export function searchQuery(input: AskInput): string {
+  const history = (input.history ?? []).slice(-LIMITS.historyTurns);
+  const lastUser = [...history].reverse().find((t) => t.role === "user")?.text ?? "";
+  return `${buildQuestion(input)}\n${lastUser}`.trim();
+}
+
+/**
+ * @param retrieved Passages already found in the testing library. Without them, the in-memory
+ *   library is searched.
+ */
+export function planRequest(input: AskInput, lib: Library, config = engineConfig(), retrieved?: Passage[]): RequestPlan {
   const question = buildQuestion(input);
   const history = (input.history ?? []).slice(-LIMITS.historyTurns);
-
-  // Search with the question and the last thing the person said before it, so a follow-up
-  // like "and what does the Ramban say?" still finds the right text.
   const lastUser = [...history].reverse().find((t) => t.role === "user")?.text ?? "";
-  const query = `${question}\n${lastUser}`;
+  const query = searchQuery(input);
   // For a word question, every place its root appears in the library comes along, so RabAI can
   // show real connections and cite them.
-  const connections = input.action === "word" && input.word ? connectionsFor(lib, input.word) : null;
+  const connections = !retrieved && input.action === "word" && input.word ? connectionsFor(lib, input.word) : null;
   const related = connections?.passages ?? [];
-  const documents = search(lib, query, {
-    focusRef: input.focusRef,
-    includeRefs: related.map((p) => p.ref),
-    limit: LIMITS.passages,
-  });
+  const documents =
+    retrieved ??
+    search(lib, query, {
+      focusRef: input.focusRef,
+      includeRefs: related.map((p) => p.ref),
+      limit: LIMITS.passages,
+    });
   const documentTexts = documents.map(documentText);
 
   const safety = checkSafety(`${input.question}\n${lastUser}`);
@@ -225,9 +258,14 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
     `Growth help: ${input.growth ? "on" : "off"}.`,
     lib.mode === "development"
       ? "Library: development. The texts are the team's working copies, for building and testing."
-      : "Library: approved editions.",
+      : lib.mode === "testing"
+        ? "Library: the private testing library. Published Orthodox editions, not yet approved by the rabbinic board."
+        : "Library: approved editions.",
     documents.length === 0 ? "No passages were found in the library for this question." : "",
     connections && input.word ? wordStudyNote(input.word, input.focusRef, connections.label, related, documents) : "",
+    retrieved && input.action === "word" && input.word
+      ? `Word study: the person asked about ${input.word}${input.focusRef ? ` in ${input.focusRef}` : ""}. Other passages that contain this exact word were searched for and are attached if found; the library has no root index yet, so do not claim other places its root appears.`
+      : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
   ]
     .filter(Boolean)
@@ -281,10 +319,53 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
   return { params, documents, documentTexts };
 }
 
-export async function ask(input: AskInput, client: ModelClient | null, lib = loadLibrary()): Promise<AskResult> {
+export async function ask(
+  input: AskInput,
+  client: ModelClient | null,
+  lib = loadLibrary(),
+  store: TestingStore | null = lib.mode === "testing" ? testingStore() : null,
+): Promise<AskResult> {
   const safety = checkSafety(`${input.question}\n${(input.history ?? []).filter((t) => t.role === "user").slice(-1)[0]?.text ?? ""}`);
   const notice = safety.concern ? safetyNotice(safety.concern) : null;
-  const plan = planRequest(input, lib);
+
+  let retrieved: Passage[] | undefined;
+  let lookedUp: string[] | undefined;
+  if (lib.mode === "testing") {
+    if (!store) {
+      return {
+        status: "error",
+        blocks: [],
+        sources: [],
+        retrieved: [],
+        safety: notice,
+        libraryMode: lib.mode,
+        droppedCitations: 0,
+        notice: "RabAI can't reach its library right now. Please try again in a moment.",
+      };
+    }
+    try {
+      const found = await retrieveFromTesting(searchQuery(input), store, client, {
+        focusRef: input.focusRef,
+        extraPhrases: input.action === "word" && input.word ? [input.word] : [],
+      });
+      retrieved = found.documents;
+      lookedUp = found.plan.refs;
+    } catch (err) {
+      console.error("[rabai] library lookup failed:", err instanceof Error ? err.message : err);
+      return {
+        status: "error",
+        blocks: [],
+        sources: [],
+        retrieved: [],
+        safety: notice,
+        libraryMode: lib.mode,
+        droppedCitations: 0,
+        notice: "RabAI couldn't search its library just now. Please try again in a moment.",
+      };
+    }
+  }
+
+  const plan = planRequest(input, lib, engineConfig(), retrieved);
   const base = {
     blocks: [] as AnswerBlock[],
     sources: [] as AnswerSource[],
@@ -292,6 +373,7 @@ export async function ask(input: AskInput, client: ModelClient | null, lib = loa
     safety: notice,
     libraryMode: lib.mode,
     droppedCitations: 0,
+    ...(lookedUp ? { lookedUp } : {}),
   };
 
   if (!client) {

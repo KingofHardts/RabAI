@@ -36,6 +36,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   edition. Approved texts come from the whitelist import.
 - `web/lib/library/dev-lexicon.ts` holds the team's word notes for testing. Never type where a
   word appears; those connections are computed from the library (`language.ts`).
+- The private testing library (`web/lib/library/testing.ts`) is one database built by
+  `tools/library_plan.py` and `tools/library_build.py` from the editions in
+  `python3 tools/validate.py --testing`. Its schema is `tools/library_schema.sql`; keep the
+  builder and the reader in step with it. Every passage it returns carries
+  `source.library: "testing"`, and the app labels it "not yet approved by the rabbinic board"
+  wherever it appears. Never make the built file public: no commits, no build artifacts.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it.
@@ -53,8 +59,14 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   (`joshsgerhardt-5492`, Hobby plan), Root Directory `web`. Every push to `main` deploys.
   The live address is https://rab-ai-ecru.vercel.app.
 - **Settings in Vercel:** `ANTHROPIC_API_KEY` and `RABAI_ACCESS_CODE` are required. The
-  optional ones are listed in `web/README.md`. Never print, log, or commit their values, and
+  optional ones are listed in `web/README.md`, including `TURSO_DATABASE_URL` and
+  `TURSO_AUTH_TOKEN` for the testing library. Never print, log, or commit their values, and
   never ask anyone to paste a key or code into a chat.
+- **The testing library's hosting:** the "Build the testing library" workflow
+  (`.github/workflows/library-build.yml`, run by hand) builds it and uploads it to Turso with
+  `tools/library_upload.py`, using the repo secrets `TURSO_API_TOKEN` and, optionally,
+  `VERCEL_TOKEN` and `TURSO_ORG`. The repo is public, so its Actions logs are public: mask any
+  token made during a run (`::add-mask::`) and never echo one.
 - **Checking a deploy:** Vercel reports each deploy on its commit
   (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
   Build and runtime logs need a Vercel connection to the maintainer's personal account.

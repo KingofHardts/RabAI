@@ -2,7 +2,8 @@
 export type TranslationStatus =
   | "approved" // an approved, license-cleared published translation
   | "rabai" // RabAI's own translation, labeled as such wherever it appears
-  | "development"; // a placeholder typed by the team while building; never shipped publicly
+  | "development" // a placeholder typed by the team while building; never shipped publicly
+  | "testing"; // a published translation in the private testing library, not yet approved by the board
 
 export interface Work {
   /** Id used by passages, e.g. "bereishit" or "rashi-bereishit". */
@@ -16,8 +17,12 @@ export interface Work {
   /** The edition of the Hebrew or Aramaic text. */
   edition: string;
   translation: { by: string; status: TranslationStatus };
-  /** "development" texts are for building and testing only, never for a public launch. */
-  library: "development" | "approved";
+  /**
+   * "development" texts are typed by the team for building. "testing" texts come from the
+   * private testing library (published editions not yet approved by the board). Neither is
+   * ever part of a public launch.
+   */
+  library: "development" | "approved" | "testing";
   /** Other names people use for this work, to help search. */
   aliases?: string[];
 }
@@ -40,4 +45,21 @@ export interface Passage {
   on?: string;
   /** Extra search words (development library only, until real search arrives). */
   keywords?: string[];
+  /** Where a testing-library passage came from: the canon editions and Sefaria versions. */
+  source?: PassageSource;
+}
+
+export interface PassageSource {
+  library: "testing";
+  /** The canon work id, e.g. "rashi-tanakh". */
+  canonId: string;
+  workTitle: string;
+  /** The book within the work, as Sefaria names it, e.g. "Rashi on Genesis". */
+  book: string;
+  bookHe?: string;
+  heEdition?: string;
+  heVersion?: string;
+  enEdition?: string;
+  enVersion?: string;
+  licenses: string[];
 }

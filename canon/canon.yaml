@@ -28,6 +28,8 @@ works:
     kind: text
     streams: [shared]
     status: draft
+    sefaria:
+      cat: [["Tanakh", "Torah"], ["Tanakh", "Prophets"], ["Tanakh", "Writings"]]
     editions:
       - name: Masoretic text, Hebrew (Koren / Breuer edition, based on the Aleppo Codex)
         language: he
@@ -38,16 +40,22 @@ works:
       - name: Miqra according to the Masorah (digital Hebrew text on Sefaria)
         language: he
         publisher: MAM project
-        orthodox: review
+        orthodox: true
         status: draft
         license: verify
-        notes: Open digital Hebrew text. Check the license and that the text matches the Breuer edition.
+        notes: "Open digital Hebrew text (Wikisource, CC-BY-SA). It follows the Aleppo Codex, filling its gaps by Rav Mordechai Breuer's method, the text Koren prints. The board confirms."
+        sefaria_versions:
+          - version: "Miqra according to the Masorah"
+            license: "CC-BY-SA"
       - name: The Koren Jerusalem Bible (Harold Fisch)
         language: en
         publisher: Koren
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "The Koren Jerusalem Bible"
+            license: "CC-BY-NC"
       - name: The Stone Edition Tanach
         language: en
         publisher: ArtScroll/Mesorah
@@ -66,6 +74,31 @@ works:
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Metsudah Chumash and Tanach series, translated by Rabbi Avrohom Davis"
+        language: en
+        publisher: "Metsudah"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Metsudah Chumash, Metsudah Publications, 2009"
+            license: "CC-BY"
+          - version: "The Metsudah Tanach series, Lakewood, N.J"
+            license: "CC-BY"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "The Metsudah Five Megillot, Lakewood, N.J., 2001"
+            license: "CC-BY"
+      - name: "Tanakh according to Rashi, translated by Rabbi Shraga Silverstein"
+        language: en
+        publisher: "Feldheim (Sefaria digital edition)"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "The Rashi chumash by Rabbi Shraga Silverstein"
+            license: "CC-BY"
+          - version: "The Rashi Ketuvim by Rabbi Shraga Silverstein"
+            license: "CC-BY"
 
   - id: rashi-tanakh
     title: Rashi on Tanakh
@@ -78,12 +111,26 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Rashi on "
+      root: "Tanakh"
     editions:
       - name: Hebrew text, standard Mikraot Gedolot
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "On Your Way"
+            license: "Public Domain"
+          - version: "On Your Way -- new"
+            license: "Public Domain"
+          - version: "Pentateuch with Rashi's commentary by M. Rosenbaum and A.M. Silbermann, 1929-1934"
+            license: "Public Domain"
+          - version: "Rashi Chumash, Metsudah Publications, 2009"
+            license: "CC-BY"
+          - version: "The Metsudah Five Megillot, Lakewood, N.J., 2001"
+            license: "CC-BY"
       - name: Pentateuch with Rashi, translated by M. Rosenbaum and A. M. Silbermann (1929-34)
         language: en
         publisher: Silbermann
@@ -91,18 +138,37 @@ works:
         status: draft
         license: verify
         notes: Possibly public domain. Hosted on Sefaria. Confirm.
+        sefaria_versions:
+          - version: "Pentateuch with Rashi's commentary by M. Rosenbaum and A.M. Silbermann, 1929-1934"
+            license: "Public Domain"
       - name: Metsudah Chumash/Rashi
         language: en
         publisher: Metsudah
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Rashi Chumash, Metsudah Publications, 2009"
+            license: "CC-BY"
+          - version: "The Metsudah Tanach series, Lakewood, N.J"
+            license: "CC-BY"
+          - version: "The Metsudah Five Megillot, Lakewood, N.J., 2001"
+            license: "CC-BY"
       - name: Sapirstein Edition Rashi
         language: en
         publisher: ArtScroll/Mesorah
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Rashi on Nach, translated by Rabbi A. J. Rosenberg"
+        language: en
+        publisher: "Judaica Press"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "The Judaica Press complete Tanach with Rashi, translated by A. J. Rosenberg"
+            license: "CC-BY"
 
   - id: ramban-torah
     title: Ramban on the Torah
@@ -115,6 +181,8 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Ramban on (Genesis|Exodus|Leviticus|Numbers|Deuteronomy)$"
     editions:
       - name: Hebrew text (Chavel edition)
         language: he
@@ -128,6 +196,24 @@ works:
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Commentary on the Torah by Ramban (Nachmanides). Translated and annotated by Charles B. Chavel. New York, Shilo Pub. House, 1971-1976"
+            license: "CC-BY"
+      - name: "Hebrew text, standard (digital editions on Sefaria)"
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Vocalized Edition"
+            license: "CC-BY / Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "On Your Way"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "On Your Way New"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
 
   - id: ibn-ezra-tanakh
     title: Ibn Ezra on Tanakh
@@ -140,12 +226,58 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Ibn Ezra on "
+      root: "Tanakh"
     editions:
       - name: Hebrew text, standard Mikraot Gedolot
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "On Your Way"
+            license: "Public Domain"
+          - version: "Piotrkow, 1907-1911"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Hosea -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Joel -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Amos -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Obadiah -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Jonah -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Micah -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Nahum -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Habakkuk -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Zephaniah -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Haggai -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Zecharia -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Malachi -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Psalms -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Proverbs -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Job -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Ruth -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Daniel - Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Ezra -- Daat"
+            license: "Public Domain"
+          - version: "Ibn Ezra on Nehemiah -- Daat"
+            license: "Public Domain"
       - name: Ibn Ezra's Commentary on the Pentateuch, translated by H. Norman Strickman and Arthur M. Silver
         language: en
         publisher: Menorah
@@ -168,18 +300,36 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Sforno on "
+      root: "Tanakh"
     editions:
       - name: Hebrew text, standard Mikraot Gedolot
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vocalized Edition"
+            license: "Public Domain"
+            note: "Some titles carry another license (None); those files are skipped."
+          - version: "On Your Way"
+            license: "Public Domain"
       - name: Sforno, translated by Rabbi Raphael Pelcovitz
         language: en
         publisher: ArtScroll/Mesorah
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Sforno, translated by Rabbi Eliyahu Munk (HaChut HaMeshulash)"
+        language: en
+        publisher: "Urim / Lambda"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Eliyahu Munk, HaChut Hameshulash"
+            license: "CC-BY"
 
   - id: ohr-hachaim-torah
     title: Ohr HaChaim on the Torah
@@ -192,18 +342,26 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Or HaChaim on "
     editions:
       - name: Hebrew text, standard Mikraot Gedolot
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vocalized Edition"
+            license: "Public Domain"
       - name: Or HaChayim, translated by Rabbi Eliyahu Munk
         language: en
         publisher: Lambda / Urim (verify)
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Or Hachayim, trans. Eliyahu Munk"
+            license: "CC-BY"
 
   - id: malbim-tanakh
     title: Malbim on Tanakh
@@ -216,12 +374,68 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Malbim on "
+      root: "Tanakh"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Mikraei Kodesh, Vilna, 1891"
+            license: "Public Domain"
+          - version: "Mikraei Kodesh, Vilna, 1891 -- Torah Ohr"
+            license: "Public Domain"
+          - version: "Malbim, Vilna Romm, 1892."
+            license: "Public Domain"
+          - version: "Malbim on Genesis -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Vayikra – Wikisource"
+            license: "Public Domain"
+          - version: "Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Hosea--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Joel--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Amos--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Obadiah--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Jonah--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Micah--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Nahum--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Habakkuk--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Zephaniah--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Haggai--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Zechariah--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Malachi--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Proverbs--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Job -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Song of Songs -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Ruth--Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Daniel -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on Nehemiah -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on I Chronicles -- Wikisource"
+            license: "Public Domain"
+          - version: "Malbim on II Chronicles -- Wikisource"
+            license: "Public Domain"
     notes: >-
       The Malbim wrote largely against the Haskalah's reading of the Torah, which makes him
       directly useful for "other views" questions. English translations are partial; find
@@ -240,6 +454,9 @@ works:
     kind: text
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Mishnah "
+      root: "Mishnah"
     editions:
       - name: Hebrew text, standard (Vilna)
         language: he
@@ -247,6 +464,11 @@ works:
         status: draft
         license: verify
         notes: The printed text is public domain. Check the license of the digital source.
+        sefaria_versions:
+          - version: "Mishnah, ed. Romm, Vilna 1913"
+            license: "Public Domain"
+          - version: "Torat Emet 357"
+            license: "Public Domain"
       - name: Mishnayot Kehati, English
         language: en
         publisher: Maor Wallach
@@ -265,6 +487,25 @@ works:
         orthodox: true
         status: draft
         license: verify
+      - name: "The William Davidson Edition, English (Koren, Rabbi Adin Even-Israel Steinsaltz)"
+        language: en
+        publisher: "Koren"
+        orthodox: true
+        status: draft
+        license: verify
+        notes: "On Sefaria for the tractates that have Gemara. The board confirms it is the Koren Steinsaltz translation."
+        sefaria_versions:
+          - version: "William Davidson Edition - English"
+            license: "CC-BY-NC"
+      - name: "The Mishnah with Bartenura, translated by Rabbi Shraga Silverstein"
+        language: en
+        publisher: "Sefaria digital edition"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "The Mishna with Obadiah Bartenura by Rabbi Shraga Silverstein"
+            license: "CC-BY"
 
   - id: talmud-bavli
     title: Talmud Bavli
@@ -275,6 +516,8 @@ works:
     kind: text
     streams: [shared]
     status: draft
+    sefaria:
+      cat: [["Talmud", "Bavli", "Seder Zeraim"], ["Talmud", "Bavli", "Seder Moed"], ["Talmud", "Bavli", "Seder Nashim"], ["Talmud", "Bavli", "Seder Nezikin"], ["Talmud", "Bavli", "Seder Kodashim"], ["Talmud", "Bavli", "Seder Tahorot"]]
     editions:
       - name: Vilna Shas, Hebrew/Aramaic
         language: he
@@ -282,6 +525,11 @@ works:
         status: draft
         license: verify
         notes: The printed text is public domain. Check the license of the digital source.
+        sefaria_versions:
+          - version: "William Davidson Edition - Aramaic"
+            license: "CC-BY-NC"
+          - version: "Wikisource Talmud Bavli"
+            license: "CC-BY-SA"
       - name: The William Davidson Talmud (Koren Noé, Rabbi Adin Even-Israel Steinsaltz)
         language: en
         publisher: Koren
@@ -289,6 +537,9 @@ works:
         status: draft
         license: verify
         notes: Hosted on Sefaria under a non-commercial license. Commercial use needs a separate agreement.
+        sefaria_versions:
+          - version: "William Davidson Edition - English"
+            license: "CC-BY-NC"
       - name: Schottenstein Edition Talmud
         language: en
         publisher: ArtScroll/Mesorah
@@ -310,6 +561,9 @@ works:
     kind: text
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Jerusalem Talmud "
+      root: "Talmud"
     editions:
       - name: Hebrew/Aramaic text, standard
         language: he
@@ -328,6 +582,13 @@ works:
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Hebrew/Aramaic text edited by Heinrich W. Guggenheimer"
+        language: he
+        publisher: "De Gruyter"
+        orthodox: "review"
+        status: draft
+        license: verify
+        notes: "The only complete open Hebrew text of the Yerushalmi on Sefaria. An academic edition, so held for the board like the same editor's translation."
 
   - id: midrash
     title: Midrash (Midrash Rabbah, Tanchuma, Mechilta, Sifra, Sifrei)
@@ -337,12 +598,36 @@ works:
     kind: text
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^((Bereshit|Shemot|Vayikra|Bamidbar|Devarim|Shir HaShirim|Ruth|Eikhah|Kohelet|Esther) Rabbah|Midrash Tanchuma( Buber)?|Mekhilta DeRabbi (Yishmael|Shimon Ben Yochai)|Sifra|Sifrei (Bamidbar|Devarim))$"
     editions:
       - name: Hebrew texts, standard editions
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Midrash Rabbah -- TE"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "Daat Bereshit Rabbah"
+            license: "Public Domain"
+          - version: "Daat Shemot Rabbah"
+            license: "Public Domain"
+          - version: "Wikisource Bereshit Rabbah"
+            license: "CC-BY-SA"
+          - version: "Midrash Tanchuma -- Torat Emet"
+            license: "Public Domain"
+          - version: "Midrash Tanhuma haKadum veHaYashan, S. Buber, 1885"
+            license: "Public Domain"
+          - version: "Mechilta de-Rabbi Simon b. Jochai, Dr. D. Hoffman, Frankfurt 1905"
+            license: "Public Domain"
+          - version: "Beeri Edition, Koren, Jerusalem, 2019"
+            license: "CC-BY-NC"
+          - version: "Wikisource"
+            license: "CC-BY-SA"
+          - version: "Sifrei Devarim, Hebrew"
+            license: "Public Domain"
       - name: Kleinman Edition Midrash Rabbah
         language: en
         publisher: ArtScroll/Mesorah
@@ -355,6 +640,26 @@ works:
         orthodox: review
         status: draft
         license: verify
+      - name: "Sifra, Sifrei and Mechilta, translated by Rabbi Shraga Silverstein"
+        language: en
+        publisher: "Sefaria digital edition"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Sifra by Rabbi Shraga Silverstein"
+            license: "CC-BY"
+          - version: "Sifrei by Rabbi Shraga Silverstein"
+            license: "CC-BY"
+          - version: "Mechilta, translated by Rabbi Shraga Silverstein"
+            license: "CC-BY"
+      - name: "The Sefaria Midrash Rabbah (2022)"
+        language: en
+        publisher: "Sefaria"
+        orthodox: "review"
+        status: draft
+        license: verify
+        notes: "Sefaria does not name the translators. Held until the board reviews it."
 
   - id: rishonim-shas
     title: Major Rishonim on the Talmud (Rashi, Tosafot, Ramban, Rashba, Ritva, Ran, Meiri)
@@ -364,12 +669,58 @@ works:
     kind: commentary
     streams: [shared]
     status: draft
+    sefaria:
+      under: [["Talmud", "Bavli", "Rishonim on Talmud", "Rashi"], ["Talmud", "Bavli", "Rishonim on Talmud", "Tosafot"], ["Talmud", "Bavli", "Rishonim on Talmud", "Chiddushei Ramban"], ["Talmud", "Bavli", "Rishonim on Talmud", "Rashba"], ["Talmud", "Bavli", "Rishonim on Talmud", "Ritva"], ["Talmud", "Bavli", "Rishonim on Talmud", "Ran"], ["Talmud", "Bavli", "Rishonim on Talmud", "Meiri"]]
     editions:
       - name: Hebrew texts, standard editions
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vilna Edition"
+            license: "CC-BY-SA / Public Domain"
+            note: "Some titles carry another license (None); those files are skipped."
+          - version: "Gerlitz edition, published by Oraita"
+            license: "Public Domain"
+          - version: "Chiddushei HaRamban, Jerusalem 1928-29"
+            license: "Public Domain"
+          - version: "Chiddushei HaRamban,  Prag, 1826 "
+            license: "Public Domain"
+          - version: "Chidushei HaMeiri on Eruvin, Warsaw 1914"
+            license: "Public Domain"
+          - version: "Chidushei HaRashba. Warsaw 1883."
+            license: "Public Domain"
+          - version: "Warsaw, 1861"
+            license: "Public Domain"
+          - version: "Berakhah Meshuleshet, Warsaw, 1863."
+            license: "Public Domain"
+          - version: "Chidushi HaRitva, Amsterdam, 1729"
+            license: "Public Domain"
+          - version: "Chiddushei haRitva, Warsaw 1864"
+            license: "Public Domain"
+          - version: "Chiddushei HaRitva, Konigsberg, 1858."
+            license: "Public Domain"
+          - version: "Chiddushei HaRitva, Berlin, 1860."
+            license: "Public Domain"
+          - version: "Chiddushei HaRashba, Sheva Shitot, Warsaw, 1883."
+            license: "Public Domain"
+          - version: "Kodshei David, Livorno, 1792."
+            license: "Public Domain"
+          - version: "Chidushei HaRitva Yevamot; Lvov, 1861."
+            license: "Public Domain"
+          - version: "Chiddushei haRitva, Munkatch, 1908."
+            license: "Public Domain"
+          - version: "Hamisha Shitot, Sulzbach 1761."
+            license: "Public Domain"
+          - version: "Chiddushei haRitva, Lemberg, 1827"
+            license: "Public Domain"
+          - version: "Orian Tlita'i, Salonika, 1758."
+            license: "Public Domain"
+          - version: "Chiddushei haRitva, Lemberg 1861"
+            license: "Public Domain"
+          - version: "Hidushe ha-Ritba al Nidah; Wien 1868."
+            license: "Public Domain"
     notes: Mostly untranslated. Split into one entry per Rishon if the board wants to approve them separately.
 
   # ---------------------------------------------------------------------------
@@ -388,12 +739,19 @@ works:
     streams: [shared]
     minhag: both
     status: draft
+    sefaria:
+      re: "^Rif "
+      not: " on "
+      under: [["Talmud", "Bavli", "Rishonim on Talmud", "Rif"]]
     editions:
       - name: Hebrew text, standard (printed in the Vilna Shas)
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vilna Edition"
+            license: "Public Domain"
 
   - id: rosh
     title: Rosh (Piskei HaRosh)
@@ -407,12 +765,19 @@ works:
     streams: [shared]
     minhag: both
     status: draft
+    sefaria:
+      re: "^Rosh on "
+      root: "Talmud"
+      under: [["Talmud", "Bavli", "Rishonim on Talmud", "Rosh"]]
     editions:
       - name: Hebrew text, standard (printed in the Vilna Shas)
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vilna Edition"
+            license: "Public Domain"
 
   - id: mishneh-torah
     title: Mishneh Torah
@@ -426,12 +791,23 @@ works:
     streams: [shared]
     minhag: both
     status: draft
+    sefaria:
+      re: "^Mishneh Torah, "
+      root: "Halakhah"
     editions:
       - name: Hebrew text (e.g., the Shabsai Frankel edition, or the standard Vilna text)
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Torat Emet 363"
+            license: "Public Domain"
+          - version: "Torat Emet 370"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "Wikisource Mishneh Torah"
+            license: "CC-BY-SA"
       - name: Mishneh Torah, translated by Rabbi Eliyahu Touger
         language: en
         publisher: Moznaim
@@ -439,6 +815,9 @@ works:
         status: draft
         license: verify
         notes: Published on Chabad.org. Permission needed for our use.
+        sefaria_versions:
+          - version: "Mishneh Torah, trans. by Eliyahu Touger. Jerusalem, Moznaim Pub. c1986-c2007"
+            license: "CC-BY-NC"
 
   - id: tur
     title: Arba'ah Turim
@@ -452,12 +831,27 @@ works:
     streams: [shared]
     minhag: both
     status: draft
+    sefaria:
+      re: "^Tur$"
     editions:
       - name: Hebrew text, standard
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Orach Chaim, Vilna, 1923"
+            license: "Public Domain"
+          - version: "Yoreh Deah, Vilna, 1923"
+            license: "Public Domain"
+          - version: "Even HaEzer, Vilna, 1923"
+            license: "Public Domain"
+          - version: "Choshen Mishpat, Vilna, 1923"
+            license: "Public Domain"
+          - version: "Warsaw 1861"
+            license: "Public Domain"
+          - version: "OnYourWay"
+            license: "Public Domain"
 
   - id: shulchan-aruch
     title: Shulchan Aruch with the glosses of the Rema
@@ -471,12 +865,31 @@ works:
     streams: [shared, sephardi]
     minhag: both
     status: draft
+    sefaria:
+      re: "^Shulchan Arukh, (Orach Chayim|Yoreh De'ah|Even HaEzer|Choshen Mishpat)$"
     editions:
       - name: Hebrew text, standard
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Torat Emet Freeware Shulchan Aruch"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "Torat Emet 363"
+            license: "Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
+          - version: "Torat Emet 357"
+            license: "Public Domain"
+          - version: "Maginei Eretz: Shulchan Aruch Orach Chaim, Lemberg, 1893"
+            license: "Public Domain"
+          - version: "Ashlei Ravrevei: Shulchan Aruch Yoreh Deah, Lemberg, 1888"
+            license: "Public Domain"
+          - version: "Apei Ravrevei: Shulchan Aruch Even HaEzer, Lemberg, 1886"
+            license: "Public Domain"
+          - version: "Shulhan Arukh, Hoshen ha-Mishpat, Lemberg, 1898"
+            license: "Public Domain"
     notes: >-
       Tag every retrieved passage as Mechaber or Rema. The Mechaber is the baseline for
       Sephardi practice. The Rema records Ashkenazi practice.
@@ -493,12 +906,17 @@ works:
     streams: [litvish]
     minhag: ashkenazi
     status: draft
+    sefaria:
+      re: "^Mishnah Berurah$"
     editions:
       - name: Hebrew text, standard
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "On Your Way"
+            license: "Public Domain"
       - name: Mishnah Berurah, English (ed. Rabbi Aharon Feldman)
         language: en
         publisher: Feldheim / Pisgah Foundation
@@ -518,12 +936,23 @@ works:
     streams: [litvish]
     minhag: ashkenazi
     status: draft
+    sefaria:
+      re: "^Arukh HaShulchan$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Aruch HaShulchan, Vilna 1923-29"
+            license: "Public Domain"
+          - version: "Aruch HaShulchan, Choshen Mishpat. Vilna 1923-29"
+            license: "Public Domain"
+          - version: "Arukh HaShulchan, Orach Chayim -- Wikisource"
+            license: "CC-BY-SA"
+          - version: "Arukh HaShulchan, Yoreh De'ah -- Wikisource"
+            license: "CC-BY-SA"
 
   - id: igrot-moshe
     title: Igrot Moshe
@@ -597,12 +1026,18 @@ works:
     kind: philosophy
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Kuzari$"
     editions:
       - name: Hebrew (Ibn Tibbon translation from the Arabic; or Rabbi Yosef Kafih's translation)
         language: he
         orthodox: true
         status: draft
         license: verify
+        notes: "On Sefaria: Rabbi Yehudah ibn Tibbon's translation (Project Ben-Yehuda)."
+        sefaria_versions:
+          - version: "Sefer haKuzari - Project Ben-Yehuda"
+            license: "CC-BY-SA"
       - name: The Kuzari — In Defense of the Despised Faith, translated by Rabbi N. Daniel Korobkin
         language: en
         publisher: Feldheim
@@ -621,18 +1056,28 @@ works:
     kind: mussar
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^Duties of the Heart$"
     editions:
       - name: Hebrew (Ibn Tibbon translation from the Arabic)
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vocalized Edition"
+            license: "Public Domain"
+          - version: "Chovat Halevavot, Warsaw 1875"
+            license: "Public Domain"
       - name: Duties of the Heart, translated by Rabbi Moses Hyamson
         language: en
         publisher: Feldheim
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Duties of the Heart, trans. by Rabbi Moses Hyamson, New York, 1925"
+            license: "Public Domain"
 
   - id: maharal
     title: Works of the Maharal (Gur Aryeh, Netzach Yisrael, Derech Chaim, Tiferet Yisrael, Be'er HaGolah)
@@ -645,12 +1090,31 @@ works:
     kind: philosophy
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^(Gur Aryeh on (Bereishit|Shemot|Vayikra|Bamidbar|Devarim)|Netzach Yisrael|Derekh Chaim|Be'er HaGolah|Gevurot Hashem|Netivot Olam|Ner Mitzvah|Or Chadash|Tiferet Yisrael)$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Gur Aryeh, Machon Yerushalyim, 1989-1995"
+            license: "Public Domain"
+          - version: "Be'er HaGolah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2002"
+            license: "Public Domain"
+          - version: "Gevurot Hashem, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2015-2020"
+            license: "Public Domain"
+          - version: "Ner Mitzvah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2012"
+            license: "Public Domain"
+          - version: "Netivot Olam, Netiv Hateshuva, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 1997"
+            license: "Public Domain"
+          - version: "Netivot Olam, Netiv Hatorah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2012"
+            license: "Public Domain"
+          - version: "Netzach Yisrael, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 1997"
+            license: "Public Domain"
+          - version: "Tiferet Yisrael, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2010"
+            license: "CC-BY-NC"
 
   - id: ramchal
     title: Works of the Ramchal (Mesillat Yesharim, Derech Hashem, Da'at Tevunot)
@@ -663,6 +1127,8 @@ works:
     kind: mussar
     streams: [shared]
     status: draft
+    sefaria:
+      re: "^(Mesillat Yesharim|Derekh Hashem|Da'at Tevunot)$"
     editions:
       - name: Hebrew text
         language: he
@@ -681,6 +1147,26 @@ works:
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Derech Hashem, translated by Rabbi Francis Nataf"
+        language: en
+        publisher: "Sefaria (2019)"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Sefaria Edition 2019, Translated by Rabbi Francis Nataf"
+            license: "CC-BY"
+      - name: "Hebrew text, digital editions on Sefaria"
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+        notes: "Mesillat Yesharim from Sefaria's vocalized edition; Derech Hashem from a manuscript (Ets Haim, 1896)."
+        sefaria_versions:
+          - version: "Sefaria Vocalized Edition"
+            license: "Public Domain"
+          - version: "Handwritten Manuscript EH 47 C 32. 1896"
+            license: "Public Domain"
     notes: The 1936 JPS translation of Mesillat Yesharim is excluded. See excluded.yaml.
 
   - id: nefesh-hachaim
@@ -694,12 +1180,17 @@ works:
     kind: philosophy
     streams: [litvish]
     status: draft
+    sefaria:
+      re: "^Nefesh HaChayim$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Vilna, 1874"
+            license: "Public Domain"
       - name: Nefesh HaChaim, translated by Rabbi Avraham Yaakov Finkel
         language: en
         publisher: Judaica Press (verify)
@@ -718,18 +1209,26 @@ works:
     kind: chassidus
     streams: [chassidish, chabad]
     status: draft
+    sefaria:
+      re: "^Tanya$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Kehot Publication Society"
+            license: "CC-BY-NC"
       - name: Tanya, bilingual edition (trans. Nissan Mindel, Nissan Mangel, Zalman Posner, Jacob Immanuel Schochet)
         language: en
         publisher: Kehot
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Kehot Publication Society (English Translation)"
+            license: "CC-BY-NC"
 
   - id: rav-hirsch
     title: Works of Rav Samson Raphael Hirsch (The Nineteen Letters, Horeb, the Hirsch Chumash, Collected Writings)
@@ -741,6 +1240,8 @@ works:
     kind: philosophy
     streams: [torah_im_derech_eretz]
     status: draft
+    sefaria:
+      re: "^(Horeb|Nineteen Letters|Rav Hirsch on Torah)$"
     editions:
       - name: The Nineteen Letters (ed. Rabbi Joseph Elias)
         language: en
@@ -754,9 +1255,28 @@ works:
         orthodox: true
         status: draft
         license: verify
-      - name: The Hirsch Chumash (trans. Isaac Levy; or the newer Daniel Haberman translation)
+      - name: "The Hirsch Chumash, translated by Isaac Levy"
         language: en
-        publisher: Judaica Press / Feldheim; Koren
+        publisher: Judaica Press
+        orthodox: true
+        status: draft
+        license: verify
+        notes: "Judaica Press, 1989. On Sefaria under CC-BY-NC."
+        sefaria_versions:
+          - version: "The Pentateuch, rendered into English by Isaac Levy. Gateshead; Judaica Press, 1989"
+            license: "CC-BY-NC"
+      - name: "The Nineteen Letters, translated by Rabbi Bernard Drachman (1899)"
+        language: en
+        publisher: "Funk & Wagnalls"
+        orthodox: true
+        status: draft
+        license: verify
+        sefaria_versions:
+          - version: "Bernard Drachman translation, 1899"
+            license: "Public Domain"
+      - name: "The Hirsch Chumash, translated by Rabbi Daniel Haberman"
+        language: en
+        publisher: "Feldheim"
         orthodox: true
         status: draft
         license: needs_agreement
@@ -796,12 +1316,19 @@ works:
     kind: philosophy
     streams: [religious_zionist]
     status: draft
+    sefaria:
+      re: "^(Orot|Orot HaKodesh|Orot HaTeshuvah|Orot HaTorah|Olat Reiyah|Ein Ayah)$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: draft
         license: verify
+        sefaria_versions:
+          - version: "Wikisource"
+            license: "CC-BY-SA"
+          - version: "Orot HaKodesh -- Wikitext"
+            license: "CC-BY-SA"
       - name: Translations by Rabbi Bezalel Naor (e.g., Orot)
         language: en
         publisher: Maggid; Kodesh Press
@@ -893,6 +1420,9 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Rambam on "
+      root: "Mishnah"
     editions:
       - name: Hebrew translation from the Arabic by Rabbi Yosef Kafih
         language: he
@@ -900,6 +1430,15 @@ works:
         orthodox: true
         status: proposed
         license: needs_agreement
+      - name: "Hebrew translation printed in the Vilna Shas"
+        language: he
+        publisher: "Romm, Vilna"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Vilna Edition"
+            license: "Public Domain"
     notes: Strongly recommended. The Thirteen Ikkarim the core premises rely on are stated here.
 
   - id: moreh-nevuchim
@@ -912,8 +1451,10 @@ works:
     kind: philosophy
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Guide for the Perplexed$"
     editions:
-      - name: Hebrew translation by Rabbi Yosef Kafih (or Ibn Tibbon)
+      - name: "Hebrew translation by Rabbi Yosef Kafih"
         language: he
         orthodox: true
         status: proposed
@@ -924,6 +1465,14 @@ works:
         status: proposed
         license: verify
         notes: Possibly public domain. The board decides on the translator.
+      - name: "Hebrew translation by Rabbi Shmuel ibn Tibbon"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Moreh Nevuchim, translated by Ibn Tibon"
+            license: "Public Domain"
     notes: Central to hashkafah, and to questions such as the reasons for korbanot (3:32).
 
   - id: targum-onkelos
@@ -934,12 +1483,36 @@ works:
     kind: targum
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Onkelos (Genesis|Exodus|Leviticus|Numbers|Deuteronomy)$"
     editions:
       - name: Aramaic text, standard Mikraot Gedolot
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Onkelos Genesis"
+            license: "Public Domain"
+          - version: "Onkelos Exodus"
+            license: "Public Domain"
+          - version: "Onkelos Leviticus"
+            license: "Public Domain"
+          - version: "Onkelos Numbers"
+            license: "Public Domain"
+          - version: "Onkelos Deuteronomy"
+            license: "Public Domain"
+          - version: "Targum Onkelos, vocalized according to the Yemenite Taj"
+            license: "CC-BY-SA"
+      - name: "Targum Onkelos in English, from the Metsudah Chumash (2009)"
+        language: en
+        publisher: "Metsudah"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Metsudah Chumash, Metsudah Publications, 2009 [with Onkelos translation]"
+            license: "CC-BY-NC"
 
   - id: sefer-hachinuch
     title: Sefer HaChinuch
@@ -949,12 +1522,23 @@ works:
     kind: philosophy
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Sefer HaChinukh$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+      - name: "Sefer HaChinuch, translated by Rabbi Francis Nataf"
+        language: en
+        publisher: "Sefaria (2018)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer HaChinukh, translated by R. Francis Nataf, Sefaria 2018"
+            license: "CC0"
     notes: Lists all 613 mitzvot with their reasons. Useful for "why do we do this" questions.
 
   - id: iggeret-rav-sherira-gaon
@@ -966,6 +1550,8 @@ works:
     kind: history
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Epistle of Rav Sherira Gaon$"
     editions:
       - name: Hebrew/Aramaic text
         language: he
@@ -1019,18 +1605,34 @@ works:
     streams: [shared]
     minhag: ashkenazi
     status: proposed
+    sefaria:
+      re: "^Kitzur Shulchan Arukh$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Torat Emet 357"
+            license: "Public Domain"
+          - version: "On Your Way"
+            license: "Public Domain"
       - name: Code of Jewish Law, translated by Hyman E. Goldin (1927)
         language: en
         orthodox: review
         status: proposed
         license: verify
         notes: Possibly public domain. Hosted on Sefaria. Some rulings are better taken from later poskim.
+      - name: "Kitzur Shulchan Aruch, translated by Rabbi Avrohom Davis"
+        language: en
+        publisher: "Metsudah (1996)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Kitzur Shulchan Aruch, trans. Rabbi Avrohom Davis, Metsudah Pub., 1996"
+            license: "CC-BY"
 
   - id: shulchan-aruch-harav
     title: Shulchan Aruch HaRav
@@ -1042,12 +1644,19 @@ works:
     streams: [chassidish, chabad]
     minhag: ashkenazi
     status: proposed
+    sefaria:
+      re: "^(Kuntres Acharon on )?Shulchan Arukh HaRav$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Kehot Publication Society"
+            license: "CC-BY-NC"
+          - version: "Vocalized Edition - Kehot Publication Society"
+            license: "CC-BY-NC"
       - name: English translation
         language: en
         publisher: Kehot
@@ -1067,12 +1676,19 @@ works:
     streams: [sephardi]
     minhag: sephardi
     status: proposed
+    sefaria:
+      re: "^Ben Ish Hai$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Ben Ish Chai, Jerusalem, 1898"
+            license: "Public Domain"
+          - version: "Ben Ish Hai -- Wikisource"
+            license: "Public Domain"
 
   - id: kaf-hachaim
     title: Kaf HaChaim
@@ -1085,12 +1701,21 @@ works:
     streams: [sephardi]
     minhag: sephardi
     status: proposed
+    sefaria:
+      re: "^Kaf HaChayim on Shulchan Arukh, (Orach Chayim|Yoreh De'ah)$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Kaf Hachayim, Orach Chayim vol. I-IV, Jerusalem 1910-1933"
+            license: "Public Domain"
+          - version: "Kaf Hachayim, Orach Chayim vol. V-VIII, Jerusalem 1910-1933"
+            license: "Public Domain"
+          - version: "Kaf Hachayim, Yoreh Deah, Jerusalem 1936-1957"
+            license: "Public Domain"
 
   - id: yalkut-yosef
     title: Yalkut Yosef
@@ -1162,12 +1787,30 @@ works:
     streams: [religious_zionist]
     minhag: both
     status: proposed
+    sefaria:
+      re: "^Peninei Halakhah"
     editions:
-      - name: Hebrew and English texts
-        language: he
+      - name: "Peninei Halakha, English edition"
+        language: en
+        publisher: "Yeshivat Har Bracha"
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Peninei Halakhah, English ed. Yeshivat Har Bracha"
+            license: "CC-BY-NC"
+            note: "Some titles carry another license (unknown); those files are skipped."
+      - name: "Peninei Halakha, Hebrew"
+        language: he
+        publisher: "Yeshivat Har Bracha"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Peninei Halakhah, Yeshivat Har Bracha"
+            license: "CC-BY-NC"
+          - version: "Peninei Halakhah, Yeshivat Har Bracha - 2020"
+            license: "CC-BY-NC"
     notes: Presents Ashkenazi and Sephardi practice side by side.
 
   - id: chafetz-chaim
@@ -1180,12 +1823,28 @@ works:
     streams: [litvish]
     minhag: both
     status: proposed
+    sefaria:
+      re: "^(Chafetz Chaim|Shemirat HaLashon)$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Chofetz Chaim"
+            license: "CC-BY-SA"
+      - name: "Chafetz Chaim and Shemirat HaLashon, translated by Rabbi Shraga Silverstein"
+        language: en
+        publisher: "Sefaria digital edition"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Chofetz Chaim, Silverstein translation"
+            license: "CC-BY"
+          - version: "Shmirath Halashon by Rabbi Shraga Silverstein"
+            license: "CC-BY"
 
   - id: siddur
     title: Siddur (Nusach Ashkenaz, Sefard, Edot HaMizrach, Ari)
@@ -1195,6 +1854,9 @@ works:
     era: contemporary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Siddur (Ashkenaz|Sefard|Edot HaMizrach)$"
+      root: "Liturgy"
     editions:
       - name: Koren Siddur
         language: en
@@ -1208,6 +1870,26 @@ works:
         orthodox: true
         status: proposed
         license: needs_agreement
+      - name: "The Metsudah Siddur, Hebrew (Nusach Ashkenaz)"
+        language: he
+        publisher: "Metsudah (1981)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "The Metsudah siddur, 1981"
+            license: "CC-BY"
+          - version: "The Metsudah siddur: a new linear siddur with English translation by Avrohom Davis, 1981"
+            license: "CC-BY"
+      - name: "The Metsudah Linear Siddur, translated by Rabbi Avrohom Davis"
+        language: en
+        publisher: "Metsudah (1981)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Translation based on the Metsudah linear siddur, by Avrohom Davis, 1981"
+            license: "CC-BY"
 
   - id: rabbi-sacks-covenant-conversation
     title: Covenant & Conversation and other works of Rabbi Jonathan Sacks
@@ -1219,6 +1901,8 @@ works:
     kind: philosophy
     streams: [modern_orthodox]
     status: proposed
+    sefaria:
+      re: "^Covenant and Conversation"
     editions:
       - name: Covenant & Conversation essays
         language: en
@@ -1226,6 +1910,9 @@ works:
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Maggid Books and the Orthodox Union, 2009-2019"
+            license: "CC-BY-NC"
     notes: >-
       Widely read English Torah thought. The board may want to approve specific works
       rather than all of them, since a few positions in his writings drew criticism.
@@ -1247,18 +1934,35 @@ works:
     kind: mussar
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Sha'arei Teshuvah$"
+      root: "Musar"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Sefaria Vocalized Edition"
+            license: "Public Domain"
+          - version: "Torat Emet"
+            license: "Public Domain"
       - name: The Gates of Repentance, translated by Rabbi Shraga Silverstein
         language: en
         publisher: Feldheim
         orthodox: true
         status: proposed
         license: needs_agreement
+      - name: "The Gates of Repentance, translated by Rabbi Francis Nataf"
+        language: en
+        publisher: "Sefaria (2020)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefaria 2020 Edition, Translated by R. Francis Nataf"
+            license: "CC0"
 
   - id: orchot-tzaddikim
     title: Orchot Tzaddikim (The Ways of the Righteous)
@@ -1271,12 +1975,19 @@ works:
     kind: mussar
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Orchot Tzadikim$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Orchot Tzadikim -- Vocalized"
+            license: "CC-BY-SA"
+          - version: "Torat Emet 357"
+            license: "CC-BY-SA"
     notes: Find an Orthodox English translation. The board should confirm the translator of any edition proposed.
 
   - id: alei-shur
@@ -1328,18 +2039,36 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    sefaria:
+      re: "^Likutei Moharan$"
     editions:
       - name: Likutei Moharan, Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Likutei Moharan - rabenubook.com"
+            license: "Public Domain"
+          - version: "Likutei Moharan Tinyana - rabenubook.com"
+            license: "Public Domain"
       - name: Outpouring of the Soul, translated by Rabbi Aryeh Kaplan
         language: en
         publisher: Breslov Research Institute
         orthodox: true
         status: proposed
         license: needs_agreement
+      - name: "Likutey Moharan, translated by Moshe Mykoff"
+        language: en
+        publisher: "Breslov Research Institute"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Likutey Moharan Volumes 1-11, trans. by Moshe Mykoff. Breslov Research Inst., 1986-2012"
+            license: "CC-BY-NC"
+          - version: "Likutey Moharan Volumes 12-15, trans. by Moshe Mykoff. Breslov Research Inst., 1986-2012"
+            license: "CC-BY-NC"
     notes: Speaking to HaShem in your own words, daily. Open question 12 asks the board how far to include this.
 
   - id: rav-twerski
@@ -1375,12 +2104,19 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      under: [["Talmud", "Bavli", "Acharonim on Talmud", "Chidushei Halachot"], ["Talmud", "Bavli", "Acharonim on Talmud", "Chidushei Agadot"], ["Talmud", "Bavli", "Acharonim on Talmud", "Penei Yehoshua"], ["Talmud", "Bavli", "Acharonim on Talmud", "Chiddushei Rabbi Akiva Eiger"], ["Talmud", "Bavli", "Acharonim on Talmud", "Maharam"], ["Talmud", "Bavli", "Acharonim on Talmud", "Rashash"]]
     editions:
       - name: Hebrew texts (printed in or alongside the Vilna Shas)
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Vilna Edition"
+            license: "Public Domain"
+          - version: "Chiddushei Rabbi Akiva Eiger, Warsaw 1892"
+            license: "Public Domain"
 
   - id: ketzos-nesivos
     title: Ketzos HaChoshen and Nesivos HaMishpat
@@ -1393,12 +2129,17 @@ works:
     streams: [shared]
     minhag: ashkenazi
     status: proposed
+    sefaria:
+      re: "^(Ketzot HaChoshen|Netivot HaMishpat)"
     editions:
       - name: Hebrew texts
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Shulhan Arukh, Hoshen ha-Mishpat, Lemberg, 1898"
+            license: "Public Domain"
     notes: On Choshen Mishpat. Their back-and-forth is a foundation of the yeshiva method of learning.
 
   - id: brisk
@@ -1526,12 +2267,17 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Metzudat (David|Zion) on "
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "On Your Way"
+            license: "Public Domain"
     notes: The standard plain-meaning commentary on Nach.
 
   - id: radak
@@ -1544,12 +2290,24 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Radak on "
+      root: "Tanakh"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+      - name: "Radak on Bereshit, translated by Rabbi Eliyahu Munk (HaChut HaMeshulash)"
+        language: en
+        publisher: "Urim / Lambda"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Eliyahu Munk, HaChut Hameshulash"
+            license: "CC-BY"
 
   - id: targum-yonatan
     title: "Targum Yonatan on Nevi'im"
@@ -1560,12 +2318,17 @@ works:
     kind: targum
     streams: [shared]
     status: proposed
+    sefaria:
+      cat: [["Tanakh", "Targum", "Targum Jonathan", "Prophets"]]
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Mikraot Gedolot"
+            license: "Public Domain"
 
   - id: bartenura
     title: "Bartenura on the Mishnah"
@@ -1577,12 +2340,21 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Bartenura on "
+      root: "Mishnah"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "On Your Way"
+            license: "Public Domain"
+          - version: "Torat-Emet"
+            license: "CC-BY-NC / Public Domain"
+            note: "Some titles carry another license (unknown); those files are skipped."
     notes: The standard commentary printed with the Mishnah.
 
   - id: tosafot-yom-tov
@@ -1595,12 +2367,18 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Tosafot Yom Tov on "
+      root: "Mishnah"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Mishnah, ed. Romm, Vilna 1913"
+            license: "Public Domain"
 
   - id: tiferet-yisrael
     title: "Tiferet Yisrael on the Mishnah"
@@ -1612,12 +2390,18 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^(Yachin|Boaz) on "
+      root: "Mishnah"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Mishnah, ed. Romm, Vilna 1913"
+            license: "Public Domain"
 
   - id: ein-yaakov
     title: "Ein Yaakov"
@@ -1629,12 +2413,17 @@ works:
     kind: text
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Ein Yaakov$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Daat"
+            license: "Public Domain"
     notes: The aggadah of the Talmud, gathered in one work.
 
   - id: chayei-adam
@@ -1648,12 +2437,17 @@ works:
     streams: [shared]
     minhag: ashkenazi
     status: proposed
+    sefaria:
+      re: "^(Chayei Adam|Chokhmat Adam)$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Hokhmat Adam, Vilna, 1844"
+            license: "Public Domain"
 
   - id: shut-chasam-sofer
     title: "Responsa of the Chasam Sofer"
@@ -1666,12 +2460,19 @@ works:
     streams: [shared]
     minhag: ashkenazi
     status: proposed
+    sefaria:
+      re: "^Responsa Chatam Sofer$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Pressburg, 1855-1864"
+            license: "Public Domain"
+          - version: "Pressburg, 1855 [typed]"
+            license: "Public Domain"
 
   - id: kli-yakar
     title: "Kli Yakar on the Torah"
@@ -1683,12 +2484,19 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Kli Yakar on "
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Vocalized Edition"
+            license: "Public Domain"
+          - version: "On Your Way"
+            license: "Public Domain"
     notes: A favorite source for divrei Torah.
 
   - id: haamek-davar
@@ -1701,12 +2509,17 @@ works:
     kind: commentary
     streams: [litvish]
     status: proposed
+    sefaria:
+      re: "^Haamek Davar on "
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Sefer Torat Elohim, Vilna 1879"
+            license: "Public Domain"
 
   - id: meshech-chochmah
     title: "Meshech Chochmah on the Torah"
@@ -1718,12 +2531,17 @@ works:
     kind: commentary
     streams: [litvish]
     status: proposed
+    sefaria:
+      re: "^Meshekh Chokhmah$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Riga, 1927"
+            license: "Public Domain"
 
   - id: sfas-emes
     title: "Sfas Emes on the Torah"
@@ -1735,12 +2553,17 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    sefaria:
+      re: "^Sefat Emet$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Sefat emet, Piotrków, 1905-1908"
+            license: "Public Domain"
     notes: One of the most learned works of Chassidus on the parsha.
 
   - id: kedushas-levi
@@ -1753,12 +2576,26 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    sefaria:
+      re: "^Kedushat Levi$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Kedushat Levi - Munkatch 1939"
+            license: "Public Domain"
+      - name: "Kedushat Levi, translated by Rabbi Eliyahu Munk"
+        language: en
+        publisher: "Urim"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Kedushat Levi translated by Rb. Eliyahu Munk"
+            license: "CC-BY"
 
   - id: noam-elimelech
     title: "Noam Elimelech"
@@ -1770,12 +2607,17 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    sefaria:
+      re: "^Noam Elimelekh$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: " Noam Elimelech, Lvov, 1788."
+            license: "Public Domain"
 
   - id: shem-mishmuel
     title: "Shem MiShmuel"
@@ -1787,12 +2629,17 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    sefaria:
+      re: "^Shem MiShmuel$"
     editions:
       - name: Hebrew text
         language: he
         orthodox: true
         status: proposed
         license: verify
+        sefaria_versions:
+          - version: "Sefer Shem Mishmuel, Piotrkow, 1927-1934"
+            license: "Public Domain"
 
   - id: or-yisrael
     title: "Or Yisrael"
@@ -1845,6 +2692,8 @@ works:
     kind: reference
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Machberet Menachem$"
     editions:
       - name: Hebrew text
         language: he

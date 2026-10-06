@@ -29,8 +29,12 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
 
 1. **Safety check** (`lib/engine/safety.ts`). If a message suggests danger, crisis lines appear
    above the answer and the model is told to put safety first. It never blocks the question.
-2. **Search** (`lib/library/index.ts`) finds up to 10 passages, keeping each commentary with
-   its line.
+2. **Finding sources.** With the private testing library (`lib/library/testing.ts`), a quick
+   model call (`lib/engine/lookup.ts`) names the places a lamdan would open for the question:
+   the verse, the Gemara, the Rambam, the Shulchan Aruch. It may name only books the library
+   holds. The app opens those places, follows Sefaria's cross-references (commentaries first),
+   and searches the library for the key words in Hebrew and English, up to 24 passages. With
+   the development texts, `lib/library/index.ts` searches them in memory, up to 10 passages.
 3. **The model** (`lib/engine/answer.ts`) runs under the core premises from
    [`../prompts/core-premises.md`](../prompts/core-premises.md), copied into
    `lib/engine/core-premises.generated.ts` by `npm run sync:prompt`. Each passage is sent as a
@@ -96,10 +100,47 @@ Optional settings:
 |---|---|---|
 | `RABAI_EFFORT` | `high` | How hard the model thinks: `low`, `medium`, `high`, `xhigh`, `max`. Higher is slower and costs more. |
 | `RABAI_MODEL` | `claude-opus-5-5` | The model. |
-| `RABAI_LIBRARY` | `development` | `approved` uses only board-approved, license-cleared editions. Empty until the board approves. |
+| `RABAI_LIBRARY` | automatic | `testing` when a library database is set, `development` otherwise. `approved` uses only board-approved, license-cleared editions (empty until the board approves). |
+| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |
+| `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
 
 Answers can take 20 to 60 seconds at `high`. The ask route allows up to 120 seconds, which
 needs Vercel's Fluid compute; `vercel.json` turns it on.
+
+## Connecting the testing library
+
+The testing library is about 1 GB: 85 Orthodox editions with open licenses, over a million
+passages, and Sefaria's cross-references between them. It is too big for Vercel, so it lives in
+a private Turso database (a hosted SQLite service with a free plan). A GitHub workflow builds it
+and uploads it. Every passage is labeled "not yet approved by the rabbinic board", and the app
+stays locked.
+
+Setting it up once (a phone browser works):
+
+1. **Turso.** Sign up at [turso.tech](https://turso.tech) (the free plan is enough). In the
+   Turso dashboard, open Settings, then API Tokens, and create a token. Copy it; it goes only
+   into GitHub in the next step.
+2. **GitHub.** In the repository, open Settings, then Secrets and variables, then Actions, and
+   add a secret named `TURSO_API_TOKEN` with that token.
+3. **Vercel (recommended).** In Vercel, open Account Settings, then Tokens, and create a token
+   scoped to the account that holds `rab-ai`, with an expiry date. Add it to GitHub as a second
+   secret, `VERCEL_TOKEN`. With it, the workflow puts the database address and a read-only
+   token straight into Vercel and redeploys, so no token is ever copied by hand.
+4. **Build.** In GitHub, open Actions, then "Build the testing library", then Run workflow.
+   It usually takes under an hour. The run's summary shows what was loaded. When it
+   finishes, the app's header says "Testing library".
+
+Without `VERCEL_TOKEN`: in the Turso dashboard, open the `rabai-library` database, create a
+read-only token, and add `TURSO_DATABASE_URL` (the `libsql://` address in the run's summary) and
+`TURSO_AUTH_TOKEN` to Vercel yourself, then redeploy. A database token stops working when the
+library is rebuilt, so this step repeats after each build.
+
+Rebuild after changing `canon/canon.yaml` or `canon/excluded.yaml`: run the workflow again. The
+database is replaced, so the library is unavailable for the few minutes of the upload.
+
+On your own computer: `python3 tools/library_plan.py && python3 tools/library_build.py` writes
+`library/rabai-library.db` (gitignored), and `RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db`
+in `web/.env.local` uses it.
 
 ## Checks
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
+import { TESTING_LABEL } from "@/lib/library/testing-config";
 import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
@@ -82,8 +83,22 @@ const ACTIONS: Array<{ id: LineAction; label: string }> = [
 ];
 
 const DEV_NOTE = "Development texts for testing. Not yet an approved edition or translation.";
+/** How many books the Learn tab shows at once from the testing library. */
+const BOOKS_SHOWN = 40;
 const WORDS_KEY = "rabai_words";
 const MAX_SAVED_WORDS = 500;
+
+/** The books whose English or Hebrew name holds every word typed, at most BOOKS_SHOWN of them. */
+function filterSections(sections: SectionSummary[], filter: string): SectionSummary[] {
+  const words = filter.toLowerCase().split(/[\s,]+/).filter(Boolean);
+  const hits = words.length
+    ? sections.filter((s) => {
+        const name = `${s.section} ${s.sectionHe} ${s.workTitle}`.toLowerCase();
+        return words.every((w) => name.includes(w));
+      })
+    : sections;
+  return hits.slice(0, BOOKS_SHOWN);
+}
 
 function readStored<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -216,6 +231,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   const [sections, setSections] = useState<SectionSummary[] | null>(null);
+  const [bookFilter, setBookFilter] = useState("");
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
 
   const nextId = useRef(1);
@@ -692,6 +708,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <div className="sub">An AI Torah teacher</div>
             </div>
             {libraryMode === "development" && <span className="badge">Development build</span>}
+            {libraryMode === "testing" && (
+              <span className="badge" title={TESTING_LABEL}>
+                Testing library
+              </span>
+            )}
           </div>
           <div className="tabs" role="tablist" aria-label="Sections">
             <button className="tab" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")}>
@@ -818,7 +839,24 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ) : sections.length === 0 ? (
                 <p className="note">No texts are in the library yet. They appear here once the rabbinic board approves them.</p>
               ) : (
-                sections.map((s) => (
+                <>
+                {sections.length > BOOKS_SHOWN && (
+                  <div className="card">
+                    <label className="label-sm" htmlFor="book-filter">
+                      Find a book ({sections.length} in the library)
+                    </label>
+                    <input
+                      id="book-filter"
+                      className="book-filter"
+                      type="search"
+                      value={bookFilter}
+                      placeholder="Berakhot, Rashi on Genesis, Mishnah Berurah…"
+                      onChange={(e) => setBookFilter(e.target.value)}
+                    />
+                    {libraryMode === "testing" && <p className="note">{TESTING_LABEL}</p>}
+                  </div>
+                )}
+                {filterSections(sections, bookFilter).map((s) => (
                   <div key={s.section} className="card">
                     <div className="card-row">
                       <h3>{s.section}</h3>
@@ -827,7 +865,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </span>
                     </div>
                     <p>
-                      {s.workTitle} · {s.lineCount} {s.lineCount === 1 ? "passage" : "passages"}
+                      {s.workTitle}
+                      {s.lineCount > 0 ? ` · ${s.lineCount} ${s.lineCount === 1 ? "passage" : "passages"}` : ""}
                       {s.commentaryCount > 0 ? ` · ${s.commentaryCount} commentar${s.commentaryCount === 1 ? "y" : "ies"}` : ""}
                     </p>
                     <div className="follow">
@@ -848,7 +887,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </button>
                     </div>
                   </div>
-                ))
+                ))}
+                {sections.length > BOOKS_SHOWN && filterSections(sections, bookFilter).length === 0 && (
+                  <p className="note">No book by that name yet. Try a shorter part of the name.</p>
+                )}
+                </>
               )}
 
               <div className="card">
@@ -1012,6 +1055,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 (reader.libraryMode === "development" ? (
                   <div className="dev-strip">
                     {DEV_NOTE} {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
+                  </div>
+                ) : reader.libraryMode === "testing" ? (
+                  <div className="dev-strip">
+                    {TESTING_LABEL} {reader.work.edition ? `Hebrew: ${reader.work.edition}.` : ""} English:{" "}
+                    {reader.work.translation.by}. {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
                   </div>
                 ) : (
                   <div className="edition">

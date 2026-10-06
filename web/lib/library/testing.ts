@@ -1,0 +1,412 @@
+import { createClient as createHttpClient } from "@libsql/client/http";
+import type { Client, InValue } from "@libsql/client";
+import { TESTING_LABEL, testingDbUrl } from "./testing-config";
+import type { Passage, PassageSource } from "./types";
+
+export { TESTING_LABEL, testingDbUrl };
+
+/*
+ * The private testing library: Orthodox editions from canon/canon.yaml, mapped to exact
+ * Sefaria versions with open licenses, built by tools/library_build.py into one database.
+ *
+ * Nothing here is approved by the rabbinic board. Every passage carries `source.library =
+ * "testing"`, and the app labels it as not yet approved wherever it appears. The online app
+ * stays locked while this library is in use.
+ */
+
+/** How many passages one lookup may return, so a question never floods the model. */
+export const TESTING_LIMITS = {
+  perRef: 8,
+  section: 400,
+  commentariesPerLine: 6,
+  textChars: 2400,
+};
+
+// ---------------------------------------------------------------------------
+// Connection
+
+let cached: { url: string; client: Promise<Client> } | null = null;
+
+/**
+ * The database client. A hosted database (Turso) is reached over plain HTTPS, which suits
+ * serverless functions and needs no native code. A local file (a developer's own build of the
+ * library) loads the full client only when it is used.
+ */
+export function testingClient(env = process.env): Promise<Client> | null {
+  const url = testingDbUrl(env);
+  if (!url) return null;
+  if (cached?.url === url) return cached.client;
+  const authToken = env.RABAI_LIBRARY_DB_TOKEN || env.TURSO_AUTH_TOKEN || undefined;
+  const remote = /^(libsql|https?):\/\//.test(url);
+  const client = remote
+    ? Promise.resolve(createHttpClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }))
+    : import("@libsql/client").then((m) => m.createClient({ url, authToken }));
+  cached = { url, client };
+  return client;
+}
+
+/** The few queries the store makes, so tests can run against a small local database. */
+export interface Db {
+  all(sql: string, args?: InValue[]): Promise<Record<string, unknown>[]>;
+}
+
+export function dbFrom(client: Client | Promise<Client>): Db {
+  return {
+    async all(sql, args = []) {
+      const rs = await (await client).execute({ sql, args });
+      return rs.rows.map((r) => ({ ...r }) as Record<string, unknown>);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Rows to passages
+
+interface Row {
+  id: number;
+  ref: string;
+  text: string;
+  seq: number;
+  title: string;
+  he_title: string | null;
+  work: string;
+  work_title: string;
+  edition: string;
+  language: "he" | "en";
+  version: string;
+  license: string;
+}
+
+const ROW_SELECT = `
+  SELECT p.id, p.ref, p.text, p.seq, t.title, t.he_title, t.work, w.title AS work_title,
+         e.name AS edition, e.language, v.name AS version, v.license
+  FROM passages p
+  JOIN titles t ON t.id = p.title_id
+  JOIN works w ON w.id = t.work
+  JOIN editions e ON e.id = p.edition_id
+  JOIN versions v ON v.id = p.version_id`;
+
+function toRow(r: Record<string, unknown>): Row {
+  return {
+    id: Number(r.id),
+    ref: String(r.ref),
+    text: String(r.text ?? ""),
+    seq: Number(r.seq),
+    title: String(r.title),
+    he_title: r.he_title == null ? null : String(r.he_title),
+    work: String(r.work),
+    work_title: String(r.work_title),
+    edition: String(r.edition),
+    language: r.language === "en" ? "en" : "he",
+    version: String(r.version),
+    license: String(r.license),
+  };
+}
+
+function clip(text: string): string {
+  if (text.length <= TESTING_LIMITS.textChars) return text;
+  const cut = text.slice(0, TESTING_LIMITS.textChars);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(": "), cut.lastIndexOf("׃"));
+  return (end > TESTING_LIMITS.textChars * 0.6 ? cut.slice(0, end + 1) : cut) + " …";
+}
+
+/** The section a ref belongs to: "Genesis 1:3" -> "Genesis 1", "Berakhot 2a:4" -> "Berakhot 2a". */
+export function sectionOf(ref: string): string {
+  const colon = ref.lastIndexOf(":");
+  if (colon > 0) return ref.slice(0, colon);
+  const space = ref.lastIndexOf(" ");
+  return space > 0 ? ref.slice(0, space) : ref;
+}
+
+/** The book a ref belongs to, given its title. */
+function locationIn(ref: string, title: string): string {
+  return ref.startsWith(title) ? ref.slice(title.length).trim() : ref;
+}
+
+/**
+ * Join the Hebrew and English rows of each ref into one passage, in reading order.
+ * Within a language, the first edition (by the canon's order) is used.
+ */
+export function groupRows(rows: Row[]): Passage[] {
+  const byRef = new Map<string, { he?: Row; en?: Row; seq: number }>();
+  for (const r of rows) {
+    const entry = byRef.get(r.ref) ?? { seq: r.seq };
+    if (!entry[r.language]) entry[r.language] = r;
+    entry.seq = Math.min(entry.seq, r.seq);
+    byRef.set(r.ref, entry);
+  }
+  return [...byRef.entries()]
+    .sort((a, b) => a[1].seq - b[1].seq)
+    .map(([ref, { he, en, seq }]) => {
+      const base = (he ?? en)!;
+      const loc = locationIn(ref, base.title);
+      const source: PassageSource = {
+        library: "testing",
+        canonId: base.work,
+        workTitle: base.work_title,
+        book: base.title,
+        bookHe: base.he_title ?? undefined,
+        heEdition: he?.edition,
+        heVersion: he?.version,
+        enEdition: en?.edition,
+        enVersion: en?.version,
+        licenses: [...new Set([he?.license, en?.license].filter((x): x is string => Boolean(x)))],
+      };
+      return {
+        ref,
+        work: base.work,
+        section: sectionOf(ref),
+        sectionHe: base.he_title ? `${base.he_title} ${locationIn(sectionOf(ref), base.title)}`.trim() : sectionOf(ref),
+        order: seq,
+        label: loc || base.title,
+        labelHe: base.he_title ?? base.title,
+        he: he ? clip(he.text) : "",
+        en: en ? clip(en.text) : "",
+        source,
+      };
+    });
+}
+
+// ---------------------------------------------------------------------------
+// The store
+
+export interface TestingStore {
+  /** Passages at these refs. A section ref ("Berakhot 2a") returns its first lines. */
+  lookup(refs: string[], perRef?: number): Promise<Passage[]>;
+  /** Full-text search. Hebrew is matched without vowels. */
+  search(phrases: string[], limit: number): Promise<Passage[]>;
+  /** Passages linked to these refs by Sefaria's cross-references, commentaries first. */
+  linked(refs: string[], limit: number): Promise<Passage[]>;
+  /** A whole section for the reader, with each line's commentaries. */
+  section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]> } | null>;
+  /** Every book in the library: [title, Hebrew title, first ref, work title]. */
+  books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string }>>;
+  /** The short list of book names the lookup planner may use. */
+  catalog(): Promise<string>;
+}
+
+/** Remove vowels and cantillation, as the build does for the search index. */
+export function plainForSearch(s: string): string {
+  return s
+    .replace(/[־׀׃׳״]/g, " ")
+    .replace(/[֑-ׇֽֿׁׂׅׄ]/g, "")
+    .toLowerCase();
+}
+
+/** A full-text query from phrases: each phrase must appear as written; any phrase may match. */
+export function ftsQuery(phrases: string[]): string | null {
+  const parts = phrases
+    .map((p) => plainForSearch(p).replace(/["*^():{}]/g, " ").replace(/\s+/g, " ").trim())
+    .filter((p) => p.length >= 2)
+    .slice(0, 12)
+    .map((p) => `"${p}"`);
+  return parts.length ? parts.join(" OR ") : null;
+}
+
+/** A range of refs that share a section prefix, using the index (LIKE would scan). */
+function prefixRange(prefix: string): [string, string] {
+  return [prefix, prefix.slice(0, -1) + String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)];
+}
+
+/** "Genesis 1:1-5" -> ["Genesis 1:1", "Genesis 1:5"]; "Genesis 1" -> ["Genesis 1", null]. */
+export function parseRef(ref: string): { start: string; end: string | null } {
+  const clean = ref.trim().replace(/\s+/g, " ").replace(/[–—]/g, "-");
+  const m = clean.match(/^(.*\s)([\d]+[ab]?(?::\d+[ab]?)*)-([\d:ab]+)$/);
+  if (!m) return { start: clean, end: null };
+  const startLoc = m[2];
+  const endPart = m[3];
+  const startParts = startLoc.split(":");
+  const endParts = endPart.split(":");
+  const merged = [...startParts.slice(0, startParts.length - endParts.length), ...endParts];
+  return { start: m[1] + startLoc, end: m[1] + merged.join(":") };
+}
+
+export function createTestingStore(db: Db): TestingStore {
+  let catalogCache: string | null = null;
+
+  async function rowsWhere(where: string, args: InValue[], limit: number): Promise<Row[]> {
+    const rows = await db.all(`${ROW_SELECT} WHERE ${where} ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`, args);
+    return rows.map(toRow);
+  }
+
+  async function byExactRefs(refs: string[]): Promise<Row[]> {
+    if (!refs.length) return [];
+    return rowsWhere(`p.ref IN (${refs.map(() => "?").join(",")})`, refs, refs.length * 4);
+  }
+
+  async function lookupOne(ref: string, perRef: number): Promise<Row[]> {
+    const { start, end } = parseRef(ref);
+    const exact = await rowsWhere("p.ref = ?", [start], 6);
+    if (exact.length && !end) return exact;
+    if (exact.length && end) {
+      // A range within one section: from the start line to the end line.
+      const [lo, hi] = prefixRange(sectionOf(start) + ":");
+      const rows = await rowsWhere("p.ref >= ? AND p.ref < ? AND p.seq >= ?", [lo, hi, exact[0].seq], perRef * 4);
+      const endRow = rows.find((r) => r.ref === end);
+      return endRow ? rows.filter((r) => r.seq <= endRow.seq) : rows;
+    }
+    // A section ("Berakhot 2a", "Genesis 1") or a book with numbered paragraphs ("Kuzari 1").
+    for (const sep of [":", " ", ", "]) {
+      const [lo, hi] = prefixRange(start + sep);
+      const rows = await rowsWhere("p.ref >= ? AND p.ref < ?", [lo, hi], perRef * 4);
+      if (rows.length) return rows;
+    }
+    return [];
+  }
+
+  function limitRefs(rows: Row[], max: number): Row[] {
+    const keep = new Set<string>();
+    for (const r of rows.sort((a, b) => a.seq - b.seq)) {
+      if (keep.size >= max && !keep.has(r.ref)) continue;
+      keep.add(r.ref);
+    }
+    return rows.filter((r) => keep.has(r.ref));
+  }
+
+  return {
+    async lookup(refs, perRef = TESTING_LIMITS.perRef) {
+      const results = await Promise.all(refs.slice(0, 12).map((r) => lookupOne(r, perRef)));
+      const rows = results.flatMap((rs) => limitRefs(rs, perRef));
+      // Fill in the other language for refs that came back in only one.
+      const refsSeen = [...new Set(rows.map((r) => r.ref))];
+      const more = await byExactRefs(refsSeen);
+      const ids = new Set(rows.map((r) => r.id));
+      const passages = groupRows([...rows, ...more.filter((r) => !ids.has(r.id))]);
+      const order = new Map(refsSeen.map((r, i) => [r, i]));
+      return passages.sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
+    },
+
+    async search(phrases, limit) {
+      const query = ftsQuery(phrases);
+      if (!query) return [];
+      let ids: Record<string, unknown>[];
+      try {
+        ids = await db.all(
+          `SELECT rowid AS id FROM passages_fts WHERE passages_fts MATCH ? ORDER BY rank LIMIT ${Math.floor(limit) * 2}`,
+          [query],
+        );
+      } catch (err) {
+        console.warn("[rabai] library search failed:", err instanceof Error ? err.message : err);
+        return [];
+      }
+      if (!ids.length) return [];
+      const idList = ids.map((r) => Number(r.id));
+      const hits = await rowsWhere(`p.id IN (${idList.map(() => "?").join(",")})`, idList, idList.length);
+      const rank = new Map(idList.map((id, i) => [id, i]));
+      hits.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+      const refs: string[] = [];
+      for (const h of hits) if (!refs.includes(h.ref)) refs.push(h.ref);
+      const top = refs.slice(0, limit);
+      const rows = await byExactRefs(top);
+      const order = new Map(top.map((r, i) => [r, i]));
+      return groupRows(rows).sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
+    },
+
+    async linked(refs, limit) {
+      if (!refs.length || limit <= 0) return [];
+      const marks = refs.map(() => "?").join(",");
+      const rows = await db.all(
+        `SELECT a, b FROM links WHERE a IN (${marks}) UNION ALL SELECT b, a FROM links WHERE b IN (${marks}) LIMIT 400`,
+        [...refs, ...refs],
+      );
+      const seen = new Set(refs);
+      const others: string[] = [];
+      for (const r of rows) {
+        const other = String(r.b);
+        if (!seen.has(other)) {
+          seen.add(other);
+          others.push(other);
+        }
+      }
+      // Commentaries on these lines first ("Rashi on Genesis 1:1:1"), then other texts.
+      const isCommentary = (ref: string) => / on /.test(ref) && refs.some((r) => ref.includes(` on ${sectionOf(r)}`));
+      others.sort((a, b) => Number(isCommentary(b)) - Number(isCommentary(a)));
+      const chosen = others.slice(0, limit);
+      const found = await byExactRefs(chosen);
+      const order = new Map(chosen.map((r, i) => [r, i]));
+      return groupRows(found).sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
+    },
+
+    async section(ref) {
+      let first = (await lookupOne(ref, 1))[0];
+      if (!first) return null;
+      // A commentary opens on the text it explains: "Rashi on Genesis 1:1:2" -> Genesis 1.
+      const onBook = first.title.match(/^.+? on (.+)$/);
+      if (onBook) {
+        const parts = locationIn(first.ref, first.title).split(":");
+        if (parts.length >= 2) {
+          const base = (await lookupOne(`${onBook[1]} ${parts.slice(0, -1).join(":")}`, 1))[0];
+          if (base) first = base;
+        }
+      }
+      const section = sectionOf(first.ref);
+      const [lo, hi] = prefixRange(section === first.ref ? section : section + (first.ref.charAt(section.length) || ":"));
+      const rows = await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, first.title], TESTING_LIMITS.section * 3);
+      const lines = groupRows(rows.length ? rows : [first]);
+      const lineRefs = lines.map((l) => l.ref);
+      const commentaries = new Map<string, Passage[]>();
+      if (lineRefs.length) {
+        const marks = lineRefs.map(() => "?").join(",");
+        const links = await db.all(
+          `SELECT a AS base, b AS other FROM links WHERE a IN (${marks}) UNION ALL SELECT b AS base, a AS other FROM links WHERE b IN (${marks})`,
+          [...lineRefs, ...lineRefs],
+        );
+        const wanted = new Map<string, string>();
+        for (const l of links) {
+          const other = String(l.other);
+          if (other.includes(` on ${first.title} `)) wanted.set(other, String(l.base));
+        }
+        const comm = groupRows(await byExactRefs([...wanted.keys()].slice(0, 600)));
+        for (const c of comm) {
+          const base = wanted.get(c.ref)!;
+          const list = commentaries.get(base) ?? [];
+          if (list.length < TESTING_LIMITS.commentariesPerLine) list.push({ ...c, on: base });
+          commentaries.set(base, list);
+        }
+      }
+      return { lines, commentaries };
+    },
+
+    async books() {
+      const rows = await db.all(
+        `SELECT t.title, t.he_title, w.title AS work_title,
+                (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
+         FROM titles t JOIN works w ON w.id = t.work ORDER BY w.title, t.id`,
+      );
+      return rows
+        .filter((r) => r.first_ref)
+        .map((r) => ({
+          title: String(r.title),
+          he: String(r.he_title ?? r.title),
+          firstRef: String(r.first_ref),
+          workTitle: String(r.work_title),
+        }));
+    },
+
+    async catalog() {
+      if (catalogCache) return catalogCache;
+      const rows = await db.all(`SELECT w.title AS work, t.title FROM titles t JOIN works w ON w.id = t.work ORDER BY w.title, t.id`);
+      const byWork = new Map<string, string[]>();
+      for (const r of rows) {
+        const list = byWork.get(String(r.work)) ?? [];
+        list.push(String(r.title));
+        byWork.set(String(r.work), list);
+      }
+      catalogCache = [...byWork.entries()].map(([work, titles]) => `${work}: ${titles.join("; ")}`).join("\n");
+      return catalogCache;
+    },
+  };
+}
+
+let storeCache: { url: string; store: TestingStore } | null = null;
+
+/** The testing library, when its database is configured. */
+export function testingStore(env = process.env): TestingStore | null {
+  const url = testingDbUrl(env);
+  const client = testingClient(env);
+  if (!url || !client) return null;
+  if (storeCache?.url === url) return storeCache.store;
+  const store = createTestingStore(dbFrom(client));
+  storeCache = { url, store };
+  return store;
+}

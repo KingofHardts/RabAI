@@ -18,16 +18,24 @@ excluded:
       Public domain, which makes it easy to import by mistake.
     board_may_reconsider: true
     notes: Open question 2 in the founding spec covers public-domain translations like this one.
+    sefaria_versions:
+      - "The Holy Scriptures: A New Translation (JPS 1917)"
+      - "Modernized Tanakh - Based on JPS 1917, Edited by Adam Cohn"
 
   - id: njps-1985
     title: Tanakh, The Holy Scriptures (New JPS translation, 1985)
     reason: Not an Orthodox translation.
     board_may_reconsider: false
+    sefaria_versions:
+      - "Tanakh: The Holy Scriptures, published by JPS"
 
   - id: contemporary-torah
     title: The Contemporary Torah (JPS, 2006)
     reason: A gender-sensitive adaptation of the 1985 JPS translation. Not an Orthodox translation.
     board_may_reconsider: false
+    sefaria_versions:
+      - "THE JPS TANAKH: Gender-Sensitive Edition"
+      - "The Contemporary Torah, Jewish Publication Society, 2006"
 
   - id: mishnah-yomit-kulp
     title: Mishnah Yomit, translated by Dr. Joshua Kulp
@@ -36,6 +44,9 @@ excluded:
       been the default English Mishnah, so it gets pulled in by any whole-collection import.
       Confirm the current default before ingesting any Mishnah translation.
     board_may_reconsider: false
+    sefaria_versions:
+      - "Mishnah Yomit by Dr. Joshua Kulp"
+      - "Mishna Yomit"
 
   - id: mesillat-yesharim-kaplan-1936
     title: Mesillat Yesharim, translated by Mordecai M. Kaplan (JPS, 1936)
@@ -64,6 +75,8 @@ excluded:
       An academic translation. Public domain. Excluded until the board decides on older
       translations by non-Orthodox translators.
     board_may_reconsider: true
+    sefaria_versions:
+      - "Kitab al Khazari, translated by Hartwig Hirschfeld, 1905"
 
   - id: sefaria-source-sheets
     title: User-created source sheets (Sefaria and similar sites)
@@ -83,3 +96,96 @@ excluded:
       Not a source of authority. The assistant may describe these theories accurately,
       labeled as academic theories, and present Orthodox responses to them.
     board_may_reconsider: false
+
+  # The entries below were added while mapping canon editions to exact Sefaria versions
+  # (2026-10-06). Version names are as Sefaria lists them.
+
+  - id: sefaria-community-translation
+    title: Sefaria Community Translation (and other unattributed volunteer translations)
+    reason: >-
+      Written by volunteers with no named translator and no review, so nobody can say whose
+      understanding of the text it carries. The private testing library never uses it.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Sefaria Community Translation"
+      - "Sefaria Translation"
+      - "Sefaria translation"
+
+  - id: machine-translations
+    title: Machine translations (AI and automatic translation tools)
+    reason: >-
+      Written by a computer, not by a translator from inside the tradition. A model must
+      never learn Torah from another model's guesses.
+    board_may_reconsider: true
+    notes: >-
+      Some are edited by a person (for example the 2026 Kli Yakar, made with Claude and
+      edited by Rabbi Francis Nataf). The board may look at those one at a time.
+    sefaria_versions:
+      - "Sefaria Kli Yakar, 2026 Claude 3.7, ed. Francis Nataf ✧"
+      - "AI version"
+      - "automated translation"
+      - "Le Talmud de Jérusalem, Moïse Schwab, 1871. converted via DeepL"
+
+  - id: conservative-yeshiva-translations
+    title: Translations from the Conservative Yeshiva (Daf Shevui and others)
+    reason: Not Orthodox. Produced by a Conservative institution.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Daf Shevui"
+      - "Daf Shevui - 2"
+      - "Conservative Yeshiva, Rabbi Mordechai Silverstein"
+      - "Rabbi Mordechai Silverstein"
+
+  - id: orchot-tzaddikim-cohen
+    title: Orchot Tzaddikim, translated by Seymour J. Cohen (Ktav, 1982)
+    reason: The translator was a Conservative rabbi. Approve an Orthodox translation instead.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Orchot Tzaddikim, trans. Seymour J. Cohen, Ktav Pub House, 1982"
+
+  - id: sifre-finkelstein-jts
+    title: Sifre on Deuteronomy, edited by Louis Finkelstein (JTS, 1969)
+    reason: >-
+      An academic critical edition from the Jewish Theological Seminary (Conservative). The
+      library uses a traditional text of the Sifrei instead.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "Sifre on Deuteronomy, ed. Dr. Louis Finkelstein. JTS, 1969"
+
+  - id: academic-translations-of-midrash-and-targum
+    title: Academic translations of Midrash and Targum by scholars outside the tradition
+    reason: >-
+      Translations by Christian clergy and university scholars (for example J. W. Etheridge,
+      John T. Townsend, Eveline van Staalduine-Sulman, Martin Jaffee). Their notes and choices
+      are not from inside the mesorah.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "The Targum of Jonathan ben Uzziel, trans. J. W. Etheridge, London, 1862"
+      - "Midrash Tanhuma, S. Buber Recension; trans. by John T. Townsend, 1989."
+      - "Townsend 1989 translation of Midrash Tanhuma, S. Buber Recension, edited and supplemented by R. Francis Nataf"
+      - "The Targum of Samuel; trans. E. van Staalduine-Sulman. Leiden: Brill, 2002"
+      - "Trans. by Marty Jaffee, 2015"
+
+  - id: reform-seminary-translations
+    title: Translations from Reform seminaries (for example HUC theses)
+    reason: Not Orthodox.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Hilkhot Yom ha-Kippurim, trans. by Jan M. Brahms. HUC, 1976"
+
+  - id: kabbalah-and-ecology
+    title: Translations from Kabbalah and Ecology by Rabbi Dr. David Mevorach Seidenberg
+    reason: Written from outside the Orthodox world, with its own theological program.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Rabbi Dr. David Mevorach Seidenberg, from Kabbalah and Ecology"
+
+  - id: rodkinson-talmud
+    title: The Babylonian Talmud, translated by Michael L. Rodkinson
+    reason: >-
+      An abridged, rearranged translation by a translator who broke with the tradition. Not a
+      faithful translation of the Gemara.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Rodkinson"
+      - "Rodkinson Talmud"
