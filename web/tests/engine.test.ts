@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
-import { ask, buildQuestion, planRequest, type ModelClient } from "../lib/engine/answer";
+import { ask, buildQuestion, effortFor, engineConfig, planRequest, type ModelClient } from "../lib/engine/answer";
 import { mapAnswer, cleanText } from "../lib/engine/citations";
 import { checkSafety } from "../lib/engine/safety";
 import { CORE_PREMISES } from "../lib/engine/core-premises.generated";
@@ -62,6 +62,47 @@ test("the request: core premises first, documents with citations, fallback on, a
     assert.deepEqual(block.citations, { enabled: true });
   }
   assert.equal(content[content.length - 1].type, "text");
+});
+
+test("everyday answers use medium effort; going deeper raises it to high", () => {
+  const saved = process.env.RABAI_EFFORT;
+  delete process.env.RABAI_EFFORT;
+  try {
+    assert.equal(engineConfig().effort, "medium");
+  } finally {
+    if (saved !== undefined) process.env.RABAI_EFFORT = saved;
+  }
+  assert.equal(effortFor({}, "medium"), "medium");
+  assert.equal(effortFor({ deep: true }, "medium"), "high");
+  assert.equal(effortFor({ deep: true }, "max"), "max", "never lowered");
+  const medium = { ...config, effort: "medium" as const };
+  const { params } = planRequest({ question: "Go deeper on Bereishit.", deep: true }, lib, medium);
+  assert.deepEqual(params.output_config, { effort: "high" });
+});
+
+test("the answer's text reaches the screen as it is written, and statuses come first", async () => {
+  const events: string[] = [];
+  const client: ModelClient = {
+    async create(_params, onText) {
+      onText?.("The Torah ");
+      onText?.("begins with Creation.");
+      return {
+        id: "m",
+        type: "message",
+        role: "assistant",
+        model: "claude-opus-5-5",
+        stop_reason: "end_turn",
+        content: [{ type: "text", text: "The Torah begins with Creation.", citations: null }],
+      } as unknown as BetaMessage;
+    },
+  };
+  const result = await ask({ question: "How does the Torah begin?" }, client, lib, null, {
+    onStatus: (t) => events.push(`status:${t}`),
+    onText: (t) => events.push(`text:${t}`),
+  });
+  assert.equal(result.status, "answered");
+  assert.match(events[0], /^status:(Reading \d+ sources?|Thinking it through)$/);
+  assert.deepEqual(events.slice(1), ["text:The Torah ", "text:begins with Creation."]);
 });
 
 test("history alternates and never ends on the user before the new question", () => {

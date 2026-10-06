@@ -93,21 +93,27 @@ function strings(value: unknown, max: number, maxLen: number): string[] {
   return out;
 }
 
-/** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
-export function parseLookupPlan(text: string): LookupPlan {
+/** Read the plan from the model's reply, or null when the reply holds no plan at all. */
+export function readLookupPlan(text: string): LookupPlan | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) return { refs: [], hebrew: [], english: [] };
+  if (start < 0 || end <= start) return null;
   try {
     const json = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    if (!json || typeof json !== "object" || !("refs" in json || "hebrew" in json || "english" in json)) return null;
     return {
       refs: strings(json.refs, LOOKUP_LIMITS.refs, 100),
       hebrew: strings(json.hebrew, LOOKUP_LIMITS.hebrew, 60),
       english: strings(json.english, LOOKUP_LIMITS.english, 60),
     };
   } catch {
-    return { refs: [], hebrew: [], english: [] };
+    return null;
   }
+}
+
+/** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
+export function parseLookupPlan(text: string): LookupPlan {
+  return readLookupPlan(text) ?? { refs: [], hebrew: [], english: [] };
 }
 
 /** Common English words that make poor search terms. */
@@ -132,8 +138,9 @@ export async function planLookups(question: string, store: TestingStore, client:
     const catalog = await store.catalog();
     const reply = await client.create(lookupRequest(question, catalog));
     const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
-    const plan = parseLookupPlan(text);
-    return plan.refs.length || plan.hebrew.length || plan.english.length ? plan : fallbackPlan(question);
+    // An empty plan is a choice: small talk or a practical task needs no sources, and searching
+    // anyway only slows the answer and hands the model passages that don't help.
+    return readLookupPlan(text) ?? fallbackPlan(question);
   } catch (err) {
     console.warn("[rabai] lookup planning failed:", err instanceof Error ? err.message : err);
     return fallbackPlan(question);

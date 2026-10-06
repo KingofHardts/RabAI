@@ -8,6 +8,7 @@ import { TESTING_LABEL } from "@/lib/library/testing-config";
 import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
+import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 
 // ---------------------------------------------------------------------------
 // Types the screens use
@@ -53,9 +54,25 @@ type Lang = "he" | "both" | "en";
 interface LineAnswer {
   action: LineAction | "ask";
   loading: boolean;
+  /** What RabAI is doing, while it works. */
+  status?: string;
+  /** The answer's text as it is being written. */
+  live?: string;
   result?: AskResult;
   error?: string;
 }
+
+/** Text the person highlighted, and where to show the button to ask about it. */
+interface Highlight {
+  text: string;
+  top: number;
+  left: number;
+  where: "chat" | "reader";
+  /** The line it came from, in the reader. */
+  ref?: string;
+}
+
+type Mode = "chat" | "learn";
 
 /** A word the person chose to keep. Saved only on this device. */
 interface SavedWord {
@@ -68,12 +85,12 @@ interface SavedWord {
 }
 
 const STARTERS = [
-  "Why does the Torah begin with Creation and not with the first mitzvah?",
+  "Why does the Torah start with Creation?",
   "Why do we add a Chanukah light each night?",
-  "What did Hillel tell the man who wanted the whole Torah on one foot?",
-  "How can two opposite opinions both be “the words of the living God”?",
-  "Help me read the first words of the Torah myself",
+  "What did Hillel say about the whole Torah on one foot?",
+  "I had a hard day. Can we talk?",
   "My friend and I had a falling out. How do I make it right?",
+  "Help me read the first words of the Torah",
 ];
 
 const ACTIONS: Array<{ id: LineAction; label: string }> = [
@@ -138,16 +155,56 @@ function bareWord(text: string): string {
   return text.replace(/^[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+|[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+$/g, "");
 }
 
-async function postAsk(body: Record<string, unknown>): Promise<AskResult> {
+interface LiveHooks {
+  onStatus?: (text: string) => void;
+  onText?: (delta: string) => void;
+}
+
+/**
+ * Ask RabAI. The answer arrives live: progress notes, then the text as it is written, then the
+ * checked answer with its sources.
+ */
+async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Promise<AskResult> {
   const res = await fetch("/api/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, stream: true }),
   });
-  const json = (await res.json().catch(() => null)) as (AskResult & { error?: string }) | null;
-  if (!json) throw new Error("RabAI didn't answer. Please try again.");
-  if (json.error && !json.status) throw new Error(json.error);
-  return json;
+  if (!(res.headers.get("content-type") ?? "").includes("ndjson") || !res.body) {
+    const json = (await res.json().catch(() => null)) as (AskResult & { error?: string }) | null;
+    if (!json) throw new Error("RabAI didn't answer. Please try again.");
+    if (json.error && !json.status) throw new Error(json.error);
+    return json;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: AskResult | null = null;
+  const handle = (line: string) => {
+    if (!line.trim()) return;
+    let event: { type?: string; text?: string; result?: AskResult };
+    try {
+      event = JSON.parse(line);
+    } catch {
+      return;
+    }
+    if (event.type === "status" && event.text) hooks.onStatus?.(event.text);
+    else if (event.type === "text" && event.text) hooks.onText?.(event.text);
+    else if (event.type === "done" && event.result) result = event.result;
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      handle(buffer.slice(0, nl));
+      buffer = buffer.slice(nl + 1);
+    }
+  }
+  handle(buffer + decoder.decode());
+  if (!result) throw new Error("The answer was cut off. Please try again.");
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,14 +260,67 @@ function SafetyCard({ result }: { result: AskResult }) {
   );
 }
 
+/** The answer while it is being written: plain paragraphs and a blinking caret. */
+function LiveText({ text }: { text: string }) {
+  const paragraphs = text.split(/\n{2,}/);
+  return (
+    <>
+      {paragraphs.map((p, i) => (
+        <p key={i}>
+          {p}
+          {i === paragraphs.length - 1 && <span className="caret" aria-hidden="true" />}
+        </p>
+      ))}
+    </>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 9h4l5-4v14l-5-4H4z" />
+      <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />
+    </svg>
+  );
+}
+
+/** Whether the person has highlighted some text (so a click is not a tap on the line). */
+function hasHighlight(): boolean {
+  const sel = typeof window !== "undefined" ? window.getSelection() : null;
+  return !!sel && !sel.isCollapsed && sel.toString().trim().length > 0;
+}
+
 // ---------------------------------------------------------------------------
 // The app
 
 export default function RabaiApp({ libraryMode, connected }: { libraryMode: LibraryMode; connected: boolean }) {
-  const [tab, setTab] = useState<"ask" | "learn">("ask");
+  const [mode, setMode] = useState<Mode>("chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  /** The answer being written right now, shown live. */
+  const [live, setLive] = useState<{ status: string; text: string } | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<Highlight | null>(null);
+  const [speechOk, setSpeechOk] = useState(false);
+  /** True while the words in the box came from the microphone. */
+  const spokenInput = useRef(false);
+  const dictation = useDictation(
+    useCallback((text: string) => {
+      setInput(text);
+      spokenInput.current = true;
+    }, []),
+  );
+  const listening = dictation.state === "listening";
   const [growth, setGrowth] = useState(false);
   const [lang, setLang] = useState<Lang>("both");
 
@@ -247,28 +357,76 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setStudyMode(readStored("rabai_study", ["on", "off"] as const, "off") === "on");
+    setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setMyWords(readSavedWords());
+    setSpeechOk(canSpeak());
+    return () => stopSpeaking();
   }, []);
 
+  const chooseMode = (m: Mode) => {
+    setMode(m);
+    store("rabai_mode", m);
+  };
+
+  // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, pending]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    if (nearBottom || !live) el.scrollTo({ top: el.scrollHeight, behavior: live ? "auto" : "smooth" });
+  }, [messages, pending, live]);
+
+  // ---- reading aloud ----
+  const speakingRef = useRef<string | null>(null);
+  const setSpeaking = useCallback((id: string | null) => {
+    speakingRef.current = id;
+    setSpeakingId(id);
+  }, []);
+  /** Read an answer aloud, or stop if it is the one being read. */
+  const listen = useCallback(
+    (id: string, text: string) => {
+      if (speakingRef.current === id) {
+        stopSpeaking();
+        setSpeaking(null);
+        return;
+      }
+      setSpeaking(id);
+      speak(text, () => {
+        if (speakingRef.current === id) setSpeaking(null);
+      });
+    },
+    [setSpeaking],
+  );
 
   // ---- asking ----
   const send = useCallback(
-    async (question: string) => {
+    async (question: string, opts: { deep?: boolean; spoken?: boolean } = {}) => {
       const q = question.trim();
       if (!q || pending) return;
+      dictation.cancel();
+      stopSpeaking();
+      setSpeaking(null);
       const history = messages
         .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.role === "user" ? (m.text ?? "") : plainAnswer(m.result) }))
         .filter((t) => t.text.trim());
       setMessages((prev) => [...prev, { id: nextId.current++, role: "user", text: q }]);
       setInput("");
-      setTab("ask");
+      spokenInput.current = false;
+      setMode("chat");
       setPending(true);
+      setLive({ status: "Thinking it through", text: "" });
       try {
-        const result = await postAsk({ question: q, history, growth });
-        setMessages((prev) => [...prev, { id: nextId.current++, role: "ai", result }]);
+        const result = await postAsk(
+          { question: q, history, growth, deep: opts.deep === true },
+          {
+            onStatus: (text) => setLive((l) => (l ? { ...l, status: text } : l)),
+            onText: (delta) => setLive((l) => (l ? { ...l, text: l.text + delta } : l)),
+          },
+        );
+        const id = nextId.current++;
+        setMessages((prev) => [...prev, { id, role: "ai", result }]);
+        // A question asked out loud gets its answer read aloud.
+        if (opts.spoken && result.status === "answered" && canSpeak()) listen(`m${id}`, plainAnswer(result));
       } catch (err) {
         const notice = err instanceof Error ? err.message : "Something went wrong. Please try again.";
         setMessages((prev) => [
@@ -281,20 +439,37 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         ]);
       } finally {
         setPending(false);
+        setLive(null);
       }
     },
-    [messages, pending, growth, libraryMode],
+    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen],
   );
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void send(input);
+    void send(input, { spoken: spokenInput.current });
   };
   const onComposerKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      void send(input);
+      void send(input, { spoken: spokenInput.current });
     }
+  };
+  const onComposerChange = (value: string) => {
+    // Typing takes over from the microphone.
+    if (listening) dictation.cancel();
+    spokenInput.current = false;
+    setInput(value);
+  };
+  const toggleMic = () => {
+    if (listening) {
+      dictation.stop();
+      return;
+    }
+    unlockSpeech();
+    stopSpeaking();
+    setSpeaking(null);
+    dictation.start(input);
   };
 
   // Let the composer grow with the question.
@@ -392,12 +567,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     async (ref: string, action: LineAction | "ask", question = "", word?: string) => {
       setSelected(ref);
       setLineAnswers((prev) => ({ ...prev, [ref]: { action, loading: true } }));
+      const update = (change: (a: LineAnswer) => LineAnswer) =>
+        setLineAnswers((prev) => (prev[ref]?.loading ? { ...prev, [ref]: change(prev[ref]) } : prev));
       try {
         const body =
           action === "ask"
             ? { question, focusRef: ref, growth }
             : { question, action, focusRef: ref, word, growth };
-        const result = await postAsk(body);
+        const result = await postAsk(body, {
+          onStatus: (status) => update((a) => ({ ...a, status })),
+          onText: (delta) => update((a) => ({ ...a, live: (a.live ?? "") + delta })),
+        });
         setLineAnswers((prev) => ({ ...prev, [ref]: { action, loading: false, result } }));
       } catch (err) {
         setLineAnswers((prev) => ({
@@ -423,7 +603,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   // ---- learn ----
   useEffect(() => {
-    if (tab !== "learn" || sections) return;
+    if (mode !== "learn" || sections) return;
     fetch("/api/library")
       .then((r) => r.json())
       .then((j: { sections: SectionSummary[]; phrases?: PhraseInfo[] }) => {
@@ -431,7 +611,65 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         setGlossary(j.phrases ?? []);
       })
       .catch(() => setSections([]));
-  }, [tab, sections]);
+  }, [mode, sections]);
+
+  // ---- highlight any text and ask about it ----
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return setHighlight(null);
+      const text = sel.toString().replace(/\s+/g, " ").trim();
+      if (text.length < 2 || text.length > 800) return setHighlight(null);
+      const range = sel.getRangeAt(0);
+      const node = range.commonAncestorContainer;
+      const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+      const zone = el?.closest("[data-askable]");
+      if (!zone || el?.closest("textarea, input")) return setHighlight(null);
+      const start = range.startContainer;
+      const startEl = start.nodeType === Node.ELEMENT_NODE ? (start as Element) : start.parentElement;
+      const ref =
+        startEl?.closest("[data-answer-for]")?.getAttribute("data-answer-for") ??
+        startEl?.closest("[data-ref]")?.getAttribute("data-ref") ??
+        undefined;
+      const rect = range.getBoundingClientRect();
+      // Nothing to point at when the highlighted words have scrolled out of sight.
+      if ((!rect.width && !rect.height) || rect.bottom < 0 || rect.top > window.innerHeight) return setHighlight(null);
+      setHighlight({
+        text,
+        // Below the highlight, where the phone's own copy menu doesn't cover it.
+        top: Math.max(8, Math.min(rect.bottom + 10, window.innerHeight - 64)),
+        left: Math.max(8, Math.min(rect.left + rect.width / 2 - 85, window.innerWidth - 178)),
+        where: zone.getAttribute("data-askable") === "reader" ? "reader" : "chat",
+        ref,
+      });
+    };
+    const soon = () => {
+      clearTimeout(timer);
+      timer = setTimeout(check, 250);
+    };
+    document.addEventListener("selectionchange", soon);
+    document.addEventListener("scroll", soon, true);
+    window.addEventListener("resize", soon);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("selectionchange", soon);
+      document.removeEventListener("scroll", soon, true);
+      window.removeEventListener("resize", soon);
+    };
+  }, []);
+
+  const askAboutHighlight = () => {
+    if (!highlight) return;
+    const quote = highlight.text.length > 500 ? `${highlight.text.slice(0, 500)}…` : highlight.text;
+    window.getSelection()?.removeAllRanges();
+    setHighlight(null);
+    if (highlight.where === "reader" && highlight.ref) {
+      void askLine(highlight.ref, "ask", `What does this part mean: “${quote}”?`);
+    } else {
+      void send(`Can you explain this part: “${quote}”?`);
+    }
+  };
 
   const toggleGrowth = (on: boolean) => {
     setGrowth(on);
@@ -572,12 +810,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </button>
           </div>
         ) : (
-          <button
-            type="button"
+          // A div rather than a button, so the words can be highlighted and asked about.
+          <div
+            role="button"
+            tabIndex={0}
             data-ref={p.ref}
             className={lineClass}
             aria-expanded={isSelected}
             onClick={() => {
+              if (hasHighlight()) return;
+              setSelected(isSelected ? null : p.ref);
+              setLineQuestion("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
               setSelected(isSelected ? null : p.ref);
               setLineQuestion("");
             }}
@@ -587,7 +834,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               {p.he}
             </span>
             <span className="en">{p.en}</span>
-          </button>
+          </div>
         )}
         {renderWordCard(p)}
         {isSelected && (
@@ -672,9 +919,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ר
             </div>
             <div>
-              {answer.loading ? (
+              {answer.loading && answer.live ? (
+                <LiveText text={answer.live} />
+              ) : answer.loading ? (
                 <p className="thinking">
-                  {answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line"}
+                  {answer.status ?? (answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line")}
                   <span className="dots" />
                 </p>
               ) : answer.error ? (
@@ -687,6 +936,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   ) : (
                     <p>{answer.result.notice}</p>
                   )}
+                  {speechOk && answer.result.status === "answered" && (
+                    <div className="follow tight">
+                      <button
+                        type="button"
+                        className="chip-btn listen"
+                        aria-pressed={speakingId === `l${p.ref}`}
+                        onClick={() => listen(`l${p.ref}`, plainAnswer(answer.result))}
+                      >
+                        <SpeakerIcon /> {speakingId === `l${p.ref}` ? "Stop" : "Listen"}
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : null}
             </div>
@@ -697,8 +958,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   return (
-    <div className="app">
-      <section className="convo" aria-label="Conversation">
+    <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}`}>
+      <section className="convo" aria-label={mode === "chat" ? "Conversation" : "Learn"}>
         <header className="top">
           <div className="brand">
             <div className="mark" aria-hidden="true">
@@ -715,18 +976,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               </span>
             )}
           </div>
-          <div className="tabs" role="tablist" aria-label="Sections">
-            <button className="tab" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")}>
-              Ask
+          <div className="mode-switch" role="group" aria-label="Chat or learn">
+            <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
+              Chat
             </button>
-            <button className="tab" role="tab" aria-selected={tab === "learn"} onClick={() => setTab("learn")}>
+            <button type="button" aria-pressed={mode === "learn"} onClick={() => chooseMode("learn")}>
               Learn
             </button>
           </div>
         </header>
 
         <div className="scroll" ref={scrollRef}>
-          {tab === "ask" ? (
+          {mode === "chat" ? (
             <div className="thread" role="log" aria-live="polite" aria-relevant="additions">
               <div className="msg-ai">
                 <div className="mark" aria-hidden="true">
@@ -734,11 +995,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
                 <div className="body">
                   <p>
-                    Shalom, and welcome. I’m RabAI, an AI Torah teacher. Ask me about a pasuk, a Gemara, a halacha, or a
-                    question you’ve always wondered about, and I’ll answer from the sources and open them with you, so
-                    you can see the words yourself. Or just tell me what’s on your mind. I’m glad to talk about anything.
+                    Shalom! I’m RabAI, an AI Torah teacher. Ask me anything, about Torah or about life.
+                    {dictation.supported ? " Type, or tap the microphone and talk." : ""}
                   </p>
-                  <p>I’m a teacher, not a rav. For a question about your own situation, your rav is the one to ask.</p>
                   {!connected && (
                     <p className="note">
                       This build isn’t connected to its AI model yet, so I can find sources but can’t answer. The setup
@@ -770,7 +1029,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     <div className="mark" aria-hidden="true">
                       ר
                     </div>
-                    <div className="body">
+                    <div className="body" data-askable="chat">
                       {m.result && <SafetyCard result={m.result} />}
                       {m.result && m.result.blocks.length > 0 && (
                         <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
@@ -787,16 +1046,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       )}
                       {m.result?.status === "answered" && (
                         <div className="follow">
+                          {speechOk && (
+                            <button
+                              type="button"
+                              className="chip-btn listen"
+                              aria-pressed={speakingId === `m${m.id}`}
+                              onClick={() => listen(`m${m.id}`, plainAnswer(m.result))}
+                            >
+                              <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
+                            </button>
+                          )}
                           {m.result.sources[0] && (
                             <button type="button" className="chip-btn" onClick={() => void openReader(m.result!.sources[0].ref)}>
                               Open {m.result.sources[0].ref}
                             </button>
                           )}
-                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Could you explain that more simply?")}>
-                            Explain more simply
+                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Tell me more.", { deep: true })}>
+                            Tell me more
                           </button>
-                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Let's go deeper. What is the underlying idea?")}>
-                            Go deeper
+                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Can you say that more simply?")}>
+                            Say it more simply
                           </button>
                         </div>
                       )}
@@ -811,9 +1080,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     ר
                   </div>
                   <div className="body">
-                    <p className="thinking">
-                      RabAI is thinking it through<span className="dots" />
-                    </p>
+                    {live?.text ? (
+                      <LiveText text={live.text} />
+                    ) : (
+                      <p className="thinking">
+                        {live?.status ?? "Thinking it through"}
+                        <span className="dots" />
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -825,10 +1099,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   ר
                 </div>
                 <div className="body">
-                  <p>Pick a text and we’ll learn it together. You can read it yourself, or ask me to go through it with you a line at a time.</p>
+                  <p>Pick a text to read. Tap a line to ask about it, or highlight any words and ask about those.</p>
                   <p>
-                    Want to read the words yourself one day? Open a text and turn on <strong>Study words</strong>: tap any
-                    word to see its root, and where else that root appears.
+                    To learn the words themselves, turn on <strong>Study words</strong> and tap any word.
                   </p>
                 </div>
               </div>
@@ -988,41 +1261,53 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           )}
         </div>
 
-        <div className="composer">
-          <form onSubmit={onSubmit}>
-            <label htmlFor="ask-input" className="sr-only">
-              Ask RabAI
-            </label>
-            <textarea
-              id="ask-input"
-              ref={textareaRef}
-              rows={1}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onComposerKey}
-              placeholder="Ask about Torah, halacha, or any text…"
-              maxLength={2000}
-              autoComplete="off"
-            />
-            <button className="send" type="submit" disabled={pending || !input.trim()}>
-              Ask
-            </button>
-          </form>
-          <p className="fine">RabAI is an AI Torah teacher, not a rav. For a question about your own situation, ask your rav.</p>
-        </div>
+        {mode === "chat" && (
+          <div className="composer">
+            <form onSubmit={onSubmit}>
+              {dictation.supported && (
+                <button
+                  type="button"
+                  className={`mic${listening ? " on" : ""}`}
+                  aria-pressed={listening}
+                  aria-label={listening ? "Stop listening" : "Speak your question"}
+                  title={listening ? "Stop listening" : "Speak your question"}
+                  onClick={toggleMic}
+                >
+                  <MicIcon />
+                </button>
+              )}
+              <label htmlFor="ask-input" className="sr-only">
+                Ask RabAI
+              </label>
+              <textarea
+                id="ask-input"
+                ref={textareaRef}
+                rows={1}
+                value={input}
+                onChange={(e) => onComposerChange(e.target.value)}
+                onKeyDown={onComposerKey}
+                placeholder={listening ? "Listening… speak your question" : "Ask anything…"}
+                maxLength={2000}
+                autoComplete="off"
+              />
+              <button className="send" type="submit" disabled={pending || !input.trim()}>
+                Ask
+              </button>
+            </form>
+            {(dictation.error || listening) && (
+              <p className="voice-note" role={dictation.error ? "alert" : "status"}>
+                {dictation.error ?? "Listening. Tap the microphone when you’re done, then press Ask."}
+              </p>
+            )}
+            <p className="fine">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+          </div>
+        )}
       </section>
 
       {readerOpen && <button type="button" className="scrim" aria-label="Close the text" onClick={closeReader} tabIndex={-1} />}
 
       <aside className={`reader${readerOpen ? " open" : ""}`} aria-label="Source reader">
-        {!readerRef ? (
-          <div className="reader-empty">
-            <span className="he" aria-hidden="true">
-              מקורות
-            </span>
-            Tap any source in an answer and the text opens here, with its commentaries.
-          </div>
-        ) : (
+        {!readerRef ? null : (
           <>
             <div className="reader-head">
               <div className="reader-title">
@@ -1032,7 +1317,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     {reader.sectionHe}
                   </span>
                 )}
-                <button ref={closeRef} type="button" className="close close-phone" onClick={closeReader}>
+                <button ref={closeRef} type="button" className="close" onClick={closeReader}>
                   Close
                 </button>
               </div>
@@ -1069,7 +1354,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                 ))}
             </div>
-            <div className={`reader-body lang-${studyMode && lang === "en" ? "both" : lang}`} ref={readerBodyRef}>
+            <div className={`reader-body lang-${studyMode && lang === "en" ? "both" : lang}`} ref={readerBodyRef} data-askable="reader">
               {readerLoading ? (
                 <p className="reader-state">
                   Opening the text<span className="dots" />
@@ -1093,6 +1378,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </>
         )}
       </aside>
+
+      {highlight && (
+        <button
+          type="button"
+          className="ask-highlight"
+          style={{ top: highlight.top, left: highlight.left }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={askAboutHighlight}
+        >
+          Ask about this
+        </button>
+      )}
     </div>
   );
 }

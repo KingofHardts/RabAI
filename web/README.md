@@ -9,8 +9,17 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
 
 ## What it does
 
+- **Chat and Learn.** A switch at the top flips between talking with RabAI (about Torah or
+  anything else) and learning texts. The text panel appears only once a source is opened.
 - **Ask.** RabAI answers from the passages it finds in the library, and every passage it relies
-  on becomes a button.
+  on becomes a button. Answers are short and plain; "Tell me more" asks for a fuller one, and
+  "Say it more simply" for a simpler one. The answer appears as it is written.
+- **Talk.** The microphone button types what you say into the box (the browser's own speech
+  recognition); you read it and press Ask. A question asked out loud gets its answer read
+  aloud, and every answer has a Listen button (the browser's own voices). Nothing is recorded
+  or sent anywhere else.
+- **Highlight and ask.** Highlight any words in an answer or a text, and an "Ask about this"
+  button appears.
 - **Read.** Tapping a source opens the page or chapter with the cited line highlighted, in
   Hebrew, English, or both, with the commentaries under the line they explain.
 - **Ask about a line.** Tap a line for: Explain this, Word by word, What do the commentaries say,
@@ -46,7 +55,11 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
    passage that was actually sent and its quoted words really appear there. Anything else is
    dropped.
 
-Model settings: Claude Opus 5.5, adaptive thinking, effort `high`. **Server-side fallback is
+Model settings: Claude Opus 5.5, adaptive thinking, effort `medium` for everyday answers and
+`high` when the person taps "Tell me more". The answer streams to the screen as it is written
+(`/api/ask` with `"stream": true` sends one JSON object per line: `status`, `text`, then
+`done` with the checked answer); citations appear only after the check. When the lookup step
+decides a message needs no sources (small talk, a practical task), nothing is searched. **Server-side fallback is
 on** (`fallbacks: "default"`): if the model declines a request, Anthropic re-runs it on its
 recommended fallback model inside the same call. If the whole chain declines, the person sees a
 kind message instead of a partial answer.
@@ -101,7 +114,7 @@ Optional settings:
 
 | Variable | Default | What it does |
 |---|---|---|
-| `RABAI_EFFORT` | `high` | How hard the model thinks: `low`, `medium`, `high`, `xhigh`, `max`. Higher is slower and costs more. |
+| `RABAI_EFFORT` | `medium` | How hard the model thinks: `low`, `medium`, `high`, `xhigh`, `max`. Higher is slower and costs more. |
 | `RABAI_MODEL` | `claude-opus-5-5` | The model. |
 | `RABAI_LIBRARY` | automatic | `testing` when a library database is set, `development` otherwise. `approved` uses only board-approved, license-cleared editions (empty until the board approves). |
 | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |

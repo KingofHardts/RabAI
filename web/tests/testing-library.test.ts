@@ -217,6 +217,21 @@ test("a passage with no English brings dictionary entries for its words", async 
   assert.ok(refs.includes("Jastrow, קְרָא") && refs.includes("Jastrow, אֵימָתַי"), refs.join(", "));
 });
 
+test("when the planner says no sources are needed, nothing is searched", async () => {
+  const store = await storePromise;
+  const client = planner(JSON.stringify({ refs: [], hebrew: [], english: [] }));
+  const found = await retrieveFromTesting("Can you help me plan a birthday party for my mother?", store, client);
+  assert.equal(client.calls, 1);
+  assert.deepEqual(found.documents, []);
+});
+
+test("a planner reply with no plan in it falls back to the question's own words", async () => {
+  const store = await storePromise;
+  const client = planner("I am not sure.");
+  const found = await retrieveFromTesting("מאימתי קורין את שמע", store, client);
+  assert.ok(found.documents.some((p) => p.ref === "Berakhot 2a:1"));
+});
+
 test("without a planner, retrieval still searches the question's own words", async () => {
   const store = await storePromise;
   const found = await retrieveFromTesting("מאימתי קורין את שמע", store, null);

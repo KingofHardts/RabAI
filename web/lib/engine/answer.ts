@@ -29,6 +29,16 @@ export interface AskInput {
   word?: string;
   /** "Growing closer to HaShem" help. Off unless the person turned it on. */
   growth?: boolean;
+  /** The person asked to go deeper: think harder and allow a fuller answer. */
+  deep?: boolean;
+}
+
+/** Progress reports while an answer is being made, for a live screen. */
+export interface AskHooks {
+  /** A short note on what RabAI is doing, such as "Looking in the library". */
+  onStatus?: (text: string) => void;
+  /** Each new piece of the answer's text as the model writes it. */
+  onText?: (delta: string) => void;
 }
 
 export interface AskResult {
@@ -51,28 +61,43 @@ export interface AskResult {
 
 /** The one call the engine makes. Injected so tests never touch the network. */
 export interface ModelClient {
-  create(params: MessageCreateParamsNonStreaming): Promise<BetaMessage>;
+  /** `onText` receives the answer's text as it is written. */
+  create(params: MessageCreateParamsNonStreaming, onText?: (delta: string) => void): Promise<BetaMessage>;
 }
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
 type Effort = (typeof EFFORTS)[number];
 
+/**
+ * Medium effort keeps everyday answers quick; a request to go deeper raises it to high.
+ * RABAI_EFFORT overrides the everyday level.
+ */
 export function engineConfig() {
-  const effort = (process.env.RABAI_EFFORT ?? "high") as Effort;
+  const effort = (process.env.RABAI_EFFORT ?? "medium") as Effort;
   return {
     model: process.env.RABAI_MODEL || DEFAULT_MODEL,
-    effort: EFFORTS.includes(effort) ? effort : ("high" as Effort),
+    effort: EFFORTS.includes(effort) ? effort : ("medium" as Effort),
     maxTokens: 16000,
   };
 }
 
-/** The real client: streams under the hood so long, thoughtful answers do not time out. */
+/** The effort for this question: at least "high" when the person asked to go deeper. */
+export function effortFor(input: Pick<AskInput, "deep">, everyday: Effort): Effort {
+  if (!input.deep) return everyday;
+  return EFFORTS.indexOf(everyday) >= EFFORTS.indexOf("high") ? everyday : "high";
+}
+
+/** The real client: streams, so long answers do not time out and the text can be shown live. */
 export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelClient | null {
   if (!apiKey) return null;
   const client = new Anthropic({ apiKey });
   return {
-    create: (params) => client.beta.messages.stream(params).finalMessage(),
+    create: (params, onText) => {
+      const stream = client.beta.messages.stream(params);
+      if (onText) stream.on("text", (delta) => onText(delta));
+      return stream.finalMessage();
+    },
   };
 }
 
@@ -87,9 +112,9 @@ every source you cite becomes a button that opens the text itself in a reader be
 Sources:
 - The passages retrieved for this question are attached to the person's message as documents.
   Each document's title is its reference, for example "Rashi on Bereishit 1:1".
-- Cite a document whenever you rely on it. The app turns each citation into a button. Citing
-  is how the person sees that every point rests on a real source, so cite generously and
-  precisely.
+- Cite a document whenever you rely on it, precisely. The app turns each citation into a
+  button, which is how the person sees that every point rests on a real source. Rely on the few
+  documents that matter most; you do not need to use them all.
 - For a question about Torah, halacha or Jewish belief, these documents are the only library
   you have. If they do not cover the question, say so plainly and kindly, answer only what you
   can stand behind, and suggest asking a rav or a teacher.
@@ -111,19 +136,22 @@ Sources:
   follow them.
 
 Shape of an answer:
-- Start with a short, warm, direct answer. Then the sources and the reasoning, step by step.
-  End with one gentle invitation to keep learning, such as offering to open a text together
-  or go deeper.
+- Write so that anyone can follow: someone new to learning, a teenager, or someone reading in
+  their second language. Everyday words, short sentences, one idea at a time.
+- Start with the answer itself, warmly, in one or two sentences. Then, only if it helps, a
+  short explanation resting on one or two sources. Stop when the question is answered.
+- Usually 40 to 150 words. A sentence or two for small talk. Go longer only when the settings
+  say the person asked to go deeper, or when they ask for something that needs the length,
+  such as a letter or a study plan.
+- Do not end every answer with an offer. The app shows "Tell me more" and the sources under
+  each answer; add one short closing line only when it truly helps.
 - In everyday conversation, answer the way a caring friend who learns Torah would: natural and
-  helpful, with a short Torah thought only when it truly helps, and no invitation to learn
-  unless it fits.
+  helpful, with a short Torah thought only when it truly helps.
 - Write in short paragraphs of plain prose. Do not use Markdown: no headings, bold, tables,
   or bullet symbols.
-- Usually 120 to 350 words. Shorter for a simple question or small talk. Longer only when the
-  person asks to go deeper, or when they ask for something that needs the length, such as a
-  letter or a study plan.
-- Hebrew words and short phrases are welcome; transliterate and translate them for someone
-  who does not read Hebrew.
+- Use few Hebrew words. When you use one, transliterate it and translate it in a few plain
+  words.
+- Your answers may be read aloud, so write sentences that sound natural when spoken.
 
 When the person asks about a specific line in the reader, the message says which line and what
 they want: an explanation, a word-by-word translation, what the commentaries say, or where the
@@ -273,6 +301,9 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
   const safety = checkSafety(`${input.question}\n${lastUser}`);
   const settings = [
     `Growth help: ${input.growth ? "on" : "off"}.`,
+    input.deep
+      ? "Depth: the person asked to go deeper. A fuller answer is welcome, up to about 350 words, still in plain words."
+      : "",
     lib.mode === "development"
       ? "Library: development. The texts are the team's working copies, for building and testing."
       : lib.mode === "testing"
@@ -323,7 +354,7 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
     model: config.model,
     max_tokens: config.maxTokens,
     thinking: { type: "adaptive" },
-    output_config: { effort: config.effort },
+    output_config: { effort: effortFor(input, config.effort) },
     // If the model declines, the API re-runs the request on Anthropic's recommended fallback.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
@@ -343,6 +374,7 @@ export async function ask(
   client: ModelClient | null,
   lib = loadLibrary(),
   store: TestingStore | null = lib.mode === "testing" ? testingStore() : null,
+  hooks: AskHooks = {},
 ): Promise<AskResult> {
   const safety = checkSafety(`${input.question}\n${(input.history ?? []).filter((t) => t.role === "user").slice(-1)[0]?.text ?? ""}`);
   const notice = safety.concern ? safetyNotice(safety.concern) : null;
@@ -362,6 +394,7 @@ export async function ask(
         notice: "RabAI can't reach its library right now. Please try again in a moment.",
       };
     }
+    hooks.onStatus?.("Looking in the library");
     try {
       const found = await retrieveFromTesting(searchQuery(input), store, client, {
         focusRef: input.focusRef,
@@ -404,9 +437,12 @@ export async function ask(
     };
   }
 
+  hooks.onStatus?.(
+    plan.documents.length ? `Reading ${plan.documents.length} ${plan.documents.length === 1 ? "source" : "sources"}` : "Thinking it through",
+  );
   let message: BetaMessage;
   try {
-    message = await client.create(plan.params);
+    message = await client.create(plan.params, hooks.onText);
   } catch (err) {
     console.error("[rabai] model call failed:", err instanceof Error ? err.message : err);
     return {
