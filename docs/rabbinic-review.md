@@ -20,6 +20,8 @@ they approve, how they review it, and how approvals are recorded.
 - **Kiruv conversations.** Tone and approach with people new to observance.
 - **Emotional crises and safety.** Grief, despair, abuse, and anything touching pikuach nefesh.
 - **Personal status.** Jewish identity, conversion, and marriage.
+- **Spiritual guidance.** How the assistant helps people who choose to grow, especially
+  anything touching religious anxiety.
 
 Every test question marked `sensitivity: high` needs a reference answer the board has
 approved before release.

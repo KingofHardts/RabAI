@@ -1229,3 +1229,133 @@ works:
     notes: >-
       Widely read English Torah thought. The board may want to approve specific works
       rather than all of them, since a few positions in his writings drew criticism.
+
+  # ---------------------------------------------------------------------------
+  # Proposed for growing closer to HaShem (avodas HaShem). Each needs board review.
+  # Chovot HaLevavot, Mesillat Yesharim, Nefesh HaChaim, Tanya, and the Rambam's
+  # Hilchot Teshuvah (in the Mishneh Torah) are already in the canon above.
+  # ---------------------------------------------------------------------------
+
+  - id: shaarei-teshuvah
+    title: Shaarei Teshuvah (The Gates of Repentance)
+    hebrew: שערי תשובה
+    author: Rabbeinu Yonah of Gerona
+    dates: died 1263
+    region: Spain
+    era: rishonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+      - name: The Gates of Repentance, translated by Rabbi Shraga Silverstein
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: orchot-tzaddikim
+    title: Orchot Tzaddikim (The Ways of the Righteous)
+    hebrew: אורחות צדיקים
+    author: Anonymous
+    dates: 15th century
+    region: Germany
+    era: rishonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: Find an Orthodox English translation. The board should confirm the translator of any edition proposed.
+
+  - id: alei-shur
+    title: Alei Shur
+    hebrew: עלי שור
+    author: Rabbi Shlomo Wolbe
+    dates: 1914-2005
+    region: Eretz Yisrael
+    era: contemporary
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [litvish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: A guide to personal growth through mussar. Most of it is not translated.
+
+  - id: netivot-shalom
+    title: Netivot Shalom
+    hebrew: נתיבות שלום
+    author: Rabbi Shalom Noach Berezovsky (the Slonimer Rebbe)
+    dates: 1911-2000
+    region: Eretz Yisrael
+    era: contemporary
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Widely learned across communities for its teachings on avodas HaShem.
+
+  - id: rebbe-nachman-hisbodedut
+    title: Rebbe Nachman's teachings on hisbodedut (Likutei Moharan; Outpouring of the Soul)
+    hebrew: התבודדות
+    author: Rebbe Nachman of Breslov
+    dates: 1772-1810
+    region: Ukraine
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: Likutei Moharan, Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+      - name: Outpouring of the Soul, translated by Rabbi Aryeh Kaplan
+        language: en
+        publisher: Breslov Research Institute
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Speaking to HaShem in your own words, daily. Open question 12 asks the board how far to include this.
+
+  - id: rav-twerski
+    title: Works of Rabbi Dr. Abraham J. Twerski
+    author: Rabbi Dr. Abraham J. Twerski
+    dates: 1930-2021
+    region: United States
+    era: contemporary
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [chassidish]
+    status: proposed
+    editions:
+      - name: English originals
+        language: en
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: A chassidic rabbi and psychiatrist. Useful where spiritual growth meets emotional health, including religious anxiety.

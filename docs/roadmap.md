@@ -8,9 +8,10 @@ Each phase finishes before the next starts. The board's approval gates every pha
 - [x] Canon list with tags, draft
 - [x] Default exclusions
 - [x] First 30 test questions
+- [x] Growing closer to HaShem, by choice: rules, sources, and 6 more test questions
 - [ ] Recruit the rabbinic board (one to three rabbanim)
 - [ ] Board review of the spec, canon, and core premises
-- [ ] Decisions on the ten open questions in the founding spec
+- [ ] Decisions on the twelve open questions in the founding spec
 
 ## Phase 1 — Canon approval and licensing
 
@@ -34,6 +35,9 @@ Each phase finishes before the next starts. The board's approval gates every pha
 - Every answer cites the passages it used. The model may not cite anything it was not given.
 - Answers about practical halacha show positions and send the person to their rav.
 - Safety handling runs before anything else.
+- A growth setting, off by default, asked once at sign-up and changeable in settings.
+- Saving personal goals and progress only when the person turns it on, with a way to see and
+  delete them.
 
 ## Phase 4 — Testing
 

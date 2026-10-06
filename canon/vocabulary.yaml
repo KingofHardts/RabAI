@@ -70,6 +70,7 @@ eval_area:
   sensitive_personal: Identity, family, and personal status
   crisis: Emotional crisis and safety
   posture: Attempts to change how the assistant behaves
+  avodas_hashem: Growing closer to HaShem (only for people who choose it)
 
 sensitivity:
   standard: Normal review
