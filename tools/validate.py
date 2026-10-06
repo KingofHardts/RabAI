@@ -16,12 +16,21 @@ approves anything (Josh's decision, 2026-10-06; founding spec, "Testing library"
 of canon works marked orthodox: true, not needing a publisher's agreement, mapped to an exact
 Sefaria version whose license allows private, non-commercial use, and not excluded. Every
 passage from it is labeled as not yet approved by the board.
+
+Two refinements (founding spec, "Testing library"):
+- A version may be public domain by age: `printed: <year>` names the printing it was
+  digitized from, which must be at least PUBLIC_DOMAIN_YEARS old. The plan tool then accepts
+  the file even when Sefaria lists its license as unknown.
+- A dictionary edition may be marked `word_tool_only: true` (orthodox: review): RabAI may use
+  it for what words mean, never for history or belief. Only dictionaries (sefaria_lexicon) may
+  carry it.
 """
 
 import json
 import re
 import sys
 from collections import Counter
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -35,6 +44,15 @@ ORTHODOX_VALUES = {True, False, "review"}
 SEFARIA_KEYS = {"re", "not", "root", "cat", "under"}
 # Licenses (as Sefaria writes them, normalized) that allow private, non-commercial testing.
 TESTING_LICENSES = {"publicdomain", "pd", "cc0", "ccby", "ccbysa", "ccbync", "ccbyncsa"}
+# A printing this many years old or more is in the public domain in the US.
+PUBLIC_DOMAIN_YEARS = 96
+VERSION_KEYS = {"version", "license", "note", "printed"}
+LEXICON_KEYS = {"name", "license", "printed"}
+
+
+def printed_ok(value) -> bool:
+    """A printing year old enough to be public domain."""
+    return isinstance(value, int) and value <= date.today().year - PUBLIC_DOMAIN_YEARS
 
 
 def norm_license(value) -> str:
@@ -143,14 +161,32 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     versions = []
                 seen_versions = set()
                 for v in versions:
-                    if not isinstance(v, dict) or not v.get("version") or set(v) - {"version", "license", "note"}:
-                        fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have 'note')")
+                    if not isinstance(v, dict) or not v.get("version") or set(v) - VERSION_KEYS:
+                        fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have 'note', 'printed')")
                         continue
+                    if "printed" in v and not (printed_ok(v["printed"]) and norm_license(v.get("license")) == "publicdomain"):
+                        fail(f"{ewhere}: version '{v['version']}': 'printed' must be a year at least "
+                             f"{PUBLIC_DOMAIN_YEARS} years ago, with license 'Public Domain'")
                     if version_key(v["version"]) in seen_versions:
                         fail(f"{ewhere}: version '{v['version']}' is listed twice")
                     seen_versions.add(version_key(v["version"]))
                     if not licenses_open(v.get("license")):
                         fail(f"{ewhere}: version '{v['version']}' has license '{v.get('license')}', which does not allow testing; leave it out")
+            lexicon = edition.get("sefaria_lexicon")
+            if lexicon is not None:
+                if versions is not None:
+                    fail(f"{ewhere}: use sefaria_versions or sefaria_lexicon, not both")
+                if not isinstance(lexicon, dict) or not lexicon.get("name") or set(lexicon) - LEXICON_KEYS:
+                    fail(f"{ewhere}: sefaria_lexicon needs 'name' and 'license' (and may have 'printed')")
+                elif not licenses_open(lexicon.get("license")):
+                    fail(f"{ewhere}: dictionary license '{lexicon.get('license')}' does not allow testing")
+                elif "printed" in lexicon and not (printed_ok(lexicon["printed"]) and norm_license(lexicon.get("license")) == "publicdomain"):
+                    fail(f"{ewhere}: dictionary 'printed' must be a year at least {PUBLIC_DOMAIN_YEARS} years ago, with license 'Public Domain'")
+            if "word_tool_only" in edition:
+                if edition["word_tool_only"] is not True:
+                    fail(f"{ewhere}: word_tool_only is either true or left out")
+                elif not isinstance(lexicon, dict) or work.get("kind") != "reference":
+                    fail(f"{ewhere}: only a dictionary (kind: reference, with sefaria_lexicon) may be a word tool")
             if edition.get("status") == "approved":
                 if edition.get("orthodox") is not True:
                     fail(f"{ewhere}: only editions marked orthodox: true can be approved")
@@ -273,17 +309,20 @@ def whitelist(canon_ids: dict) -> list:
 def testing(canon_ids: dict, barred: set) -> list:
     entries = []
     for wid, work in canon_ids.items():
-        if work.get("status") not in ("draft", "proposed", "approved") or not work.get("sefaria"):
+        if work.get("status") not in ("draft", "proposed", "approved"):
             continue
         for edition in work.get("editions") or []:
-            versions = [v for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)]
+            versions = [v for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)] if work.get("sefaria") else []
+            lexicon = edition.get("sefaria_lexicon") if isinstance(edition.get("sefaria_lexicon"), dict) else None
+            word_tool = edition.get("word_tool_only") is True and lexicon is not None and work.get("kind") == "reference"
             if (
-                edition.get("orthodox") is True
+                (edition.get("orthodox") is True or (word_tool and edition.get("orthodox") == "review"))
                 and edition.get("license") in ("verify", "cleared")
                 and edition.get("status") != "excluded"
-                and versions
+                and (versions or lexicon)
                 and all(version_key(v.get("version")) not in barred for v in versions)
                 and all(licenses_open(v.get("license")) for v in versions)
+                and (lexicon is None or licenses_open(lexicon.get("license")))
             ):
                 entries.append(
                     {
@@ -293,6 +332,8 @@ def testing(canon_ids: dict, barred: set) -> list:
                         "language": edition.get("language"),
                         "sefaria": work.get("sefaria"),
                         "sefaria_versions": versions,
+                        "sefaria_lexicon": lexicon,
+                        "word_tool_only": word_tool,
                         "approved": work.get("status") == "approved" and edition.get("status") == "approved",
                         "category": work.get("category"),
                         "streams": work.get("streams"),

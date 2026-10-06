@@ -223,3 +223,67 @@ def schema(title: str) -> dict | None:
         path.write_bytes(data)
     record = json.loads(path.read_text(encoding="utf-8"))
     return record if key(record.get("title", "")) == key(title) else None
+
+
+# ---------------------------------------------------------------------------------------------
+# Dictionaries (Jastrow, Radak's Sefer HaShorashim, ...)
+#
+# Sefaria keeps its dictionaries in its database, not in the text export. Its public database
+# backup holds them in two collections, `lexicon` (one record per dictionary) and
+# `lexicon_entry` (one record per headword). Only those two files are read from the backup.
+
+MONGO_DUMP = "https://storage.googleapis.com/sefaria-mongo-backup/dump_small.tar.gz"
+LEXICON_FILES = ("lexicon.bson", "lexicon_entry.bson")
+
+
+def _fetch_lexicon_files() -> None:
+    import tarfile
+
+    folder = CACHE / "mongo"
+    folder.mkdir(parents=True, exist_ok=True)
+    last = None
+    for attempt in range(4):
+        found = set()
+        try:
+            req = urllib.request.Request(MONGO_DUMP, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=300) as resp, tarfile.open(fileobj=resp, mode="r|gz") as tar:
+                for member in tar:
+                    name = member.name.rsplit("/", 1)[-1]
+                    if name in LEXICON_FILES and member.isfile():
+                        data = tar.extractfile(member).read()
+                        (folder / (name + ".part")).write_bytes(data)
+                        (folder / (name + ".part")).replace(folder / name)
+                        found.add(name)
+                        if found == set(LEXICON_FILES):
+                            return
+            last = RuntimeError(f"the backup did not contain {sorted(set(LEXICON_FILES) - found)}")
+        except Exception as e:  # network hiccups through the proxy
+            last = e
+        time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"could not read the dictionaries from Sefaria's backup: {last}")
+
+
+def lexicon_entries(names: set, refresh: bool = False) -> tuple[dict, dict]:
+    """Every entry of the named dictionaries, and each dictionary's own record.
+
+    Returns ({dictionary name: [entry, ...]}, {dictionary name: record}). Needs the `bson`
+    module (pip install pymongo).
+    """
+    from bson import decode_file_iter
+
+    folder = CACHE / "mongo"
+    if refresh or not all((folder / f).exists() for f in LEXICON_FILES):
+        _fetch_lexicon_files()
+    records = {}
+    with open(folder / "lexicon.bson", "rb") as f:
+        for d in decode_file_iter(f):
+            if d.get("name") in names:
+                d.pop("_id", None)
+                records[d["name"]] = d
+    entries: dict = {n: [] for n in names}
+    with open(folder / "lexicon_entry.bson", "rb") as f:
+        for d in decode_file_iter(f):
+            if d.get("parent_lexicon") in names:
+                d.pop("_id", None)
+                entries[d["parent_lexicon"]].append(d)
+    return entries, records

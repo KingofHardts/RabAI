@@ -42,6 +42,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   builder and the reader in step with it. Every passage it returns carries
   `source.library: "testing"`, and the app labels it "not yet approved by the rabbinic board"
   wherever it appears. Never make the built file public: no commits, no build artifacts.
+  Dictionaries (Jastrow, Sefer HaShorashim) come from Sefaria's database backup
+  (`lexicon_entries` in `tools/sefaria_lib.py`, needs `pymongo`). A dictionary marked
+  `word_tool_only` (Jastrow) is used only for what words mean, and every entry says so.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it.

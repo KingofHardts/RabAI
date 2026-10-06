@@ -570,6 +570,44 @@ works:
         orthodox: true
         status: draft
         license: verify
+      - name: "Hebrew/Aramaic text of the first printing (Venice, 1523)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The Bomberg printing, the basis of every later edition. Public domain by age. Sefaria's
+          digital copy lists its license as unknown, so it enters the testing library on the age
+          of the printing alone (founding spec, "Testing library").
+        sefaria_versions:
+          - version: "Venice Edition"
+            license: "Public Domain"
+            printed: 1523
+      - name: "Koren Talmud Yerushalmi, Hebrew/Aramaic (William Davidson digital edition)"
+        language: he
+        publisher: Koren
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far, and its
+          file lists the license as unknown, so the plan skips it until that is confirmed.
+        sefaria_versions:
+          - version: "William Davidson Edition - Hebrew"
+            license: "CC-BY-NC"
+      - name: "Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz)"
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the
+          plan skips it until that is confirmed. Until then RabAI translates the Yerushalmi
+          itself and says so.
+        sefaria_versions:
+          - version: "William Davidson Edition - English"
+            license: "CC-BY-NC"
       - name: The Jerusalem Talmud, translated by Heinrich W. Guggenheimer
         language: en
         publisher: De Gruyter
@@ -589,6 +627,50 @@ works:
         status: draft
         license: verify
         notes: "The only complete open Hebrew text of the Yerushalmi on Sefaria. An academic edition, so held for the board like the same editor's translation."
+
+  - id: ohr-layesharim
+    title: Ohr LaYesharim on the Jerusalem Talmud
+    hebrew: אור לישרים
+    author: Rabbi Yehoshua Buch (Machon HaYerushalmi)
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Ohr LaYesharim on Jerusalem Talmud "
+    editions:
+      - name: Hebrew text (Machon HaYerushalmi)
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          A contemporary Hebrew commentary that explains the Yerushalmi line by line, on twelve
+          tractates so far. Shared on Sefaria by Machon HaYerushalmi under a non-commercial
+          license. Reviewers confirm the details.
+        sefaria_versions:
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2025"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2021"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2019"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2017"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2015"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2013"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2011"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2005"
+            license: "CC-BY-NC"
+          - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2004"
+            license: "CC-BY-NC"
+    notes: >-
+      Explains the Yerushalmi's plain meaning, which helps RabAI translate the Yerushalmi
+      accurately where no English translation is available.
 
   - id: midrash
     title: Midrash (Midrash Rabbah, Tanchuma, Mechilta, Sifra, Sifrei)
@@ -1558,6 +1640,10 @@ works:
         orthodox: true
         status: proposed
         license: verify
+        notes: The text as printed in Seder HaChachamim (Oxford, 1888). Public domain.
+        sefaria_versions:
+          - version: "Seder HaChachamim. Oxford, 1888"
+            license: "Public Domain"
     notes: The classical account of how the Mishnah and Talmud were transmitted. Needed for questions about who wrote the Talmud.
 
   - id: rav-dz-hoffmann
@@ -2700,6 +2786,10 @@ works:
         orthodox: true
         status: proposed
         license: verify
+        notes: The London 1854 printing. Public domain.
+        sefaria_versions:
+          - version: "Mahberet Menahem, London, 1854."
+            license: "Public Domain"
     notes: >-
       An early dictionary of Biblical Hebrew, arranged by root. Rashi often cites it by name
       ("Menachem"), so it lets RabAI show where Rashi's explanation of a word comes from.
@@ -2720,6 +2810,13 @@ works:
         orthodox: true
         status: proposed
         license: verify
+        notes: >-
+          The Berlin 1847 printing (ed. Biesenthal and Lebrecht), digitized in Sefaria's
+          dictionary data. Public domain by age.
+        sefaria_lexicon:
+          name: "Sefer HaShorashim"
+          license: "Public Domain"
+          printed: 1847
     notes: >-
       The Radak's dictionary of the roots of Biblical Hebrew, by a Rishon. The backbone for
       teaching roots: learn a root once and recognize it across Tanakh, the siddur, and the
@@ -2735,16 +2832,21 @@ works:
     kind: reference
     streams: [shared]
     status: proposed
+    sefaria:
+      re: "^Sefer HeArukh$"
     editions:
-      - name: Hebrew text, a standard printed edition (the board chooses which)
+      - name: Hebrew text, Lublin 1883 printing
         language: he
         orthodox: true
         status: proposed
         license: verify
         notes: >-
-          The best-known modern edition, Aruch HaShalem, was edited by Alexander Kohut and adds
-          his own notes. The board decides whether to use it or an earlier printing without
-          those notes (reviewers confirm the edition details).
+          An earlier printing, without the notes Alexander Kohut added in his Aruch HaShalem.
+          The board decides which edition to use; this one is public domain and is used for
+          testing.
+        sefaria_versions:
+          - version: "Sefer HeArukh, Lublin 1883"
+            license: "Public Domain"
     notes: >-
       The classic dictionary of the words of the Talmud and Midrash, written by a Rishon. The
       first place RabAI looks for the meaning of a word in the Gemara.
@@ -2764,7 +2866,15 @@ works:
         orthodox: review
         status: proposed
         license: verify
-        notes: Likely public domain given its age; confirm for the digital copy we use.
+        notes: >-
+          The London 1903 printing, digitized in Sefaria's dictionary data. Public domain by age.
+          In the private testing library as a word tool only (Josh, 2026-10-06): RabAI may use it
+          for what a word means, never for history or belief.
+        word_tool_only: true
+        sefaria_lexicon:
+          name: "Jastrow Dictionary"
+          license: "Public Domain"
+          printed: 1903
     notes: >-
       The standard English dictionary of Talmudic Aramaic and Hebrew, used widely in yeshivos
       and by English-speaking learners. Its author was not Orthodox: he is generally counted

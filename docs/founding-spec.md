@@ -103,6 +103,23 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   privately (Turso) and read only by the locked app. It is never published, never committed, and
   never kept as a public build artifact.
 
+  Two refinements (Josh, 2026-10-06):
+  - **Public domain by age.** A text digitized from a printing more than 95 years old (for
+    example the Venice 1523 Yerushalmi, Jastrow's 1903 dictionary, the Radak's Sefer
+    HaShorashim printed in 1847) may enter even when Sefaria lists its license as unknown. The
+    canon records the printing year (`printed`), and the build records the license as "Public
+    Domain (printed …)".
+  - **Jastrow as a word tool.** Jastrow's dictionary (open question 13) enters the testing
+    library for the meaning of words only, never for history or belief, with the Aruch, Rashi,
+    the Targum and the Radak preferred wherever they differ. Each Jastrow entry tells the model
+    so. The board still decides for the approved library.
+
+  The dictionaries (Jastrow, Sefer HaShorashim) come from Sefaria's public database backup,
+  which holds them separately from its texts. When a passage has no English, RabAI translates
+  it itself, says the translation is its own, and is given the dictionary entries for the
+  passage's words: first the entries that cite that very line, then entries whose headword
+  matches. This is how the Yerushalmi is taught until an Orthodox translation can be licensed.
+
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
   still enters only with their written permission.
@@ -198,4 +215,6 @@ These need a decision before launch. Each one changes behavior.
     Orthodox. The same question applies to editors' notes in some editions of classic works
     (for example, Kohut's notes in Aruch HaShalem). Proposed: allowed for the meanings of words
     only, never for history or belief, with the traditional sources (the Aruch, Rashi, the
-    Targum) preferred wherever they differ. Or excluded?
+    Targum) preferred wherever they differ. Or excluded? (Meanwhile, Josh decided on
+    2026-10-06 to use Jastrow this way in the private testing library, and the testing library
+    uses the Aruch's Lublin 1883 printing, without Kohut's notes.)

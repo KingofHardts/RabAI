@@ -62,4 +62,8 @@ export interface PassageSource {
   enEdition?: string;
   enVersion?: string;
   licenses: string[];
+  /** A dictionary entry (Jastrow, Radak's Sefer HaShorashim, the Aruch). */
+  dictionary?: boolean;
+  /** A dictionary RabAI may use only for what words mean, never for history or belief. */
+  wordToolOnly?: boolean;
 }

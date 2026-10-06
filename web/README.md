@@ -33,7 +33,10 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
    model call (`lib/engine/lookup.ts`) names the places a lamdan would open for the question:
    the verse, the Gemara, the Rambam, the Shulchan Aruch. It may name only books the library
    holds. The app opens those places, follows Sefaria's cross-references (commentaries first),
-   and searches the library for the key words in Hebrew and English, up to 24 passages. With
+   and searches the library for the key words in Hebrew and English, up to 24 passages. When
+   a passage has no English (much of the Yerushalmi), it adds up to 8 dictionary entries for
+   its words (Jastrow, the Radak's Sefer HaShorashim), so RabAI can translate it and say the
+   translation is its own. With
    the development texts, `lib/library/index.ts` searches them in memory, up to 10 passages.
 3. **The model** (`lib/engine/answer.ts`) runs under the core premises from
    [`../prompts/core-premises.md`](../prompts/core-premises.md), copied into
@@ -109,8 +112,8 @@ needs Vercel's Fluid compute; `vercel.json` turns it on.
 
 ## Connecting the testing library
 
-The testing library is about 1 GB: 85 Orthodox editions with open licenses, over a million
-passages, and Sefaria's cross-references between them. It is too big for Vercel, so it lives in
+The testing library is about 1.2 GB: 92 Orthodox editions and dictionaries with open licenses
+or in the public domain, over a million passages, and Sefaria's cross-references between them. It is too big for Vercel, so it lives in
 a private Turso database (a hosted SQLite service with a free plan). A GitHub workflow builds it
 and uploads it. Every passage is labeled "not yet approved by the rabbinic board", and the app
 stays locked.
@@ -138,7 +141,8 @@ library is rebuilt, so this step repeats after each build.
 Rebuild after changing `canon/canon.yaml` or `canon/excluded.yaml`: run the workflow again. The
 database is replaced, so the library is unavailable for the few minutes of the upload.
 
-On your own computer: `python3 tools/library_plan.py && python3 tools/library_build.py` writes
+On your own computer (needs `pip install pyyaml pymongo`):
+`python3 tools/library_plan.py && python3 tools/library_build.py` writes
 `library/rabai-library.db` (gitignored), and `RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db`
 in `web/.env.local` uses it.
 

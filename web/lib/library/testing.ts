@@ -75,11 +75,13 @@ interface Row {
   language: "he" | "en";
   version: string;
   license: string;
+  word_tool: boolean;
+  dictionary: boolean;
 }
 
 const ROW_SELECT = `
   SELECT p.id, p.ref, p.text, p.seq, t.title, t.he_title, t.work, w.title AS work_title,
-         e.name AS edition, e.language, v.name AS version, v.license
+         e.name AS edition, e.language, e.word_tool, t.categories, v.name AS version, v.license
   FROM passages p
   JOIN titles t ON t.id = p.title_id
   JOIN works w ON w.id = t.work
@@ -100,6 +102,8 @@ function toRow(r: Record<string, unknown>): Row {
     language: r.language === "en" ? "en" : "he",
     version: String(r.version),
     license: String(r.license),
+    word_tool: Number(r.word_tool ?? 0) === 1,
+    dictionary: String(r.categories ?? "").includes('"Dictionary"'),
   };
 }
 
@@ -151,6 +155,8 @@ export function groupRows(rows: Row[]): Passage[] {
         enEdition: en?.edition,
         enVersion: en?.version,
         licenses: [...new Set([he?.license, en?.license].filter((x): x is string => Boolean(x)))],
+        ...(base.dictionary ? { dictionary: true } : {}),
+        ...(he?.word_tool || en?.word_tool ? { wordToolOnly: true } : {}),
       };
       return {
         ref,
@@ -177,6 +183,11 @@ export interface TestingStore {
   search(phrases: string[], limit: number): Promise<Passage[]>;
   /** Passages linked to these refs by Sefaria's cross-references, commentaries first. */
   linked(refs: string[], limit: number): Promise<Passage[]>;
+  /**
+   * Dictionary entries for the words of these passages: first the entries that cite these very
+   * lines, then entries whose headword matches a word in them.
+   */
+  dictionary(passages: Passage[], limit: number): Promise<Passage[]>;
   /** A whole section for the reader, with each line's commentaries. */
   section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]> } | null>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
@@ -201,6 +212,58 @@ export function ftsQuery(phrases: string[]): string | null {
     .slice(0, 12)
     .map((p) => `"${p}"`);
   return parts.length ? parts.join(" OR ") : null;
+}
+
+/** Words too common to look up. */
+const COMMON_WORDS = new Set(
+  "את של על אל כי לא כל זה זו הוא היא הם אם או גם עם מן אין יש אמר רבי רב תנא מאי היכי דתנן תניא אמר ליה ליה לה להו ביה בה דאמר הכא התם אלא אבל ואם ולא וכל וזה".split(
+    " ",
+  ),
+);
+/** Letters that attach to the front of a word: and, the, in, to, from, that, as, of. */
+const PREFIXES = ["וד", "וה", "וב", "ול", "ומ", "וש", "וכ", "דה", "שה", "מה", "בה", "לה", "ו", "ד", "ה", "ב", "ל", "מ", "ש", "כ"];
+/** Aramaic and Hebrew endings: the definite -א, plurals, and "his/her". */
+const SUFFIXES = ["ייא", "יא", "תא", "ין", "ים", "ות", "יה", "הו", "א", "ה"];
+const FINALS: Record<string, string> = { כ: "ך", מ: "ם", נ: "ן", פ: "ף", צ: "ץ" };
+
+function withFinal(word: string): string {
+  const last = word.slice(-1);
+  return FINALS[last] ? word.slice(0, -1) + FINALS[last] : word;
+}
+
+/**
+ * The forms a dictionary might list a text's words under: the word itself, without its front
+ * letters, and without a common ending. Distinct and in reading order, at most 80.
+ */
+export function wordForms(text: string): string[] {
+  const words = plainForSearch(text)
+    .replace(/[^א-ת\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !COMMON_WORDS.has(w));
+  const out: string[] = [];
+  const add = (w: string) => {
+    if (w.length >= 2 && !out.includes(w)) out.push(w);
+  };
+  for (const word of words) {
+    if (out.length >= 80) break;
+    add(word);
+    const bases = [word];
+    for (const p of PREFIXES) if (word.startsWith(p) && word.length - p.length >= 2) bases.push(word.slice(p.length));
+    for (const base of bases) {
+      add(base);
+      for (const s of SUFFIXES) if (base.endsWith(s) && base.length - s.length >= 2) add(withFinal(base.slice(0, -s.length)));
+    }
+  }
+  return out.slice(0, 80);
+}
+
+/** Dictionary entries can run for pages; a few hundred words are enough for one line. */
+function clipEntry(text: string): string {
+  const max = 900;
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
+  return (end > max * 0.5 ? cut.slice(0, end + 1) : cut) + " …";
 }
 
 /** A range of refs that share a section prefix, using the index (LIKE would scan). */
@@ -305,8 +368,10 @@ export function createTestingStore(db: Db): TestingStore {
     async linked(refs, limit) {
       if (!refs.length || limit <= 0) return [];
       const marks = refs.map(() => "?").join(",");
+      const notDictionary = "(kind IS NULL OR kind != 'dictionary')";
       const rows = await db.all(
-        `SELECT a, b FROM links WHERE a IN (${marks}) UNION ALL SELECT b, a FROM links WHERE b IN (${marks}) LIMIT 400`,
+        `SELECT a, b FROM links WHERE a IN (${marks}) AND ${notDictionary} UNION ALL ` +
+          `SELECT b, a FROM links WHERE b IN (${marks}) AND ${notDictionary} LIMIT 400`,
         [...refs, ...refs],
       );
       const seen = new Set(refs);
@@ -325,6 +390,43 @@ export function createTestingStore(db: Db): TestingStore {
       const found = await byExactRefs(chosen);
       const order = new Map(chosen.map((r, i) => [r, i]));
       return groupRows(found).sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
+    },
+
+    async dictionary(passages, limit) {
+      if (!passages.length || limit <= 0) return [];
+      const refs = passages.map((p) => p.ref);
+      const cited = await db.all(
+        `SELECT DISTINCT a FROM links WHERE kind = 'dictionary' AND b IN (${refs.map(() => "?").join(",")}) LIMIT 60`,
+        refs,
+      );
+      const order: string[] = cited.map((r) => String(r.a));
+      const forms = wordForms(passages.map((p) => p.he).join(" "));
+      if (forms.length) {
+        const hits = await db.all(
+          `SELECT l.word, p.ref FROM lexicon l JOIN passages p ON p.id = l.passage_id WHERE l.word IN (${forms
+            .map(() => "?")
+            .join(",")}) LIMIT 400`,
+          forms,
+        );
+        // Words in the order they appear; for each word, its own form before a guessed base form.
+        const rank = new Map(forms.map((f, i) => [f, i]));
+        hits.sort((a, b) => (rank.get(String(a.word)) ?? 0) - (rank.get(String(b.word)) ?? 0));
+        // At most two entries per form, so one ambiguous word can't crowd out the rest.
+        const perForm = new Map<string, number>();
+        for (const h of hits) {
+          const word = String(h.word);
+          const n = perForm.get(word) ?? 0;
+          if (n >= 2 || order.includes(String(h.ref))) continue;
+          perForm.set(word, n + 1);
+          order.push(String(h.ref));
+        }
+      }
+      const chosen = order.slice(0, limit);
+      const rows = await byExactRefs(chosen);
+      const at = new Map(chosen.map((r, i) => [r, i]));
+      return groupRows(rows)
+        .sort((a, b) => (at.get(a.ref) ?? 0) - (at.get(b.ref) ?? 0))
+        .map((p) => ({ ...p, he: clipEntry(p.he), en: clipEntry(p.en) }));
     },
 
     async section(ref) {

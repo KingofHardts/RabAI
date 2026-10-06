@@ -6,7 +6,16 @@ import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai
 import { ask, type ModelClient } from "../lib/engine/answer";
 import { fallbackPlan, parseLookupPlan, retrieveFromTesting, type LookupClient } from "../lib/engine/lookup";
 import { libraryMode, loadLibrary } from "../lib/library/index";
-import { createTestingStore, dbFrom, ftsQuery, parseRef, plainForSearch, sectionOf, TESTING_LABEL } from "../lib/library/testing";
+import {
+  createTestingStore,
+  dbFrom,
+  ftsQuery,
+  parseRef,
+  plainForSearch,
+  sectionOf,
+  TESTING_LABEL,
+  wordForms,
+} from "../lib/library/testing";
 
 /*
  * A tiny copy of the testing library, built from the same schema as the real one
@@ -28,6 +37,9 @@ const PASSAGES: Array<[number, string, number, number, number, number, string]> 
   [9, "Rashi on Genesis 1:1:1", 2, 4, 4, 10, "In the beginning. Rabbi Yitzchak said"],
   [10, "Rashi on Genesis 1:1:2", 2, 3, 3, 11, "ברא אלהים. ולא אמר ברא ה׳"],
   [11, "Berakhot 2a:1", 3, 5, 5, 20, "מאימתי קורין את שמע בערבית"],
+  [12, "Jerusalem Talmud Berakhot 1:1:1", 4, 6, 5, 30, "מאימתי קורין את שמע בערבית משעה שהכהנים נכנסין"],
+  [13, "Jastrow, אֵימָתַי", 5, 7, 6, 40, "אֵימָתַי when? at what time?"],
+  [14, "Jastrow, קְרָא", 5, 7, 6, 41, "קְרָא to call; to read, recite"],
 ];
 
 async function fixture() {
@@ -35,18 +47,26 @@ async function fixture() {
   await client.executeMultiple(schema);
   await client.executeMultiple(`
     INSERT INTO works VALUES ('torah', 'The Torah', 'tanakh', '[]'), ('rashi', 'Rashi on the Torah', 'commentary', '[]'),
-      ('bavli', 'Babylonian Talmud', 'talmud', '[]');
+      ('bavli', 'Babylonian Talmud', 'talmud', '[]'), ('yerushalmi', 'Talmud Yerushalmi', 'talmud', '[]'),
+      ('jastrow', 'A Dictionary of the Targumim', 'reference', '[]');
     INSERT INTO titles VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]'),
       (2, 'Rashi on Genesis', 'רש״י על בראשית', 'rashi', '[]', 3, '[]'),
-      (3, 'Berakhot', 'ברכות', 'bavli', '[]', 2, '[]');
-    INSERT INTO editions VALUES (1, 'torah', 'Test Hebrew Chumash', 'he', 0), (2, 'torah', 'Test English Chumash', 'en', 0),
-      (3, 'rashi', 'Test Hebrew Rashi', 'he', 0), (4, 'rashi', 'Test English Rashi', 'en', 0),
-      (5, 'bavli', 'Test Vilna Shas', 'he', 0);
+      (3, 'Berakhot', 'ברכות', 'bavli', '[]', 2, '[]'),
+      (4, 'Jerusalem Talmud Berakhot', 'ירושלמי ברכות', 'yerushalmi', '[]', 3, '[]'),
+      (5, 'Jastrow', 'מילון יאסטרוב', 'jastrow', '["Reference", "Dictionary"]', 1, '["Entry"]');
+    INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES
+      (1, 'torah', 'Test Hebrew Chumash', 'he', 0, 0), (2, 'torah', 'Test English Chumash', 'en', 0, 0),
+      (3, 'rashi', 'Test Hebrew Rashi', 'he', 0, 0), (4, 'rashi', 'Test English Rashi', 'en', 0, 0),
+      (5, 'bavli', 'Test Vilna Shas', 'he', 0, 0), (6, 'yerushalmi', 'Test Venice printing', 'he', 0, 0),
+      (7, 'jastrow', 'Test Jastrow', 'en', 0, 1);
     INSERT INTO versions VALUES (1, 'v1', 'CC-BY-SA', ''), (2, 'v2', 'CC-BY', ''), (3, 'v3', 'Public Domain', ''),
-      (4, 'v4', 'CC-BY', ''), (5, 'v5', 'Public Domain', '');
+      (4, 'v4', 'CC-BY', ''), (5, 'v5', 'Public Domain', ''), (6, 'v6', 'Public Domain (printed 1903)', '');
     INSERT INTO links VALUES ('Genesis 1:1', 'Rashi on Genesis 1:1:1', 'commentary'),
       ('Berakhot 2a:1', 'Genesis 1:1', 'talmud'),
-      ('Rashi on Genesis 1:1:2', 'Genesis 1:1', 'commentary');
+      ('Rashi on Genesis 1:1:2', 'Genesis 1:1', 'commentary'),
+      ('Jastrow, קְרָא', 'Jerusalem Talmud Berakhot 1:1:1', 'dictionary'),
+      ('Jastrow, קְרָא', 'Genesis 1:1', 'dictionary');
+    INSERT INTO lexicon VALUES ('אימתי', 13), ('קרא', 14);
   `);
   for (const [id, ref, title, edition, version, seq, text] of PASSAGES) {
     await client.execute({ sql: "INSERT INTO passages VALUES (?, ?, ?, ?, ?, ?, ?)", args: [id, ref, title, edition, version, seq, text] });
@@ -108,6 +128,32 @@ test("links run both ways, commentaries first", async () => {
   assert.deepEqual(linked.map((p) => p.ref), ["Rashi on Genesis 1:1:1", "Rashi on Genesis 1:1:2", "Berakhot 2a:1"]);
 });
 
+test("dictionary links are kept apart from commentaries and parallels", async () => {
+  const store = await storePromise;
+  const linked = await store.linked(["Genesis 1:1"], 10);
+  assert.ok(!linked.some((p) => p.ref.startsWith("Jastrow")), "a dictionary entry is not a parallel passage");
+});
+
+test("word forms: the word, without its front letters, without a common ending", () => {
+  const forms = wordForms("מֵאֵימָתַי קוֹרִין את שמע");
+  assert.ok(forms.includes("מאימתי"));
+  assert.ok(forms.includes("אימתי"), "מ (from) taken off the front");
+  assert.ok(forms.includes("קור"), "the plural ending taken off");
+  assert.ok(!forms.includes("את"), "common words are skipped");
+  assert.deepEqual(wordForms("מלכא"), ["מלכא", "מלך", "לכא", "לך"]);
+});
+
+test("dictionary: entries that cite the line come first, then headword matches", async () => {
+  const store = await storePromise;
+  const [line] = await store.lookup(["Jerusalem Talmud Berakhot 1:1:1"]);
+  assert.equal(line.en, "");
+  const entries = await store.dictionary([line], 5);
+  assert.deepEqual(entries.map((e) => e.ref), ["Jastrow, קְרָא", "Jastrow, אֵימָתַי"]);
+  assert.equal(entries[0].source?.dictionary, true);
+  assert.equal(entries[0].source?.wordToolOnly, true);
+  assert.match(entries[1].en, /when\?/);
+});
+
 test("the reader: a commentary opens on its verse, with the commentary beside it", async () => {
   const store = await storePromise;
   const found = await store.section("Rashi on Genesis 1:1:1");
@@ -121,7 +167,7 @@ test("the reader: a commentary opens on its verse, with the commentary beside it
 test("books and the planner's catalog", async () => {
   const store = await storePromise;
   const books = await store.books();
-  assert.deepEqual(books.map((b) => b.title).sort(), ["Berakhot", "Genesis", "Rashi on Genesis"]);
+  assert.deepEqual(books.map((b) => b.title).sort(), ["Berakhot", "Genesis", "Jastrow", "Jerusalem Talmud Berakhot", "Rashi on Genesis"]);
   assert.equal(books.find((b) => b.title === "Genesis")?.firstRef, "Genesis 1:1");
   assert.match(await store.catalog(), /^Babylonian Talmud: Berakhot$/m);
 });
@@ -160,6 +206,15 @@ test("retrieval opens the planned places, follows links, searches, and puts the 
   assert.equal(refs[0], "Genesis 1:2");
   for (const r of ["Genesis 1:1", "Rashi on Genesis 1:1:1", "Berakhot 2a:1"]) assert.ok(refs.includes(r), r);
   assert.equal(new Set(refs).size, refs.length, "no passage twice");
+});
+
+test("a passage with no English brings dictionary entries for its words", async () => {
+  const store = await storePromise;
+  const client = planner(JSON.stringify({ refs: ["Jerusalem Talmud Berakhot 1:1:1"], hebrew: [], english: [] }));
+  const found = await retrieveFromTesting("When is the evening Shema said, according to the Yerushalmi?", store, client);
+  const refs = found.documents.map((p) => p.ref);
+  assert.equal(refs[0], "Jerusalem Talmud Berakhot 1:1:1");
+  assert.ok(refs.includes("Jastrow, קְרָא") && refs.includes("Jastrow, אֵימָתַי"), refs.join(", "));
 });
 
 test("without a planner, retrieval still searches the question's own words", async () => {
@@ -222,6 +277,31 @@ test("ask: the testing library feeds the answer, and citations still must point 
   assert.equal(calls.length, 2);
   const answerSystem = (calls[1].system as Array<{ text: string }>).map((b) => b.text).join("\n");
   assert.match(answerSystem, /private testing library/);
+  assert.match(answerSystem, /use it only for what a word means, never for history/);
+});
+
+test("ask: a dictionary by an author outside Orthodoxy is sent as a word tool only", async () => {
+  const store = await storePromise;
+  const calls: MessageCreateParamsNonStreaming[] = [];
+  const client: ModelClient = {
+    async create(params) {
+      calls.push(params);
+      const system = params.system as Array<{ text: string }>;
+      const text = system[0].text.startsWith("You find sources")
+        ? '{"refs": ["Jerusalem Talmud Berakhot 1:1:1"], "hebrew": [], "english": []}'
+        : "From when do we read the Shema in the evening? (My translation.)";
+      return { id: "m", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: "end_turn", content: [{ type: "text", text, citations: null }] } as unknown as BetaMessage;
+    },
+  };
+  const result = await ask({ question: "Translate the first line of Yerushalmi Berakhot." }, client, loadLibrary("testing"), store);
+  assert.equal(result.status, "answered");
+  const last = calls[1].messages[calls[1].messages.length - 1];
+  const docs = (last.content as Array<{ type: string; title?: string; context?: string }>).filter((b) => b.type === "document");
+  const jastrow = docs.find((d) => d.title === "Jastrow, קְרָא");
+  assert.ok(jastrow, "the Jastrow entry was sent");
+  assert.match(jastrow!.context ?? "", /only for what words mean, never for history or belief/);
+  const line = docs.find((d) => d.title === "Jerusalem Talmud Berakhot 1:1:1");
+  assert.match(line!.context ?? "", /no English translation/);
 });
 
 test("ask: without the library database, RabAI says so instead of answering from memory", async () => {

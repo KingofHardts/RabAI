@@ -9,6 +9,8 @@ Reads library/plan.json (from tools/library_plan.py), downloads each planned Sef
   passages_fts  a full-text index over the passages, with Hebrew vowels and cantillation removed
   links         Sefaria's cross-references between passages, kept only where both ends are in
                 this library (Rashi -> the verse, the Gemara -> the Mishnah, and so on)
+  lexicon       the headwords of the dictionaries (Jastrow, Radak's Sefer HaShorashim), each
+                entry stored as a passage ("Jastrow, אָב II") and linked to the lines it cites
 
 Within one edition, a title's listed versions are merged passage by passage: the first listed
 version that has a passage supplies it, and the row records which version that was.
@@ -52,6 +54,7 @@ SUP_RE = re.compile(r"<sup[^>]*>.*?</sup>", re.S)
 BR_RE = re.compile(r"<br\s*/?>", re.I)
 TAG_RE = re.compile(r"<[^>]+>")
 SPACE_RE = re.compile(r"[ \t ]+")
+BIDI_RE = re.compile(r"[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 HEBREW_MARKS_RE = re.compile(r"[֑-ׇֽֿׁׂׅׄ]")
 HEBREW_SPACERS_RE = re.compile(r"[־׀׃׳״]")
 
@@ -64,6 +67,7 @@ def clean(text: str) -> str:
     text = BR_RE.sub("\n", text)
     text = TAG_RE.sub("", text)
     text = html.unescape(text)
+    text = BIDI_RE.sub("", text)
     text = SPACE_RE.sub(" ", text)
     return "\n".join(line.strip() for line in text.split("\n")).strip()
 
@@ -171,6 +175,73 @@ def passages_of(title: str, data: dict, index: dict | None) -> list:
 
 
 # ---------------------------------------------------------------------------------------------
+# Dictionaries
+
+# A dictionary's book title in the library and its Hebrew name.
+LEXICON_TITLES = {
+    "Jastrow Dictionary": ("Jastrow", "מילון יאסטרוב"),
+    "Sefer HaShorashim": ("Sefer HaShorashim", "ספר השרשים"),
+}
+NON_HEBREW_RE = re.compile(r"[^א-ת ]+")
+
+
+def lexicon_title(name: str) -> tuple:
+    return LEXICON_TITLES.get(name, (name, name))
+
+
+def headword_forms(entry: dict) -> list:
+    """The forms a word in a text may take for this entry: the headword, its alternates and
+    plural, without vowels, numbering (אָב II) or punctuation."""
+    forms = [entry.get("headword") or ""]
+    for key in ("alt_headwords", "plural_form"):
+        value = entry.get(key)
+        if isinstance(value, str):
+            forms.append(value)
+        elif isinstance(value, list):
+            forms += [v for v in value if isinstance(v, str)]
+    out = []
+    for f in forms:
+        word = NON_HEBREW_RE.sub(" ", plain(clean(f))).strip()
+        word = re.sub(r"\s+", " ", word)
+        if word and word not in out:
+            out.append(word)
+    return out
+
+
+def entry_text(entry: dict) -> str:
+    """One dictionary entry as reading text: the headword, its forms, then every sense."""
+    parts = [entry.get("headword") or ""]
+    alts = entry.get("alt_headwords")
+    if alts:
+        parts.append("(also " + ", ".join(a for a in (alts if isinstance(alts, list) else [alts]) if isinstance(a, str)) + ")")
+    for key in ("language_code", "language_reference"):
+        if isinstance(entry.get(key), str):
+            parts.append(entry[key])
+
+    def walk(value):
+        if isinstance(value, str):
+            parts.append(value)
+        elif isinstance(value, list):
+            for v in value:
+                walk(v)
+        elif isinstance(value, dict):
+            if isinstance(value.get("number"), (str, int)):
+                parts.append(f"{value['number']})")
+            for k, v in value.items():
+                if k != "number":
+                    walk(v)
+
+    walk(entry.get("content"))
+    return clean(" ".join(p for p in parts if p))
+
+
+def dictionary_ref(ref: str, lexicon_titles: set) -> str:
+    """'Jastrow, תְּפִלָּה 1' (a sense) -> 'Jastrow, תְּפִלָּה' (the entry)."""
+    title = ref.split(",", 1)[0]
+    return re.sub(r" \d+$", "", ref) if title in lexicon_titles else ref
+
+
+# ---------------------------------------------------------------------------------------------
 # Links
 
 def link_start(ref: str) -> str:
@@ -221,6 +292,8 @@ def git_commit() -> str:
 def main() -> int:
     out_path = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else DEFAULT_OUT
     plan = json.loads(PLAN.read_text())
+    lexicon_items = [item for item in plan if item.get("lexicon")]
+    plan = [item for item in plan if not item.get("lexicon")]
     files = sorted({f["file"] for item in plan for f in item["files"]})
     print(f"Downloading {len(files)} files (cached)…", file=sys.stderr)
     started = time.time()
@@ -286,6 +359,53 @@ def main() -> int:
             con.execute("INSERT INTO passages_fts (rowid, plain) VALUES (?, ?)", (cur.lastrowid, plain(text)))
             all_refs.add(ref)
         total += len(order)
+    # Dictionaries: each entry is a passage, its forms go in the lexicon table, and the lines it
+    # cites are linked to it once every text is loaded.
+    dictionary_links = []
+    if lexicon_items:
+        names = {item["lexicon"] for item in lexicon_items}
+        print(f"Reading dictionaries: {', '.join(sorted(names))}…", file=sys.stderr)
+        entries, records = S.lexicon_entries(names)
+        for item in lexicon_items:
+            name = item["lexicon"]
+            title, he_title = lexicon_title(name)
+            work_rows[item["work"]] = (item["work"], item["work_title"], item["category"], json.dumps(item["streams"]))
+            cur = con.execute(
+                "INSERT INTO editions (work, name, language, approved, word_tool) VALUES (?, ?, ?, ?, ?)",
+                (item["work"], item["edition"], item["language"], int(bool(item["approved"])), int(bool(item.get("word_tool_only")))),
+            )
+            edition_id = cur.lastrowid
+            edition_ids[(item["work"], item["edition"])] = edition_id
+            cur = con.execute(
+                "INSERT INTO titles (title, he_title, work, categories, depth, section_names) VALUES (?, ?, ?, ?, ?, ?)",
+                (title, he_title, item["work"], json.dumps(["Reference", "Dictionary"]), 1, json.dumps(["Entry"])),
+            )
+            title_ids[title] = cur.lastrowid
+            record = records.get(name, {})
+            vkey = (record.get("version_title") or name, item["license"], "Sefaria dictionary data")
+            if vkey not in version_ids:
+                version_ids[vkey] = con.execute("INSERT INTO versions (name, license, source) VALUES (?, ?, ?)", vkey).lastrowid
+            count = 0
+            for entry in entries.get(name, []):
+                headword = (entry.get("headword") or "").strip()
+                text = entry_text(entry)
+                ref = f"{title}, {headword}"
+                if not headword or not text or ref in all_refs:
+                    continue
+                seq += 1
+                cur = con.execute(
+                    "INSERT INTO passages (ref, title_id, edition_id, version_id, seq, text) VALUES (?, ?, ?, ?, ?, ?)",
+                    (ref, title_ids[title], edition_id, version_ids[vkey], seq, text),
+                )
+                con.execute("INSERT INTO passages_fts (rowid, plain) VALUES (?, ?)", (cur.lastrowid, plain(text)))
+                con.executemany("INSERT INTO lexicon (word, passage_id) VALUES (?, ?)",
+                                [(w, cur.lastrowid) for w in headword_forms(entry)])
+                all_refs.add(ref)
+                dictionary_links += [(ref, r) for r in entry.get("refs") or [] if isinstance(r, str)]
+                count += 1
+            total += count
+            print(f"  {title}: {count} entries", file=sys.stderr)
+
     con.executemany("INSERT INTO works VALUES (?, ?, ?, ?)", list(work_rows.values()))
     con.commit()
     print(f"Passages: {total} in {len(title_ids)} titles, {len(edition_ids)} editions", file=sys.stderr)
@@ -296,6 +416,15 @@ def main() -> int:
     if "--no-links" not in sys.argv:
         print("Reading Sefaria's links…", file=sys.stderr)
         links = load_links(con, set(title_ids), all_refs)
+    lexicon_titles = {lexicon_title(item["lexicon"])[0] for item in lexicon_items}
+    seen = set()
+    for entry_ref, cited in dictionary_links:
+        target = first_passage(link_start(dictionary_ref(cited, lexicon_titles)), all_refs)
+        if target and target != entry_ref and (entry_ref, target) not in seen:
+            seen.add((entry_ref, target))
+            con.execute("INSERT INTO links (a, b, kind) VALUES (?, ?, 'dictionary')", (entry_ref, target))
+    links += len(seen)
+    print(f"Dictionary links: {len(seen)}", file=sys.stderr)
     con.executescript(INDEX_SQL)
 
     try:

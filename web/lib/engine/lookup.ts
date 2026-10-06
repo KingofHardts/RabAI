@@ -33,8 +33,10 @@ export const LOOKUP_LIMITS = {
   linked: 8,
   /** Full-text search results. */
   searched: 8,
-  /** All documents sent to the model. */
+  /** All texts sent to the model. */
   documents: 24,
+  /** Dictionary entries for the words of passages that have no English. */
+  dictionary: 8,
 };
 
 export function lookupModel(env: Record<string, string | undefined> = process.env): string {
@@ -164,11 +166,24 @@ export async function retrieveFromTesting(
   const linked = await store.linked(anchors, LOOKUP_LIMITS.linked);
 
   const out = new Map<string, Passage>();
-  const add = (ps: Passage[]) => {
-    for (const p of ps) if (out.size < LOOKUP_LIMITS.documents && !out.has(p.ref)) out.set(p.ref, p);
+  const add = (ps: Passage[], cap: number) => {
+    for (const p of ps) if (out.size < cap && !out.has(p.ref)) out.set(p.ref, p);
   };
-  add(opened);
-  add(linked);
-  add(searched);
+  add(opened, LOOKUP_LIMITS.documents);
+  add(linked, LOOKUP_LIMITS.documents);
+  add(searched, LOOKUP_LIMITS.documents);
+
+  // Passages with no English (much of the Yerushalmi, the Rishonim, the Acharonim) are
+  // translated by RabAI itself. Give it the dictionaries' entries for their words: first the
+  // entries that cite these very lines, then entries whose headword matches a word.
+  const untranslated = [...out.values()].filter((p) => p.he.trim() && !p.en.trim() && !p.source?.dictionary).slice(0, 3);
+  if (untranslated.length) {
+    try {
+      const entries = await store.dictionary(untranslated, LOOKUP_LIMITS.dictionary);
+      add(entries, LOOKUP_LIMITS.documents + LOOKUP_LIMITS.dictionary);
+    } catch (err) {
+      console.warn("[rabai] dictionary lookup failed:", err instanceof Error ? err.message : err);
+    }
+  }
   return { plan, documents: [...out.values()] };
 }

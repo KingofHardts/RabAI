@@ -5,7 +5,12 @@ For every edition that `validate.py --testing` lists, this finds the Sefaria tit
 belong to its work (the work's `sefaria` matchers) and, for each title, the files of the
 edition's listed versions, in order. Each file's own license and language are read from the
 file and checked again: a file is used only if its license allows private, non-commercial
-testing, its language matches the edition, and its version is not excluded.
+testing, its language matches the edition, and its version is not excluded. A version the
+canon marks public domain by age (`printed: <year>`) is accepted when Sefaria lists its license
+as unknown, and recorded as "Public Domain (printed <year>)".
+
+Dictionaries (`sefaria_lexicon`) come from Sefaria's dictionary data instead of its text
+files; the build reads them (tools/sefaria_lib.py, lexicon_entries).
 
 Writes library/plan.json (gitignored) and prints a summary with the total size.
 
@@ -49,7 +54,11 @@ def main() -> int:
     # 1. candidate files per edition and title, in the edition's version order
     candidates = []
     unmatched_titles = {}
+    lexicons = []
     for ed in editions:
+        if ed.get("sefaria_lexicon"):
+            lexicons.append(ed)
+            continue
         lang_dir = S.LANG_DIRS[ed["language"]]
         wanted = [(S.key(v["version"]), v) for v in ed["sefaria_versions"]]
         for book in books:
@@ -83,7 +92,11 @@ def main() -> int:
         for info, listed in chosen:
             head = cache[info["file"]]
             reason = None
-            if not S.license_open(head.get("license")):
+            license = head.get("license")
+            by_age = listed.get("printed") and S.norm_license(license) in ("", "unknown", "none")
+            if by_age:
+                license = f"Public Domain (printed {listed['printed']})"
+            elif not S.license_open(license):
                 reason = f"license {head.get('license')!r}"
             elif (head.get("actualLanguage") or head.get("language")) not in S.ACTUAL_LANGUAGES[ed["language"]]:
                 reason = f"language {head.get('actualLanguage')!r}"
@@ -99,7 +112,7 @@ def main() -> int:
                     "file": info["file"],
                     "size": info["size"],
                     "version": head.get("versionTitle"),
-                    "license": head.get("license"),
+                    "license": license,
                     "source": head.get("versionSource"),
                 }
             )
@@ -119,12 +132,35 @@ def main() -> int:
                 }
             )
 
+    # Dictionaries: one plan item each, read from Sefaria's dictionary data by the build.
+    for ed in lexicons:
+        lex = ed["sefaria_lexicon"]
+        license = lex.get("license")
+        if lex.get("printed"):
+            license = f"{license} (printed {lex['printed']})"
+        plan.append(
+            {
+                "work": ed["work"],
+                "work_title": ed["title"],
+                "edition": ed["edition"],
+                "language": ed["language"],
+                "category": ed["category"],
+                "streams": ed["streams"],
+                "approved": ed["approved"],
+                "word_tool_only": ed.get("word_tool_only", False),
+                "lexicon": lex["name"],
+                "license": license,
+            }
+        )
+
     PLAN.parent.mkdir(parents=True, exist_ok=True)
     PLAN.write_text(json.dumps(plan, ensure_ascii=False, indent=1))
 
     # 4. summary
     by_work = {}
     for item in plan:
+        if item.get("lexicon"):
+            continue
         w = by_work.setdefault(item["work"], {"titles": set(), "files": 0, "bytes": 0, "langs": set()})
         w["titles"].add(item["title"])
         w["files"] += len(item["files"])
@@ -134,7 +170,11 @@ def main() -> int:
     print(f"{'work':34s} {'titles':>6s} {'files':>6s} {'MB':>7s}  languages")
     for wid, w in sorted(by_work.items(), key=lambda x: -x[1]["bytes"]):
         print(f"{wid:34s} {len(w['titles']):6d} {w['files']:6d} {w['bytes'] / 1e6:7.1f}  {','.join(sorted(w['langs']))}")
-    print(f"\nTotal: {len(by_work)} works, {sum(len(i['files']) for i in plan)} files, {total / 1e6:.1f} MB of Sefaria JSON")
+    print(f"\nTotal: {len(by_work)} works, {sum(len(i.get('files', [])) for i in plan)} files, {total / 1e6:.1f} MB of Sefaria JSON")
+    for item in plan:
+        if item.get("lexicon"):
+            tool = ", word meanings only" if item.get("word_tool_only") else ""
+            print(f"Dictionary: {item['lexicon']} ({item['work']}, {item['license']}{tool})")
     print(f"Skipped {len(skipped)} files that failed a check:")
     for work, title, stem, reason in skipped[:40]:
         print(f"  {work} | {title} | {stem} | {reason}")

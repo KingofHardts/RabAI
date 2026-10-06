@@ -131,5 +131,7 @@ content from anyone the board has not approved.
    library is built from Sefaria's public export by `tools/library_plan.py` and
    `tools/library_build.py` (GitHub Actions, "Build the testing library"), and the approved
    library will use the same tools on the whitelist.
-3. Contact Aish about divrei Torah and articles.
+3. Contact Aish about divrei Torah and articles, then Chabad.org. The letters are drafted in
+   [`outreach/`](outreach/), and the plan for every work we still need is in
+   [`permissions-plan.md`](permissions-plan.md).
 4. Contact one publisher about an English translation.

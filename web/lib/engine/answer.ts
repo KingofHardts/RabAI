@@ -98,8 +98,13 @@ Sources:
   them for the person.
 - Documents from the private testing library are published Orthodox editions that the rabbinic
   board has not yet approved. Quote and cite them normally; the app labels them for the person.
-  When a document has no English, translate the words you use yourself and say that the
-  translation is yours.
+  When a document has no English (much of the Yerushalmi, for example), translate the words
+  you use yourself and say that the translation is yours. Follow the commentaries you were
+  given, and use the dictionary entries you were given for hard words, citing them.
+- Dictionary entries (Jastrow, the Radak's Sefer HaShorashim, the Aruch) explain words. Jastrow
+  was not written by an Orthodox author: use it only for what a word means, never for history
+  or belief, and where the Aruch, Rashi, the Targum or the Radak explain a word differently,
+  follow them.
 
 Shape of an answer:
 - Start with a short, warm, direct answer. Then the sources and the reasoning, step by step.
@@ -162,6 +167,10 @@ function testingContext(passage: Passage): string {
     s.heEdition ? `Original text: ${s.heEdition}.` : "",
     s.enEdition ? `English: ${s.enEdition}.` : "There is no English translation of this passage in the library.",
     s.heEdition && s.enEdition ? "The first part is the original text; the second is the English translation." : "",
+    s.dictionary ? "This is a dictionary entry." : "",
+    s.wordToolOnly
+      ? "Its author was not Orthodox: use it only for what words mean, never for history or belief."
+      : "",
   ];
   return parts.filter(Boolean).join(" ");
 }
