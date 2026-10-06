@@ -1,4 +1,4 @@
-# Mesorah AI (working name)
+# RabAI
 
 A Torah learning assistant that answers from inside the Orthodox mesorah. It holds the
 core premises of Orthodox Judaism as given, draws only on an approved library of sources,

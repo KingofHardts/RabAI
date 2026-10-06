@@ -1,4 +1,4 @@
-# Mesorah AI — rules for working in this repo
+# RabAI — rules for working in this repo
 
 A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 `docs/founding-spec.md` before changing anything.
