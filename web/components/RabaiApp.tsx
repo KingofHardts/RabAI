@@ -25,6 +25,9 @@ import {
   type SavedChat,
 } from "@/lib/saved-chats";
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
+import DafPage from "./DafPage";
+import { parseAmud, type DafData } from "@/lib/library/daf";
+import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
 
 // ---------------------------------------------------------------------------
 // Types the screens use
@@ -151,6 +154,16 @@ const DEV_NOTE = "Development texts for testing. Not yet an approved edition or 
 /** How many books the Learn tab shows at once from the testing library. */
 const BOOKS_SHOWN = 40;
 const WORDS_KEY = "rabai_words";
+/** The person's own marks on the page: a color for each line or comment they marked. */
+const MARKS_KEY = "rabai_marks";
+/** RabAI's outline of each page, kept so the same page is never outlined twice. */
+const OUTLINE_KEY = "rabai_outline:";
+const MARK_COLORS = [
+  { id: "yellow", label: "Yellow" },
+  { id: "green", label: "Green" },
+  { id: "blue", label: "Blue" },
+  { id: "pink", label: "Pink" },
+];
 const MAX_SAVED_WORDS = 500;
 
 /** The books whose English or Hebrew name holds every word typed, at most BOOKS_SHOWN of them. */
@@ -413,6 +426,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [recent, setRecent] = useState<RecentReading[]>([]);
   const recentRef = useRef<RecentReading[]>([]);
   const [chatFilter, setChatFilter] = useState("");
+  // The Gemara page as printed.
+  const [dafRef, setDafRef] = useState<string | null>(null);
+  const [daf, setDaf] = useState<DafData | null>(null);
+  const [dafLoading, setDafLoading] = useState(false);
+  const [dafError, setDafError] = useState<string | null>(null);
+  const [dafPick, setDafPick] = useState<{ ref: string; index: number; word: string; part: "main" | "rashi" | "tosafot" } | null>(null);
+  const [dafZoom, setDafZoom] = useState(1);
+  const dafZoomChosen = useRef(false);
+  const [dafQuestion, setDafQuestion] = useState("");
+  const [outlines, setOutlines] = useState<Record<string, { lines: OutlineLine[]; model?: string }>>({});
+  const [outlineState, setOutlineState] = useState<{ loading: boolean; error?: string } | null>(null);
+  const [showOutline, setShowOutline] = useState(false);
+  const [marks, setMarks] = useState<Record<string, string>>({});
 
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -433,6 +459,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       chatsRef.current = parseChats(JSON.parse(window.localStorage.getItem(CHATS_KEY) ?? "[]"));
       setChats(chatsRef.current);
       recentRef.current = parseRecent(JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]"));
+      const savedMarks = JSON.parse(window.localStorage.getItem(MARKS_KEY) ?? "{}");
+      if (savedMarks && typeof savedMarks === "object" && !Array.isArray(savedMarks)) setMarks(savedMarks as Record<string, string>);
       setRecent(recentRef.current);
     } catch {
       /* nothing saved, or storage is unavailable */
@@ -517,6 +545,123 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setRecent(next);
     store(RECENT_KEY, JSON.stringify(next));
   }, [reader]);
+
+  // ---- the Gemara page ----
+  const openDaf = useCallback(async (ref: string) => {
+    const at = parseAmud(ref);
+    if (!at) return;
+    // On a phone the page starts larger, so the Gemara can be read; it scrolls sideways.
+    if (window.innerWidth < 640 && !dafZoomChosen.current) setDafZoom(1.5);
+    const section = `${at.tractate} ${at.daf}${at.amud}`;
+    setDafRef(section);
+    setDaf((d) => (d && d.section === section ? d : null));
+    setDafPick(null);
+    setDafQuestion("");
+    setDafError(null);
+    setDafLoading(true);
+    try {
+      const res = await fetch(`/api/daf?ref=${encodeURIComponent(section)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "That page isn't available.");
+      setDaf(json as DafData);
+      // The address names the page, so it can be shared or reloaded.
+      const url = new URL(window.location.href);
+      url.searchParams.set("daf", section);
+      window.history.replaceState(null, "", url);
+      const next = addRecent(recentRef.current, { ref: section, title: section, at: Date.now(), page: true });
+      recentRef.current = next;
+      setRecent(next);
+      store(RECENT_KEY, JSON.stringify(next));
+      try {
+        const kept = JSON.parse(window.localStorage.getItem(`${OUTLINE_KEY}${section}`) ?? "null");
+        if (kept && Array.isArray(kept.lines)) setOutlines((prev) => ({ ...prev, [section]: kept }));
+      } catch {
+        /* no outline kept */
+      }
+    } catch (err) {
+      setDaf(null);
+      setDafError(err instanceof Error ? err.message : "That page isn't available.");
+    } finally {
+      setDafLoading(false);
+    }
+  }, []);
+
+  const closeDaf = () => {
+    setDafRef(null);
+    setDafPick(null);
+    setOutlineState(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("daf")) {
+      url.searchParams.delete("daf");
+      window.history.replaceState(null, "", url);
+    }
+  };
+
+  // A link with ?daf=Berakhot 2a opens that page.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("daf");
+    if (ref && parseAmud(ref)) void openDaf(ref);
+  }, [openDaf]);
+
+  const showFlow = async () => {
+    if (!daf) return;
+    if (outlines[daf.section]) {
+      setShowOutline(!showOutline);
+      return;
+    }
+    setShowOutline(true);
+    setOutlineState({ loading: true });
+    try {
+      const res = await fetch("/api/daf/outline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref: daf.section }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "RabAI couldn't outline this page just now.");
+      const kept = { lines: json.lines as OutlineLine[], model: json.model as string | undefined };
+      setOutlines((prev) => ({ ...prev, [daf.section]: kept }));
+      store(`${OUTLINE_KEY}${daf.section}`, JSON.stringify(kept));
+      setOutlineState(null);
+    } catch (err) {
+      setOutlineState({ loading: false, error: err instanceof Error ? err.message : "RabAI couldn't outline this page just now." });
+      setShowOutline(false);
+    }
+  };
+
+  const markPiece = (ref: string, color: string | null) => {
+    setMarks((prev) => {
+      const next = { ...prev };
+      if (color) next[ref] = color;
+      else delete next[ref];
+      store(MARKS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Look up the word tapped on the page, as for a word tapped in the reader.
+  useEffect(() => {
+    const w = dafPick ? bareWord(dafPick.word) : "";
+    if (!w || wordInfo[w]) return;
+    setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
+    fetch(`/api/word?w=${encodeURIComponent(w)}`)
+      .then((r) => r.json())
+      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string }) =>
+        setWordInfo((prev) => ({ ...prev, [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [] } })),
+      )
+      .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
+  }, [dafPick, wordInfo]);
+
+  useEffect(() => {
+    if (!dafRef) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (dafPick) setDafPick(null);
+      else closeDaf();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dafRef, dafPick]);
 
   // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
@@ -850,6 +995,125 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const tapWord = (ref: string, index: number) =>
     setWordCard(wordCard?.ref === ref && wordCard.index === index ? null : { ref, index });
 
+  const renderBreakdown = (first: WordEntry) => (
+    <>
+      {(first.found.prefix.length > 0 || first.found.suffix || first.found.guess) && (
+        <p className="breakdown">
+          <span className="label-inline">How it breaks down:</span>{" "}
+          {first.found.prefix.map(([letter, meaning]) => (
+            <span key={letter} className="part">
+              <span className="he" lang="he">
+                {letter}
+              </span>{" "}
+              “{meaning}” +{" "}
+            </span>
+          ))}
+          <span className="he" lang="he">
+            {first.found.form}
+          </span>
+          {first.found.suffix && (
+            <>
+              {" "}
+              with the ending{" "}
+              <span className="he" lang="he">
+                {first.found.suffix}
+              </span>
+              {first.found.suffixMeaning ? `, ${first.found.suffixMeaning}` : ""}
+            </>
+          )}
+          .
+        </p>
+      )}
+      {first.found.guess && (
+        <p className="breakdown-guess">
+          Probably a form of{" "}
+          <span className="he" lang="he">
+            {first.found.form}
+          </span>
+          : {first.found.guess.join("; ")}.
+        </p>
+      )}
+    </>
+  );
+
+  const renderEntries = (entries: WordEntry[]) => {
+    const first = entries[0];
+    return (
+      entries.length > 0 && (
+        <div className="entries">
+          <p className="label-sm">From the dictionaries</p>
+          {entries.map((e) => (
+            <div key={e.ref} className={`entry ${e.dictionary.startsWith("Jastrow") ? "dict-jastrow" : "dict-radak"}`}>
+              <div className="entry-head">
+                <span className="dict-chip">{e.dictionary}</span>
+                <span className="he" lang="he">
+                  {e.headword}
+                </span>
+              </div>
+              {first && readingText(e.found) !== readingText(first.found) && (
+                <p className="entry-reading">
+                  Another way to read the word:{" "}
+                  <span className="he" lang="he">
+                    {readingText(e.found)}
+                  </span>
+                  {e.found.guess ? " (a guess at its root)" : ""}
+                </p>
+              )}
+              <EntryText entry={e} />
+              {e.note && <p className="entry-note">{e.note}</p>}
+            </div>
+          ))}
+        </div>
+      )
+    );
+  };
+
+  const renderLineAnswer = (ref: string, onOpen: (r: string) => void = (r) => void openReader(r)) => {
+    const answer = lineAnswers[ref];
+    if (!answer) return null;
+    const p = { ref };
+    return (
+      <div className="answer" aria-live="polite" data-answer-for={p.ref}>
+        <div className="mark" aria-hidden="true">
+          ר
+        </div>
+        <div>
+          {answer.loading && answer.live ? (
+            <LiveText text={answer.live} />
+          ) : answer.loading ? (
+            <p className="thinking">
+              {answer.status ?? (answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line")}
+              <span className="dots" />
+            </p>
+          ) : answer.error ? (
+            <p>{answer.error}</p>
+          ) : answer.result ? (
+            <>
+              {answer.result.safety && <SafetyCard result={answer.result} />}
+              {answer.result.blocks.length > 0 ? (
+                <AnswerBody blocks={answer.result.blocks} onOpen={onOpen} />
+              ) : (
+                <p>{answer.result.notice}</p>
+              )}
+              {speechOk && answer.result.status === "answered" && (
+                <div className="follow tight">
+                  <button
+                    type="button"
+                    className="chip-btn listen"
+                    aria-pressed={speakingId === `l${p.ref}`}
+                    onClick={() => listen(`l${p.ref}`, plainAnswer(answer.result))}
+                  >
+                    <SpeakerIcon /> {speakingId === `l${p.ref}` ? "Stop" : "Listen"}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   const renderWordCard = (p: Passage & { tokens: Token[] }) => {
     if (!reader || !wordCard || wordCard.ref !== p.ref) return null;
     const token = p.tokens[wordCard.index];
@@ -877,42 +1141,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             ×
           </button>
         </div>
-        {first && (first.found.prefix.length > 0 || first.found.suffix || first.found.guess) && (
-          <p className="breakdown">
-            <span className="label-inline">How it breaks down:</span>{" "}
-            {first.found.prefix.map(([letter, meaning]) => (
-              <span key={letter} className="part">
-                <span className="he" lang="he">
-                  {letter}
-                </span>{" "}
-                “{meaning}” +{" "}
-              </span>
-            ))}
-            <span className="he" lang="he">
-              {first.found.form}
-            </span>
-            {first.found.suffix && (
-              <>
-                {" "}
-                with the ending{" "}
-                <span className="he" lang="he">
-                  {first.found.suffix}
-                </span>
-                {first.found.suffixMeaning ? `, ${first.found.suffixMeaning}` : ""}
-              </>
-            )}
-            .
-          </p>
-        )}
-        {first?.found.guess && (
-          <p className="breakdown-guess">
-            Probably a form of{" "}
-            <span className="he" lang="he">
-              {first.found.form}
-            </span>
-            : {first.found.guess.join("; ")}.
-          </p>
-        )}
+        {first && renderBreakdown(first)}
         {token.parts && <p className="parts">{token.parts}</p>}
         {root && (
           <p>
@@ -941,32 +1170,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </p>
         )}
         {lookup?.error && <p className="muted">{lookup.error}</p>}
-        {entries.length > 0 && (
-          <div className="entries">
-            <p className="label-sm">From the dictionaries</p>
-            {entries.map((e) => (
-              <div key={e.ref} className={`entry ${e.dictionary.startsWith("Jastrow") ? "dict-jastrow" : "dict-radak"}`}>
-                <div className="entry-head">
-                  <span className="dict-chip">{e.dictionary}</span>
-                  <span className="he" lang="he">
-                    {e.headword}
-                  </span>
-                </div>
-                {first && readingText(e.found) !== readingText(first.found) && (
-                  <p className="entry-reading">
-                    Another way to read the word:{" "}
-                    <span className="he" lang="he">
-                      {readingText(e.found)}
-                    </span>
-                    {e.found.guess ? " (a guess at its root)" : ""}
-                  </p>
-                )}
-                <EntryText entry={e} />
-                {e.note && <p className="entry-note">{e.note}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+        {renderEntries(entries)}
         {lookup && !lookup.loading && !lookup.error && entries.length === 0 && !teamNotes && (
           <p className="muted">
             {lookup.available === false
@@ -1195,46 +1399,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             )}
           </>
         )}
-        {answer && (
-          <div className="answer" aria-live="polite" data-answer-for={p.ref}>
-            <div className="mark" aria-hidden="true">
-              ר
-            </div>
-            <div>
-              {answer.loading && answer.live ? (
-                <LiveText text={answer.live} />
-              ) : answer.loading ? (
-                <p className="thinking">
-                  {answer.status ?? (answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line")}
-                  <span className="dots" />
-                </p>
-              ) : answer.error ? (
-                <p>{answer.error}</p>
-              ) : answer.result ? (
-                <>
-                  {answer.result.safety && <SafetyCard result={answer.result} />}
-                  {answer.result.blocks.length > 0 ? (
-                    <AnswerBody blocks={answer.result.blocks} onOpen={(r) => void openReader(r)} />
-                  ) : (
-                    <p>{answer.result.notice}</p>
-                  )}
-                  {speechOk && answer.result.status === "answered" && (
-                    <div className="follow tight">
-                      <button
-                        type="button"
-                        className="chip-btn listen"
-                        aria-pressed={speakingId === `l${p.ref}`}
-                        onClick={() => listen(`l${p.ref}`, plainAnswer(answer.result))}
-                      >
-                        <SpeakerIcon /> {speakingId === `l${p.ref}` ? "Stop" : "Listen"}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : null}
-            </div>
-          </div>
-        )}
+        {renderLineAnswer(p.ref)}
       </div>
     );
   };
@@ -1456,6 +1621,261 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const currentChat = chatId ? chats.find((c) => c.id === chatId) : undefined;
 
+  const PART_LABEL = { main: "Gemara", rashi: "Rashi", tosafot: "Tosafot" } as const;
+
+  const renderDafView = () => {
+    const outline = daf ? outlines[daf.section] : undefined;
+    const kinds: Record<string, string> = showOutline && outline ? Object.fromEntries(outline.lines.map((l) => [l.ref, l.kind])) : {};
+    const pieces = daf ? [...daf.main, ...daf.rashi, ...daf.tosafot] : [];
+    const picked = dafPick ? pieces.find((p) => p.ref === dafPick.ref) : undefined;
+    const linked = new Set<string>();
+    if (daf && dafPick && picked) {
+      if (dafPick.part === "main") {
+        for (const c of [...daf.rashi, ...daf.tosafot]) if (c.on === picked.ref) linked.add(c.ref);
+      } else if (picked.on) linked.add(picked.on);
+    }
+    const word = dafPick ? bareWord(dafPick.word) : "";
+    const lookup = word ? wordInfo[word] : undefined;
+    const entries = lookup?.entries ?? [];
+    const first = entries[0];
+    const line = outline?.lines.find((l) => l.ref === picked?.ref);
+    const answer = picked ? lineAnswers[picked.ref] : undefined;
+    const partName = dafPick?.part === "main" ? "line" : "comment";
+    const goToSource = (r: string) => {
+      closeDaf();
+      void openReader(r);
+    };
+    return (
+      <div className="daf-view" role="dialog" aria-modal="true" aria-label={daf ? `${daf.section}, the page as printed` : "The page as printed"}>
+        <div className="daf-bar">
+          <button type="button" className="chip-btn" onClick={closeDaf}>
+            ← Back
+          </button>
+          <div className="daf-title">
+            {daf && (
+              <span className="he" lang="he">
+                {daf.labelHe}
+              </span>
+            )}
+            <span>{dafRef}</span>
+          </div>
+          <div className="daf-tools">
+            <button
+              type="button"
+              className="chip-btn"
+              disabled={!daf?.prev || dafLoading}
+              onClick={() => daf?.prev && void openDaf(daf.prev)}
+              aria-label={daf?.prev ? `Previous page, ${daf.prev}` : "Previous page"}
+            >
+              ‹<span className="wide"> Back a page</span>
+            </button>
+            <button
+              type="button"
+              className="chip-btn"
+              disabled={!daf || dafLoading}
+              onClick={() => daf && void openDaf(daf.next)}
+              aria-label={daf ? `Next page, ${daf.next}` : "Next page"}
+            >
+              <span className="wide">Next page </span>›
+            </button>
+            <div className="seg" role="group" aria-label="Page size">
+              <button type="button" aria-label="Smaller page" disabled={dafZoom <= 1} onClick={() => {
+                  dafZoomChosen.current = true;
+                  setDafZoom((z) => Math.max(1, z - 0.5));
+                }}>
+                −
+              </button>
+              <button type="button" aria-label="Bigger page" disabled={dafZoom >= 3} onClick={() => {
+                  dafZoomChosen.current = true;
+                  setDafZoom((z) => Math.min(3, z + 0.5));
+                }}>
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              className={`chip-btn${showOutline ? " primary" : ""}`}
+              aria-pressed={showOutline}
+              disabled={!daf || outlineState?.loading}
+              onClick={() => void showFlow()}
+            >
+              {outlineState?.loading ? "Outlining…" : showOutline ? "Hide the flow" : "Show the flow"}
+            </button>
+          </div>
+        </div>
+        {outlineState?.error && <p className="daf-alert">{outlineState.error}</p>}
+        {showOutline && outline && (
+          <div className="daf-legend" aria-label="What the colors mean">
+            {OUTLINE_KINDS.filter((k) => outline.lines.some((l) => l.kind === k)).map((k) => (
+              <span key={k} className={`legend-chip k-${k}`}>
+                {OUTLINE_LABELS[k]}
+              </span>
+            ))}
+            <span className="legend-note">RabAI’s outline of the argument, not yet reviewed by the rabbinic board.</span>
+          </div>
+        )}
+        <div className={`daf-body${picked ? " with-panel" : ""}`}>
+          <div className="daf-main">
+            {dafLoading ? (
+              <p className="reader-state">
+                Opening the page<span className="dots" />
+              </p>
+            ) : dafError ? (
+              <p className="reader-state">{dafError}</p>
+            ) : daf ? (
+              <>
+                <DafPage
+                  data={daf}
+                  zoom={dafZoom}
+                  selectedRef={dafPick?.ref ?? null}
+                  linkedRefs={linked}
+                  activeWord={dafPick ? { ref: dafPick.ref, index: dafPick.index } : null}
+                  kinds={kinds}
+                  marks={marks}
+                  onWord={(ref, index, w, part) => {
+                    setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part });
+                    setDafQuestion("");
+                  }}
+                />
+                <p className="daf-note">
+                  {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}. The shape follows the
+                  printed Vilna page, but the lines break where your screen breaks them. Tap any word.
+                </p>
+              </>
+            ) : null}
+          </div>
+          {dafPick && picked && daf && (
+            <aside className="daf-panel" aria-label={`About ${picked.ref}`}>
+              <div className="daf-panel-head">
+                <span className={`part-chip part-${dafPick.part}`}>{PART_LABEL[dafPick.part]}</span>
+                <span className="daf-panel-ref">{picked.ref}</span>
+                <button type="button" className="x" aria-label="Close" onClick={() => setDafPick(null)}>
+                  ×
+                </button>
+              </div>
+              {line && showOutline && (
+                <p className={`kind-note k-${line.kind}`}>
+                  <strong>{OUTLINE_LABELS[line.kind as OutlineKind]}.</strong> {line.note}{" "}
+                  <span className="fine-inline">RabAI’s outline, not yet reviewed.</span>
+                </p>
+              )}
+              <p className="he daf-panel-he" lang="he">
+                {picked.he}
+              </p>
+              {picked.en ? (
+                <>
+                  <p className="daf-panel-en">{picked.en}</p>
+                  {dafPick.part === "main" && daf.editions.mainEnglish && (
+                    <p className="fine-left">Translation: {daf.editions.mainEnglish}.</p>
+                  )}
+                </>
+              ) : (
+                <p className="muted">No English translation of this {partName} is in the library yet. RabAI can explain it.</p>
+              )}
+
+              {word && (
+                <div className="daf-word">
+                  <p className="label-sm">The word you tapped</p>
+                  <p className="he daf-word-he" lang="he">
+                    {word}
+                  </p>
+                  {lookup?.loading && (
+                    <p className="muted">
+                      Looking it up in the dictionaries<span className="dots" />
+                    </p>
+                  )}
+                  {lookup?.error && <p className="muted">{lookup.error}</p>}
+                  {first && renderBreakdown(first)}
+                  {renderEntries(entries)}
+                  {lookup && !lookup.loading && !lookup.error && entries.length === 0 && (
+                    <p className="muted">None of the library’s dictionaries has this word yet. RabAI can explain it.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="follow">
+                <button
+                  type="button"
+                  className={`chip-btn${word && lookup && !lookup.loading && !entries.length ? " primary" : ""}`}
+                  disabled={answer?.loading || !word}
+                  onClick={() => void askLine(picked.ref, "word", "", word)}
+                >
+                  Ask RabAI about this word
+                </button>
+                <button type="button" className="chip-btn" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "explain")}>
+                  Explain this {partName}
+                </button>
+                {dafPick.part === "main" && (
+                  <button type="button" className="chip-btn" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "commentaries")}>
+                    What do Rashi and Tosafot say?
+                  </button>
+                )}
+                {word && (
+                  <button
+                    type="button"
+                    className="chip-btn"
+                    aria-pressed={isSaved(word)}
+                    onClick={() =>
+                      isSaved(word)
+                        ? removeWord(word)
+                        : saveWord({
+                            form: word,
+                            gloss: first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined,
+                            ref: picked.ref,
+                          })
+                    }
+                  >
+                    {isSaved(word) ? "Saved to My words ✓" : "Save to My words"}
+                  </button>
+                )}
+              </div>
+              <form
+                className="ask-line"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (dafQuestion.trim()) void askLine(picked.ref, "ask", dafQuestion.trim());
+                }}
+              >
+                <label className="sr-only" htmlFor="daf-ask">
+                  Your own question about {picked.ref}
+                </label>
+                <input
+                  id="daf-ask"
+                  value={dafQuestion}
+                  onChange={(e) => setDafQuestion(e.target.value)}
+                  placeholder={`Or ask your own question about this ${partName}…`}
+                  maxLength={2000}
+                />
+                <button type="submit" disabled={!dafQuestion.trim() || answer?.loading}>
+                  Ask
+                </button>
+              </form>
+              <div className="mark-row" role="group" aria-label={`Mark this ${partName}`}>
+                <span>Mark this {partName}:</span>
+                {MARK_COLORS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`mark-dot mark-${c.id}`}
+                    aria-label={c.label}
+                    aria-pressed={marks[picked.ref] === c.id}
+                    onClick={() => markPiece(picked.ref, marks[picked.ref] === c.id ? null : c.id)}
+                  />
+                ))}
+                {marks[picked.ref] && (
+                  <button type="button" className="link" onClick={() => markPiece(picked.ref, null)}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              {renderLineAnswer(picked.ref, goToSource)}
+            </aside>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}`}>
       <section className="convo" aria-label={mode === "chat" ? "Conversation" : "Learn"}>
@@ -1638,8 +2058,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <h3>Pick up where you left off</h3>
                   <div className="follow">
                     {recent.map((r) => (
-                      <button key={r.title} type="button" className="cite" onClick={() => void openReader(r.ref)}>
+                      <button
+                        key={`${r.title}${r.page ? ":page" : ""}`}
+                        type="button"
+                        className="cite"
+                        onClick={() => void (r.page ? openDaf(r.ref) : openReader(r.ref))}
+                      >
                         {r.title}
+                        {r.page ? " (the page)" : ""}
                       </button>
                     ))}
                   </div>
@@ -1687,6 +2113,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       <button type="button" className="chip-btn" onClick={() => void openReader(s.firstRef)}>
                         Read it
                       </button>
+                      {(s.workId === "talmud-bavli" || s.workTitle === "Talmud Bavli") && parseAmud(s.firstRef) && (
+                        <button type="button" className="chip-btn" onClick={() => void openDaf(s.firstRef)}>
+                          See the page
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="chip-btn"
@@ -1844,6 +2275,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         )}
       </section>
 
+      {dafRef && renderDafView()}
+
       {readerOpen && <button type="button" className="scrim" aria-label="Close the text" onClick={closeReader} tabIndex={-1} />}
 
       <aside className={`reader${readerOpen ? " open" : ""}`} aria-label="Source reader">
@@ -1876,6 +2309,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <button type="button" className="study-toggle" aria-pressed={studyMode} onClick={toggleStudy}>
                   Study words
                 </button>
+                {reader?.libraryMode === "testing" && reader.work.id === "talmud-bavli" && parseAmud(reader.section) && (
+                  <button type="button" className="study-toggle page-toggle" onClick={() => void openDaf(reader.section)}>
+                    See the page
+                  </button>
+                )}
               </div>
               {reader &&
                 (reader.libraryMode === "development" ? (

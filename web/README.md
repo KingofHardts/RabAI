@@ -37,6 +37,17 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   those passages along so RabAI can cite them.
 - **Try it yourself.** "Let me try translating" on any line: RabAI checks the person's own
   translation gently.
+- **See the page.** A Gemara text in the testing library opens as the printed page: the
+  Gemara in the middle, Rashi on the inner side and Tosafot on the outer side, wrapping around
+  each other the way the Vilna Shas is set (Rashi moves sides between amud a and amud b). Every
+  word can be tapped: the side panel shows that line's translation, the word's meanings from
+  the dictionaries, the Rashi and Tosafot on that line (lightly shaded on the page), and
+  questions to ask RabAI. "Show the flow" colors each line by what it does (question, answer,
+  proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
+  and is kept on the device. The person can mark lines in four colors. The shape follows the
+  printed page, but lines break where the screen breaks them. A link like `/?daf=Berakhot 2a`
+  opens a page directly. (`/api/daf?ref=` and `/api/daf/outline`; the layout method is ported
+  from the MIT-licensed daf-renderer, see `THIRD-PARTY-NOTICES.md`.)
 - **Your chats.** Every conversation is saved as it goes, on this device only (there are no
   accounts yet). The Chats button lists them by category, with the person's own categories
   (Gemara, Halacha, or anything they name), each in its own color. Open one to pick it up,

@@ -53,6 +53,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   labeled with its dictionary. A guessed root is always shown as a guess, with what was changed.
   RabAI explains a word only when the person taps "Ask RabAI about this word"; never call the
   model when a word is tapped.
+- The printed-page view (`web/components/DafPage.tsx`, `web/lib/library/daf.ts`,
+  `/api/daf`) shows one amud of the Bavli with the Rashi and Tosafot on it, from the testing
+  library. Its layout is ported from daf-renderer (MIT); keep `web/THIRD-PARTY-NOTICES.md`.
+  "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabAI's outline of the
+  argument: run it only when the person asks, keep it on the device, and always label it as
+  not yet reviewed by the rabbinic board (founding spec, open question 15).
 - Saved chats and recent reading (`web/lib/saved-chats.ts`) live only in the person's browser.
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.
@@ -129,22 +135,20 @@ Open items:
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
 
-Done 2026-10-06: tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabAI
-only when asked), and saved chats with categories plus "pick up where you left off", on the
-device. Accounts, so chats follow the person between devices, come later.
+Done 2026-10-06:
+- Tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabAI only when
+  asked).
+- Saved chats with categories, and "pick up where you left off", on the device. Accounts, so
+  chats follow the person between devices, come later.
+- The Gemara page as printed, with tappable words, translations, linked Rashi and Tosafot,
+  marks, and "Show the flow". Not yet exact: lines break where the screen breaks them, because
+  the library has no record of the printed line breaks. Matching the print line for line needs
+  either those line breaks (from scans) or correcting each page by hand, as Mercava did.
 
 Next, as the maintainer asked (2026-10-06), roughly in this order:
-1. **An interactive Gemara page.** The daf laid out as printed (Gemara in the middle, Rashi and
-   Tosafot around it, lined up), looking like the printed page but fully interactive: tap any
-   word, translations on the page, highlights, and colors marking questions, answers,
-   statements and proofs, like the Mercava app. The colors would be RabAI's outline, labeled as
-   not yet reviewed. Research (2026-10-06): Mercava typesets the page from text rather than
-   showing scans, and hand-corrects each page. Plan: draw the page from the library's text with
-   the open-source `daf-renderer` method (MIT), using Frank Ruhl Libre and Noto Rashi Hebrew
-   (both OFL), with the page shape approximate until printed line breaks are available.
-2. **A chavrusa mode.** RabAI learns a daf with you on that page: points things out, asks you
-   questions, and tracks what you've learned and where you need practice.
-3. **More color** across the app, used to mean something (for example, sources, questions,
+1. **A chavrusa mode.** RabAI learns a daf with you on the printed page: points things out, asks
+   you questions, and tracks what you've learned and where you need practice.
+2. **More color** across the app, used to mean something (for example, sources, questions,
    your own words).
 
 ## Writing style for anything a user or a rav will read

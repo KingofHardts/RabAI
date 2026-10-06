@@ -164,6 +164,8 @@ export interface RecentReading {
   ref: string;
   title: string;
   at: number;
+  /** Opened as the printed page rather than line by line. */
+  page?: boolean;
 }
 
 export const RECENT_KEY = "rabai_recent_reading";
@@ -173,11 +175,12 @@ export function parseRecent(raw: unknown): RecentReading[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((r): r is RecentReading => !!r && typeof r.ref === "string" && typeof r.title === "string" && typeof r.at === "number")
+    .map((r) => (r.page === true ? { ref: r.ref, title: r.title, at: r.at, page: true } : { ref: r.ref, title: r.title, at: r.at }))
     .sort((a, b) => b.at - a.at)
     .slice(0, MAX_RECENT);
 }
 
-/** Remember a place: one entry per book section, the newest first. */
+/** Remember a place: one entry per book section and way of reading it, the newest first. */
 export function addRecent(list: RecentReading[], entry: RecentReading): RecentReading[] {
-  return [entry, ...list.filter((r) => r.title !== entry.title)].slice(0, MAX_RECENT);
+  return [entry, ...list.filter((r) => r.title !== entry.title || !!r.page !== !!entry.page)].slice(0, MAX_RECENT);
 }

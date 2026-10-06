@@ -311,3 +311,100 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .chat-meta { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); padding: 2px 0 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
 .chat-meta .saved-note { color: var(--muted); }
 .chat-meta .link { font-size: 13px; }
+
+/* ---------- the Gemara page as printed ---------- */
+:root {
+  --page: #FFFDF6; --page-ink: #1E1A14; --page-line: #E8E1CF;
+  --k-mishnah: #ECE7DA; --k-question: #FFE7B8; --k-answer: #D6F0DC; --k-statement: #DDE8F7;
+  --k-proof: #EADDF7; --k-challenge: #F9D8D6; --k-resolution: #D3EEEC; --k-story: #F3E3D0;
+  --m-yellow: #FCE68A; --m-green: #BDEBB4; --m-blue: #BCD9F7; --m-pink: #F7C6DD;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #1F1D18; --page-ink: #ECE5D3; --page-line: #3A362C;
+    --k-mishnah: #34312A; --k-question: #4A3A16; --k-answer: #1F3D27; --k-statement: #1E2F48;
+    --k-proof: #33264A; --k-challenge: #4A2321; --k-resolution: #163C3A; --k-story: #42331F;
+    --m-yellow: #5C4F14; --m-green: #2C4D27; --m-blue: #22405F; --m-pink: #5A2840;
+  }
+}
+.daf-view { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column; }
+.daf-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; border-bottom: 1px solid var(--line); }
+.daf-title { display: flex; align-items: baseline; gap: 10px; font-weight: 600; margin-inline-end: auto; }
+.daf-title .he { font-size: 22px; }
+.daf-title span:last-child { color: var(--muted); font-size: 14px; font-weight: 500; }
+.daf-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.daf-tools .seg button { font-size: 18px; padding: 4px 16px; min-height: 40px; }
+@media (max-width: 640px) {
+  .daf-bar { padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; gap: 6px 8px; }
+  .daf-bar .wide { display: none; }
+  .daf-bar .chip-btn { padding: 6px 12px; }
+  .daf-title .he { font-size: 19px; }
+  .daf-tools .seg button { padding: 4px 12px; }
+}
+.daf-alert { margin: 8px 16px 0; color: var(--care-ink); background: var(--care-bg); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.daf-legend { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.legend-chip { border-radius: 999px; padding: 3px 10px; color: var(--page-ink); }
+.legend-note { color: var(--muted); }
+.daf-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.daf-main { overflow: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.daf-note { color: var(--muted); font-size: 12.5px; max-width: 980px; margin: 14px auto 0; }
+.daf-wrap { width: 100%; overflow-x: auto; }
+.daf { position: relative; margin: 0 auto; background: var(--page); color: var(--page-ink); box-shadow: 0 0 0 1px var(--page-line); border-radius: 4px; box-sizing: content-box; padding: 0; }
+.daf-measure { position: absolute; top: 0; left: 0; width: 100%; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+.daf-measure > div { position: absolute; top: 0; right: 0; }
+.daf-layer { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
+.daf-layer .sp { pointer-events: none; }
+.daf-text { text-align: justify; text-align-last: right; overflow-wrap: anywhere; }
+.daf-text.main { font-family: var(--font-he); font-weight: 500; }
+.daf-text.rashi, .daf-text.tosafot { font-family: "Noto Rashi Hebrew", var(--font-he); }
+.daf-text .open { font-weight: 700; }
+.daf-text.rashi .open, .daf-text.tosafot .open { font-family: var(--font-he); }
+.daf-text .dw { pointer-events: auto; cursor: pointer; border-radius: 3px; }
+.daf-text .dw:hover { background: var(--tint); }
+.daf-text .dw.on { background: var(--accent); color: var(--accent-ink); }
+.daf-text .dw.big { font-size: 1.9em; line-height: 1; font-weight: 700; }
+.daf-text .dseg { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; }
+.daf-text .dseg.k-mishnah { background: var(--k-mishnah); } .daf-text .dseg.k-question { background: var(--k-question); }
+.daf-text .dseg.k-answer { background: var(--k-answer); } .daf-text .dseg.k-statement { background: var(--k-statement); }
+.daf-text .dseg.k-proof { background: var(--k-proof); } .daf-text .dseg.k-challenge { background: var(--k-challenge); }
+.daf-text .dseg.k-resolution { background: var(--k-resolution); } .daf-text .dseg.k-story { background: var(--k-story); }
+.daf-text .dseg.mark-yellow { background: var(--m-yellow); } .daf-text .dseg.mark-green { background: var(--m-green); }
+.daf-text .dseg.mark-blue { background: var(--m-blue); } .daf-text .dseg.mark-pink { background: var(--m-pink); }
+.daf-text .dseg.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.daf-text .dseg.linked { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.legend-chip.k-mishnah, .kind-note.k-mishnah { background: var(--k-mishnah); } .legend-chip.k-question, .kind-note.k-question { background: var(--k-question); }
+.legend-chip.k-answer, .kind-note.k-answer { background: var(--k-answer); } .legend-chip.k-statement, .kind-note.k-statement { background: var(--k-statement); }
+.legend-chip.k-proof, .kind-note.k-proof { background: var(--k-proof); } .legend-chip.k-challenge, .kind-note.k-challenge { background: var(--k-challenge); }
+.legend-chip.k-resolution, .kind-note.k-resolution { background: var(--k-resolution); } .legend-chip.k-story, .kind-note.k-story { background: var(--k-story); }
+.daf-panel { overflow: auto; background: var(--surface); border-top: 1px solid var(--line); padding: 14px 16px 24px; }
+.daf-panel-head { display: flex; align-items: center; gap: 8px; }
+.daf-panel-head .x { margin-inline-start: auto; background: none; border: 0; font-size: 24px; color: var(--muted); min-width: 44px; min-height: 44px; }
+.daf-panel-ref { color: var(--muted); font-size: 13px; }
+.part-chip { border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 700; }
+.part-main { background: var(--tint); color: var(--accent); }
+.part-rashi { background: var(--jastrow-bg); color: var(--jastrow); }
+.part-tosafot { background: var(--radak-bg); color: var(--radak); }
+.kind-note { border-radius: 10px; padding: 8px 12px; color: var(--page-ink); font-size: 14px; }
+.fine-inline { color: var(--muted); font-size: 12px; }
+.daf-panel-he { font-size: 19px; line-height: 1.6; margin: 10px 0 6px; }
+.daf-panel-en { margin: 0 0 4px; font-family: var(--font-voice); font-size: 16px; }
+.daf-word { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 4px; }
+.daf-word-he { font-size: 24px; margin: 0; }
+.daf-panel .ask-line { padding: 10px 0 0; }
+.mark-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+.mark-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.mark-dot[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.mark-dot.mark-yellow { background: var(--m-yellow); } .mark-dot.mark-green { background: var(--m-green); }
+.mark-dot.mark-blue { background: var(--m-blue); } .mark-dot.mark-pink { background: var(--m-pink); }
+.daf-panel .answer { margin: 12px 0 0; }
+@media (min-width: 980px) {
+  .daf-body.with-panel { grid-template-columns: minmax(0, 1fr) 400px; }
+  .daf-panel { border-top: 0; border-inline-start: 1px solid var(--line); }
+}
+@media (max-width: 979px) {
+  .daf-panel {
+    position: fixed; inset: auto 0 0 0; max-height: 55dvh; z-index: 41; border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow); padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .daf-body.with-panel .daf-main { padding-bottom: 55dvh; }
+}

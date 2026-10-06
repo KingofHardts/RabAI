@@ -131,7 +131,8 @@ function locationIn(ref: string, title: string): string {
  * Join the Hebrew and English rows of each ref into one passage, in reading order.
  * Within a language, the first edition (by the canon's order) is used.
  */
-export function groupRows(rows: Row[]): Passage[] {
+export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[] {
+  const text = (t: string) => (opts.full ? t : clip(t));
   const byRef = new Map<string, { he?: Row; en?: Row; seq: number }>();
   for (const r of rows) {
     const entry = byRef.get(r.ref) ?? { seq: r.seq };
@@ -166,8 +167,8 @@ export function groupRows(rows: Row[]): Passage[] {
         order: seq,
         label: loc || base.title,
         labelHe: base.he_title ?? base.title,
-        he: he ? clip(he.text) : "",
-        en: en ? clip(en.text) : "",
+        he: he ? text(he.text) : "",
+        en: en ? text(en.text) : "",
         source,
       };
     });
@@ -195,6 +196,11 @@ export interface TestingStore {
   wordEntries(word: string, limit?: number): Promise<Array<Passage & { reading: WordReading }>>;
   /** A whole section for the reader, with each line's commentaries. */
   section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]> } | null>;
+  /**
+   * One amud of the Bavli as printed: its Gemara, and the Rashi and Tosafot written on it, each
+   * in full and in order. Null when the library has no Gemara at this ref.
+   */
+  daf(section: string): Promise<{ main: Passage[]; rashi: Passage[]; tosafot: Passage[] } | null>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string }>>;
   /** The short list of book names the lookup planner may use. */
@@ -627,6 +633,21 @@ export function createTestingStore(db: Db): TestingStore {
         }
       }
       return { lines, commentaries };
+    },
+
+    async daf(section) {
+      const m = section.trim().match(/^(.+) (\d+[ab])$/);
+      if (!m) return null;
+      const [, tractate, amud] = m;
+      const rowsOf = async (title: string) => {
+        const [lo, hi] = prefixRange(`${title} ${amud}:`);
+        return groupRows(await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, title], TESTING_LIMITS.section * 3), {
+          full: true,
+        });
+      };
+      const [main, rashi, tosafot] = await Promise.all([rowsOf(tractate), rowsOf(`Rashi on ${tractate}`), rowsOf(`Tosafot on ${tractate}`)]);
+      if (!main.length) return null;
+      return { main, rashi, tosafot };
     },
 
     async books() {
