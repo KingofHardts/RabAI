@@ -22,6 +22,13 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   button appears.
 - **Read.** Tapping a source opens the page or chapter with the cited line highlighted, in
   Hebrew, English, or both, with the commentaries under the line they explain.
+- **Tap a word.** In normal reading, tapping any Hebrew or Aramaic word shows what the
+  library's dictionaries say about it (Jastrow and the Radak's Sefer HaShorashim in the testing
+  library), each entry labeled with its dictionary, plus how the word breaks down: the letters
+  in front ("and", "the", "from"), the ending, and for a conjugated word a guess at its root,
+  marked as a guess, with what was changed. This uses no AI. When no dictionary has the word,
+  "Ask RabAI about this word" becomes the main button; RabAI explains only when tapped.
+  (`/api/word?w=` does the lookup.)
 - **Ask about a line.** Tap a line for: Explain this, Word by word, What do the commentaries say,
   Where is this used in halacha, or your own question.
 - **Study words.** Turn it on in the reader and tap any word: its parts, its root, and every

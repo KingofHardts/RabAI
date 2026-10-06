@@ -49,6 +49,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it. A live (streamed) answer shows only text; citation buttons
   come with the final, checked answer.
+- Word meanings (`/api/word`, the word card) come only from the library's dictionaries, each
+  labeled with its dictionary. A guessed root is always shown as a guess, with what was changed.
+  RabAI explains a word only when the person taps "Ask RabAI about this word"; never call the
+  model when a word is tapped.
 - Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
   What the microphone hears goes into the text box and is never sent without the person
   pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied box.
@@ -122,21 +126,23 @@ Open items:
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
 
+Done 2026-10-06: tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabAI
+only when asked).
+
 Next, as the maintainer asked (2026-10-06), roughly in this order:
-1. **Tap any word for its meaning.** Every word in a source, without turning anything on: its
-   meanings from Jastrow, the Radak's Sefer HaShorashim, the team's word notes, and any other
-   dictionary in the library, each labeled with where it comes from; and its breakdown
-   (prefixes, root, form or conjugation). Where no dictionary has it, RabAI's own explanation,
-   labeled as RabAI's.
-2. **Saved chats.** Past conversations kept on the device (there are no accounts), with
+1. **Saved chats.** Past conversations kept on the device (accounts come later), with
    categories, and learning progress saved.
-3. **An interactive Gemara page.** The daf laid out as printed (Gemara in the middle, Rashi and
-   Tosafot around it), with colors marking questions, answers, statements and proofs, like the
-   Mercava app. The colors would be RabAI's outline, labeled as not yet reviewed. Decide:
-   render the layout from the text we have (an open-source daf renderer) or show page images.
-4. **A chavrusa mode.** RabAI learns a daf with you on that page: points things out, asks you
+2. **An interactive Gemara page.** The daf laid out as printed (Gemara in the middle, Rashi and
+   Tosafot around it, lined up), looking like the printed page but fully interactive: tap any
+   word, translations on the page, highlights, and colors marking questions, answers,
+   statements and proofs, like the Mercava app. The colors would be RabAI's outline, labeled as
+   not yet reviewed. Research (2026-10-06): Mercava typesets the page from text rather than
+   showing scans, and hand-corrects each page. Plan: draw the page from the library's text with
+   the open-source `daf-renderer` method (MIT), using Frank Ruhl Libre and Noto Rashi Hebrew
+   (both OFL), with the page shape approximate until printed line breaks are available.
+3. **A chavrusa mode.** RabAI learns a daf with you on that page: points things out, asks you
    questions, and tracks what you've learned and where you need practice.
-5. **More color** across the app, used to mean something (for example, sources, questions,
+4. **More color** across the app, used to mean something (for example, sources, questions,
    your own words).
 
 ## Writing style for anything a user or a rav will read

@@ -8,6 +8,7 @@ import { TESTING_LABEL } from "@/lib/library/testing-config";
 import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
+import type { WordEntry } from "@/lib/library/word-parts";
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 
 // ---------------------------------------------------------------------------
@@ -73,6 +74,37 @@ interface Highlight {
 }
 
 type Mode = "chat" | "learn";
+
+/** What the library's dictionaries have for a tapped word. */
+interface WordLookup {
+  loading: boolean;
+  /** False when this build has no dictionaries (the development texts). */
+  available?: boolean;
+  entries?: WordEntry[];
+  error?: string;
+}
+
+/** How a word was read to find an entry: "מ + אימתי", "ו + חכם + ים". */
+function readingText(found: WordEntry["found"]): string {
+  return [found.prefix.map(([letter]) => letter).join(""), found.form, found.suffix].filter(Boolean).join(" + ");
+}
+
+/** A dictionary entry, shortened until the person asks for all of it. */
+function EntryText({ entry }: { entry: WordEntry }) {
+  const [open, setOpen] = useState(false);
+  const long = entry.text.length > 260;
+  const text = open || !long ? entry.text : `${entry.text.slice(0, 240).replace(/\s+\S*$/, "")} …`;
+  return (
+    <p className={`entry-text${entry.lang === "he" ? " he" : ""}`} lang={entry.lang} dir={entry.lang === "he" ? "rtl" : undefined}>
+      {text}{" "}
+      {long && (
+        <button type="button" className="link" onClick={() => setOpen(!open)}>
+          {open ? "Less" : "More"}
+        </button>
+      )}
+    </p>
+  );
+}
 
 /** A word the person chose to keep. Saved only on this device. */
 interface SavedWord {
@@ -336,6 +368,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // Word study
   const [studyMode, setStudyMode] = useState(false);
   const [wordCard, setWordCard] = useState<{ ref: string; index: number } | null>(null);
+  const [wordInfo, setWordInfo] = useState<Record<string, WordLookup>>({});
   const [tryRef, setTryRef] = useState<string | null>(null);
   const [tryText, setTryText] = useState("");
   const [myWords, setMyWords] = useState<SavedWord[]>([]);
@@ -678,6 +711,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   // ---------------------------------------------------------------------------
 
+  // Look up a tapped word in the library's dictionaries. No AI: RabAI explains a word only
+  // when the person taps "Ask RabAI".
+  useEffect(() => {
+    if (!wordCard || !reader) return;
+    const line = reader.lines.find((l) => l.ref === wordCard.ref) ?? reader.lines.flatMap((l) => l.commentaries).find((c) => c.ref === wordCard.ref);
+    const token = line?.tokens[wordCard.index];
+    const w = token ? bareWord(token.text) : "";
+    if (!w || wordInfo[w]) return;
+    setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
+    fetch(`/api/word?w=${encodeURIComponent(w)}`)
+      .then((r) => r.json())
+      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string }) =>
+        setWordInfo((prev) => ({ ...prev, [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [] } })),
+      )
+      .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
+  }, [wordCard, reader, wordInfo]);
+
+  const tapWord = (ref: string, index: number) =>
+    setWordCard(wordCard?.ref === ref && wordCard.index === index ? null : { ref, index });
+
   const renderWordCard = (p: Passage & { tokens: Token[] }) => {
     if (!reader || !wordCard || wordCard.ref !== p.ref) return null;
     const token = p.tokens[wordCard.index];
@@ -690,6 +743,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const heading = phrase && !root ? phrase.phrase : word;
     const gloss = token.gloss ?? (phrase && !root ? phrase.meaning : undefined);
     const saved = isSaved(heading);
+    const lookup = wordInfo[word];
+    const entries = lookup?.entries ?? [];
+    const first = entries[0];
+    const teamNotes = !!(token.parts || root || phrase);
     return (
       <div className="wordcard" data-wordcard-for={p.ref} role="region" aria-label={`About ${heading}`}>
         <div className="wordcard-head">
@@ -701,6 +758,42 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             ×
           </button>
         </div>
+        {first && (first.found.prefix.length > 0 || first.found.suffix || first.found.guess) && (
+          <p className="breakdown">
+            <span className="label-inline">How it breaks down:</span>{" "}
+            {first.found.prefix.map(([letter, meaning]) => (
+              <span key={letter} className="part">
+                <span className="he" lang="he">
+                  {letter}
+                </span>{" "}
+                “{meaning}” +{" "}
+              </span>
+            ))}
+            <span className="he" lang="he">
+              {first.found.form}
+            </span>
+            {first.found.suffix && (
+              <>
+                {" "}
+                with the ending{" "}
+                <span className="he" lang="he">
+                  {first.found.suffix}
+                </span>
+                {first.found.suffixMeaning ? `, ${first.found.suffixMeaning}` : ""}
+              </>
+            )}
+            .
+          </p>
+        )}
+        {first?.found.guess && (
+          <p className="breakdown-guess">
+            Probably a form of{" "}
+            <span className="he" lang="he">
+              {first.found.form}
+            </span>
+            : {first.found.guess.join("; ")}.
+          </p>
+        )}
         {token.parts && <p className="parts">{token.parts}</p>}
         {root && (
           <p>
@@ -723,7 +816,46 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           ) : (
             <p>{phrase.role}</p>
           ))}
-        {!root && !phrase && <p className="muted">This word isn’t in the word notes yet. RabAI can explain it.</p>}
+        {lookup?.loading && (
+          <p className="muted">
+            Looking it up in the dictionaries<span className="dots" />
+          </p>
+        )}
+        {lookup?.error && <p className="muted">{lookup.error}</p>}
+        {entries.length > 0 && (
+          <div className="entries">
+            <p className="label-sm">From the dictionaries</p>
+            {entries.map((e) => (
+              <div key={e.ref} className={`entry ${e.dictionary.startsWith("Jastrow") ? "dict-jastrow" : "dict-radak"}`}>
+                <div className="entry-head">
+                  <span className="dict-chip">{e.dictionary}</span>
+                  <span className="he" lang="he">
+                    {e.headword}
+                  </span>
+                </div>
+                {first && readingText(e.found) !== readingText(first.found) && (
+                  <p className="entry-reading">
+                    Another way to read the word:{" "}
+                    <span className="he" lang="he">
+                      {readingText(e.found)}
+                    </span>
+                    {e.found.guess ? " (a guess at its root)" : ""}
+                  </p>
+                )}
+                <EntryText entry={e} />
+                {e.note && <p className="entry-note">{e.note}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        {lookup && !lookup.loading && !lookup.error && entries.length === 0 && !teamNotes && (
+          <p className="muted">
+            {lookup.available === false
+              ? "This build has no dictionaries yet."
+              : "None of the library’s dictionaries has this word yet."}{" "}
+            RabAI can explain it.
+          </p>
+        )}
         {elsewhere.length > 0 && (
           <>
             <p className="label-sm">{root ? "This root also appears in" : "This phrase also appears in"}</p>
@@ -737,7 +869,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </>
         )}
         <div className="follow">
-          <button type="button" className="chip-btn" onClick={() => void askLine(p.ref, "word", "", heading)}>
+          <button
+            type="button"
+            className={`chip-btn${!lookup?.loading && entries.length === 0 && !teamNotes ? " primary" : ""}`}
+            onClick={() => void askLine(p.ref, "word", "", heading)}
+          >
             {heading === word ? "Ask RabAI about this word" : "Ask RabAI about this phrase"}
           </button>
           <button
@@ -747,13 +883,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             onClick={() =>
               saved
                 ? removeWord(heading)
-                : saveWord({ form: heading, gloss, root: root?.root, rootMeaning: root?.meaning, ref: p.ref })
+                : saveWord({
+                    form: heading,
+                    gloss: gloss ?? (first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined),
+                    root: root?.root,
+                    rootMeaning: root?.meaning,
+                    ref: p.ref,
+                  })
             }
           >
             {saved ? "Saved to My words ✓" : "Save to My words"}
           </button>
         </div>
-        <p className="fine-left">Word notes are written by the RabAI team for testing, until approved dictionaries replace them.</p>
+        {teamNotes && (
+          <p className="fine-left">Notes not marked with a dictionary are written by the RabAI team for testing.</p>
+        )}
       </div>
     );
   };
@@ -788,7 +932,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     type="button"
                     className={`w${t.root ? " known" : ""}${t.phrase ? " phr" : ""}`}
                     aria-pressed={wordCard?.ref === p.ref && wordCard.index === i}
-                    onClick={() => setWordCard(wordCard?.ref === p.ref && wordCard.index === i ? null : { ref: p.ref, index: i })}
+                    onClick={() => tapWord(p.ref, i)}
                   >
                     {t.text}
                   </button>
@@ -831,7 +975,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           >
             <span className="num">{label}</span>
             <span className="he" lang="he">
-              {p.he}
+              {p.tokens.length
+                ? p.tokens.map((t, i) => (
+                    <span key={i}>
+                      {i > 0 && " "}
+                      {bareWord(t.text) === "" ? (
+                        t.text
+                      ) : (
+                        <span
+                          className={`w-tap${wordCard?.ref === p.ref && wordCard.index === i ? " on" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!hasHighlight()) tapWord(p.ref, i);
+                          }}
+                        >
+                          {t.text}
+                        </span>
+                      )}
+                    </span>
+                  ))
+                : p.he}
             </span>
             <span className="en">{p.en}</span>
           </div>
@@ -1340,17 +1503,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               {reader &&
                 (reader.libraryMode === "development" ? (
                   <div className="dev-strip">
-                    {DEV_NOTE} {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
+                    {DEV_NOTE} {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
                   </div>
                 ) : reader.libraryMode === "testing" ? (
                   <div className="dev-strip">
                     {TESTING_LABEL} {reader.work.edition ? `Hebrew: ${reader.work.edition}.` : ""} English:{" "}
-                    {reader.work.translation.by}. {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
+                    {reader.work.translation.by}. {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
                   </div>
                 ) : (
                   <div className="edition">
                     {reader.work.title}: {reader.work.edition} English: {reader.work.translation.by}.{" "}
-                    {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
+                    {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
                   </div>
                 ))}
             </div>

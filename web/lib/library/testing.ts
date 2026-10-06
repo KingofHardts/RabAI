@@ -188,6 +188,11 @@ export interface TestingStore {
    * lines, then entries whose headword matches a word in them.
    */
   dictionary(passages: Passage[], limit: number): Promise<Passage[]>;
+  /**
+   * Dictionary entries for one word a person tapped: the word itself first, then the word
+   * without its front letters or ending. Each entry carries the reading it was found under.
+   */
+  wordEntries(word: string, limit?: number): Promise<Array<Passage & { reading: WordReading }>>;
   /** A whole section for the reader, with each line's commentaries. */
   section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]> } | null>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
@@ -255,6 +260,122 @@ export function wordForms(text: string): string[] {
     }
   }
   return out.slice(0, 80);
+}
+
+/** One way to read a word: the base form a dictionary might list, and what was taken off it. */
+export interface WordReading {
+  form: string;
+  /** Letters taken off the front, such as ו "and" or ב "in". */
+  prefix: string;
+  /** An ending taken off, such as ים (plural) or א (the Aramaic "the"). */
+  suffix: string;
+  /**
+   * Present when the form is a guess at the word's root or dictionary form, with each change in
+   * plain words ("the ו inside is only a vowel letter"). Guesses are tried after everything else.
+   */
+  guess?: string[];
+}
+
+/**
+ * The readings of a single tapped word, most likely first: the word as written, then without
+ * its front letters, then without a common ending. Unlike wordForms, common words are kept,
+ * since the person asked about this one.
+ */
+export function wordReadings(word: string): WordReading[] {
+  const w = plainForSearch(word).replace(/[^א-ת]/g, "");
+  const out: WordReading[] = [];
+  const add = (form: string, prefix: string, suffix: string, guess?: string[]) => {
+    if (form.length < 2 || out.some((r) => r.form === form)) return;
+    out.push(guess ? { form, prefix, suffix, guess } : { form, prefix, suffix });
+  };
+  if (w.length < 2) return out;
+  add(w, "", "");
+  const bases = [{ base: w, prefix: "" }];
+  for (const p of PREFIXES) if (w.startsWith(p) && w.length - p.length >= 2) bases.push({ base: w.slice(p.length), prefix: p });
+  // One front letter taken off is likelier than two.
+  bases.sort((a, b) => a.prefix.length - b.prefix.length);
+  for (const { base, prefix } of bases) add(base, prefix, "");
+  const stems = bases.map((b) => ({ stem: b.base, prefix: b.prefix, suffix: "" }));
+  for (const { base, prefix } of bases) {
+    for (const s of TAP_SUFFIXES) {
+      if (!base.endsWith(s) || base.length - s.length < 2) continue;
+      const stem = withFinal(base.slice(0, -s.length));
+      add(stem, prefix, s);
+      stems.push({ stem: base.slice(0, -s.length), prefix, suffix: s });
+    }
+  }
+  // Last, guesses at the root or dictionary form, for verbs and for nouns before another word.
+  // A stem with its front letters and ending already off is the likelier one to guess from.
+  const stripped = (x: { prefix: string; suffix: string }) => (x.prefix ? 1 : 0) + (x.suffix ? 1 : 0);
+  for (const { stem, prefix, suffix } of [...stems].sort((a, b) => stripped(b) - stripped(a))) {
+    for (const g of rootGuesses(stem)) add(withFinal(g.form), prefix, suffix, g.changes);
+  }
+  return out.slice(0, 40);
+}
+
+/** For a single tapped word, a few more endings are worth trying: "your", "our", "his", "my". */
+const TAP_SUFFIXES = [...SUFFIXES, "יך", "כם", "הם", "הן", "נו", "תי", "ני", "ך", "ו", "ם", "ן"];
+
+/** Letters a verb can carry in front of its root, each with a plain-English note. */
+const VERB_FRONTS: Array<[string, string]> = [
+  ["הת", "הת at the front marks a verb done to oneself"],
+  ["את", "את at the front marks a verb done to oneself (Aramaic)"],
+  ["נת", "נת at the front marks a verb done to oneself"],
+  ["ית", "ית at the front marks a verb done to oneself"],
+  ["מת", "מת at the front marks a verb done to oneself, happening now"],
+  ["נ", "a נ at the front often marks a verb form, such as the passive or “we will”"],
+  ["ה", "a ה at the front often marks a verb meaning to cause something"],
+  ["י", "a י at the front often marks “he will”"],
+  ["ת", "a ת at the front often marks “you will” or “she will”"],
+  ["א", "an א at the front often marks “I will”, or an Aramaic verb form"],
+];
+
+/** Endings a verb takes in the past tense. */
+const PAST_ENDINGS: Array<[string, string]> = [
+  ["תם", "the ending תם means “you did” (plural)"],
+  ["תן", "the ending תן means “you did” (plural)"],
+  ["ת", "the ending ת means “you did”"],
+];
+
+/** Take out ו and י that only stand for vowels (not the first or last letter). */
+function withoutVowelLetters(s: string): string {
+  return s.length <= 3 ? s : s[0] + s.slice(1, -1).replace(/[וי]/g, "") + s.slice(-1);
+}
+
+/**
+ * Guesses at the root or dictionary form of a stem whose front letters and ending are already
+ * off: without its vowel letters, without a verb's front letters, without a past-tense ending,
+ * and with a final ת as ה (תרומת -> תרומה). Each guess says what was changed.
+ */
+export function rootGuesses(stem: string): Array<{ form: string; changes: string[] }> {
+  const out: Array<{ form: string; changes: string[] }> = [];
+  const vowel = (s: string) => (s.includes("ו") ? "the ו inside is only a vowel letter" : "the י inside is only a vowel letter");
+  const add = (form: string, changes: string[]) => {
+    if (form.length >= 2 && form.length <= 6 && form !== stem && !out.some((o) => o.form === form)) out.push({ form, changes });
+  };
+  const tryStem = (s: string, changes: string[]) => {
+    if (s !== stem && s.length >= 3) add(s, changes);
+    const bare = withoutVowelLetters(s);
+    if (bare !== s && bare.length >= 3) add(bare, [...changes, vowel(s.slice(1, -1))]);
+  };
+  tryStem(stem, []);
+  if (stem.endsWith("ת") && stem.length >= 4) tryStem(stem.slice(0, -1) + "ה", ["a ת at the end becomes ה in the dictionary"]);
+  for (const [end, note] of PAST_ENDINGS) {
+    if (stem.endsWith(end) && stem.length - end.length >= 3) tryStem(stem.slice(0, -end.length), [note]);
+  }
+  for (const [front, note] of VERB_FRONTS) {
+    if (!stem.startsWith(front)) continue;
+    const rest = stem.slice(front.length);
+    if (rest.length >= 3) tryStem(rest, [note]);
+    // Some roots lose their first letter, נ or י, in these forms (הגיע from נגע, הושיב from ישב).
+    const core = rest.length >= 3 ? rest[0] + rest.slice(1, -1).replace(/[וי]/g, "") + rest.slice(-1) : rest;
+    if (core.length === 2) {
+      add("נ" + core, [note, "the root's first letter, נ, drops out in this form"]);
+      add("י" + core, [note, "the root's first letter, י, drops out in this form"]);
+    }
+    if (rest.length >= 3 && rest.startsWith("ו")) add(withoutVowelLetters("י" + rest.slice(1)), [note, "the ו stands for the root's first letter, י"]);
+  }
+  return out;
 }
 
 /** Dictionary entries can run for pages; a few hundred words are enough for one line. */
@@ -427,6 +548,45 @@ export function createTestingStore(db: Db): TestingStore {
       return groupRows(rows)
         .sort((a, b) => (at.get(a.ref) ?? 0) - (at.get(b.ref) ?? 0))
         .map((p) => ({ ...p, he: clipEntry(p.he), en: clipEntry(p.en) }));
+    },
+
+    async wordEntries(word, limit = 8) {
+      const readings = wordReadings(word);
+      if (!readings.length) return [];
+      const forms = readings.map((r) => r.form);
+      const hits = await db.all(
+        `SELECT l.word, p.ref FROM lexicon l JOIN passages p ON p.id = l.passage_id WHERE l.word IN (${forms
+          .map(() => "?")
+          .join(",")}) LIMIT 300`,
+        forms,
+      );
+      const rank = new Map(forms.map((f, i) => [f, i]));
+      hits.sort((a, b) => (rank.get(String(a.word)) ?? 0) - (rank.get(String(b.word)) ?? 0));
+      // At most four entries per reading, so one common form can't crowd out a better one. The
+      // likeliest kind of reading that found anything leads; at most two others follow it.
+      const tier = (r: WordReading) => (r.guess ? 2 : r.suffix ? 1 : 0);
+      const chosen: Array<{ ref: string; reading: WordReading }> = [];
+      const perForm = new Map<string, number>();
+      let best = -1;
+      let others = 0;
+      for (const h of hits) {
+        const form = String(h.word);
+        const ref = String(h.ref);
+        const reading = readings[rank.get(form) ?? 0];
+        const n = perForm.get(form) ?? 0;
+        if (n >= 4 || chosen.some((c) => c.ref === ref)) continue;
+        if (best < 0) best = tier(reading);
+        if (tier(reading) !== best && ++others > 2) break;
+        perForm.set(form, n + 1);
+        chosen.push({ ref, reading });
+        if (chosen.length >= limit) break;
+      }
+      if (!chosen.length) return [];
+      const found = groupRows(await byExactRefs(chosen.map((c) => c.ref)));
+      return chosen.flatMap((c) => {
+        const p = found.find((f) => f.ref === c.ref);
+        return p ? [{ ...p, he: clipEntry(p.he), en: clipEntry(p.en), reading: c.reading }] : [];
+      });
     },
 
     async section(ref) {

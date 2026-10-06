@@ -10,6 +10,8 @@ import {
   createTestingStore,
   dbFrom,
   ftsQuery,
+  wordReadings,
+  rootGuesses,
   parseRef,
   plainForSearch,
   sectionOf,
@@ -215,6 +217,43 @@ test("a passage with no English brings dictionary entries for its words", async 
   const refs = found.documents.map((p) => p.ref);
   assert.equal(refs[0], "Jerusalem Talmud Berakhot 1:1:1");
   assert.ok(refs.includes("Jastrow, קְרָא") && refs.includes("Jastrow, אֵימָתַי"), refs.join(", "));
+});
+
+test("a tapped word is read with and without its front letters and endings", () => {
+  const forms = (w: string) => wordReadings(w).map((r) => `${r.prefix}+${r.form}+${r.suffix}`);
+  assert.deepEqual(forms("מֵאֵימָתַי").slice(0, 2), ["+מאימתי+", "מ+אימתי+"]);
+  assert.ok(forms("ובראשית").indexOf("ו+בראשית+") < forms("ובראשית").indexOf("וב+ראשית+"), "one letter off before two");
+  assert.ok(forms("מלכא").includes("+מלך+א"), "final letter restored");
+  assert.deepEqual(wordReadings("א"), []);
+});
+
+test("a tapped word finds its dictionary entries, with how it was read", async () => {
+  const store = await storePromise;
+  const found = await store.wordEntries("מֵאֵימָתַי");
+  assert.equal(found[0]?.ref, "Jastrow, אֵימָתַי");
+  assert.deepEqual(found[0]?.reading, { form: "אימתי", prefix: "מ", suffix: "" });
+  assert.equal(found[0]?.source?.wordToolOnly, true);
+  assert.deepEqual(await store.wordEntries("שלום"), []);
+});
+
+test("a conjugated word is traced to its root, and the guess says what it changed", async () => {
+  const guess = (stem: string) => rootGuesses(stem).map((g) => g.form);
+  assert.ok(guess("אומר").includes("אמר"), "vowel letter taken out");
+  assert.ok(guess("נכנס").includes("כנס"), "verb front letter taken off");
+  assert.ok(guess("תרומת").includes("תרומה"), "final ת read as ה");
+  assert.ok(guess("אמרת").includes("אמר"), "past-tense ending taken off");
+  assert.ok(guess("הגיע").includes("נגע"), "a root's lost first נ restored");
+  assert.ok(guess("הגיע").indexOf("נגע") < guess("הגיע").indexOf("יגע"), "נ tried before י");
+  assert.ok(guess("הושיב").includes("ישב"), "a root's first י written as ו");
+  assert.ok(rootGuesses("אומר").find((g) => g.form === "אמר")?.changes.some((c) => c.includes("vowel letter")));
+  const forms = wordReadings("אומרים").map((r) => r.form);
+  assert.ok(forms.indexOf("אומר") < forms.indexOf("אמר"), "plain readings before guesses");
+
+  const store = await storePromise;
+  const found = await store.wordEntries("יקרא");
+  assert.equal(found[0]?.ref, "Jastrow, קְרָא");
+  assert.equal(found[0]?.reading.form, "קרא");
+  assert.ok(found[0]?.reading.guess?.some((c) => c.includes("he will")));
 });
 
 test("when the planner says no sources are needed, nothing is searched", async () => {

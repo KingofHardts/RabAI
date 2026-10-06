@@ -14,6 +14,9 @@
   --care-bg: #FDECEC;
   --care-ink: #7A1F1F;
   --shadow: 0 10px 30px rgba(20, 30, 50, .12);
+  /* Each kind of source has its own color, so a reader can tell at a glance where a meaning comes from. */
+  --jastrow: #0F6B62; --jastrow-bg: #E3F3EF;
+  --radak: #5B2A9E; --radak-bg: #F0E9FB;
   --font-he: "Frank Ruhl Libre", "David", "Times New Roman", serif;
   --font-voice: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -24,6 +27,7 @@
     --accent: #8FB4EA; --accent-ink: #0E1420; --tint: #1E2A3D; --hl: #3A331C;
     --warn-bg: #33290F; --warn-ink: #F2D79A; --care-bg: #3A1B1B; --care-ink: #F5C2C2;
     --shadow: 0 10px 30px rgba(0, 0, 0, .45); color-scheme: dark;
+    --jastrow: #7FD6C8; --jastrow-bg: #12302C; --radak: #C9AEF5; --radak-bg: #2A1F3F;
   }
 }
 
@@ -239,3 +243,28 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .unlock-error { color: var(--care-ink); background: var(--care-bg); border-radius: 10px; padding: 8px 12px; font-family: var(--font-ui) !important; font-size: 14px !important; margin: 0 !important; }
 
 .book-filter { display: block; width: 100%; margin-top: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 16px; min-height: 44px; }
+
+/* tap any word */
+.w-tap { cursor: pointer; border-radius: 5px; padding: 0 1px; transition: background .12s; }
+.w-tap:hover { background: var(--tint); }
+.w-tap.on { background: var(--hl); box-shadow: 0 0 0 2px var(--accent); }
+.breakdown { color: var(--ink); }
+.breakdown .he, .wordcard .entry-head .he { display: inline; font-size: 19px; }
+.label-inline { font-weight: 600; }
+.entries { margin-top: 10px; display: grid; gap: 8px; }
+.entries .label-sm { margin: 0; }
+.entry { border-inline-start: 3px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.entry.dict-jastrow { border-inline-start-color: var(--jastrow); }
+.entry.dict-radak { border-inline-start-color: var(--radak); }
+.entry-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dict-chip { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
+.dict-jastrow .dict-chip { color: var(--jastrow); background: var(--jastrow-bg); }
+.dict-radak .dict-chip { color: var(--radak); background: var(--radak-bg); }
+.wordcard .entry-text { margin: 6px 0 0; font-size: 14.5px; line-height: 1.55; }
+.wordcard .entry-text.he { font-size: 17px; text-align: right; }
+.entry-note { color: var(--muted); font-size: 12.5px; margin: 4px 0 0 !important; }
+.breakdown-guess { color: var(--ink); font-size: 14px; }
+.breakdown-guess .he, .entry-reading .he { display: inline; font-size: 17px; }
+.entry-reading { color: var(--muted); font-size: 12.5px; margin: 0 0 4px !important; }
+.chip-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip-btn.primary:hover { color: var(--accent-ink); opacity: .92; }
