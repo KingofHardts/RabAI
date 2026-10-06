@@ -23,6 +23,7 @@ premises, and the reference answers for sensitive questions all wait on the rabb
 | [`docs/approvals-log.md`](docs/approvals-log.md) | Every board decision, in order |
 | [`docs/licensing.md`](docs/licensing.md) | What to check before any text goes into the library |
 | [`docs/roadmap.md`](docs/roadmap.md) | Build phases, from spec to pilot |
+| [`prototype/mockup.html`](prototype/mockup.html) | A clickable mockup of the app (sample content only). Open it in a browser. |
 | [`tools/validate.py`](tools/validate.py) | Checks the canon and test files, and prints the retrieval whitelist |
 
 ## The one rule that matters most

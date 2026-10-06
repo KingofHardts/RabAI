@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>RabAI Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: a conversation column; tapping a source opens the text beside it (desktop) or as a sheet (phone). */
+:root {
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --ink: #1B2130;
+  --muted: #586174;
+  --line: #DCE0E7;
+  --accent: #22508C;
+  --accent-ink: #FFFFFF;
+  --tint: #E6EEF8;
+  --hl: #FAF1CF;
+  --shadow: 0 10px 30px rgba(20, 30, 50, .12);
+  --font-he: "Frank Ruhl Libre", "David", "Times New Roman", serif;
+  --font-voice: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11141A; --surface: #191D25; --ink: #E6E9EF; --muted: #9AA3B4; --line: #2B313C;
+    --accent: #8FB4EA; --accent-ink: #0E1420; --tint: #1E2A3D; --hl: #3A331C;
+    --shadow: 0 10px 30px rgba(0, 0, 0, .45); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11141A; --surface: #191D25; --ink: #E6E9EF; --muted: #9AA3B4; --line: #2B313C;
+  --accent: #8FB4EA; --accent-ink: #0E1420; --tint: #1E2A3D; --hl: #3A331C;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .45); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.he { font-family: var(--font-he); direction: rtl; text-align: right; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; }
+@media (min-width: 980px) {
+  .app { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+}
+
+/* ---------- conversation column ---------- */
+.convo { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+.top {
+  position: sticky; top: 0; z-index: 5; background: var(--bg);
+  padding: 14px 16px 0; border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mark {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font-family: var(--font-he); font-size: 20px; font-weight: 700; flex: none;
+}
+.brand h1 { margin: 0; font-family: var(--font-voice); font-weight: 600; font-size: 20px; }
+.brand .sub { color: var(--muted); font-size: 13px; }
+.badge {
+  margin-inline-start: auto; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase;
+  border: 1px dashed var(--muted); color: var(--muted); border-radius: 999px; padding: 2px 10px;
+}
+.tabs { display: flex; gap: 20px; margin-top: 12px; }
+.tab {
+  background: none; border: 0; padding: 8px 0 10px; color: var(--muted); font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.scroll { flex: 1; overflow-y: auto; padding: 20px 16px 24px; }
+.thread { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+.msg-user {
+  align-self: flex-end; max-width: 85%; background: var(--accent); color: var(--accent-ink);
+  padding: 10px 14px; border-radius: 16px 16px 4px 16px;
+}
+.msg-ai { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+.msg-ai .body { font-family: var(--font-voice); font-size: 17px; line-height: 1.65; min-width: 0; }
+.msg-ai .body p { margin: 0 0 12px; }
+.msg-ai .body p:last-child { margin-bottom: 0; }
+.cite {
+  display: inline-flex; align-items: center; gap: 6px; margin: 2px 2px; padding: 2px 10px;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--accent);
+  background: var(--tint); border: 1px solid transparent; border-radius: 999px; vertical-align: 1px;
+}
+.cite:hover { border-color: var(--accent); }
+.cite .he { font-size: 14px; }
+.sources-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.follow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip-btn {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 14px;
+}
+.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.composer {
+  border-top: 1px solid var(--line); background: var(--bg);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.composer form { max-width: 680px; margin: 0 auto; display: flex; gap: 8px; }
+.composer input {
+  flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 11px 16px; font: inherit; font-size: 16px;
+}
+.send {
+  border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 18px; font-weight: 600;
+}
+.fine { max-width: 680px; margin: 8px auto 0; color: var(--muted); font-size: 12px; text-align: center; }
+
+/* ---------- learn together ---------- */
+.quote {
+  border-inline-start: 3px solid var(--accent); padding: 6px 14px; background: var(--surface);
+  border-radius: 0 10px 10px 0; font-family: var(--font-voice);
+}
+.quote .he { font-size: 19px; line-height: 1.7; margin-bottom: 6px; }
+.quote .en { color: var(--muted); font-size: 15px; }
+.choices { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.choices .chip-btn { text-align: start; border-radius: 12px; padding: 10px 14px; }
+
+/* ---------- reader ---------- */
+.reader {
+  background: var(--surface); border-inline-start: 1px solid var(--line); min-width: 0; height: 100%;
+  display: flex; flex-direction: column;
+}
+.reader-empty { margin: auto; padding: 24px; text-align: center; color: var(--muted); max-width: 320px; }
+.reader-empty .he { text-align: center; font-size: 34px; color: var(--line); display: block; margin-bottom: 8px; }
+.reader-head { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.reader-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.reader-title h2 { margin: 0; font-family: var(--font-voice); font-weight: 600; font-size: 21px; }
+.reader-title .he { font-size: 22px; color: var(--muted); }
+.close { margin-inline-start: auto; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: max-content; }
+.seg button { background: none; border: 0; padding: 5px 14px; font-size: 13.5px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.edition { color: var(--muted); font-size: 12.5px; }
+.reader-body { flex: 1; overflow-y: auto; padding: 8px 20px 32px; }
+
+.line {
+  display: block; width: 100%; text-align: start; background: none; border: 0; border-radius: 10px;
+  padding: 12px 12px; margin: 2px 0;
+}
+.line:hover { background: var(--tint); }
+.line.cited { background: var(--hl); }
+.line.selected { box-shadow: inset 0 0 0 2px var(--accent); }
+.line .num { font-family: var(--font-ui); font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 4px; }
+.line .he, .line .en { display: block; }
+.line .num .he, .lang-en .line .num .he { display: inline; font-size: 15px; line-height: 1.3; }
+.line .he { font-size: 23px; line-height: 1.75; }
+.line .en { font-family: var(--font-voice); font-size: 16px; line-height: 1.6; margin-top: 4px; }
+.lang-he .line .en, .lang-en .line .he { display: none; }
+.lang-en .line .en { margin-top: 0; font-size: 17px; }
+
+.section-label {
+  margin: 22px 12px 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.comm .he { font-size: 18.5px; line-height: 1.8; }
+.comm .who { font-family: var(--font-ui); font-weight: 600; color: var(--ink); }
+.dh { font-weight: 700; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 12px 10px; }
+.actions button {
+  background: var(--tint); border: 1px solid transparent; color: var(--accent); border-radius: 999px;
+  padding: 5px 12px; font-size: 13.5px; font-weight: 500;
+}
+.actions button[aria-pressed="true"] { border-color: var(--accent); }
+.answer {
+  margin: 0 12px 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; font-family: var(--font-voice); font-size: 16px; line-height: 1.6;
+}
+.answer .mark { width: 26px; height: 26px; font-size: 15px; }
+.words { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 14px; }
+.words td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.words td.he { font-size: 19px; white-space: nowrap; width: 1%; }
+.ask-line { display: flex; gap: 6px; margin-top: 8px; }
+.ask-line input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 16px; }
+
+/* phone: the reader is a sheet */
+@media (max-width: 979px) {
+  .reader {
+    position: fixed; inset: auto 0 0 0; height: 88%; z-index: 20; border: 0; border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow); transform: translateY(105%); transition: transform .28s ease;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .reader.open { transform: none; }
+  .reader-empty { display: none; }
+  .scrim { position: fixed; inset: 0; background: rgba(10, 14, 22, .35); z-index: 15; }
+}
+@media (min-width: 980px) {
+  .close-phone { display: none; }
+  .scrim { display: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .reader { transition: none; } }
+</style>
+
+<div class="app">
+  <section class="convo" aria-label="Conversation">
+    <header class="top">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">ר</div>
+        <div>
+          <h1>RabAI</h1>
+          <div class="sub">An AI Torah teacher</div>
+        </div>
+        <span class="badge">Mockup · sample content</span>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-ask" aria-selected="true" aria-controls="panel-ask">Ask</button>
+        <button class="tab" role="tab" id="tab-learn" aria-selected="false" aria-controls="panel-learn">Learn together</button>
+      </div>
+    </header>
+
+    <div class="scroll" id="scroll">
+      <div class="thread" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask">
+        <div class="msg-user">Why does the Torah start with the story of Creation and not with the first mitzvah?</div>
+        <div class="msg-ai">
+          <div class="mark" aria-hidden="true">ר</div>
+          <div class="body">
+            <p>A beautiful question, and Rashi asks it himself, on the very first word of the Torah.</p>
+            <p>Rabbi Yitzchak says the Torah could have begun with the first mitzvah given to the Jewish people as a nation, “This month shall be for you” <button class="cite" data-open="shemos-12-2">Shemos 12:2</button>. Why begin with Creation instead?</p>
+            <p>Because of the verse “He told His people the power of His works, to give them the inheritance of the nations” <button class="cite" data-open="tehillim-111-6">Tehillim 111:6</button>. If anyone ever says to the Jewish people, “You took this land from seven nations,” the answer is that the whole world belongs to HaShem. He created it, and He gives it to whom He sees fit <button class="cite" data-open="rashi-1-1">Rashi on Bereishit 1:1</button>.</p>
+            <p>The Ramban looks at it differently. Beginning with Creation is essential in itself, because it is the root of emunah: the world has a Creator <button class="cite" data-open="ramban-1-1">Ramban on Bereishit 1:1</button>.</p>
+            <p>Would you like to read Rashi’s words together?</p>
+            <div class="follow">
+              <button class="chip-btn" data-open="rashi-1-1">Open Rashi</button>
+              <button class="chip-btn" data-go-learn>Learn it with me</button>
+              <button class="chip-btn" data-open="ramban-1-1">What else does the Ramban say?</button>
+            </div>
+          </div>
+        </div>
+        <div id="extra"></div>
+      </div>
+
+      <div class="thread" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden>
+        <div class="msg-ai">
+          <div class="mark" aria-hidden="true">ר</div>
+          <div class="body">
+            <p>Let’s learn the first Rashi together, a piece at a time. Here is how it opens:</p>
+            <div class="quote">
+              <div class="he" lang="he">אמר רבי יצחק: לא היה צריך להתחיל את התורה אלא מ״החדש הזה לכם״, שהיא מצוה ראשונה שנצטוו בה ישראל.</div>
+              <div class="en">Rabbi Yitzchak said: The Torah should have begun only from “This month shall be for you,” the first mitzvah the Jewish people were commanded.</div>
+            </div>
+            <p style="margin-top:12px">Before I explain: why do you think Rabbi Yitzchak expects the Torah to start there?</p>
+            <div class="choices" id="choices">
+              <button class="chip-btn" data-choice="a">Because the Torah is mainly a book of mitzvos</button>
+              <button class="chip-btn" data-choice="b">Because that’s when the Jewish people became a nation</button>
+              <button class="chip-btn" data-choice="c">I’m not sure</button>
+            </div>
+          </div>
+        </div>
+        <div id="learn-more"></div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <form id="ask-form">
+        <label for="ask-input" class="visually-hidden" style="position:absolute;left:-9999px">Ask RabAI</label>
+        <input id="ask-input" placeholder="Ask about Torah, halacha, or any text…" autocomplete="off">
+        <button class="send" type="submit">Ask</button>
+      </form>
+      <p class="fine">RabAI is an AI Torah teacher, not a rav. For a question about your own situation, ask your rav.</p>
+    </div>
+  </section>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <aside class="reader" id="reader" aria-label="Source reader">
+    <div class="reader-empty" id="reader-empty">
+      <span class="he" aria-hidden="true">מקורות</span>
+      Tap any source in an answer and the text opens here, with its commentaries.
+    </div>
+    <div id="reader-content" hidden style="display:contents"></div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  // ---------------- sample texts (own translations, for the mockup only) ----------------
+  var TEXTS = {
+    bereishit: {
+      title: "Bereishit 1", he: "בראשית א",
+      lines: [
+        { id: "b1", num: "1", hnum: "א", he: "בראשית ברא אלהים את השמים ואת הארץ׃", en: "In the beginning, God created the heavens and the earth." },
+        { id: "b2", num: "2", hnum: "ב", he: "והארץ היתה תהו ובהו וחשך על פני תהום ורוח אלהים מרחפת על פני המים׃", en: "The earth was unformed and empty, darkness was on the face of the deep, and the spirit of God hovered over the face of the waters." },
+        { id: "b3", num: "3", hnum: "ג", he: "ויאמר אלהים יהי אור ויהי אור׃", en: "God said, “Let there be light,” and there was light." }
+      ],
+      commentary: {
+        label: "On verse 1",
+        items: [
+          { id: "rashi1", who: "Rashi", whoHe: "רש״י",
+            he: "<span class=\"dh\">בראשית</span> — אמר רבי יצחק: לא היה צריך להתחיל את התורה אלא מ״החדש הזה לכם״, שהיא מצוה ראשונה שנצטוו בה ישראל. ומה טעם פתח בבראשית? משום ״כח מעשיו הגיד לעמו לתת להם נחלת גוים״, שאם יאמרו אומות העולם לישראל: לסטים אתם, שכבשתם ארצות שבעה גוים — הם אומרים להם: כל הארץ של הקב״ה היא, הוא בראה ונתנה לאשר ישר בעיניו. ברצונו נתנה להם, וברצונו נטלה מהם ונתנה לנו.",
+            en: "<b>In the beginning</b> — Rabbi Yitzchak said: The Torah should have begun only from “This month shall be for you,” the first mitzvah the Jewish people were commanded. Why did it begin with Creation? Because of “He told His people the power of His works, to give them the inheritance of the nations.” If the nations of the world say to Israel, “You are robbers, for you conquered the lands of seven nations,” they answer: “The whole earth belongs to the Holy One, blessed be He. He created it and gave it to whomever He saw fit. By His will He gave it to them, and by His will He took it from them and gave it to us.”" },
+          { id: "ramban1", who: "Ramban", whoHe: "רמב״ן",
+            he: "ויש לשאול בה, כי צורך גדול הוא להתחיל התורה בבראשית ברא אלהים, כי הוא שורש האמונה…",
+            en: "One may ask about this, for there is a great need to begin the Torah with “In the beginning God created,” because it is the root of faith…" }
+        ]
+      }
+    },
+    shemos: {
+      title: "Shemos 12", he: "שמות יב",
+      lines: [
+        { id: "s2", num: "2", hnum: "ב", he: "החדש הזה לכם ראש חדשים ראשון הוא לכם לחדשי השנה׃", en: "This month shall be for you the head of the months; it shall be the first of the months of the year for you." }
+      ]
+    },
+    tehillim: {
+      title: "Tehillim 111", he: "תהלים קיא",
+      lines: [
+        { id: "t5", num: "5", hnum: "ה", he: "טרף נתן ליראיו יזכר לעולם בריתו׃", en: "He gave food to those who fear Him; He will remember His covenant forever." },
+        { id: "t6", num: "6", hnum: "ו", he: "כח מעשיו הגיד לעמו לתת להם נחלת גוים׃", en: "He told His people the power of His works, to give them the inheritance of the nations." },
+        { id: "t7", num: "7", hnum: "ז", he: "מעשי ידיו אמת ומשפט נאמנים כל פקודיו׃", en: "The works of His hands are truth and justice; all His commandments are faithful." }
+      ]
+    }
+  };
+
+  var OPEN = {
+    "rashi-1-1": { text: "bereishit", cite: "rashi1" },
+    "ramban-1-1": { text: "bereishit", cite: "ramban1" },
+    "bereishit-1-1": { text: "bereishit", cite: "b1" },
+    "shemos-12-2": { text: "shemos", cite: "s2" },
+    "tehillim-111-6": { text: "tehillim", cite: "t6" }
+  };
+
+  var WORDS_B1 = [
+    ["בראשית", "In the beginning"], ["ברא", "created"], ["אלהים", "God"],
+    ["את", "(marks what was created)"], ["השמים", "the heavens"], ["ואת", "and"], ["הארץ", "the earth"]
+  ];
+
+  var ANSWERS = {
+    b1: {
+      explain: "The Torah opens by declaring that the world has a Creator. The Ramban calls this the root of emunah, and everything after it rests on this first sentence. <button class=\"cite\" data-open=\"ramban-1-1\">Ramban on Bereishit 1:1</button>",
+      comments: "Rashi asks why the Torah begins here at all, rather than with the first mitzvah. The Ramban answers that Creation is the root of emunah. Both are just below this verse."
+    },
+    rashi1: {
+      explain: "Rashi’s question rests on an assumption: the Torah’s main purpose is to teach mitzvos, so why open with history? His answer is that Creation establishes that the whole world belongs to HaShem. So the Jewish people’s claim to Eretz Yisrael rests on HaShem’s gift.",
+      comments: "The Ramban questions Rashi’s premise. Believing that HaShem created the world is the root of emunah, so of course the Torah begins there. His words are just below."
+    },
+    ramban1: {
+      explain: "The Ramban asks a question on Rabbi Yitzchak’s question. Belief that HaShem created the world is the foundation of the whole Torah, so beginning with it is essential. Read on in the full Ramban to see how he develops this.",
+      comments: "This is the Ramban answering Rashi, who is just above."
+    },
+    s2: {
+      explain: "This is the first mitzvah given to the Jewish people as a nation: sanctifying the new month. Rashi says the Torah could have begun here. <button class=\"cite\" data-open=\"rashi-1-1\">Rashi on Bereishit 1:1</button>"
+    },
+    t6: {
+      explain: "Rashi reads this verse as the reason the Torah tells us about Creation: by showing His power as Creator, HaShem shows that the land is His to give. <button class=\"cite\" data-open=\"rashi-1-1\">Rashi on Bereishit 1:1</button>"
+    }
+  };
+
+  var FALLBACK = "In the full app, RabAI explains any line you choose, using only the approved sources, and keeps the text in view while you talk.";
+
+  // ---------------- reader ----------------
+  var reader = document.getElementById("reader");
+  var content = document.getElementById("reader-content");
+  var empty = document.getElementById("reader-empty");
+  var scrim = document.getElementById("scrim");
+  var lang = "both";
+  var current = null;
+  var lastFocus = null;
+
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  function lineHtml(l, citeId, extraClass) {
+    return '<div class="line-wrap" data-line="' + l.id + '">' +
+      '<button class="line ' + (extraClass || "") + (l.id === citeId ? " cited" : "") + '" data-select="' + l.id + '" aria-expanded="false">' +
+      '<span class="num"><span>' + (l.num ? "Verse " + l.num : l.who) + '</span><span class="he" lang="he">' + (l.hnum || l.whoHe || "") + '</span></span>' +
+      '<span class="he" lang="he">' + l.he + '</span>' +
+      '<span class="en">' + l.en + '</span>' +
+      '</button><div class="slot"></div></div>';
+  }
+
+  function render(key) {
+    var o = OPEN[key]; var t = TEXTS[o.text];
+    current = key;
+    var h = '<div class="reader-head">' +
+      '<div class="reader-title"><h2>' + t.title + '</h2><span class="he" lang="he">' + t.he + '</span>' +
+      '<button class="close close-phone" id="close-reader">Close</button></div>' +
+      '<div class="seg" role="group" aria-label="Language">' +
+      '<button data-lang="he" aria-pressed="' + (lang === "he") + '">עברית</button>' +
+      '<button data-lang="both" aria-pressed="' + (lang === "both") + '">Both</button>' +
+      '<button data-lang="en" aria-pressed="' + (lang === "en") + '">English</button></div>' +
+      '<div class="edition">Sample text with a mockup translation. The real app names the approved edition and translator here. Tap any line to ask about it.</div>' +
+      '</div><div class="reader-body lang-' + lang + '" id="reader-body">';
+    t.lines.forEach(function (l) { h += lineHtml(l, o.cite); });
+    if (t.commentary) {
+      h += '<div class="section-label">' + t.commentary.label + '</div>';
+      t.commentary.items.forEach(function (c) { h += lineHtml(c, o.cite, "comm"); });
+    }
+    h += '</div>';
+    content.innerHTML = h;
+    content.hidden = false; empty.hidden = true;
+    var cited = content.querySelector(".cited");
+    if (cited) setTimeout(function () { cited.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 60);
+  }
+
+  function isPhone() { return matchMedia("(max-width: 979px)").matches; }
+
+  function openSource(key) {
+    lastFocus = document.activeElement;
+    render(key);
+    reader.classList.add("open");
+    if (isPhone()) { scrim.hidden = false; }
+    var c = document.getElementById("close-reader"); if (c && isPhone()) c.focus();
+  }
+  function closeReader() {
+    reader.classList.remove("open"); scrim.hidden = true;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function selectLine(id) {
+    content.querySelectorAll(".line.selected").forEach(function (b) { b.classList.remove("selected"); b.setAttribute("aria-expanded", "false"); });
+    content.querySelectorAll(".slot").forEach(function (s) { s.innerHTML = ""; });
+    var wrap = content.querySelector('[data-line="' + id + '"]');
+    var btn = wrap.querySelector(".line"); btn.classList.add("selected"); btn.setAttribute("aria-expanded", "true");
+    wrap.querySelector(".slot").innerHTML =
+      '<div class="actions" role="group" aria-label="Ask about this line">' +
+      '<button data-act="explain">Explain this</button>' +
+      '<button data-act="words">Word by word</button>' +
+      '<button data-act="comments">What do the commentaries say?</button>' +
+      '<button data-act="ask">Ask your own question</button></div><div class="out"></div>';
+  }
+
+  function answerBox(html) { return '<div class="answer"><div class="mark" aria-hidden="true">ר</div><div>' + html + '</div></div>'; }
+
+  function runAction(id, act, wrap) {
+    var out = wrap.querySelector(".out");
+    wrap.querySelectorAll(".actions button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.act === act)); });
+    var a = ANSWERS[id] || {};
+    if (act === "words") {
+      if (id === "b1") {
+        var rows = WORDS_B1.map(function (w) { return '<tr><td class="he" lang="he">' + w[0] + '</td><td>' + w[1] + '</td></tr>'; }).join("");
+        out.innerHTML = answerBox('<table class="words"><tbody>' + rows + '</tbody></table>');
+      } else {
+        out.innerHTML = answerBox("In this mockup, word by word is filled in for verse 1 of Bereishit. In the full app it works on any line.");
+      }
+    } else if (act === "ask") {
+      out.innerHTML = answerBox('Ask anything about this line.<form class="ask-line" data-askline><label for="al-' + id + '" style="position:absolute;left:-9999px">Your question about this line</label><input id="al-' + id + '" placeholder="For example: why does Rashi say “robbers”?"><button class="send" type="submit">Ask</button></form>');
+      var inp = out.querySelector("input"); if (inp) inp.focus();
+    } else {
+      out.innerHTML = answerBox(a[act] || FALLBACK);
+    }
+  }
+
+  // ---------------- learn together ----------------
+  var LEARN = {
+    a: "Exactly. That’s the assumption behind his question: the Torah’s main purpose is to teach us how to live, through mitzvos. So why open with history?",
+    b: "That’s a good thought, and close. Rashi’s own words point to something more specific: it is “the first mitzvah the Jewish people were commanded.” His assumption is that the Torah is mainly a book of mitzvos. So why open with history?",
+    c: "That’s a fine place to start. Look at Rashi’s words: “the first mitzvah the Jewish people were commanded.” His assumption is that the Torah is mainly a book of mitzvos. So why open with history?"
+  };
+  function learnStep(choice) {
+    var box = document.getElementById("learn-more");
+    var label = document.querySelector('[data-choice="' + choice + '"]').textContent;
+    document.getElementById("choices").remove();
+    box.innerHTML =
+      '<div class="msg-user" style="margin-left:auto;margin-bottom:18px">' + esc(label) + '</div>' +
+      '<div class="msg-ai"><div class="mark" aria-hidden="true">ר</div><div class="body">' +
+      '<p>' + LEARN[choice] + ' Here is his answer:</p>' +
+      '<div class="quote"><div class="he" lang="he">כל הארץ של הקב״ה היא, הוא בראה ונתנה לאשר ישר בעיניו.</div>' +
+      '<div class="en">The whole earth belongs to the Holy One, blessed be He. He created it and gave it to whomever He saw fit.</div></div>' +
+      '<p style="margin-top:12px">So the opening chapters are more than history. They establish whose world this is. Would you like to see how the Ramban reads it differently?</p>' +
+      '<div class="follow"><button class="chip-btn" data-open="ramban-1-1">Open the Ramban</button><button class="chip-btn" data-open="rashi-1-1">Read the whole Rashi</button></div>' +
+      '</div></div>';
+  }
+
+  // ---------------- tabs ----------------
+  function showTab(name) {
+    var ask = name === "ask";
+    document.getElementById("tab-ask").setAttribute("aria-selected", String(ask));
+    document.getElementById("tab-learn").setAttribute("aria-selected", String(!ask));
+    document.getElementById("panel-ask").hidden = !ask;
+    document.getElementById("panel-learn").hidden = ask;
+    document.getElementById("scroll").scrollTop = 0;
+  }
+
+  // ---------------- events ----------------
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) { if (e.target === scrim) closeReader(); return; }
+    if (t.dataset.open) { openSource(t.dataset.open); return; }
+    if (t.id === "close-reader") { closeReader(); return; }
+    if (t.dataset.lang) {
+      lang = t.dataset.lang;
+      document.getElementById("reader-body").className = "reader-body lang-" + lang;
+      content.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.lang === lang)); });
+      return;
+    }
+    if (t.dataset.select) { selectLine(t.dataset.select); return; }
+    if (t.dataset.act) { var w = t.closest(".line-wrap"); runAction(w.dataset.line, t.dataset.act, w); return; }
+    if (t.dataset.choice) { learnStep(t.dataset.choice); return; }
+    if (t.hasAttribute("data-go-learn")) { showTab("learn"); return; }
+    if (t.id === "tab-ask") { showTab("ask"); return; }
+    if (t.id === "tab-learn") { showTab("learn"); return; }
+  });
+  scrim.addEventListener("click", closeReader);
+  // On wide screens, open with Rashi beside the answer so the first view shows the reader.
+  if (!isPhone()) render("rashi-1-1");
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && reader.classList.contains("open")) closeReader(); });
+
+  document.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    if (f.id === "ask-form") {
+      var input = document.getElementById("ask-input"); var q = input.value.trim(); if (!q) return;
+      showTab("ask");
+      var x = document.getElementById("extra");
+      x.insertAdjacentHTML("beforeend",
+        '<div class="msg-user" style="margin-left:auto;margin-bottom:18px;width:max-content;max-width:85%">' + esc(q) + '</div>' +
+        '<div class="msg-ai" style="margin-bottom:18px"><div class="mark" aria-hidden="true">ר</div><div class="body"><p>This mockup can only show the sample above. In the real app, I would answer from the approved library, cite every source, and let you open each one.</p></div></div>');
+      input.value = "";
+      var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
+    } else if (f.hasAttribute("data-askline")) {
+      var i = f.querySelector("input"); var q2 = i.value.trim(); if (!q2) return;
+      f.outerHTML = '<p style="margin:8px 0 0"><i>“' + esc(q2) + '”</i></p><p style="margin:6px 0 0">In the real app, RabAI answers here, attached to this line, from the approved sources.</p>';
+    }
+  });
+})();
+</script>
+
+</html>
