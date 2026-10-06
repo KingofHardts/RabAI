@@ -61,14 +61,32 @@ ANTHROPIC_API_KEY=your-key
 
 ## Put it online (Vercel)
 
-1. Sign in at vercel.com with the GitHub account that owns this repo and choose
-   **Add New → Project → Import** `RabAI`.
-2. Set **Root Directory** to `web`. Vercel detects Next.js.
-3. Under **Environment Variables**, add `ANTHROPIC_API_KEY`. Create the key at
-   console.anthropic.com (set up billing there first). Paste it only into Vercel, never into a
-   chat or a file in the repo.
-4. Deploy. Then, under **Settings → Deployment Protection**, keep the deployment private
-   (Vercel Authentication) until the board approves a launch.
+1. Get an Anthropic API key at console.anthropic.com. Set up billing there first, and set a
+   monthly spend limit (Settings → Limits) so a mistake can't run up a large bill.
+2. At vercel.com, sign in with the GitHub account that owns this repo and choose
+   **Import Project → Import**. When Vercel asks for GitHub access, give it this repository
+   only.
+3. Pick `RabAI`, then set **Root Directory** to `web`. Vercel detects Next.js.
+4. Under **Environment Variables**, add:
+   - `ANTHROPIC_API_KEY`: the key from step 1. Paste it only into Vercel, never into a chat or
+     a file in the repo.
+   - `RABAI_ACCESS_CODE`: a code of your choosing, such as a few words. Share it only with the
+     people testing RabAI.
+5. Deploy, open the link, enter the access code, and ask one of the starter questions.
+
+### Keeping it private
+
+The app locks itself online (`proxy.ts`, `lib/access.ts`):
+
+- With `RABAI_ACCESS_CODE` set, visitors must enter the code first. Their browser remembers it
+  for 30 days. Changing the code signs everyone out.
+- With no code set, the app stays closed. Forgetting the code never leaves it public.
+- `RABAI_PUBLIC=true` opens it to everyone. Set it only after the rabbinic board approves a
+  launch.
+- On your own computer there is no lock unless you set a code.
+
+Vercel's free (Hobby) plan can't hide the main web address behind a Vercel login, so this
+code is the lock. Search engines are already told not to list the site.
 
 Optional settings:
 
@@ -78,7 +96,8 @@ Optional settings:
 | `RABAI_MODEL` | `claude-opus-5-5` | The model. |
 | `RABAI_LIBRARY` | `development` | `approved` uses only board-approved, license-cleared editions. Empty until the board approves. |
 
-Answers can take 20 to 60 seconds at `high`. The ask route allows up to 120 seconds.
+Answers can take 20 to 60 seconds at `high`. The ask route allows up to 120 seconds, which
+needs Vercel's Fluid compute; `vercel.json` turns it on.
 
 ## Checks
 
@@ -95,7 +114,9 @@ CI runs all of these on every push.
 
 - Replace the development library with approved editions imported from the whitelist, and the
   team's word notes (`lib/library/dev-lexicon.ts`) with entries from approved dictionaries.
-- Add rate limiting to `/api/ask` (each answer costs money).
+- Add rate limiting to `/api/ask` (each answer costs money), then remove the access code.
+- Check Vercel's plan terms before accepting donations: the free Hobby plan is for
+  non-commercial use.
 - Have the board and a clinician review the safety patterns and crisis resources (US only today).
 - Run the test set in [`../evals/questions.yaml`](../evals/questions.yaml) and have the board
   read the answers.

@@ -214,3 +214,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 }
 @media (min-width: 980px) { .close-phone { display: none; } .scrim { display: none; } }
 @media (prefers-reduced-motion: reduce) { .reader { transition: none; } .dots::after { animation: none; content: "..."; } }
+
+/* ---------- private preview: access code ---------- */
+.unlock { min-height: 100dvh; display: grid; place-items: center; padding: calc(24px + env(safe-area-inset-top, 0px)) 16px 24px; }
+.unlock-card { width: 100%; max-width: 400px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px 20px; box-shadow: var(--shadow); }
+.unlock-card p { font-family: var(--font-voice); font-size: 17px; line-height: 1.6; margin: 16px 0 0; }
+.unlock-form { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.unlock-form label { font-size: 14px; font-weight: 500; }
+.unlock-form input { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 16px; min-height: 44px; }
+.unlock-form .send { margin-top: 6px; }
+.unlock-error { color: var(--care-ink); background: var(--care-bg); border-radius: 10px; padding: 8px 12px; font-family: var(--font-ui) !important; font-size: 14px !important; margin: 0 !important; }
