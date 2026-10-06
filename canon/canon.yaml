@@ -763,7 +763,12 @@ works:
         sefaria_versions:
           - version: "Vilna Edition"
             license: "CC-BY-SA / Public Domain"
-            note: "Some titles carry another license (None); those files are skipped."
+            printed: 1886
+            note: >-
+              The Romm Vilna Shas (1880-1886); Sefaria's source is the National Library of
+              Israel's scan of it. A few titles (Rashi on Rosh Hashanah) have no license listed,
+              though the same scan is listed as public domain for the others, so they are
+              included as public domain by age.
           - version: "Gerlitz edition, published by Oraita"
             license: "Public Domain"
           - version: "Chiddushei HaRamban, Jerusalem 1928-29"

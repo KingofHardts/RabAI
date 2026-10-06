@@ -164,7 +164,8 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     if not isinstance(v, dict) or not v.get("version") or set(v) - VERSION_KEYS:
                         fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have 'note', 'printed')")
                         continue
-                    if "printed" in v and not (printed_ok(v["printed"]) and norm_license(v.get("license")) == "publicdomain"):
+                    pd_listed = "publicdomain" in [norm_license(x) for x in str(v.get("license") or "").split("/")]
+                    if "printed" in v and not (printed_ok(v["printed"]) and pd_listed):
                         fail(f"{ewhere}: version '{v['version']}': 'printed' must be a year at least "
                              f"{PUBLIC_DOMAIN_YEARS} years ago, with license 'Public Domain'")
                     if version_key(v["version"]) in seen_versions:
