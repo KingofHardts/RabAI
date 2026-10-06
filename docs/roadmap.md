@@ -31,6 +31,10 @@ Each phase finishes before the next starts. The board's approval gates every pha
 
 ## Phase 3 — The answer engine
 
+**Started (2026-10-06).** A development build in [`web/`](../web/README.md) has the safety check,
+search, the model under the core premises, and a citation checker that drops any citation not
+in the retrieved passages. It runs on a small typed development library, not approved editions.
+
 - Retrieval searches only the library.
 - The model runs under the approved core premises.
 - Every answer cites the passages it used. The model may not cite anything it was not given.

@@ -13,12 +13,25 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Sefaria). Each edition is listed in `canon/canon.yaml` on its own. Check
   `canon/excluded.yaml` before adding any translation.
 - **Retrieval reads only the whitelist** that `python3 tools/validate.py --whitelist` prints.
-- **Licensed texts are never committed.** `library/` is gitignored.
+- **Licensed texts are never committed.** The top-level `/library/` folder is gitignored.
 - **Do not invent sources.** Citations in this repo are suggestions for reviewers to confirm,
   and must say so until a reviewer has.
 - Run `python3 tools/validate.py` before every commit. CI runs it too.
 - Keep the docs in step with the data: a new tag value goes in `canon/vocabulary.yaml`, and a
   new decision goes in `docs/founding-spec.md`.
+
+## The app (`web/`)
+
+- The model's instructions come only from `prompts/core-premises.md`. After editing it, run
+  `cd web && npm run sync:prompt` and commit the regenerated
+  `web/lib/engine/core-premises.generated.ts`. CI fails if the two differ.
+- `web/lib/library/dev-library.ts` holds typed development texts for testing. Every entry stays
+  `library: "development"`. Never mark one approved, and never present it as an approved
+  edition. Approved texts come from the whitelist import.
+- Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
+  passage that was sent to the model, with its quoted words in that passage. Do not add a path
+  that shows sources around it.
+- Before committing app changes: `cd web && npm test && npm run typecheck`.
 
 ## Writing style for anything a user or a rav will read
 

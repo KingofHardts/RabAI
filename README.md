@@ -5,7 +5,8 @@ core premises of Orthodox Judaism as given, draws only on an approved library of
 presents disagreements within Orthodoxy honestly, and sends practical halachic questions to
 a rav. For people who choose it, it also helps them build a stronger connection with HaShem.
 
-**Status: founding spec, v0.1 draft.** Nothing here is approved yet. The canon, the core
+**Status: founding spec, v0.1 draft, plus a first development build of the app in
+[`web/`](web/README.md).** Nothing here is approved yet. The canon, the core
 premises, and the reference answers for sensitive questions all wait on the rabbinic board.
 
 ## What's in this repo
@@ -25,6 +26,7 @@ premises, and the reference answers for sensitive questions all wait on the rabb
 | [`canon/partners.yaml`](canon/partners.yaml) | Organizations and publishers to approach, and where each conversation stands |
 | [`docs/licensing.md`](docs/licensing.md) | What to check before any text goes into the library |
 | [`docs/roadmap.md`](docs/roadmap.md) | Build phases, from spec to pilot |
+| [`web/`](web/README.md) | The app itself (a development build): ask, read the sources, ask about any line |
 | [`prototype/mockup.html`](prototype/mockup.html) | A clickable mockup of the app (sample content only). Open it in a browser. |
 | [`tools/validate.py`](tools/validate.py) | Checks the canon and test files, and prints the retrieval whitelist |
 
@@ -40,4 +42,5 @@ pip install pyyaml
 python3 tools/validate.py
 ```
 
-CI runs the same check on every push.
+CI runs the same check on every push, plus the app's tests and build (see
+[`web/README.md`](web/README.md)).

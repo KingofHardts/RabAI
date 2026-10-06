@@ -1,0 +1,30 @@
+{
+  "name": "rabai-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "sync:prompt": "node scripts/sync-prompt.mjs",
+    "predev": "npm run sync:prompt",
+    "dev": "next dev",
+    "prebuild": "npm run sync:prompt",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "npm run sync:prompt && tsc --noEmit",
+    "test": "npm run sync:prompt && node --import tsx --test tests/*.test.ts",
+    "check:prompt": "node scripts/sync-prompt.mjs --check"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "next": "^16.3.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}
