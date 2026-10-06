@@ -12,6 +12,7 @@ premises, and the reference answers for sensitive questions all wait on the rabb
 
 | Path | What it is |
 |---|---|
+| [`docs/app-vision.md`](docs/app-vision.md) | The app: how it should feel, what people can do, and the first version |
 | [`docs/founding-spec.md`](docs/founding-spec.md) | The four layers, the decisions behind them, and the open questions for the board |
 | [`prompts/core-premises.md`](prompts/core-premises.md) | The core instructions the assistant runs under |
 | [`canon/canon.yaml`](canon/canon.yaml) | The library: every work, tagged by author, era, stream, and edition |
