@@ -114,7 +114,27 @@ Parsha, Daf Yomi, Halacha Yomit, Rambam Yomi. RabAI offers to learn today's port
 Already specified in the founding spec: off unless the person chooses it, one small step at a
 time, never guilt.
 
-### 8. Keep and share
+### 8. Learn to read the texts (only for people who want it)
+Many people want to read the words themselves one day. RabAI teaches the language the way the
+mesorah always has, by letting the texts explain one another:
+
+- **Study words.** In the reader, tap any word to see how it is built, its root, and every
+  other place that root appears in the library. A root learned once is recognized everywhere:
+  ב-ד-ל ("separate") in Bereishit is the root of Havdalah. The connections are computed from
+  the library's own text, so each one is real and opens with a tap.
+- **The mesorah's own translators first.** Onkelos, Rashi, Metzudat Tzion, the Radak's Sefer
+  HaShorashim and the Aruch explain words; RabAI teaches through them and cites them. Other
+  dictionaries are tools for word meanings only, if the board allows them at all.
+- **The Gemara's key words.** The handful of Aramaic phrases that carry the give and take of
+  every sugya (תנו רבנן, מאי טעמא, תא שמע, קשיא), and what each does in the argument.
+- **Try it yourself.** Translate a line in your own words; RabAI starts with what you got right
+  and corrects one or two things at a time, kindly.
+- **My words.** Save words as you learn them and review them later. Saved only on the
+  person's device.
+- **A path that builds.** Chumash with Rashi, then Onkelos (whose Aramaic prepares you for the
+  Gemara), then Mishnah, then Gemara, each step reusing the words learned before.
+
+### 9. Keep and share
 Save sources, add notes, build a personal source sheet, and share a source with someone. A
 shared item always shows the source itself, not only RabAI's words about it.
 
@@ -155,6 +175,7 @@ Small, excellent, and safe. Then grow.
 - Ask, with tappable sources
 - The reader, with Hebrew, English, and the commentaries on each line
 - Ask about any line
+- Study words, the Gemara's key words, try it yourself, and My words
 - A library that starts with what the board approves and the licenses allow first. A
   realistic start: Chumash with Rashi, and Mishnah.
 - English interface, Hebrew texts
@@ -175,9 +196,15 @@ interface, voice, and iPhone and Android apps.
 3. **Money.** Free to use, supported by donations. See "Free with donations" in
    [`licensing.md`](licensing.md) for what that means for the texts.
 4. **Audience.** Everyone, with RabAI adapting to each person's level.
+5. **Integrity first.** Keeping faith with the Orthodox texts and mesorah comes before every
+   other goal. See "The first principle" in the founding spec.
+6. **Learning to read.** RabAI helps people who want it learn to read and translate the texts,
+   through the connections between them, starting from the mesorah's own translators and
+   dictionaries. Jastrow and the Radak's Sefer HaShorashim are proposed for the library; Jastrow
+   waits on the board (open question 13).
 
 **Still open**
 
-5. **Who is on the rabbinic board.**
-6. **The Name of HaShem on screens and in printouts.** Whether shared or printed pages should
+7. **Who is on the rabbinic board.**
+8. **The Name of HaShem on screens and in printouts.** Whether shared or printed pages should
    write the Name in full, given the halachot of sheimos. A board question.

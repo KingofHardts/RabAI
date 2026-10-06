@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { anthropicClient, ask, LIMITS, type AskInput, type LineAction, type Turn } from "@/lib/engine/answer";
+import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type LineAction, type Turn } from "@/lib/engine/answer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // Thoughtful answers can take a while; the model call streams internally.
 export const maxDuration = 120;
-
-const ACTIONS: LineAction[] = ["explain", "words", "commentaries", "halacha"];
 
 function parse(body: unknown): AskInput | string {
   if (!body || typeof body !== "object") return "Send a JSON body.";
@@ -16,11 +14,15 @@ function parse(body: unknown): AskInput | string {
   if (question.length > LIMITS.questionChars) return `Please keep questions under ${LIMITS.questionChars} characters.`;
 
   const action = typeof b.action === "string" ? (b.action as LineAction) : undefined;
-  if (action && !ACTIONS.includes(action)) return "Unknown action.";
+  if (action && !LINE_ACTIONS.includes(action)) return "Unknown action.";
 
   const focusRef = typeof b.focusRef === "string" ? b.focusRef.slice(0, 120) : undefined;
   if (action && !focusRef) return "An action needs a line to act on.";
   if (!question.trim() && !action) return "Please ask a question.";
+  if (action === "check" && !question.trim()) return "Type your translation first.";
+
+  const word = typeof b.word === "string" ? b.word.trim().slice(0, LIMITS.wordChars) : undefined;
+  if (action === "word" && !word) return "Which word?";
 
   const history: Turn[] = [];
   if (Array.isArray(b.history)) {
@@ -33,7 +35,7 @@ function parse(body: unknown): AskInput | string {
     }
   }
 
-  return { question, action, focusRef, history, growth: b.growth === true };
+  return { question, action, focusRef, word, history, growth: b.growth === true };
 }
 
 export async function POST(request: Request) {

@@ -149,3 +149,30 @@ test("mapAnswer ignores non-text blocks and keeps text-only answers", () => {
   assert.equal(mapped.blocks.length, 1);
   assert.equal(mapped.dropped, 0);
 });
+
+test("a word question attaches every place the root appears and names them for RabAI", () => {
+  const { params, documents } = planRequest(
+    { question: "", action: "word", word: "ויבדל", focusRef: "Bereishit 1:4" },
+    lib,
+    config,
+  );
+  const sent = documents.map((d) => d.ref);
+  assert.equal(sent[0], "Bereishit 1:4");
+  for (const r of ["Bereishit 1:6", "Bereishit 1:7", "Bereishit 1:14"]) assert.ok(sent.includes(r), r);
+  const settings = (params.system as Array<{ text: string }>)[2].text;
+  assert.match(settings, /Elsewhere in the library, the root ב-ד-ל appears in: Bereishit 1:6; Bereishit 1:7; Bereishit 1:14\./);
+  const last = params.messages[params.messages.length - 1];
+  const content = last.content as unknown as Array<{ type: string; text?: string }>;
+  assert.match(content[content.length - 1].text ?? "", /What does the word ויבדל mean in Bereishit 1:4\?/);
+});
+
+test("a word with no other appearances tells RabAI not to name any", () => {
+  const { params } = planRequest({ question: "", action: "word", word: "תהום", focusRef: "Bereishit 1:2" }, lib, config);
+  assert.match((params.system as Array<{ text: string }>)[2].text, /do not name other places it appears/);
+});
+
+test("checking a translation quotes the person's attempt", () => {
+  const q = buildQuestion({ question: "One said: the taste of Beis Shammai", action: "check", focusRef: "Shabbat 21b:4" });
+  assert.match(q, /my own translation of Shabbat 21b:4/);
+  assert.match(q, /the taste of Beis Shammai/);
+});

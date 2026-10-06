@@ -26,6 +26,7 @@ How RabAI gets as many authentic, vetted Orthodox sources as possible, and what 
 | Divrei Torah | Modern English divrei Torah and articles | Partner organizations (below) |
 | Shiurim | Recorded shiurim | Transcripts, with permission |
 | Q&A | Archives of real questions answered by rabbanim | Partner organizations (below) |
+| Language | Dictionaries of roots and words, for teaching people to read | Sefer HaShorashim (Radak), the Aruch, Machberet Menachem; Jastrow pending the board |
 
 The classic works in this table are added to `canon/canon.yaml` as proposed.
 

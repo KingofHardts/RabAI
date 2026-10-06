@@ -1828,3 +1828,97 @@ works:
         orthodox: true
         status: proposed
         license: verify
+
+  # ---------------------------------------------------------------------------
+  # Proposed for teaching people to read the texts themselves (Josh, 2026-10-06).
+  # Dictionaries of roots and words, so RabAI can teach the language from the mesorah's own
+  # tools. The traditional works come first; Jastrow is proposed for review, not assumed.
+  # Each needs board review.
+
+  - id: machberet-menachem
+    title: "Machberet Menachem"
+    hebrew: מחברת מנחם
+    author: "Menachem ben Saruk"
+    dates: "10th century"
+    era: geonim
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: >-
+      An early dictionary of Biblical Hebrew, arranged by root. Rashi often cites it by name
+      ("Menachem"), so it lets RabAI show where Rashi's explanation of a word comes from.
+
+  - id: radak-sefer-hashorashim
+    title: "Sefer HaShorashim"
+    hebrew: ספר השרשים
+    author: "Rabbi David Kimchi (Radak)"
+    dates: 1160-1235
+    era: rishonim
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: >-
+      The Radak's dictionary of the roots of Biblical Hebrew, by a Rishon. The backbone for
+      teaching roots: learn a root once and recognize it across Tanakh, the siddur, and the
+      Mishnah.
+
+  - id: aruch
+    title: "HeAruch"
+    hebrew: הערוך
+    author: "Rabbi Natan ben Yechiel of Rome"
+    dates: about 1035-1106
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text, a standard printed edition (the board chooses which)
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The best-known modern edition, Aruch HaShalem, was edited by Alexander Kohut and adds
+          his own notes. The board decides whether to use it or an earlier printing without
+          those notes (reviewers confirm the edition details).
+    notes: >-
+      The classic dictionary of the words of the Talmud and Midrash, written by a Rishon. The
+      first place RabAI looks for the meaning of a word in the Gemara.
+
+  - id: jastrow
+    title: "A Dictionary of the Targumim, the Talmud Babli and Yerushalmi, and the Midrashic Literature"
+    author: "Marcus Jastrow"
+    dates: 1829-1903
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: reference
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: The original edition (1886-1903)
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: Likely public domain given its age; confirm for the digital copy we use.
+    notes: >-
+      The standard English dictionary of Talmudic Aramaic and Hebrew, used widely in yeshivos
+      and by English-speaking learners. Its author was not Orthodox: he is generally counted
+      among the founders of what became Conservative Judaism (reviewers confirm). Proposed for
+      word meanings only, never as a source for history or belief, with the Aruch, Rashi and
+      Targum preferred wherever they differ. The board decides (founding spec, open question 13).

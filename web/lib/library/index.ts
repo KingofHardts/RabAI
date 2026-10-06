@@ -173,6 +173,8 @@ function stem(w: string): string {
 export interface SearchOptions {
   /** A ref the person is looking at; it and its neighbors are always included. */
   focusRef?: string;
+  /** Passages that must be included after the focused line, such as every place a root appears. */
+  includeRefs?: string[];
   /** Maximum passages to return. */
   limit?: number;
 }
@@ -240,6 +242,8 @@ export function search(lib: Library, query: string, opts: SearchOptions = {}): P
       }
     }
   }
+
+  for (const ref of opts.includeRefs ?? []) add(getPassage(lib, ref));
 
   const best = scored
     .filter((h) => h.score >= 2)

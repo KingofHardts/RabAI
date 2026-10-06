@@ -5,6 +5,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 
 ## Rules
 
+- **Integrity of the mesorah comes first.** When anything conflicts with faithfulness to the
+  Orthodox texts and tradition, faithfulness wins (`docs/founding-spec.md`, "The first
+  principle").
 - **The board decides what is Torah content.** Never mark a work, edition, core-premise
   change, or reference answer as `approved` yourself. Only record approvals the maintainer
   reports from the rabbinic board, with `approved_by` and `approved_on`, plus a line in
@@ -28,6 +31,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - `web/lib/library/dev-library.ts` holds typed development texts for testing. Every entry stays
   `library: "development"`. Never mark one approved, and never present it as an approved
   edition. Approved texts come from the whitelist import.
+- `web/lib/library/dev-lexicon.ts` holds the team's word notes for testing. Never type where a
+  word appears; those connections are computed from the library (`language.ts`).
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it.

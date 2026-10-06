@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
+import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
+import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
 
 // ---------------------------------------------------------------------------
 // Types the screens use
@@ -19,8 +21,10 @@ interface ChatMessage {
 interface ReaderCommentary extends Passage {
   author: string;
   translation?: { by: string; status: TranslationStatus };
+  tokens: Token[];
 }
 interface ReaderLine extends Passage {
+  tokens: Token[];
   commentaries: ReaderCommentary[];
 }
 interface ReaderData {
@@ -29,6 +33,7 @@ interface ReaderData {
   section: string;
   sectionHe: string;
   work: Work;
+  wordStudy: WordStudy;
   lines: ReaderLine[];
 }
 
@@ -51,11 +56,22 @@ interface LineAnswer {
   error?: string;
 }
 
+/** A word the person chose to keep. Saved only on this device. */
+interface SavedWord {
+  form: string;
+  gloss?: string;
+  root?: string;
+  rootMeaning?: string;
+  ref: string;
+  savedAt: number;
+}
+
 const STARTERS = [
   "Why does the Torah begin with Creation and not with the first mitzvah?",
   "Why do we add a Chanukah light each night?",
   "What did Hillel tell the man who wanted the whole Torah on one foot?",
   "How can two opposite opinions both be “the words of the living God”?",
+  "Help me read the first words of the Torah myself",
 ];
 
 const ACTIONS: Array<{ id: LineAction; label: string }> = [
@@ -66,6 +82,8 @@ const ACTIONS: Array<{ id: LineAction; label: string }> = [
 ];
 
 const DEV_NOTE = "Development texts for testing. Not yet an approved edition or translation.";
+const WORDS_KEY = "rabai_words";
+const MAX_SAVED_WORDS = 500;
 
 function readStored<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -83,8 +101,25 @@ function store(key: string, value: string) {
   }
 }
 
+function readSavedWords(): SavedWord[] {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(WORDS_KEY) ?? "[]");
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((w): w is SavedWord => w && typeof w.form === "string" && typeof w.ref === "string")
+      .slice(0, MAX_SAVED_WORDS);
+  } catch {
+    return [];
+  }
+}
+
 function plainAnswer(result: AskResult | undefined): string {
   return result?.blocks.map((b) => b.text).join("") ?? "";
+}
+
+/** The word without punctuation at either end, for saving and asking. */
+function bareWord(text: string): string {
+  return text.replace(/^[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+|[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+$/g, "");
 }
 
 async function postAsk(body: Record<string, unknown>): Promise<AskResult> {
@@ -172,7 +207,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [lineAnswers, setLineAnswers] = useState<Record<string, LineAnswer>>({});
   const [lineQuestion, setLineQuestion] = useState("");
 
+  // Word study
+  const [studyMode, setStudyMode] = useState(false);
+  const [wordCard, setWordCard] = useState<{ ref: string; index: number } | null>(null);
+  const [tryRef, setTryRef] = useState<string | null>(null);
+  const [tryText, setTryText] = useState("");
+  const [myWords, setMyWords] = useState<SavedWord[]>([]);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+
   const [sections, setSections] = useState<SectionSummary[] | null>(null);
+  const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
 
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -181,10 +225,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const lastFocus = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
-  // Settings live on this device only.
+  // Settings and saved words live on this device only.
   useEffect(() => {
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
+    setStudyMode(readStored("rabai_study", ["on", "off"] as const, "off") === "on");
+    setMyWords(readSavedWords());
   }, []);
 
   useEffect(() => {
@@ -249,6 +295,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       setReaderOpen(true);
       setReaderRef(ref);
       setSelected(null);
+      setWordCard(null);
+      setTryRef(null);
       setLineQuestion("");
       setReaderError(null);
       if (reader && reader.lines.some((l) => l.ref === ref || l.commentaries.some((c) => c.ref === ref))) {
@@ -280,11 +328,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     if (!readerOpen) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") closeReader();
+      if (e.key !== "Escape") return;
+      if (wordCard) setWordCard(null);
+      else closeReader();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readerOpen, closeReader]);
+  }, [readerOpen, closeReader, wordCard]);
 
   // Scroll the cited line into view and move focus into the sheet on phones.
   useEffect(() => {
@@ -301,18 +351,36 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [lineAnswers, selected]);
 
+  // Keep an opened word card in view.
+  useEffect(() => {
+    if (!wordCard) return;
+    const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-wordcard-for="${CSS.escape(wordCard.ref)}"]`);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [wordCard]);
+
   const chooseLang = (l: Lang) => {
     setLang(l);
     store("rabai_lang", l);
   };
 
+  const toggleStudy = () => {
+    const on = !studyMode;
+    setStudyMode(on);
+    setWordCard(null);
+    store("rabai_study", on ? "on" : "off");
+    if (on && lang === "en") chooseLang("both");
+  };
+
   const askLine = useCallback(
-    async (ref: string, action: LineAction | "ask", question = "") => {
+    async (ref: string, action: LineAction | "ask", question = "", word?: string) => {
+      setSelected(ref);
       setLineAnswers((prev) => ({ ...prev, [ref]: { action, loading: true } }));
       try {
-        const result = await postAsk(
-          action === "ask" ? { question, focusRef: ref, growth } : { question: "", action, focusRef: ref, growth },
-        );
+        const body =
+          action === "ask"
+            ? { question, focusRef: ref, growth }
+            : { question, action, focusRef: ref, word, growth };
+        const result = await postAsk(body);
         setLineAnswers((prev) => ({ ...prev, [ref]: { action, loading: false, result } }));
       } catch (err) {
         setLineAnswers((prev) => ({
@@ -324,12 +392,27 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     [growth],
   );
 
+  // ---- my words ----
+  const persistWords = (words: SavedWord[]) => {
+    setMyWords(words);
+    store(WORDS_KEY, JSON.stringify(words.slice(0, MAX_SAVED_WORDS)));
+  };
+  const isSaved = (form: string) => myWords.some((w) => w.form === form);
+  const saveWord = (w: Omit<SavedWord, "savedAt">) => {
+    if (isSaved(w.form)) return;
+    persistWords([{ ...w, savedAt: Date.now() }, ...myWords]);
+  };
+  const removeWord = (form: string) => persistWords(myWords.filter((w) => w.form !== form));
+
   // ---- learn ----
   useEffect(() => {
     if (tab !== "learn" || sections) return;
     fetch("/api/library")
       .then((r) => r.json())
-      .then((j: { sections: SectionSummary[] }) => setSections(j.sections))
+      .then((j: { sections: SectionSummary[]; phrases?: PhraseInfo[] }) => {
+        setSections(j.sections);
+        setGlossary(j.phrases ?? []);
+      })
       .catch(() => setSections([]));
   }, [tab, sections]);
 
@@ -340,32 +423,156 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   // ---------------------------------------------------------------------------
 
-  const renderLine = (p: Passage, isCommentary: boolean, author?: string) => {
+  const renderWordCard = (p: Passage & { tokens: Token[] }) => {
+    if (!reader || !wordCard || wordCard.ref !== p.ref) return null;
+    const token = p.tokens[wordCard.index];
+    if (!token) return null;
+    const word = bareWord(token.text);
+    const root = token.root ? reader.wordStudy.roots[token.root] : undefined;
+    const phrase = token.phrase ? reader.wordStudy.phrases[token.phrase] : undefined;
+    const elsewhere = [...new Set([...(root?.occurrences ?? []), ...(phrase?.occurrences ?? [])])].filter((r) => r !== p.ref);
+    // A word inside a Gemara phrase is studied as the whole phrase, unless the word has its own root.
+    const heading = phrase && !root ? phrase.phrase : word;
+    const gloss = token.gloss ?? (phrase && !root ? phrase.meaning : undefined);
+    const saved = isSaved(heading);
+    return (
+      <div className="wordcard" data-wordcard-for={p.ref} role="region" aria-label={`About ${heading}`}>
+        <div className="wordcard-head">
+          <span className="he" lang="he">
+            {heading}
+          </span>
+          {gloss && <span className="gloss">{gloss}</span>}
+          <button type="button" className="x" aria-label="Close word notes" onClick={() => setWordCard(null)}>
+            ×
+          </button>
+        </div>
+        {token.parts && <p className="parts">{token.parts}</p>}
+        {root && (
+          <p>
+            Root{" "}
+            <span className="he" lang="he">
+              {root.root}
+            </span>
+            : {root.meaning}.{root.note ? ` ${root.note}` : ""}
+          </p>
+        )}
+        {phrase &&
+          (root ? (
+            <p>
+              Part of the phrase{" "}
+              <span className="he" lang="he">
+                {phrase.phrase}
+              </span>
+              , “{phrase.meaning}”. {phrase.role}
+            </p>
+          ) : (
+            <p>{phrase.role}</p>
+          ))}
+        {!root && !phrase && <p className="muted">This word isn’t in the word notes yet. RabAI can explain it.</p>}
+        {elsewhere.length > 0 && (
+          <>
+            <p className="label-sm">{root ? "This root also appears in" : "This phrase also appears in"}</p>
+            <div className="follow tight">
+              {elsewhere.map((r) => (
+                <button key={r} type="button" className="cite" onClick={() => void openReader(r)}>
+                  {r}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <div className="follow">
+          <button type="button" className="chip-btn" onClick={() => void askLine(p.ref, "word", "", heading)}>
+            {heading === word ? "Ask RabAI about this word" : "Ask RabAI about this phrase"}
+          </button>
+          <button
+            type="button"
+            className="chip-btn"
+            aria-pressed={saved}
+            onClick={() =>
+              saved
+                ? removeWord(heading)
+                : saveWord({ form: heading, gloss, root: root?.root, rootMeaning: root?.meaning, ref: p.ref })
+            }
+          >
+            {saved ? "Saved to My words ✓" : "Save to My words"}
+          </button>
+        </div>
+        <p className="fine-left">Word notes are written by the RabAI team for testing, until approved dictionaries replace them.</p>
+      </div>
+    );
+  };
+
+  const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string) => {
     const isSelected = selected === p.ref;
     const answer = lineAnswers[p.ref];
+    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}`;
+    const label = (
+      <>
+        <span>{isCommentary ? (author ?? p.label) : p.label}</span>
+        <span className="he" lang="he">
+          {p.labelHe}
+        </span>
+      </>
+    );
     return (
       <div key={p.ref} className={isCommentary ? "comm" : undefined}>
-        <button
-          type="button"
-          data-ref={p.ref}
-          className={`line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}`}
-          aria-expanded={isSelected}
-          onClick={() => {
-            setSelected(isSelected ? null : p.ref);
-            setLineQuestion("");
-          }}
-        >
-          <span className="num">
-            <span>{isCommentary ? (author ?? p.label) : p.label}</span>
-            <span className="he" lang="he">
-              {p.labelHe}
+        {studyMode ? (
+          <div className={`${lineClass} study`} data-ref={p.ref}>
+            <span className="num">
+              {label}
             </span>
-          </span>
-          <span className="he" lang="he">
-            {p.he}
-          </span>
-          <span className="en">{p.en}</span>
-        </button>
+            <span className="he words" lang="he">
+              {p.tokens.map((t, i) => (
+                <span key={i}>
+                  {i > 0 && " "}
+                  {bareWord(t.text) === "" ? (
+                    t.text
+                  ) : (
+                  <button
+                    type="button"
+                    className={`w${t.root ? " known" : ""}${t.phrase ? " phr" : ""}`}
+                    aria-pressed={wordCard?.ref === p.ref && wordCard.index === i}
+                    onClick={() => setWordCard(wordCard?.ref === p.ref && wordCard.index === i ? null : { ref: p.ref, index: i })}
+                  >
+                    {t.text}
+                  </button>
+                  )}
+                </span>
+              ))}
+            </span>
+            <span className="en">{p.en}</span>
+            <button
+              type="button"
+              className="line-ask"
+              aria-expanded={isSelected}
+              onClick={() => {
+                setSelected(isSelected ? null : p.ref);
+                setLineQuestion("");
+              }}
+            >
+              {isSelected ? "Hide questions" : "Ask about this line"}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            data-ref={p.ref}
+            className={lineClass}
+            aria-expanded={isSelected}
+            onClick={() => {
+              setSelected(isSelected ? null : p.ref);
+              setLineQuestion("");
+            }}
+          >
+            <span className="num">{label}</span>
+            <span className="he" lang="he">
+              {p.he}
+            </span>
+            <span className="en">{p.en}</span>
+          </button>
+        )}
+        {renderWordCard(p)}
         {isSelected && (
           <>
             <div className="actions" role="group" aria-label={`Ask about ${p.ref}`}>
@@ -380,28 +587,66 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   {a.label}
                 </button>
               ))}
-            </div>
-            <form
-              className="ask-line"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (lineQuestion.trim()) void askLine(p.ref, "ask", lineQuestion.trim());
-              }}
-            >
-              <label className="sr-only" htmlFor={`ask-${p.ref}`}>
-                Your own question about {p.ref}
-              </label>
-              <input
-                id={`ask-${p.ref}`}
-                value={lineQuestion}
-                onChange={(e) => setLineQuestion(e.target.value)}
-                placeholder="Or ask your own question about this line…"
-                maxLength={2000}
-              />
-              <button type="submit" disabled={!lineQuestion.trim() || answer?.loading}>
-                Ask
+              <button
+                type="button"
+                aria-pressed={tryRef === p.ref}
+                disabled={answer?.loading}
+                onClick={() => {
+                  setTryRef(tryRef === p.ref ? null : p.ref);
+                  setTryText("");
+                }}
+              >
+                Let me try translating
               </button>
-            </form>
+            </div>
+            {tryRef === p.ref ? (
+              <form
+                className="try-line"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!tryText.trim()) return;
+                  void askLine(p.ref, "check", tryText.trim());
+                  setTryRef(null);
+                }}
+              >
+                <label htmlFor={`try-${p.ref}`}>
+                  Write the line in your own words. Try it without looking at the English.
+                </label>
+                <textarea
+                  id={`try-${p.ref}`}
+                  value={tryText}
+                  onChange={(e) => setTryText(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="My translation…"
+                />
+                <button type="submit" disabled={!tryText.trim()}>
+                  Check my translation
+                </button>
+              </form>
+            ) : (
+              <form
+                className="ask-line"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (lineQuestion.trim()) void askLine(p.ref, "ask", lineQuestion.trim());
+                }}
+              >
+                <label className="sr-only" htmlFor={`ask-${p.ref}`}>
+                  Your own question about {p.ref}
+                </label>
+                <input
+                  id={`ask-${p.ref}`}
+                  value={lineQuestion}
+                  onChange={(e) => setLineQuestion(e.target.value)}
+                  placeholder="Or ask your own question about this line…"
+                  maxLength={2000}
+                />
+                <button type="submit" disabled={!lineQuestion.trim() || answer?.loading}>
+                  Ask
+                </button>
+              </form>
+            )}
           </>
         )}
         {answer && (
@@ -412,7 +657,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <div>
               {answer.loading ? (
                 <p className="thinking">
-                  RabAI is looking at this line<span className="dots" />
+                  {answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line"}
+                  <span className="dots" />
                 </p>
               ) : answer.error ? (
                 <p>{answer.error}</p>
@@ -558,6 +804,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
                 <div className="body">
                   <p>Pick a text and we’ll learn it together. You can read it yourself, or ask me to go through it with you a line at a time.</p>
+                  <p>
+                    Want to read the words yourself one day? Open a text and turn on <strong>Study words</strong>: tap any
+                    word to see its root, and where else that root appears.
+                  </p>
                 </div>
               </div>
 
@@ -599,6 +849,83 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </div>
                   </div>
                 ))
+              )}
+
+              <div className="card">
+                <h3>My words</h3>
+                {myWords.length === 0 ? (
+                  <p>Words you save while studying a text appear here, so you can review them. They stay on this device.</p>
+                ) : (
+                  <>
+                    <p>
+                      {myWords.length} {myWords.length === 1 ? "word" : "words"}, saved on this device. Try to remember each
+                      one before you show its meaning.
+                    </p>
+                    <ul className="my-words">
+                      {myWords.map((w) => (
+                        <li key={w.form}>
+                          <span className="he" lang="he">
+                            {w.form}
+                          </span>
+                          {revealed.has(w.form) ? (
+                            <span className="meaning">
+                              {w.gloss ?? "Ask RabAI about this word"}
+                              {w.root ? ` · root ${w.root}${w.rootMeaning ? ` (${w.rootMeaning})` : ""}` : ""}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="link"
+                              onClick={() => setRevealed((prev) => new Set(prev).add(w.form))}
+                            >
+                              Show meaning
+                            </button>
+                          )}
+                          <span className="row-actions">
+                            <button type="button" className="link" onClick={() => void openReader(w.ref)}>
+                              {w.ref}
+                            </button>
+                            <button type="button" className="link" aria-label={`Remove ${w.form}`} onClick={() => removeWord(w.form)}>
+                              Remove
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+
+              {glossary.length > 0 && (
+                <div className="card">
+                  <h3>The Gemara’s key words</h3>
+                  <p>
+                    A handful of Aramaic phrases carry the give and take of every sugya. Learn these and you can follow the
+                    argument on any page.
+                  </p>
+                  <ul className="glossary">
+                    {glossary.map((g) => (
+                      <li key={g.id}>
+                        <span className="he" lang="he">
+                          {g.phrase}
+                        </span>
+                        <span>
+                          <strong>
+                            {g.meaning}
+                            {/[.?!]$/.test(g.meaning) ? "" : "."}
+                          </strong>{" "}
+                          {g.role}
+                        </span>
+                        {g.occurrences.length > 0 && (
+                          <button type="button" className="cite" onClick={() => void openReader(g.occurrences[0])}>
+                            See it in {g.occurrences[0]}
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="fine-left">Written by the RabAI team for testing, until approved dictionaries replace these notes.</p>
+                </div>
               )}
 
               <div className="card">
@@ -665,28 +992,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   Close
                 </button>
               </div>
-              <div className="seg" role="group" aria-label="Language">
-                <button type="button" aria-pressed={lang === "he"} onClick={() => chooseLang("he")} lang="he">
-                  עברית
-                </button>
-                <button type="button" aria-pressed={lang === "both"} onClick={() => chooseLang("both")}>
-                  Both
-                </button>
-                <button type="button" aria-pressed={lang === "en"} onClick={() => chooseLang("en")}>
-                  English
+              <div className="reader-tools">
+                <div className="seg" role="group" aria-label="Language">
+                  <button type="button" aria-pressed={lang === "he"} onClick={() => chooseLang("he")} lang="he">
+                    עברית
+                  </button>
+                  <button type="button" aria-pressed={lang === "both"} onClick={() => chooseLang("both")}>
+                    Both
+                  </button>
+                  <button type="button" aria-pressed={lang === "en"} onClick={() => chooseLang("en")}>
+                    English
+                  </button>
+                </div>
+                <button type="button" className="study-toggle" aria-pressed={studyMode} onClick={toggleStudy}>
+                  Study words
                 </button>
               </div>
               {reader &&
                 (reader.libraryMode === "development" ? (
-                  <div className="dev-strip">{DEV_NOTE} Tap any line to ask about it.</div>
+                  <div className="dev-strip">
+                    {DEV_NOTE} {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
+                  </div>
                 ) : (
                   <div className="edition">
-                    {reader.work.title}: {reader.work.edition} English: {reader.work.translation.by}. Tap any line to ask
-                    about it.
+                    {reader.work.title}: {reader.work.edition} English: {reader.work.translation.by}.{" "}
+                    {studyMode ? "Tap any word to study it." : "Tap any line to ask about it."}
                   </div>
                 ))}
             </div>
-            <div className={`reader-body lang-${lang}`} ref={readerBodyRef}>
+            <div className={`reader-body lang-${studyMode && lang === "en" ? "both" : lang}`} ref={readerBodyRef}>
               {readerLoading ? (
                 <p className="reader-state">
                   Opening the text<span className="dots" />

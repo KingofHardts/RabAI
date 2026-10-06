@@ -15,8 +15,15 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   Hebrew, English, or both, with the commentaries under the line they explain.
 - **Ask about a line.** Tap a line for: Explain this, Word by word, What do the commentaries say,
   Where is this used in halacha, or your own question.
-- **Learn.** Browse the library, read a text, or ask RabAI to learn it with you. The "grow closer
-  to HaShem" setting lives here, off unless the person turns it on.
+- **Study words.** Turn it on in the reader and tap any word: its parts, its root, and every
+  other place the root appears in the library (computed from the text, never typed by hand).
+  Gemara phrases such as תנו רבנן are marked and explained. "Ask RabAI about this word" sends
+  those passages along so RabAI can cite them.
+- **Try it yourself.** "Let me try translating" on any line: RabAI checks the person's own
+  translation gently.
+- **Learn.** Browse the library, read a text, ask RabAI to learn it with you, review My words
+  (saved only on the device), and the Gemara's key words. The "grow closer to HaShem" setting
+  lives here, off unless the person turns it on.
 
 ## How an answer is made
 
@@ -86,7 +93,8 @@ CI runs all of these on every push.
 
 ## Before a public launch
 
-- Replace the development library with approved editions imported from the whitelist.
+- Replace the development library with approved editions imported from the whitelist, and the
+  team's word notes (`lib/library/dev-lexicon.ts`) with entries from approved dictionaries.
 - Add rate limiting to `/api/ask` (each answer costs money).
 - Have the board and a clinician review the safety patterns and crisis resources (US only today).
 - Run the test set in [`../evals/questions.yaml`](../evals/questions.yaml) and have the board

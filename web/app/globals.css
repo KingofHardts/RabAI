@@ -161,6 +161,45 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .ask-line input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 16px; }
 .ask-line button { border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 14px; font-weight: 600; }
 
+/* ---------- word study ---------- */
+.reader-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.study-toggle { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 13.5px; color: var(--muted); min-height: 36px; }
+.study-toggle[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.line.study { cursor: default; }
+.line.study:hover { background: none; }
+.line.study.cited { background: var(--hl); }
+.words .w {
+  font: inherit; color: inherit; line-height: inherit; background: none; border: 0; margin: 0; padding: 0 2px; border-radius: 6px;
+}
+.words .w:hover { background: var(--tint); }
+.words .w.known { text-decoration: underline dotted var(--accent); text-decoration-thickness: 2px; text-underline-offset: 8px; }
+.words .w.phr { background: var(--tint); }
+.words .w[aria-pressed="true"] { background: var(--hl); box-shadow: 0 0 0 2px var(--accent); }
+.line-ask { margin-top: 8px; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--accent); min-height: 32px; }
+.wordcard { margin: 0 12px 12px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); font-size: 15px; }
+.wordcard-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.wordcard-head .he { font-size: 26px; }
+.wordcard .gloss { font-family: var(--font-voice); font-size: 17px; font-weight: 600; }
+.wordcard .x { margin-inline-start: auto; background: none; border: 0; font-size: 22px; line-height: 1; color: var(--muted); min-width: 36px; min-height: 36px; }
+.wordcard p { margin: 8px 0 0; }
+.wordcard p .he { display: inline; font-size: 18px; }
+.wordcard .parts, .wordcard .muted { color: var(--muted); }
+.follow.tight { margin-top: 4px; }
+.fine-left { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+.try-line { display: grid; gap: 8px; padding: 0 12px 12px; }
+.try-line label { font-size: 13.5px; color: var(--muted); }
+.try-line textarea { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 16px; resize: vertical; }
+.try-line button { justify-self: start; border: 0; background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 8px 16px; font-weight: 600; min-height: 40px; }
+.link { background: none; border: 0; color: var(--accent); padding: 4px 0; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
+.my-words, .glossary { list-style: none; margin: 10px 0 0; padding: 0; }
+.my-words li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--line); }
+.my-words .he { font-size: 22px; min-width: 72px; }
+.my-words .meaning { font-family: var(--font-voice); }
+.row-actions { margin-inline-start: auto; display: flex; gap: 14px; }
+.glossary li { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.glossary .he { font-size: 21px; }
+.glossary .cite { justify-self: start; }
+
 /* phone: the reader is a sheet */
 @media (max-width: 979px) {
   .reader {

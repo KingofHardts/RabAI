@@ -12,7 +12,7 @@ Each phase finishes before the next starts. The board's approval gates every pha
 - [x] How RabAI thinks: a lamdan's method, sefarim of lomdus, and 6 more test questions
 - [ ] Recruit the rabbinic board (one to three rabbanim)
 - [ ] Board review of the spec, canon, and core premises
-- [ ] Decisions on the twelve open questions in the founding spec
+- [ ] Decisions on the thirteen open questions in the founding spec
 
 ## Phase 1 — Canon approval and licensing
 

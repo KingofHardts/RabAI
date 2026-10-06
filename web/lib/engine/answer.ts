@@ -4,11 +4,13 @@ import { CORE_PREMISES } from "./core-premises.generated";
 import { mapAnswer, answerText, type AnswerBlock, type AnswerSource } from "./citations";
 import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from "./safety";
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
+import { connectionsFor } from "../library/language";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
 
-export type LineAction = "explain" | "words" | "commentaries" | "halacha";
+export type LineAction = "explain" | "words" | "commentaries" | "halacha" | "check" | "word";
+export const LINE_ACTIONS: readonly LineAction[] = ["explain", "words", "commentaries", "halacha", "check", "word"];
 
 export interface Turn {
   role: "user" | "assistant";
@@ -21,6 +23,8 @@ export interface AskInput {
   /** The line the person is asking about, from the reader. */
   focusRef?: string;
   action?: LineAction;
+  /** For the "word" action: the word the person tapped, as written. */
+  word?: string;
   /** "Growing closer to HaShem" help. Off unless the person turned it on. */
   growth?: boolean;
 }
@@ -102,9 +106,19 @@ Shape of an answer:
 
 When the person asks about a specific line in the reader, the message says which line and what
 they want: an explanation, a word-by-word translation, what the commentaries say, or where the
-line is used in halacha. Keep that line at the center of your answer.`;
+line is used in halacha. Keep that line at the center of your answer.
 
-const ACTION_PROMPTS: Record<LineAction, (ref: string) => string> = {
+Learning to read:
+- When the person asks about a single word, the app attaches every passage in the library where
+  that word's root appears (or the word itself, if the root is not known), and the settings
+  name them. Explain the word in its own line first: its parts and its root. Then show how the
+  root connects the passages you were given, citing each one. These are the only connections
+  you may name.
+- When the person offers their own translation of a line, follow "Let them try first": begin
+  with what they got right, then correct one or two things, gently, with the reason. Ask
+  whether they would like to try again or see the whole line.`;
+
+const ACTION_PROMPTS: Record<Exclude<LineAction, "check" | "word">, (ref: string) => string> = {
   explain: (ref) => `Please explain ${ref} to me.`,
   words: (ref) =>
     `Please go through ${ref} word by word. For each word or short phrase, give the Hebrew or Aramaic, a translation, and a short note where it helps. Put each word on its own line in the form: word — meaning — note.`,
@@ -118,6 +132,7 @@ const ACTION_PROMPTS: Record<LineAction, (ref: string) => string> = {
 
 export const LIMITS = {
   questionChars: 2000,
+  wordChars: 40,
   historyTurns: 12,
   historyChars: 6000,
   passages: 10,
@@ -150,12 +165,34 @@ function documentContext(passage: Passage, lib: Library): string {
 
 export function buildQuestion(input: AskInput): string {
   const q = input.question.trim();
-  if (input.action && input.focusRef) {
+  if (input.action === "check" && input.focusRef) {
+    return `Here is my own translation of ${input.focusRef}:\n\n"${q}"\n\nCould you check it for me?`;
+  }
+  if (input.action === "word" && input.focusRef && input.word) {
+    const ask = `What does the word ${input.word} mean in ${input.focusRef}? Show me how it is built, and where else its root comes up in the texts.`;
+    return q ? `${ask}\n\n${q}` : ask;
+  }
+  if (input.action && input.action !== "check" && input.action !== "word" && input.focusRef) {
     const ask = ACTION_PROMPTS[input.action](input.focusRef);
     return q ? `${ask}\n\n${q}` : ask;
   }
   if (input.focusRef && q) return `About ${input.focusRef}: ${q}`;
   return q;
+}
+
+function wordStudyNote(
+  word: string,
+  focusRef: string | undefined,
+  rootText: string,
+  related: Passage[],
+  documents: Passage[],
+): string {
+  const sent = new Set(documents.map((d) => d.ref));
+  const refs = related.map((p) => p.ref).filter((r) => sent.has(r) && r !== focusRef);
+  const where = focusRef ? ` in ${focusRef}` : "";
+  return refs.length
+    ? `Word study: the person asked about ${word}${where}. Elsewhere in the library, ${rootText} appears in: ${refs.join("; ")}. Those passages are attached.`
+    : `Word study: the person asked about ${word}${where}. The library has no other passage with ${rootText}; do not name other places it appears.`;
 }
 
 export interface RequestPlan {
@@ -172,7 +209,15 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
   // like "and what does the Ramban say?" still finds the right text.
   const lastUser = [...history].reverse().find((t) => t.role === "user")?.text ?? "";
   const query = `${question}\n${lastUser}`;
-  const documents = search(lib, query, { focusRef: input.focusRef, limit: LIMITS.passages });
+  // For a word question, every place its root appears in the library comes along, so RabAI can
+  // show real connections and cite them.
+  const connections = input.action === "word" && input.word ? connectionsFor(lib, input.word) : null;
+  const related = connections?.passages ?? [];
+  const documents = search(lib, query, {
+    focusRef: input.focusRef,
+    includeRefs: related.map((p) => p.ref),
+    limit: LIMITS.passages,
+  });
   const documentTexts = documents.map(documentText);
 
   const safety = checkSafety(`${input.question}\n${lastUser}`);
@@ -182,6 +227,7 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
       ? "Library: development. The texts are the team's working copies, for building and testing."
       : "Library: approved editions.",
     documents.length === 0 ? "No passages were found in the library for this question." : "",
+    connections && input.word ? wordStudyNote(input.word, input.focusRef, connections.label, related, documents) : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
   ]
     .filter(Boolean)
