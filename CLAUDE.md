@@ -37,6 +37,27 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it.
 - Before committing app changes: `cd web && npm test && npm run typecheck`.
+- **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
+  `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
+  around it. Opening it to the public (`RABAI_PUBLIC=true`) is the maintainer's decision, made
+  only after the board approves a launch.
+
+## Where it runs
+
+- **GitHub:** `KingofHardts/RabAI`, default branch `main`. CI is the "Validate" workflow
+  (`.github/workflows/validate.yml`).
+- **Vercel:** project `rab-ai` on the maintainer's personal Vercel account
+  (`joshsgerhardt-5492`, Hobby plan), Root Directory `web`. Every push to `main` deploys.
+- **Settings in Vercel:** `ANTHROPIC_API_KEY` and `RABAI_ACCESS_CODE` are required. The
+  optional ones are listed in `web/README.md`. Never print, log, or commit their values, and
+  never ask anyone to paste a key or code into a chat.
+- **Checking a deploy:** Vercel reports each deploy on its commit
+  (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
+  Build and runtime logs need a Vercel connection to the maintainer's personal account.
+- **Keep it separate from Senior Stylist.** Don't use Senior Stylist's accounts, keys, data, or
+  rules here.
+- **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
+  the checks run right away.
 
 ## Writing style for anything a user or a rav will read
 
