@@ -1,0 +1,1231 @@
+# The approved library — v0.1 draft.
+#
+# Nothing here is approved yet. "draft" = on the founding list. "proposed" = suggested
+# addition. Only the rabbinic board moves a work to "approved", and records who approved it
+# and when (approved_by, approved_on).
+#
+# A work enters retrieval only when the work is approved AND at least one of its editions is
+# approved with license "cleared". tools/validate.py prints that whitelist.
+#
+# Editions: list the specific editions and translations allowed. "orthodox" is true, false,
+# or "review" (the board should confirm). License values are in vocabulary.yaml. Every
+# license below is a starting point for checking, not a conclusion. See docs/licensing.md.
+#
+# Tag values must come from canon/vocabulary.yaml.
+
+works:
+
+  # ---------------------------------------------------------------------------
+  # Mikra and meforshim
+  # ---------------------------------------------------------------------------
+
+  - id: tanakh
+    title: Tanakh
+    hebrew: תנ״ך
+    author: null
+    era: mikra
+    category: mikra_meforshim
+    kind: text
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Masoretic text, Hebrew (Koren / Breuer edition, based on the Aleppo Codex)
+        language: he
+        publisher: Koren; Mossad HaRav Kook
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Miqra according to the Masorah (digital Hebrew text on Sefaria)
+        language: he
+        publisher: MAM project
+        orthodox: review
+        status: draft
+        license: verify
+        notes: Open digital Hebrew text. Check the license and that the text matches the Breuer edition.
+      - name: The Koren Jerusalem Bible (Harold Fisch)
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: draft
+        license: verify
+      - name: The Stone Edition Tanach
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Judaica Press Tanakh (as published on Chabad.org with Rashi)
+        language: en
+        publisher: Judaica Press
+        orthodox: true
+        status: draft
+        license: verify
+      - name: The Living Torah (Rav Aryeh Kaplan) — Chumash only
+        language: en
+        publisher: Moznaim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: rashi-tanakh
+    title: Rashi on Tanakh
+    hebrew: רש״י
+    author: Rabbi Shlomo Yitzchaki (Rashi)
+    dates: 1040-1105
+    region: France
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text, standard Mikraot Gedolot
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Pentateuch with Rashi, translated by M. Rosenbaum and A. M. Silbermann (1929-34)
+        language: en
+        publisher: Silbermann
+        orthodox: true
+        status: draft
+        license: verify
+        notes: Possibly public domain. Hosted on Sefaria. Confirm.
+      - name: Metsudah Chumash/Rashi
+        language: en
+        publisher: Metsudah
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Sapirstein Edition Rashi
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: ramban-torah
+    title: Ramban on the Torah
+    hebrew: רמב״ן על התורה
+    author: Rabbi Moshe ben Nachman (Ramban)
+    dates: 1194-1270
+    region: Spain
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text (Chavel edition)
+        language: he
+        publisher: Mossad HaRav Kook
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Commentary on the Torah, translated by Rabbi Charles B. Chavel
+        language: en
+        publisher: Shilo
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: ibn-ezra-tanakh
+    title: Ibn Ezra on Tanakh
+    hebrew: אבן עזרא
+    author: Rabbi Avraham ibn Ezra
+    dates: c. 1089-1164
+    region: Spain
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text, standard Mikraot Gedolot
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Ibn Ezra's Commentary on the Pentateuch, translated by H. Norman Strickman and Arthur M. Silver
+        language: en
+        publisher: Menorah
+        orthodox: review
+        status: draft
+        license: verify
+    notes: >-
+      Ibn Ezra's comment on Devarim 1:2 ("the secret of the twelve") is often quoted by
+      Bible critics. Later commentators discuss how to understand it. The board decides how
+      the assistant presents it.
+
+  - id: sforno-torah
+    title: Sforno on the Torah
+    hebrew: ספורנו
+    author: Rabbi Ovadia Sforno
+    dates: c. 1475-1550
+    region: Italy
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text, standard Mikraot Gedolot
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Sforno, translated by Rabbi Raphael Pelcovitz
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: ohr-hachaim-torah
+    title: Ohr HaChaim on the Torah
+    hebrew: אור החיים
+    author: Rabbi Chaim ibn Attar
+    dates: 1696-1743
+    region: Morocco and Eretz Yisrael
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text, standard Mikraot Gedolot
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Or HaChayim, translated by Rabbi Eliyahu Munk
+        language: en
+        publisher: Lambda / Urim (verify)
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: malbim-tanakh
+    title: Malbim on Tanakh
+    hebrew: מלבי״ם
+    author: Rabbi Meir Leibush Weiser (Malbim)
+    dates: 1809-1879
+    region: Eastern Europe
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+    notes: >-
+      The Malbim wrote largely against the Haskalah's reading of the Torah, which makes him
+      directly useful for "other views" questions. English translations are partial; find
+      Orthodox ones.
+
+  # ---------------------------------------------------------------------------
+  # Torah SheBaal Peh
+  # ---------------------------------------------------------------------------
+
+  - id: mishnah
+    title: Mishnah
+    hebrew: משנה
+    author: Compiled by Rabbi Yehuda HaNasi
+    era: tannaim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text, standard (Vilna)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+        notes: The printed text is public domain. Check the license of the digital source.
+      - name: Mishnayot Kehati, English
+        language: en
+        publisher: Maor Wallach
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Yad Avraham Mishnah
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Steinsaltz Mishnah
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: talmud-bavli
+    title: Talmud Bavli
+    hebrew: תלמוד בבלי
+    author: Redacted by Rav Ashi and Ravina
+    era: amoraim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Vilna Shas, Hebrew/Aramaic
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+        notes: The printed text is public domain. Check the license of the digital source.
+      - name: The William Davidson Talmud (Koren Noé, Rabbi Adin Even-Israel Steinsaltz)
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: draft
+        license: verify
+        notes: Hosted on Sefaria under a non-commercial license. Commercial use needs a separate agreement.
+      - name: Schottenstein Edition Talmud
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Soncino Talmud (ed. Rabbi Isidore Epstein)
+        language: en
+        publisher: Soncino
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: talmud-yerushalmi
+    title: Talmud Yerushalmi
+    hebrew: תלמוד ירושלמי
+    era: amoraim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew/Aramaic text, standard
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: The Jerusalem Talmud, translated by Heinrich W. Guggenheimer
+        language: en
+        publisher: De Gruyter
+        orthodox: review
+        status: draft
+        license: verify
+      - name: Schottenstein Edition Talmud Yerushalmi
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: midrash
+    title: Midrash (Midrash Rabbah, Tanchuma, Mechilta, Sifra, Sifrei)
+    hebrew: מדרש
+    era: amoraim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew texts, standard editions
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Kleinman Edition Midrash Rabbah
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Soncino Midrash Rabbah (eds. H. Freedman and Maurice Simon)
+        language: en
+        publisher: Soncino
+        orthodox: review
+        status: draft
+        license: verify
+
+  - id: rishonim-shas
+    title: Major Rishonim on the Talmud (Rashi, Tosafot, Ramban, Rashba, Ritva, Ran, Meiri)
+    hebrew: ראשונים על הש״ס
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew texts, standard editions
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+    notes: Mostly untranslated. Split into one entry per Rishon if the board wants to approve them separately.
+
+  # ---------------------------------------------------------------------------
+  # Halacha
+  # ---------------------------------------------------------------------------
+
+  - id: rif
+    title: Rif (Hilchot HaRif)
+    hebrew: רי״ף
+    author: Rabbi Yitzchak Alfasi
+    dates: 1013-1103
+    region: North Africa and Spain
+    era: rishonim
+    category: halacha
+    kind: code
+    streams: [shared]
+    minhag: both
+    status: draft
+    editions:
+      - name: Hebrew text, standard (printed in the Vilna Shas)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: rosh
+    title: Rosh (Piskei HaRosh)
+    hebrew: רא״ש
+    author: Rabbeinu Asher ben Yechiel
+    dates: c. 1250-1327
+    region: Germany and Spain
+    era: rishonim
+    category: halacha
+    kind: code
+    streams: [shared]
+    minhag: both
+    status: draft
+    editions:
+      - name: Hebrew text, standard (printed in the Vilna Shas)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: mishneh-torah
+    title: Mishneh Torah
+    hebrew: משנה תורה
+    author: Rabbi Moshe ben Maimon (Rambam)
+    dates: 1138-1204
+    region: Spain and Egypt
+    era: rishonim
+    category: halacha
+    kind: code
+    streams: [shared]
+    minhag: both
+    status: draft
+    editions:
+      - name: Hebrew text (e.g., the Shabsai Frankel edition, or the standard Vilna text)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Mishneh Torah, translated by Rabbi Eliyahu Touger
+        language: en
+        publisher: Moznaim
+        orthodox: true
+        status: draft
+        license: verify
+        notes: Published on Chabad.org. Permission needed for our use.
+
+  - id: tur
+    title: Arba'ah Turim
+    hebrew: ארבעה טורים
+    author: Rabbi Yaakov ben Asher
+    dates: c. 1269-1343
+    region: Spain
+    era: rishonim
+    category: halacha
+    kind: code
+    streams: [shared]
+    minhag: both
+    status: draft
+    editions:
+      - name: Hebrew text, standard
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: shulchan-aruch
+    title: Shulchan Aruch with the glosses of the Rema
+    hebrew: שולחן ערוך עם הגהות הרמ״א
+    author: Rabbi Yosef Karo (Mechaber); Rabbi Moshe Isserles (Rema)
+    dates: 1488-1575; 1530-1572
+    region: Eretz Yisrael; Poland
+    era: acharonim
+    category: halacha
+    kind: code
+    streams: [shared, sephardi]
+    minhag: both
+    status: draft
+    editions:
+      - name: Hebrew text, standard
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+    notes: >-
+      Tag every retrieved passage as Mechaber or Rema. The Mechaber is the baseline for
+      Sephardi practice. The Rema records Ashkenazi practice.
+
+  - id: mishnah-berurah
+    title: Mishnah Berurah
+    hebrew: משנה ברורה
+    author: Rabbi Yisrael Meir Kagan (Chafetz Chaim)
+    dates: 1838-1933
+    region: Lithuania
+    era: acharonim
+    category: halacha
+    kind: commentary
+    streams: [litvish]
+    minhag: ashkenazi
+    status: draft
+    editions:
+      - name: Hebrew text, standard
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Mishnah Berurah, English (ed. Rabbi Aharon Feldman)
+        language: en
+        publisher: Feldheim / Pisgah Foundation
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: aruch-hashulchan
+    title: Aruch HaShulchan
+    hebrew: ערוך השולחן
+    author: Rabbi Yechiel Michel Epstein
+    dates: 1829-1908
+    region: Lithuania
+    era: acharonim
+    category: halacha
+    kind: code
+    streams: [litvish]
+    minhag: ashkenazi
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: igrot-moshe
+    title: Igrot Moshe
+    hebrew: אגרות משה
+    author: Rabbi Moshe Feinstein
+    dates: 1895-1986
+    region: United States
+    era: contemporary
+    category: halacha
+    kind: responsa
+    streams: [litvish]
+    minhag: ashkenazi
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: yabia-omer
+    title: Yabia Omer
+    hebrew: יביע אומר
+    author: Rabbi Ovadia Yosef
+    dates: 1920-2013
+    region: Eretz Yisrael
+    era: contemporary
+    category: halacha
+    kind: responsa
+    streams: [sephardi]
+    minhag: sephardi
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: rav-shlomo-zalman-auerbach
+    title: Minchat Shlomo and other works of Rav Shlomo Zalman Auerbach
+    hebrew: מנחת שלמה
+    author: Rabbi Shlomo Zalman Auerbach
+    dates: 1910-1995
+    region: Yerushalayim
+    era: contemporary
+    category: halacha
+    kind: responsa
+    streams: [litvish]
+    minhag: ashkenazi
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  # ---------------------------------------------------------------------------
+  # Hashkafah and mussar
+  # ---------------------------------------------------------------------------
+
+  - id: kuzari
+    title: The Kuzari
+    hebrew: ספר הכוזרי
+    author: Rabbi Yehuda HaLevi
+    dates: c. 1075-1141
+    region: Spain
+    era: rishonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew (Ibn Tibbon translation from the Arabic; or Rabbi Yosef Kafih's translation)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: The Kuzari — In Defense of the Despised Faith, translated by Rabbi N. Daniel Korobkin
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: chovot-halevavot
+    title: Chovot HaLevavot (Duties of the Heart)
+    hebrew: חובות הלבבות
+    author: Rabbeinu Bachya ibn Paquda
+    dates: 11th century
+    region: Spain
+    era: rishonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew (Ibn Tibbon translation from the Arabic)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Duties of the Heart, translated by Rabbi Moses Hyamson
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: maharal
+    title: Works of the Maharal (Gur Aryeh, Netzach Yisrael, Derech Chaim, Tiferet Yisrael, Be'er HaGolah)
+    hebrew: מהר״ל מפראג
+    author: Rabbi Yehuda Loew of Prague (Maharal)
+    dates: c. 1520-1609
+    region: Prague
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: ramchal
+    title: Works of the Ramchal (Mesillat Yesharim, Derech Hashem, Da'at Tevunot)
+    hebrew: רמח״ל
+    author: Rabbi Moshe Chaim Luzzatto (Ramchal)
+    dates: 1707-1746
+    region: Italy, Amsterdam, Eretz Yisrael
+    era: acharonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [shared]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Mesillat Yesharim, translated by Rabbi Shraga Silverstein
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Derech Hashem, translated by Rabbi Aryeh Kaplan
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+    notes: The 1936 JPS translation of Mesillat Yesharim is excluded. See excluded.yaml.
+
+  - id: nefesh-hachaim
+    title: Nefesh HaChaim
+    hebrew: נפש החיים
+    author: Rabbi Chaim of Volozhin
+    dates: 1749-1821
+    region: Lithuania
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [litvish]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Nefesh HaChaim, translated by Rabbi Avraham Yaakov Finkel
+        language: en
+        publisher: Judaica Press (verify)
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: tanya
+    title: Tanya (Likkutei Amarim)
+    hebrew: תניא
+    author: Rabbi Schneur Zalman of Liadi (the Alter Rebbe)
+    dates: 1745-1812
+    region: White Russia
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish, chabad]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Tanya, bilingual edition (trans. Nissan Mindel, Nissan Mangel, Zalman Posner, Jacob Immanuel Schochet)
+        language: en
+        publisher: Kehot
+        orthodox: true
+        status: draft
+        license: verify
+
+  - id: rav-hirsch
+    title: Works of Rav Samson Raphael Hirsch (The Nineteen Letters, Horeb, the Hirsch Chumash, Collected Writings)
+    author: Rabbi Samson Raphael Hirsch
+    dates: 1808-1888
+    region: Germany
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [torah_im_derech_eretz]
+    status: draft
+    editions:
+      - name: The Nineteen Letters (ed. Rabbi Joseph Elias)
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Horeb, translated by Dayan Isidor Grunfeld
+        language: en
+        publisher: Soncino
+        orthodox: true
+        status: draft
+        license: verify
+      - name: The Hirsch Chumash (trans. Isaac Levy; or the newer Daniel Haberman translation)
+        language: en
+        publisher: Judaica Press / Feldheim; Koren
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: michtav-meeliyahu
+    title: Michtav MeEliyahu
+    hebrew: מכתב מאליהו
+    author: Rabbi Eliyahu Eliezer Dessler
+    dates: 1892-1953
+    region: England and Bnei Brak
+    era: contemporary
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [litvish]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Strive for Truth!, translated by Rabbi Aryeh Carmell
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: rav-kook
+    title: Works of Rav Kook (Orot, Orot HaTeshuvah, Olat Re'iyah, Igrot HaRe'iyah)
+    hebrew: הרב קוק
+    author: Rabbi Avraham Yitzchak HaKohen Kook
+    dates: 1865-1935
+    region: Eretz Yisrael
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [religious_zionist]
+    status: draft
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+      - name: Translations by Rabbi Bezalel Naor (e.g., Orot)
+        language: en
+        publisher: Maggid; Kodesh Press
+        orthodox: true
+        status: draft
+        license: needs_agreement
+    notes: Ben Zion Bokser's translations are excluded. See excluded.yaml.
+
+  - id: rav-soloveitchik
+    title: Works of Rav Soloveitchik (Halakhic Man, The Lonely Man of Faith, Kol Dodi Dofek, U-Vikkashtem mi-Sham, Shiurim LeZecher Abba Mari)
+    author: Rabbi Joseph B. Soloveitchik
+    dates: 1903-1993
+    region: United States
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [modern_orthodox]
+    status: draft
+    editions:
+      - name: The Lonely Man of Faith
+        language: en
+        publisher: Doubleday / Maggid
+        orthodox: true
+        status: draft
+        license: needs_agreement
+      - name: Halakhic Man, translated by Lawrence Kaplan
+        language: en
+        publisher: JPS
+        orthodox: review
+        status: draft
+        license: needs_agreement
+        notes: The work is Orthodox. The board confirms the translation.
+      - name: OU Press / Toras HoRav Foundation volumes
+        language: en
+        publisher: OU Press; Ktav
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: rav-aryeh-kaplan
+    title: Works of Rav Aryeh Kaplan (Handbook of Jewish Thought; Immortality, Resurrection, and the Age of the Universe; and others)
+    author: Rabbi Aryeh Kaplan
+    dates: 1934-1983
+    region: United States
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared, kiruv]
+    status: draft
+    editions:
+      - name: English originals
+        language: en
+        publisher: Moznaim; Ktav; NCSY/OU
+        orthodox: true
+        status: draft
+        license: needs_agreement
+
+  - id: rav-noah-weinberg-48-ways
+    title: 48 Ways to Wisdom
+    hebrew: מ״ח קנייני תורה
+    author: Rabbi Noah Weinberg
+    dates: 1930-2009
+    region: Yerushalayim
+    era: contemporary
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [kiruv, litvish]
+    status: draft
+    editions:
+      - name: 48 Ways (Aish.com series and book)
+        language: en
+        publisher: Aish HaTorah
+        orthodox: true
+        status: draft
+        license: needs_agreement
+    notes: Based on the 48 qualities in Pirkei Avot 6:6.
+
+  # ---------------------------------------------------------------------------
+  # Proposed additions. Not on the founding list. Each needs board review.
+  # ---------------------------------------------------------------------------
+
+  - id: rambam-perush-hamishnah
+    title: Rambam's Commentary on the Mishnah, including the introduction to Perek Chelek (the Thirteen Ikkarim)
+    hebrew: פירוש המשנה לרמב״ם
+    author: Rabbi Moshe ben Maimon (Rambam)
+    dates: 1138-1204
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew translation from the Arabic by Rabbi Yosef Kafih
+        language: he
+        publisher: Mossad HaRav Kook
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Strongly recommended. The Thirteen Ikkarim the core premises rely on are stated here.
+
+  - id: moreh-nevuchim
+    title: Moreh Nevuchim (Guide for the Perplexed)
+    hebrew: מורה נבוכים
+    author: Rabbi Moshe ben Maimon (Rambam)
+    dates: 1138-1204
+    era: rishonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew translation by Rabbi Yosef Kafih (or Ibn Tibbon)
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+      - name: The Guide for the Perplexed, translated by Michael Friedländer (1904)
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: Possibly public domain. The board decides on the translator.
+    notes: Central to hashkafah, and to questions such as the reasons for korbanot (3:32).
+
+  - id: targum-onkelos
+    title: Targum Onkelos
+    hebrew: תרגום אונקלוס
+    era: tannaim
+    category: mikra_meforshim
+    kind: targum
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Aramaic text, standard Mikraot Gedolot
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: sefer-hachinuch
+    title: Sefer HaChinuch
+    hebrew: ספר החינוך
+    era: rishonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: Lists all 613 mitzvot with their reasons. Useful for "why do we do this" questions.
+
+  - id: iggeret-rav-sherira-gaon
+    title: Iggeret Rav Sherira Gaon
+    hebrew: אגרת רב שרירא גאון
+    author: Rav Sherira Gaon
+    era: geonim
+    category: torah_shebaal_peh
+    kind: history
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Hebrew/Aramaic text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The classical account of how the Mishnah and Talmud were transmitted. Needed for questions about who wrote the Talmud.
+
+  - id: rav-dz-hoffmann
+    title: Works of Rav David Zvi Hoffmann (his commentaries and his answer to the Graf-Wellhausen hypothesis; Melamed LeHo'il)
+    author: Rabbi David Zvi Hoffmann
+    dates: 1843-1921
+    region: Germany
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [torah_im_derech_eretz]
+    status: proposed
+    editions:
+      - name: Hebrew and German originals and Hebrew translations
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: The classic Orthodox scholarly response to the Documentary Hypothesis.
+
+  - id: daat-mikra
+    title: Da'at Mikra
+    hebrew: דעת מקרא
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared, religious_zionist]
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        publisher: Mossad HaRav Kook
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: kitzur-shulchan-aruch
+    title: Kitzur Shulchan Aruch
+    hebrew: קיצור שולחן ערוך
+    author: Rabbi Shlomo Ganzfried
+    dates: 1804-1886
+    era: acharonim
+    category: halacha
+    kind: practical_halacha
+    streams: [shared]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+      - name: Code of Jewish Law, translated by Hyman E. Goldin (1927)
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: Possibly public domain. Hosted on Sefaria. Some rulings are better taken from later poskim.
+
+  - id: shulchan-aruch-harav
+    title: Shulchan Aruch HaRav
+    hebrew: שולחן ערוך הרב
+    author: Rabbi Schneur Zalman of Liadi
+    era: acharonim
+    category: halacha
+    kind: code
+    streams: [chassidish, chabad]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+      - name: English translation
+        language: en
+        publisher: Kehot
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: ben-ish-chai
+    title: Ben Ish Chai
+    hebrew: בן איש חי
+    author: Rabbi Yosef Chaim of Baghdad
+    dates: 1835-1909
+    region: Baghdad
+    era: acharonim
+    category: halacha
+    kind: practical_halacha
+    streams: [sephardi]
+    minhag: sephardi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: kaf-hachaim
+    title: Kaf HaChaim
+    hebrew: כף החיים
+    author: Rabbi Yaakov Chaim Sofer
+    dates: 1870-1939
+    era: acharonim
+    category: halacha
+    kind: commentary
+    streams: [sephardi]
+    minhag: sephardi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: yalkut-yosef
+    title: Yalkut Yosef
+    hebrew: ילקוט יוסף
+    author: Rabbi Yitzchak Yosef
+    era: contemporary
+    category: halacha
+    kind: practical_halacha
+    streams: [sephardi]
+    minhag: sephardi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Practical Sephardi halacha following Rav Ovadia Yosef. Fills the main Sephardi gap in the founding list.
+
+  - id: yechave-daat
+    title: Yechave Da'at
+    hebrew: יחוה דעת
+    author: Rabbi Ovadia Yosef
+    era: contemporary
+    category: halacha
+    kind: responsa
+    streams: [sephardi]
+    minhag: sephardi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: shmirat-shabbat-khilchata
+    title: Shemirat Shabbat KeHilchata
+    hebrew: שמירת שבת כהלכתה
+    author: Rabbi Yehoshua Yeshaya Neuwirth
+    dates: 1927-2013
+    era: contemporary
+    category: halacha
+    kind: practical_halacha
+    streams: [litvish]
+    minhag: ashkenazi
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+      - name: English translation
+        language: en
+        publisher: Feldheim
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+    notes: Includes notes from Rav Shlomo Zalman Auerbach. The standard reference for practical Shabbos questions, including medical ones.
+
+  - id: peninei-halakha
+    title: Peninei Halakha
+    hebrew: פניני הלכה
+    author: Rabbi Eliezer Melamed
+    era: contemporary
+    category: halacha
+    kind: practical_halacha
+    streams: [religious_zionist]
+    minhag: both
+    status: proposed
+    editions:
+      - name: Hebrew and English texts
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: Presents Ashkenazi and Sephardi practice side by side.
+
+  - id: chafetz-chaim
+    title: Sefer Chafetz Chaim and Shemirat HaLashon
+    hebrew: חפץ חיים; שמירת הלשון
+    author: Rabbi Yisrael Meir Kagan (Chafetz Chaim)
+    era: acharonim
+    category: halacha
+    kind: code
+    streams: [litvish]
+    minhag: both
+    status: proposed
+    editions:
+      - name: Hebrew text
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+
+  - id: siddur
+    title: Siddur (Nusach Ashkenaz, Sefard, Edot HaMizrach, Ari)
+    hebrew: סידור
+    category: hashkafah_mussar
+    kind: liturgy
+    era: contemporary
+    streams: [shared]
+    status: proposed
+    editions:
+      - name: Koren Siddur
+        language: en
+        publisher: Koren
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+      - name: ArtScroll Siddur
+        language: en
+        publisher: ArtScroll/Mesorah
+        orthodox: true
+        status: proposed
+        license: needs_agreement
+
+  - id: rabbi-sacks-covenant-conversation
+    title: Covenant & Conversation and other works of Rabbi Jonathan Sacks
+    author: Rabbi Lord Jonathan Sacks
+    dates: 1948-2020
+    region: United Kingdom
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [modern_orthodox]
+    status: proposed
+    editions:
+      - name: Covenant & Conversation essays
+        language: en
+        publisher: The Rabbi Sacks Legacy; Maggid
+        orthodox: true
+        status: proposed
+        license: verify
+    notes: >-
+      Widely read English Torah thought. The board may want to approve specific works
+      rather than all of them, since a few positions in his writings drew criticism.

@@ -1,0 +1,85 @@
+# Editions, translations and collections that stay OUT of the library by default.
+#
+# "Out of the library" means the assistant never quotes them as authority and they are never
+# indexed for retrieval. The assistant may still DESCRIBE the views of their authors or
+# movements as other positions (founding spec, layer 4).
+#
+# Each entry says why it is excluded and whether the board could reconsider it.
+# Several of these are hosted on Sefaria next to Orthodox editions. They are the reason the
+# library whitelists editions instead of importing whole collections.
+# Before acting on any entry, check which edition Sefaria (or any source) currently serves.
+
+excluded:
+
+  - id: jps-1917
+    title: The Holy Scriptures (JPS, 1917)
+    reason: >-
+      Not an Orthodox translation. Produced by a non-denominational scholarly committee.
+      Public domain, which makes it easy to import by mistake.
+    board_may_reconsider: true
+    notes: Open question 2 in the founding spec covers public-domain translations like this one.
+
+  - id: njps-1985
+    title: Tanakh, The Holy Scriptures (New JPS translation, 1985)
+    reason: Not an Orthodox translation.
+    board_may_reconsider: false
+
+  - id: contemporary-torah
+    title: The Contemporary Torah (JPS, 2006)
+    reason: A gender-sensitive adaptation of the 1985 JPS translation. Not an Orthodox translation.
+    board_may_reconsider: false
+
+  - id: mishnah-yomit-kulp
+    title: Mishnah Yomit, translated by Dr. Joshua Kulp
+    reason: >-
+      The translator teaches at the Conservative Yeshiva in Jerusalem. On Sefaria this has
+      been the default English Mishnah, so it gets pulled in by any whole-collection import.
+      Confirm the current default before ingesting any Mishnah translation.
+    board_may_reconsider: false
+
+  - id: mesillat-yesharim-kaplan-1936
+    title: Mesillat Yesharim, translated by Mordecai M. Kaplan (JPS, 1936)
+    reason: >-
+      The translator founded Reconstructionist Judaism. Approve an Orthodox translation of
+      Mesillat Yesharim instead (see canon.yaml, ramchal).
+    board_may_reconsider: false
+
+  - id: rav-kook-bokser
+    title: Translations of Rav Kook by Ben Zion Bokser (Paulist Press)
+    reason: >-
+      The translator was a Conservative rabbi. Use Orthodox translations, such as those by
+      Rabbi Bezalel Naor.
+    board_may_reconsider: false
+
+  - id: yale-judaica-mishneh-torah
+    title: The Code of Maimonides (Yale Judaica Series)
+    reason: >-
+      An academic series with translators of mixed affiliation. Excluded as a whole.
+    board_may_reconsider: true
+    notes: The board may approve individual volumes by Orthodox translators.
+
+  - id: hirschfeld-kuzari-1905
+    title: The Kuzari, translated by Hartwig Hirschfeld (1905)
+    reason: >-
+      An academic translation. Public domain. Excluded until the board decides on older
+      translations by non-Orthodox translators.
+    board_may_reconsider: true
+
+  - id: sefaria-source-sheets
+    title: User-created source sheets (Sefaria and similar sites)
+    reason: >-
+      Written by anyone, with no review. They often mix sources from every movement.
+      Never index them.
+    board_may_reconsider: false
+
+  - id: non-orthodox-commentaries
+    title: Non-Orthodox Chumashim and commentaries (for example, Etz Hayim and the Plaut Torah commentary)
+    reason: Not Orthodox. Their views may be described as other positions, never cited as authority.
+    board_may_reconsider: false
+
+  - id: academic-biblical-scholarship
+    title: Academic biblical and Talmudic scholarship (for example, Documentary Hypothesis literature)
+    reason: >-
+      Not a source of authority. The assistant may describe these theories accurately,
+      labeled as academic theories, and present Orthodox responses to them.
+    board_may_reconsider: false

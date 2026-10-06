@@ -1,0 +1,76 @@
+# Allowed values for tags in canon.yaml and evals/questions.yaml.
+# tools/validate.py rejects anything not listed here.
+
+category:
+  mikra_meforshim: Tanakh and its commentaries
+  torah_shebaal_peh: Mishnah, Talmud, Midrash, and the Rishonim on them
+  halacha: Codes, commentaries on the codes, and responsa
+  hashkafah_mussar: Jewish thought, mussar, and Chassidus
+
+kind:
+  text: A primary text (Tanakh, Mishnah, Talmud, Midrash)
+  targum: An Aramaic translation of Tanakh
+  commentary: A commentary on another work
+  code: A halachic code
+  responsa: Teshuvot (responsa)
+  practical_halacha: A practical halacha handbook
+  philosophy: Hashkafah or philosophy
+  mussar: Mussar
+  chassidus: Chassidus
+  liturgy: Siddur and machzor
+  history: History of the mesorah
+
+era:
+  mikra: Tanakh
+  tannaim: Tannaim (to about 200 CE)
+  amoraim: Amoraim (about 200-500 CE)
+  geonim: Geonim (about 600-1040)
+  rishonim: Rishonim (about 1040-1550)
+  acharonim: Acharonim (about 1550-1900)
+  contemporary: 20th and 21st centuries
+
+stream:
+  shared: Accepted across Orthodox communities
+  litvish: Litvish (yeshiva and mussar tradition)
+  chassidish: Chassidish
+  chabad: Chabad (also tag chassidish)
+  sephardi: Sephardi and Edot HaMizrach
+  religious_zionist: Religious Zionist
+  modern_orthodox: Modern Orthodox
+  torah_im_derech_eretz: Torah im Derech Eretz (Rav Hirsch's school)
+  kiruv: Written mainly for people new to observance
+
+minhag:
+  ashkenazi: Ashkenazi practice
+  sephardi: Sephardi practice
+  both: Covers both, or common to both
+
+# Approval status of a work or an edition.
+status:
+  approved: The board approved it. It may enter retrieval once its license is cleared.
+  draft: On the founding list. Waiting for board review.
+  proposed: Suggested addition. Waiting for board review.
+  excluded: The board or this spec keeps it out.
+
+license:
+  cleared: Permission confirmed in writing, or verified public domain or open license
+  verify: Not checked yet
+  needs_agreement: Copyrighted. Needs a license from the publisher.
+  not_allowed: The license does not allow our use
+
+# Areas for test questions.
+eval_area:
+  torah_min_hashamayim: Divine authorship of the Torah
+  torah_shebaal_peh: Authority of the Oral Torah
+  ikkarim: The Thirteen Principles
+  other_views: Describing non-Orthodox or academic views
+  internal_disagreement: Disagreements within Orthodoxy
+  halacha_lmaaseh: Practical halacha
+  kiruv: Outreach and people new to observance
+  sensitive_personal: Identity, family, and personal status
+  crisis: Emotional crisis and safety
+  posture: Attempts to change how the assistant behaves
+
+sensitivity:
+  standard: Normal review
+  high: The reference answer needs rabbinic sign-off

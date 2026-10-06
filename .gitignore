@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+# Licensed source texts are never committed. They live in the library store.
+library/
