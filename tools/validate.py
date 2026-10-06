@@ -4,11 +4,18 @@
 Usage:
     python3 tools/validate.py              # check everything and print a summary
     python3 tools/validate.py --whitelist  # print only the whitelist, as JSON
+    python3 tools/validate.py --testing    # print only the private testing list, as JSON
 
 Exits with status 1 if any check fails.
 
 The whitelist is the set of editions the library may contain: the work is approved, the
 edition is approved, the edition is Orthodox, and its license is cleared.
+
+The testing list is what the private, locked testing library may hold before the board
+approves anything (Josh's decision, 2026-10-06; founding spec, "Testing library"): editions
+of canon works marked orthodox: true, not needing a publisher's agreement, mapped to an exact
+Sefaria version whose license allows private, non-commercial use, and not excluded. Every
+passage from it is labeled as not yet approved by the board.
 """
 
 import json
@@ -24,6 +31,13 @@ ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 QUESTION_ID_RE = re.compile(r"^T\d{2,3}$")
 LANGUAGES = {"he", "en"}
 ORTHODOX_VALUES = {True, False, "review"}
+SEFARIA_KEYS = {"re", "root", "cat"}
+# Licenses (as Sefaria writes them, normalized) that allow private, non-commercial testing.
+TESTING_LICENSES = {"publicdomain", "cc0", "ccby", "ccbysa", "ccbync", "ccbyncsa"}
+
+
+def norm_license(value) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
 
 errors: list[str] = []
 
@@ -82,6 +96,13 @@ def check_canon(vocab: dict, canon: dict) -> dict:
 
         check_approval(where, work)
 
+        sefaria = work.get("sefaria")
+        if sefaria is not None:
+            if not isinstance(sefaria, dict) or not (set(sefaria) <= SEFARIA_KEYS):
+                fail(f"{where}: sefaria may only have the keys {sorted(SEFARIA_KEYS)}")
+            elif not (sefaria.get("re") or sefaria.get("cat")):
+                fail(f"{where}: sefaria needs 're' or 'cat'")
+
         editions = work.get("editions") or []
         if not editions:
             fail(f"{where}: needs at least one edition")
@@ -94,6 +115,10 @@ def check_canon(vocab: dict, canon: dict) -> dict:
             check_value(ewhere, "status", edition.get("status"), vocab["status"])
             check_value(ewhere, "license", edition.get("license"), vocab["license"])
             check_approval(ewhere, edition)
+            if edition.get("sefaria_version") and not work.get("sefaria"):
+                fail(f"{ewhere}: has sefaria_version but the work has no sefaria titles")
+            if edition.get("sefaria_version") and not edition.get("sefaria_license"):
+                fail(f"{ewhere}: record the sefaria_license that Sefaria lists for this version")
             if edition.get("status") == "approved":
                 if edition.get("orthodox") is not True:
                     fail(f"{ewhere}: only editions marked orthodox: true can be approved")
@@ -102,8 +127,10 @@ def check_canon(vocab: dict, canon: dict) -> dict:
     return by_id
 
 
-def check_excluded(excluded: dict, canon_ids: dict) -> None:
+def check_excluded(excluded: dict, canon_ids: dict) -> set:
+    """Check excluded.yaml and return the Sefaria versions it bars."""
     seen = set()
+    barred: set = set()
     for item in excluded.get("excluded") or []:
         eid = item.get("id")
         where = f"excluded.yaml {eid}"
@@ -119,6 +146,13 @@ def check_excluded(excluded: dict, canon_ids: dict) -> None:
                 fail(f"{where}: missing {field}")
         if not isinstance(item.get("board_may_reconsider"), bool):
             fail(f"{where}: board_may_reconsider must be true or false")
+        for version in item.get("sefaria_versions") or []:
+            barred.add(version)
+    for wid, work in canon_ids.items():
+        for edition in work.get("editions") or []:
+            if edition.get("sefaria_version") in barred:
+                fail(f"canon.yaml work {wid}: edition '{edition.get('name')}' uses an excluded Sefaria version")
+    return barred
 
 
 def check_questions(vocab: dict, questions: dict, canon_ids: dict) -> list:
@@ -203,20 +237,53 @@ def whitelist(canon_ids: dict) -> list:
     return entries
 
 
+def testing(canon_ids: dict, barred: set) -> list:
+    entries = []
+    for wid, work in canon_ids.items():
+        if work.get("status") not in ("draft", "proposed", "approved") or not work.get("sefaria"):
+            continue
+        for edition in work.get("editions") or []:
+            if (
+                edition.get("orthodox") is True
+                and edition.get("license") in ("verify", "cleared")
+                and edition.get("status") != "excluded"
+                and edition.get("sefaria_version")
+                and edition.get("sefaria_version") not in barred
+                and norm_license(edition.get("sefaria_license")) in TESTING_LICENSES
+            ):
+                entries.append(
+                    {
+                        "work": wid,
+                        "title": work.get("title"),
+                        "edition": edition.get("name"),
+                        "language": edition.get("language"),
+                        "sefaria": work.get("sefaria"),
+                        "sefaria_version": edition.get("sefaria_version"),
+                        "sefaria_license": edition.get("sefaria_license"),
+                        "approved": work.get("status") == "approved" and edition.get("status") == "approved",
+                        "category": work.get("category"),
+                        "streams": work.get("streams"),
+                    }
+                )
+    return entries
+
+
 def main() -> int:
     vocab = load("canon/vocabulary.yaml")
     canon_ids = check_canon(vocab, load("canon/canon.yaml"))
-    check_excluded(load("canon/excluded.yaml"), canon_ids)
+    barred = check_excluded(load("canon/excluded.yaml"), canon_ids)
     questions = check_questions(vocab, load("evals/questions.yaml"), canon_ids)
     partners = check_partners(vocab, load("canon/partners.yaml"))
     allowed = whitelist(canon_ids)
+    test_list = testing(canon_ids, barred)
 
-    if "--whitelist" in sys.argv:
-        if errors:
-            print("\n".join(errors), file=sys.stderr)
-            return 1
-        print(json.dumps(allowed, ensure_ascii=False, indent=2))
-        return 0
+    for flag, listing in (("--whitelist", allowed), ("--testing", test_list)):
+        if flag in sys.argv:
+            if errors:
+                print("\n".join(errors), file=sys.stderr)
+                return 1
+            print(json.dumps(listing, ensure_ascii=False, indent=2))
+            return 0
 
     works = list(canon_ids.values())
     editions = [e for w in works for e in (w.get("editions") or [])]
@@ -231,6 +298,7 @@ def main() -> int:
     print(f"Retrieval whitelist: {len(allowed)} editions")
     if not allowed:
         print("  (empty until the board approves works and editions and their licenses are cleared)")
+    print(f"Testing library: {len(test_list)} editions (private, labeled not yet approved by the board)")
 
     if errors:
         print(f"\n{len(errors)} problem(s):", file=sys.stderr)

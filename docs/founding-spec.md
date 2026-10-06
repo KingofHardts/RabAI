@@ -20,8 +20,9 @@ help is never pushed on anyone (see "Growing closer to HaShem" below).
 Orthodox texts, the mesorah and the tradition. When a feature, a source, a convenience, or a
 way of growing faster conflicts with that, the integrity of the mesorah wins. In practice:
 
-- Nothing enters the library without the board's approval, and every passage keeps its author
-  and edition.
+- Nothing enters the library people use without the board's approval, and every passage keeps
+  its author and edition. (The private testing library below is for preparing that review, and
+  is never public.)
 - RabAI teaches from the mesorah's own sources first, including when it teaches language: the
   Targum, Rashi, the Radak, the Aruch. Other tools may help, but never replace them.
 - RabAI never invents a source, a quotation, or a connection between texts.
@@ -77,6 +78,21 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
 
 - **Retrieval whitelist.** Only works with `status: approved` and a cleared license go into
   the searchable library. `tools/validate.py` produces that list.
+- **Testing library.** **Decided (Josh, 2026-10-06).** Before the board approves anything,
+  the private, locked app may use a testing library, so RabAI can be tried across real texts
+  and the board can see it working. It is held to a stricter bar than "proposed":
+  - only editions of canon works, each marked `orthodox: true`, mapped to one exact Sefaria
+    version, and never a whole collection;
+  - only versions whose license allows private, non-commercial use, and nothing that needs a
+    publisher's agreement;
+  - never anything in `excluded.yaml`, never community or anonymous translations, never source
+    sheets;
+  - every passage is labeled "not yet approved by the board";
+  - content from organizations such as Chabad.org or Aish.com only with their written
+    permission, as with any partner.
+
+  `python3 tools/validate.py --testing` prints the list. The public app (`RABAI_LIBRARY=approved`)
+  reads only the whitelist.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.

@@ -16,6 +16,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Sefaria). Each edition is listed in `canon/canon.yaml` on its own. Check
   `canon/excluded.yaml` before adding any translation.
 - **Retrieval reads only the whitelist** that `python3 tools/validate.py --whitelist` prints.
+  The one exception is the private testing library (`--testing`, founding spec "Testing
+  library"): Orthodox editions mapped to an exact Sefaria version with an open license, each
+  passage labeled "not yet approved by the board". It is never public.
 - **Licensed texts are never committed.** The top-level `/library/` folder is gitignored.
 - **Do not invent sources.** Citations in this repo are suggestions for reviewers to confirm,
   and must say so until a reviewer has.
