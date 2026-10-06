@@ -93,15 +93,15 @@ Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
   list, plus `rab-ai-ecru.vercel.app` and `www.sefaria.org`) and will start RabAI sessions
   there with only this repo.
-- Undecided: which GitHub account Claude's sessions push as. One Claude account connects one
-  GitHub account, and today it is `SeniorStylist`. The choices are a separate Claude account
-  for RabAI connected to `KingofHardts`, or leaving it as is. Once RabAI no longer pushes as
-  `SeniorStylist`, that account can be removed from this repo's collaborators.
+- GitHub: decided (maintainer, 2026-10-06) to keep `SeniorStylist` as a collaborator, so
+  Claude's sessions keep pushing as that account.
+- Chabad.org and Aish.com stay off the environment's allowed domains until they give written
+  permission. The list affects only Claude's working sessions, not what the live app can reach.
 - To confirm: `ANTHROPIC_API_KEY` in the `rab-ai` Vercel project should come from the
   maintainer's own Anthropic account, not Senior Stylist's.
-- Optional: the maintainer's Vercel token for `rab-ai` can be added to the RabAI environment
-  as an API credential for `api.vercel.com`, so sessions can read deploy logs without the
-  Senior Stylist connector.
+- Vercel: the Vercel connector holds one account (Senior Stylist's), so RabAI uses a personal
+  Vercel token stored on the RabAI environment as an API credential for `api.vercel.com`.
+  Sessions call the Vercel API with `curl` and never see the token.
 
 Open items:
 - The testing library on Turso was rebuilt 2026-10-06 (run #2, commit `11bf8c9`): 1,117,614
