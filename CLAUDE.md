@@ -53,6 +53,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   labeled with its dictionary. A guessed root is always shown as a guess, with what was changed.
   RabAI explains a word only when the person taps "Ask RabAI about this word"; never call the
   model when a word is tapped.
+- Saved chats and recent reading (`web/lib/saved-chats.ts`) live only in the person's browser.
+  A restored answer is the checked answer exactly as it was shown; never rebuild or add
+  citations when restoring one.
 - Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
   What the microphone hears goes into the text box and is never sent without the person
   pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied box.
@@ -127,12 +130,11 @@ Open items:
   transcription service on the server, which needs the maintainer's choice of provider.
 
 Done 2026-10-06: tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabAI
-only when asked).
+only when asked), and saved chats with categories plus "pick up where you left off", on the
+device. Accounts, so chats follow the person between devices, come later.
 
 Next, as the maintainer asked (2026-10-06), roughly in this order:
-1. **Saved chats.** Past conversations kept on the device (accounts come later), with
-   categories, and learning progress saved.
-2. **An interactive Gemara page.** The daf laid out as printed (Gemara in the middle, Rashi and
+1. **An interactive Gemara page.** The daf laid out as printed (Gemara in the middle, Rashi and
    Tosafot around it, lined up), looking like the printed page but fully interactive: tap any
    word, translations on the page, highlights, and colors marking questions, answers,
    statements and proofs, like the Mercava app. The colors would be RabAI's outline, labeled as
@@ -140,9 +142,9 @@ Next, as the maintainer asked (2026-10-06), roughly in this order:
    showing scans, and hand-corrects each page. Plan: draw the page from the library's text with
    the open-source `daf-renderer` method (MIT), using Frank Ruhl Libre and Noto Rashi Hebrew
    (both OFL), with the page shape approximate until printed line breaks are available.
-3. **A chavrusa mode.** RabAI learns a daf with you on that page: points things out, asks you
+2. **A chavrusa mode.** RabAI learns a daf with you on that page: points things out, asks you
    questions, and tracks what you've learned and where you need practice.
-4. **More color** across the app, used to mean something (for example, sources, questions,
+3. **More color** across the app, used to mean something (for example, sources, questions,
    your own words).
 
 ## Writing style for anything a user or a rav will read

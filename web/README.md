@@ -37,7 +37,13 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   those passages along so RabAI can cite them.
 - **Try it yourself.** "Let me try translating" on any line: RabAI checks the person's own
   translation gently.
-- **Learn.** Browse the library, read a text, ask RabAI to learn it with you, review My words
+- **Your chats.** Every conversation is saved as it goes, on this device only (there are no
+  accounts yet). The Chats button lists them by category, with the person's own categories
+  (Gemara, Halacha, or anything they name), each in its own color. Open one to pick it up,
+  rename it, move it, or delete it (one at a time or all at once). A saved answer is the same
+  checked answer the person saw; nothing is rewritten.
+- **Learn.** Browse the library, pick up where you left off (the last texts you opened), read a
+  text, ask RabAI to learn it with you, review My words
   (saved only on the device), and the Gemara's key words. The "grow closer to HaShem" setting
   lives here, off unless the person turns it on.
 

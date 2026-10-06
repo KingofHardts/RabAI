@@ -9,6 +9,21 @@ import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
 import type { WordEntry } from "@/lib/library/word-parts";
+import {
+  addRecent,
+  categoriesFor,
+  CHATS_KEY,
+  cleanCategory,
+  groupByCategory,
+  parseChats,
+  parseRecent,
+  RECENT_KEY,
+  serializeChats,
+  upsertChat,
+  whenLabel,
+  type RecentReading,
+  type SavedChat,
+} from "@/lib/saved-chats";
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 
 // ---------------------------------------------------------------------------
@@ -316,6 +331,15 @@ function MicIcon() {
   );
 }
 
+function ChatsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5h16v10H9l-5 4z" />
+      <path d="M8 9h8M8 12h5" />
+    </svg>
+  );
+}
+
 function SpeakerIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -377,6 +401,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [sections, setSections] = useState<SectionSummary[] | null>(null);
   const [bookFilter, setBookFilter] = useState("");
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
+  // Saved chats and recent reading, on this device only.
+  const [chats, setChats] = useState<SavedChat[]>([]);
+  const chatsRef = useRef<SavedChat[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatsOpen, setChatsOpen] = useState(false);
+  const [chatTools, setChatTools] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [categoryDraft, setCategoryDraft] = useState<{ id: string; text: string } | null>(null);
+  const [renameDraft, setRenameDraft] = useState<{ id: string; text: string } | null>(null);
+  const [recent, setRecent] = useState<RecentReading[]>([]);
+  const recentRef = useRef<RecentReading[]>([]);
+  const [chatFilter, setChatFilter] = useState("");
 
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -393,6 +429,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setMyWords(readSavedWords());
     setSpeechOk(canSpeak());
+    try {
+      chatsRef.current = parseChats(JSON.parse(window.localStorage.getItem(CHATS_KEY) ?? "[]"));
+      setChats(chatsRef.current);
+      recentRef.current = parseRecent(JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]"));
+      setRecent(recentRef.current);
+    } catch {
+      /* nothing saved, or storage is unavailable */
+    }
     return () => stopSpeaking();
   }, []);
 
@@ -400,6 +444,79 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setMode(m);
     store("rabai_mode", m);
   };
+
+  // ---- saved chats ----
+  const saveChats = useCallback((next: SavedChat[]) => {
+    chatsRef.current = next;
+    setChats(next);
+    store(CHATS_KEY, serializeChats(next));
+  }, []);
+
+  // Save the conversation as it goes: after each answer, never mid-answer.
+  useEffect(() => {
+    if (pending || !chatId || !messages.length) return;
+    const existing = chatsRef.current.find((c) => c.id === chatId);
+    if (existing && existing.messages.length === messages.length) return;
+    const now = Date.now();
+    saveChats(
+      upsertChat(chatsRef.current, {
+        id: chatId,
+        title: existing?.title ?? "",
+        category: existing?.category ?? "",
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        messages: messages.map(({ role, text, result }) => ({ role, text, result })),
+      }),
+    );
+  }, [messages, pending, chatId, saveChats]);
+
+  const updateChat = (id: string, change: Partial<Pick<SavedChat, "title" | "category">>) =>
+    saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change } : c)));
+
+  const startNewChat = () => {
+    if (pending) return;
+    dictation.cancel();
+    stopSpeaking();
+    setSpeaking(null);
+    setMessages([]);
+    setChatId(null);
+    setInput("");
+    setChatsOpen(false);
+    setChatTools(null);
+    chooseMode("chat");
+  };
+
+  const openChat = (chat: SavedChat) => {
+    if (pending) return;
+    dictation.cancel();
+    stopSpeaking();
+    setSpeaking(null);
+    setMessages(chat.messages.map((m) => ({ id: nextId.current++, ...m })));
+    setChatId(chat.id);
+    setInput("");
+    setChatsOpen(false);
+    setChatTools(null);
+    chooseMode("chat");
+  };
+
+  const deleteChat = (id: string) => {
+    saveChats(chatsRef.current.filter((c) => c.id !== id));
+    setConfirmDelete(null);
+    setChatTools(null);
+    if (id === chatId) {
+      setMessages([]);
+      setChatId(null);
+    }
+  };
+
+  // Remember where the person was reading, so Learn can offer to pick up there.
+  useEffect(() => {
+    if (!reader || !reader.lines.length) return;
+    const next = addRecent(recentRef.current, { ref: reader.focus ?? reader.lines[0].ref, title: reader.section, at: Date.now() });
+    recentRef.current = next;
+    setRecent(next);
+    store(RECENT_KEY, JSON.stringify(next));
+  }, [reader]);
 
   // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
@@ -443,6 +560,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.role === "user" ? (m.text ?? "") : plainAnswer(m.result) }))
         .filter((t) => t.text.trim());
       setMessages((prev) => [...prev, { id: nextId.current++, role: "user", text: q }]);
+      if (!chatId) setChatId(`c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
+      setChatsOpen(false);
       setInput("");
       spokenInput.current = false;
       setMode("chat");
@@ -475,7 +594,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         setLive(null);
       }
     },
-    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen],
+    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen, chatId],
   );
 
   const onSubmit = (e: FormEvent) => {
@@ -1120,6 +1239,223 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     );
   };
 
+  // Each category in use gets its own color (in A–Z order), the same on every screen.
+  const categoryNames = [...new Set(chats.map((c) => c.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const categoryTone = (name: string) => {
+    const i = name ? categoryNames.indexOf(name) : -1;
+    return i < 0 ? "tone-none" : `tone-${i % 6}`;
+  };
+
+  const categoryPicker = (chat: SavedChat) =>
+    categoryDraft?.id === chat.id ? (
+      <form
+        className="category-new"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const name = cleanCategory(categoryDraft.text);
+          if (name) updateChat(chat.id, { category: name });
+          setCategoryDraft(null);
+        }}
+      >
+        <label className="sr-only" htmlFor={`cat-${chat.id}`}>
+          New category name
+        </label>
+        <input
+          id={`cat-${chat.id}`}
+          autoFocus
+          maxLength={30}
+          placeholder="Category name"
+          value={categoryDraft.text}
+          onChange={(e) => setCategoryDraft({ id: chat.id, text: e.target.value })}
+        />
+        <button type="submit" className="chip-btn">
+          Save
+        </button>
+        <button type="button" className="chip-btn" onClick={() => setCategoryDraft(null)}>
+          Cancel
+        </button>
+      </form>
+    ) : (
+      <label className="category-pick">
+        <span>Category</span>
+        <select
+          value={chat.category}
+          onChange={(e) => {
+            if (e.target.value === "__new__") setCategoryDraft({ id: chat.id, text: "" });
+            else updateChat(chat.id, { category: e.target.value });
+          }}
+        >
+          <option value="">Not sorted</option>
+          {categoriesFor(chats).map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value="__new__">New category…</option>
+        </select>
+      </label>
+    );
+
+  const renderChatsPanel = () => {
+    const words = chatFilter.toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = words.length
+      ? chats.filter((c) => words.every((w) => `${c.title} ${c.category}`.toLowerCase().includes(w)))
+      : chats;
+    return (
+      <div className="chats-panel">
+        <div className="chats-head">
+          <h2>Your chats</h2>
+          <div className="follow tight">
+            <button type="button" className="chip-btn primary" onClick={startNewChat} disabled={pending}>
+              New chat
+            </button>
+            <button type="button" className="chip-btn" onClick={() => setChatsOpen(false)}>
+              Back
+            </button>
+          </div>
+        </div>
+        <p className="fine-left">Saved only on this device. Clearing your browser’s data removes them.</p>
+        {chats.length > 6 && (
+          <>
+            <label className="sr-only" htmlFor="chat-filter">
+              Find a chat
+            </label>
+            <input
+              id="chat-filter"
+              className="book-filter"
+              placeholder="Find a chat"
+              value={chatFilter}
+              onChange={(e) => setChatFilter(e.target.value)}
+            />
+          </>
+        )}
+        {chats.length === 0 ? (
+          <p className="muted">No saved chats yet. Each conversation is saved here as you go.</p>
+        ) : shown.length === 0 ? (
+          <p className="muted">No chat matches that.</p>
+        ) : (
+          groupByCategory(shown).map((g) => (
+            <section key={g.category || "_none"} className="chat-group">
+              <h3 className={`group-name ${categoryTone(g.category)}`}>{g.category || "Not sorted"}</h3>
+              <ul>
+                {g.chats.map((c) => {
+                  const questions = c.messages.filter((m) => m.role === "user").length;
+                  const open = chatTools === c.id;
+                  return (
+                    <li key={c.id} className={`chat-row${c.id === chatId ? " current" : ""}`}>
+                      <div className="chat-row-main">
+                        <button type="button" className="chat-open" onClick={() => openChat(c)} disabled={pending}>
+                          <span className="chat-title">{c.title}</span>
+                          <span className="chat-sub">
+                            {whenLabel(c.updatedAt)} · {questions} {questions === 1 ? "question" : "questions"}
+                            {c.id === chatId ? " · open now" : ""}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="chat-more"
+                          aria-expanded={open}
+                          aria-label={`Options for “${c.title}”`}
+                          onClick={() => {
+                            setChatTools(open ? null : c.id);
+                            setConfirmDelete(null);
+                            setRenameDraft(null);
+                            setCategoryDraft(null);
+                          }}
+                        >
+                          ⋯
+                        </button>
+                      </div>
+                      {open && (
+                        <div className="chat-tools">
+                          {renameDraft?.id === c.id ? (
+                            <form
+                              className="category-new"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const t = renameDraft.text.replace(/\s+/g, " ").trim().slice(0, 70);
+                                if (t) updateChat(c.id, { title: t });
+                                setRenameDraft(null);
+                              }}
+                            >
+                              <label className="sr-only" htmlFor={`name-${c.id}`}>
+                                Chat name
+                              </label>
+                              <input
+                                id={`name-${c.id}`}
+                                autoFocus
+                                maxLength={70}
+                                value={renameDraft.text}
+                                onChange={(e) => setRenameDraft({ id: c.id, text: e.target.value })}
+                              />
+                              <button type="submit" className="chip-btn">
+                                Save
+                              </button>
+                              <button type="button" className="chip-btn" onClick={() => setRenameDraft(null)}>
+                                Cancel
+                              </button>
+                            </form>
+                          ) : (
+                            <button type="button" className="chip-btn" onClick={() => setRenameDraft({ id: c.id, text: c.title })}>
+                              Rename
+                            </button>
+                          )}
+                          {categoryPicker(c)}
+                          {confirmDelete === c.id ? (
+                            <span className="confirm">
+                              Delete this chat?{" "}
+                              <button type="button" className="chip-btn danger" onClick={() => deleteChat(c.id)}>
+                                Delete
+                              </button>
+                              <button type="button" className="chip-btn" onClick={() => setConfirmDelete(null)}>
+                                Keep it
+                              </button>
+                            </span>
+                          ) : (
+                            <button type="button" className="chip-btn" onClick={() => setConfirmDelete(c.id)}>
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))
+        )}
+        {chats.length > 1 &&
+          (confirmDelete === "__all__" ? (
+            <p className="confirm all">
+              Delete all {chats.length} chats from this device?{" "}
+              <button
+                type="button"
+                className="chip-btn danger"
+                onClick={() => {
+                  saveChats([]);
+                  setConfirmDelete(null);
+                  setMessages([]);
+                  setChatId(null);
+                }}
+              >
+                Delete all
+              </button>
+              <button type="button" className="chip-btn" onClick={() => setConfirmDelete(null)}>
+                Keep them
+              </button>
+            </p>
+          ) : (
+            <button type="button" className="link delete-all" onClick={() => setConfirmDelete("__all__")}>
+              Delete all chats on this device
+            </button>
+          ))}
+      </div>
+    );
+  };
+
+  const currentChat = chatId ? chats.find((c) => c.id === chatId) : undefined;
+
   return (
     <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}`}>
       <section className="convo" aria-label={mode === "chat" ? "Conversation" : "Learn"}>
@@ -1139,19 +1475,47 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               </span>
             )}
           </div>
-          <div className="mode-switch" role="group" aria-label="Chat or learn">
-            <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
-              Chat
+          <div className="top-actions">
+            <button
+              type="button"
+              className={`chats-btn${chatsOpen && mode === "chat" ? " on" : ""}`}
+              aria-pressed={chatsOpen && mode === "chat"}
+              onClick={() => {
+                const opening = !(chatsOpen && mode === "chat");
+                setChatsOpen(opening);
+                setChatTools(null);
+                if (opening) chooseMode("chat");
+              }}
+            >
+              <ChatsIcon />
+              <span>Chats</span>
             </button>
-            <button type="button" aria-pressed={mode === "learn"} onClick={() => chooseMode("learn")}>
-              Learn
-            </button>
+            <div className="mode-switch" role="group" aria-label="Chat or learn">
+              <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
+                Chat
+              </button>
+              <button type="button" aria-pressed={mode === "learn"} onClick={() => chooseMode("learn")}>
+                Learn
+              </button>
+            </div>
           </div>
         </header>
 
         <div className="scroll" ref={scrollRef}>
-          {mode === "chat" ? (
+          {mode === "chat" && chatsOpen ? (
+            renderChatsPanel()
+          ) : mode === "chat" ? (
             <div className="thread" role="log" aria-live="polite" aria-relevant="additions">
+              {currentChat && (
+                <div className="chat-meta">
+                  <span className={`dot ${categoryTone(currentChat.category)}`} aria-hidden="true" />
+                  <span className="saved-note">Saved on this device</span>
+                  {categoryPicker(currentChat)}
+                  <button type="button" className="link" onClick={startNewChat} disabled={pending}>
+                    New chat
+                  </button>
+                </div>
+              )}
               <div className="msg-ai">
                 <div className="mark" aria-hidden="true">
                   ר
@@ -1268,6 +1632,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </p>
                 </div>
               </div>
+
+              {recent.length > 0 && (
+                <div className="card">
+                  <h3>Pick up where you left off</h3>
+                  <div className="follow">
+                    {recent.map((r) => (
+                      <button key={r.title} type="button" className="cite" onClick={() => void openReader(r.ref)}>
+                        {r.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {sections === null ? (
                 <p className="thinking">
@@ -1424,7 +1801,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           )}
         </div>
 
-        {mode === "chat" && (
+        {mode === "chat" && !chatsOpen && (
           <div className="composer">
             <form onSubmit={onSubmit}>
               {dictation.supported && (
