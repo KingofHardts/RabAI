@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { libraryMode } from "@/lib/library";
 import { testingStore } from "@/lib/library/testing";
-import { endingMeaning, prefixParts, type WordEntry } from "@/lib/library/word-parts";
+import { abbreviationOf, endingMeaning, prefixParts, type WordEntry } from "@/lib/library/word-parts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +30,8 @@ export async function GET(request: Request) {
   const store = testingStore();
   if (!store) return NextResponse.json({ word, available: false, entries: [] });
 
+  // A printed short form (א״ל, ר׳) has no dictionary entry here; the panel says what it is.
+  const abbreviation = abbreviationOf(word) ?? undefined;
   try {
     const found = await store.wordEntries(word, 8);
     const entries: WordEntry[] = found.map((p) => {
@@ -52,7 +54,7 @@ export async function GET(request: Request) {
         },
       };
     });
-    return NextResponse.json({ word, available: true, entries }, { headers: { "Cache-Control": "private, max-age=3600" } });
+    return NextResponse.json({ word, available: true, entries, abbreviation }, { headers: { "Cache-Control": "private, max-age=3600" } });
   } catch (err) {
     console.error("[rabai] word lookup failed:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "The dictionaries couldn't be reached just now." }, { status: 502 });

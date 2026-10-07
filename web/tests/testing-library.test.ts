@@ -6,6 +6,7 @@ import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai
 import { ask, type ModelClient } from "../lib/engine/answer";
 import { fallbackPlan, parseLookupPlan, retrieveFromTesting, type LookupClient } from "../lib/engine/lookup";
 import { libraryMode, loadLibrary } from "../lib/library/index";
+import { abbreviationOf, hebrewNumber } from "../lib/library/word-parts";
 import {
   createTestingStore,
   dbFrom,
@@ -42,6 +43,8 @@ const PASSAGES: Array<[number, string, number, number, number, number, string]> 
   [12, "Jerusalem Talmud Berakhot 1:1:1", 4, 6, 5, 30, "מאימתי קורין את שמע בערבית משעה שהכהנים נכנסין"],
   [13, "Jastrow, אֵימָתַי", 5, 7, 6, 40, "אֵימָתַי when? at what time?"],
   [14, "Jastrow, קְרָא", 5, 7, 6, 41, "קְרָא to call; to read, recite"],
+  [15, 'Jastrow, א"ל', 5, 7, 6, 42, 'א"ל abbreviation for אמר ליה, he said to him'],
+  [16, "Jastrow, אֵל", 5, 7, 6, 43, "אֵל God; mighty"],
 ];
 
 async function fixture() {
@@ -68,7 +71,7 @@ async function fixture() {
       ('Rashi on Genesis 1:1:2', 'Genesis 1:1', 'commentary'),
       ('Jastrow, קְרָא', 'Jerusalem Talmud Berakhot 1:1:1', 'dictionary'),
       ('Jastrow, קְרָא', 'Genesis 1:1', 'dictionary');
-    INSERT INTO lexicon VALUES ('אימתי', 13), ('קרא', 14);
+    INSERT INTO lexicon VALUES ('אימתי', 13), ('קרא', 14), ('א ל', 15), ('אל', 16);
   `);
   for (const [id, ref, title, edition, version, seq, text] of PASSAGES) {
     await client.execute({ sql: "INSERT INTO passages VALUES (?, ?, ?, ?, ?, ?, ?)", args: [id, ref, title, edition, version, seq, text] });
@@ -238,6 +241,24 @@ test("a tapped word finds its dictionary entries, with how it was read", async (
   assert.deepEqual(found[0]?.reading, { form: "אימתי", prefix: "מ", suffix: "" });
   assert.equal(found[0]?.source?.wordToolOnly, true);
   assert.deepEqual(await store.wordEntries("שלום"), []);
+});
+
+test("a printed short form is never looked up as the word its letters spell", async () => {
+  const store = await storePromise;
+  // Jastrow's own א"ל (a letter cipher) is not what a text's א״ל (he said to him) means, and
+  // the plain word אל is a different word altogether.
+  for (const w of ["א״ל", 'א"ל', "וא״ל", "אל׳"]) assert.deepEqual(await store.wordEntries(w), [], w);
+  assert.deepEqual((await store.wordEntries("אל")).map((f) => f.ref), ["Jastrow, אֵל"]);
+  assert.deepEqual(abbreviationOf("רמב״ם"), { kind: "gershayim", form: "רמב״ם" });
+  assert.deepEqual(abbreviationOf("וכו'"), { kind: "geresh", form: "וכו׳" });
+  assert.equal(abbreviationOf("ברכות"), null);
+  assert.equal(abbreviationOf("קְרָא"), null);
+  // A chapter and verse in letters is a number, not a short form.
+  assert.deepEqual(abbreviationOf("ל״ד:כ״ה"), { kind: "verse", form: "ל״ד:כ״ה", numbers: [34, 25] });
+  assert.deepEqual(abbreviationOf("ט״ו:ג׳"), { kind: "verse", form: "ט״ו:ג׳", numbers: [15, 3] });
+  assert.equal(hebrewNumber("תשפ״ו"), 786);
+  assert.equal(hebrewNumber("קש"), null, "letters out of number order are not a number");
+  assert.deepEqual(await store.wordEntries("ל״ד:כ״ה"), []);
 });
 
 test("a conjugated word is traced to its root, and the guess says what it changed", async () => {

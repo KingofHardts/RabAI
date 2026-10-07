@@ -106,6 +106,17 @@ interface WordLookup {
   available?: boolean;
   entries?: WordEntry[];
   error?: string;
+  /** Set when the word is a printed short form (א״ל, ר׳) or a verse number (ל״ד:כ״ה); none is looked up. */
+  abbreviation?: { kind: "gershayim" | "geresh" | "verse"; form: string; numbers?: number[] };
+}
+
+/** What to say about a printed short form, which no dictionary here lists. */
+function shortFormNote(a: NonNullable<WordLookup["abbreviation"]>): string {
+  if (a.kind === "verse" && a.numbers?.length === 2) return `${a.form} is a chapter and verse written in Hebrew letters: chapter ${a.numbers[0]}, verse ${a.numbers[1]}.`;
+  if (a.kind === "verse") return `${a.form} is a reference written in Hebrew letters: ${a.numbers?.join(":")}.`;
+  return a.kind === "geresh"
+    ? `${a.form} is a word cut short, or a number written in letters. It isn't a word of its own, so the dictionaries don't list it. RabAI can say what it stands for here.`
+    : `${a.form} is a short form (an abbreviation) for several words, not a word of its own, so it isn't looked up in the dictionaries. RabAI can say what it stands for here.`;
 }
 
 /** How a word was read to find an entry: "מ + אימתי", "ו + חכם + ים". */
@@ -204,8 +215,10 @@ function plainAnswer(result: AskResult | undefined): string {
 }
 
 /** The word without punctuation at either end, for saving and asking. */
+/** A tapped word without the punctuation around it. A geresh right after a letter (ר׳, וכו׳) is part of the word. */
 function bareWord(text: string): string {
-  return text.replace(/^[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+|[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+$/g, "");
+  const t = text.replace(/^[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+|[\s"'״“”‘’()[\]{}.,;:!?׃־–—…]+$/g, "");
+  return /[א-ת\u0591-\u05C7]['׳]$/.test(t) ? t : t.replace(/['׳]+$/, "");
 }
 
 interface LiveHooks {
@@ -653,8 +666,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
     fetch(`/api/word?w=${encodeURIComponent(w)}`)
       .then((r) => r.json())
-      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string }) =>
-        setWordInfo((prev) => ({ ...prev, [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [] } })),
+      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string; abbreviation?: WordLookup["abbreviation"] }) =>
+        setWordInfo((prev) => ({
+          ...prev,
+          [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [], abbreviation: j.abbreviation },
+        })),
       )
       .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
   }, [dafPick, wordInfo]);
@@ -993,8 +1009,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
     fetch(`/api/word?w=${encodeURIComponent(w)}`)
       .then((r) => r.json())
-      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string }) =>
-        setWordInfo((prev) => ({ ...prev, [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [] } })),
+      .then((j: { available?: boolean; entries?: WordEntry[]; error?: string; abbreviation?: WordLookup["abbreviation"] }) =>
+        setWordInfo((prev) => ({
+          ...prev,
+          [w]: j.error ? { loading: false, error: j.error } : { loading: false, available: j.available, entries: j.entries ?? [], abbreviation: j.abbreviation },
+        })),
       )
       .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
   }, [wordCard, reader, wordInfo]);
@@ -1148,7 +1167,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             ×
           </button>
         </div>
-        {first && renderBreakdown(first)}
+        {first && !lookup?.abbreviation && renderBreakdown(first)}
         {token.parts && <p className="parts">{token.parts}</p>}
         {root && (
           <p>
@@ -1177,8 +1196,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </p>
         )}
         {lookup?.error && <p className="muted">{lookup.error}</p>}
+        {lookup?.abbreviation && !lookup.loading && <p className="muted">{shortFormNote(lookup.abbreviation)}</p>}
         {renderEntries(entries)}
-        {lookup && !lookup.loading && !lookup.error && entries.length === 0 && !teamNotes && (
+        {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && !teamNotes && (
           <p className="muted">
             {lookup.available === false
               ? "This build has no dictionaries yet."
@@ -1827,9 +1847,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </p>
                   )}
                   {lookup?.error && <p className="muted">{lookup.error}</p>}
-                  {first && renderBreakdown(first)}
+                  {lookup?.abbreviation && !lookup.loading && <p className="muted">{shortFormNote(lookup.abbreviation)}</p>}
+                  {first && !lookup?.abbreviation && renderBreakdown(first)}
                   {renderEntries(entries)}
-                  {lookup && !lookup.loading && !lookup.error && entries.length === 0 && (
+                  {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && (
                     <p className="muted">None of the library’s dictionaries has this word yet. RabAI can explain it.</p>
                   )}
                   {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabAI can explain it.</p>}

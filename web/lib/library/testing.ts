@@ -1,3 +1,4 @@
+import { abbreviationOf } from "./word-parts";
 import { createClient as createHttpClient } from "@libsql/client/http";
 import type { Client, InValue } from "@libsql/client";
 import { TESTING_LABEL, testingDbUrl } from "./testing-config";
@@ -580,6 +581,10 @@ export function createTestingStore(db: Db): TestingStore {
     },
 
     async wordEntries(word, limit = 8) {
+      // A printed short form (א״ל, ר׳) is never looked up as the plain word its letters spell (א״ל
+      // is not אל). Nor as a short form: the few the dictionaries list with a mark are letter
+      // names and letter ciphers (Jastrow's א"ל is "Albam"), almost never what a text means by it.
+      if (abbreviationOf(word)) return [];
       const readings = wordReadings(word);
       if (!readings.length) return [];
       const forms = readings.map((r) => r.form);
