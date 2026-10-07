@@ -1,6 +1,7 @@
 # RabAI's screens: what other apps do, and a redesign plan
 
-**Research and proposal, 2026-10-07. No code has changed.** This answers the maintainer's request
+**Research and proposal, 2026-10-07.** Items 1 to 11 of [part 5](#5-what-to-build-first) were
+built the same day; item 12 (the order of dictionary entries) is still to do. This answers the maintainer's request
 (2026-10-07): "Things are just kind of cluttered and spaced out, and it's kind of hard to
 navigate, and things just don't fit well — like, I have to scroll down all the way to get to
 these words. I want a deep dive on other online Gemara things or other translating things, and I
@@ -920,7 +921,7 @@ Ordered by gain for the effort. Each item names the files it touches.
     screen list on a phone; the chat's name and ⋯ menu at the top of the conversation. Small to
     medium. *Files:* `web/components/RabaiApp.tsx` (`renderChatsPanel`, chat header).
 
-12. **Better order for dictionary entries** (later, and not a screen change): put the entries
+12. **Better order for dictionary entries** (not built yet; later, and not a screen change): put the entries
     whose reading matches the word's form most closely first. *Files:* `web/app/api/word/route.ts`,
     `web/lib/library/word-parts.ts`.
 
