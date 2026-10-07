@@ -304,7 +304,6 @@ except ImportError:  # numpy or rapidfuzz isn't installed
     big_words = None
 
 
-@unittest.skipIf(big_words is None, "needs numpy and rapidfuzz")
 def letters_at(start, widths, top=100, xh=14, inside=1):
     """Blobs (x0, x1, height, top) of letters printed right to left from start; returns them and
     where the next letter would go."""
@@ -371,6 +370,7 @@ class ShortForms(unittest.TestCase):
         self.assertEqual(short, [])
 
 
+@unittest.skipIf(big_words is None, "needs numpy and rapidfuzz")
 class BigWords(unittest.TestCase):
     def test_a_word_printed_large_is_found(self):
         ink = [(200, 220, 30, 100), (180, 198, 31, 99), (150, 165, 14, 104), (130, 146, 15, 104)]
