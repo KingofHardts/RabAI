@@ -1,4 +1,6 @@
-"""The page's own heading: the line above the text that names the chapter and the tractate.
+"""What the page prints besides the texts: its heading, and the labels set inside a line.
+
+The heading is the line above the text that names the chapter and the tractate.
 
 Every amud of the Vilna Shas opens with one line in large square letters: the chapter's name, the
 word פרק and the chapter's number in words, and the tractate's name. Amud a also has the daf's
@@ -282,4 +284,56 @@ def find_heading(comps, top, xh, choices, read, amud):
             g = min(right, key=lambda g: min(c[0] for c in g))
             if 0.5 * hh <= max(c[3] - c[1] for c in g) <= 0.95 * hh and fits(g):
                 out.insert(0, [number, *box_of(g)])
+    return out
+
+
+# ---------------------------------------------------------------------------------------------
+# Labels printed inside a commentary's line
+
+# The heading of the Torah Or notes (where a verse quoted on the page is found), printed in square
+# letters at the end of a line of Rashi or Tosafot where the notes start beside it.
+LABELS = ["תורה אור"]
+LABEL_LIKE = 0.75  # how alike each printed word must read to the label's word
+
+
+def take_labels(lines):
+    """Finds labels printed at either end of a line of Rashi script, takes their ink and their words
+    out of the line, so the line is matched to its text alone, and returns them as
+    [[text, left, top, right, bottom], ...]. lines: as found and read (scan.find_lines, read.Reader);
+    each line's blobs, box and readings are changed in place."""
+    from .scan import finish_line
+
+    out = []
+    for line in lines:
+        ocr = line.get("ocr") or {}
+        if "heb" not in ocr or "heb_rashi" not in ocr or ocr["heb"][1] >= ocr["heb_rashi"][1]:
+            continue  # only commentaries (read better as Rashi script) carry these labels
+        words = ocr["heb"][2]  # right to left
+        found = None
+        for label in LABELS:
+            parts = label.split()
+            if len(words) <= len(parts):
+                continue
+            # at the end of the line beside the Gemara: its left end on amud a, its right on amud b
+            for seg in (words[-len(parts):], words[: len(parts)]):
+                # (no longer than the label's word: ותורה in the text is not the label)
+                if all(alike(w[0], p) >= LABEL_LIKE and len(letters(w[0])) <= len(p) for w, p in zip(seg, parts)):
+                    found = (label, seg)
+                    break
+            if found:
+                break
+        if found:
+            label, seg = found
+            x0, x1 = min(w[1] for w in seg), max(w[2] for w in seg)
+            mine = [c for c in line["comps"] if (c[0] + c[2]) / 2 >= x0 - 2 and (c[0] + c[2]) / 2 <= x1 + 2]
+            rest = [c for c in line["comps"] if c not in mine]
+            if not mine or len(rest) < 3:
+                continue
+            out.append([label, int(min(c[0] for c in mine)), int(min(c[1] for c in mine)),
+                        int(max(c[2] for c in mine)), int(max(c[3] for c in mine))])
+            line["comps"] = rest
+            finish_line(line)
+            for model, (text, conf, read) in list(ocr.items()):
+                kept = [w for w in read if (w[1] + w[2]) / 2 > x1 + 2 or (w[1] + w[2]) / 2 < x0 - 2]
+                ocr[model] = (" ".join(w[0] for w in kept), conf, kept)
     return out

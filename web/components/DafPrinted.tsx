@@ -139,15 +139,16 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
         onClick={onClick}
         aria-label={`${data.labelHe}: the Gemara with Rashi and Tosafot, line for line as printed`}
       >
-        {printed.heading.map((w, n) => {
+        {[...printed.heading, ...printed.labels].map((w, n) => {
           const [x0, y0, x1, y1] = w.box;
           const h = (y1 - y0) * k;
           const figures = /^[0-9]+$/.test(w.text);
+          const label = n >= printed.heading.length;
           return (
             <div
               key={`h${n}`}
-              className="daf-head"
-              style={{ left: (x0 - ax0) * k, top: (y0 - ay0) * k, width: (x1 - x0) * k, height: h, lineHeight: `${h}px`, fontSize: h / (figures ? HEADING_EM.figures : HEADING_EM.letters) }}
+              className={label ? "daf-head daf-label" : "daf-head"}
+              style={{ left: (x0 - ax0) * k, top: (y0 - ay0) * k, width: (x1 - x0) * k, height: h, lineHeight: `${h}px`, fontSize: h / (figures ? HEADING_EM.figures : label ? LETTER_EM.main : HEADING_EM.letters) }}
             >
               <span className="dhead-fit" data-w={(x1 - x0) * k}>
                 {w.text}

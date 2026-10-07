@@ -161,6 +161,8 @@ export interface DafPrinted {
   lines: DafPrintedLine[];
   /** The heading, right to left; empty when the layout has none. */
   heading: DafHeadingWord[];
+  /** Labels printed inside the text's lines (such as תורה אור, where those notes begin). */
+  labels: DafHeadingWord[];
   /**
    * Words whose line is an estimate, as "ref#word": the reading of the scan didn't settle it (a word
    * it couldn't read, or one two lines both read), so it was put beside its neighbor in the text.
@@ -293,6 +295,7 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
     for (let w = a; w < b; w++) estimated.push(wordKey(refs[k] as string, w));
   }
   const heading = readHeading(r.heading);
+  const labels = readHeading(r.labels, LABEL);
   const boxes = [...out.map((l) => l.box), ...heading.map((w) => w.box)];
   const pad = 6;
   const area: [number, number, number, number] = [
@@ -301,20 +304,22 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
     Math.max(...boxes.map((b) => b[2])) + pad,
     Math.max(...boxes.map((b) => b[3])) + pad,
   ];
-  return { area, lines: out, estimated, heading };
+  return { area, lines: out, estimated, heading, labels };
 }
 
 const HEADING_WORD = /^(?:[\u05D0-\u05EA]{1,12}|[0-9]{1,4})$/;
+const LABEL = /^[\u05D0-\u05EA"'\u05F3\u05F4]{1,12}(?: [\u05D0-\u05EA"'\u05F3\u05F4]{1,12}){0,3}$/;
 
 /**
- * The page's heading from a layout: [text, left, top, right, bottom] for each word. A heading that
- * isn't well formed is left off (the page is drawn without it); the lines don't depend on it.
+ * The page's heading (or its labels) from a layout: [text, left, top, right, bottom] for each word.
+ * A list that isn't well formed is left off (the page is drawn without it); the lines don't depend
+ * on it.
  */
-export function readHeading(raw: unknown): DafHeadingWord[] {
+export function readHeading(raw: unknown, pattern: RegExp = HEADING_WORD): DafHeadingWord[] {
   if (!Array.isArray(raw) || raw.length > 16) return [];
   const out: DafHeadingWord[] = [];
   for (const w of raw) {
-    if (!Array.isArray(w) || w.length !== 5 || typeof w[0] !== "string" || !HEADING_WORD.test(w[0]) || !w.slice(1).every(isNum)) return [];
+    if (!Array.isArray(w) || w.length !== 5 || typeof w[0] !== "string" || !pattern.test(w[0]) || !w.slice(1).every(isNum)) return [];
     const [x0, y0, x1, y1] = w.slice(1) as number[];
     if (x1 <= x0 || y1 <= y0) return [];
     out.push({ text: w[0], box: [x0, y0, x1, y1] });

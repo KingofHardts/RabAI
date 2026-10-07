@@ -169,6 +169,12 @@ test("a stored layout is used only when it fits the text exactly", () => {
     { text: "ברכות", box: [300, 150, 400, 180] },
   ]);
   assert.deepEqual(headed?.area, [94, 144, 806, 276]);
+  // Labels printed inside the lines come along too; anything that isn't a short Hebrew label doesn't.
+  assert.deepEqual(readPrinted({ ...good, labels: [["תורה אור", 600, 230, 650, 245]] }, pieces, "Berakhot 2a")?.labels, [
+    { text: "תורה אור", box: [600, 230, 650, 245] },
+  ]);
+  assert.deepEqual(readPrinted({ ...good, labels: [["<script>", 600, 230, 650, 245]] }, pieces, "Berakhot 2a")?.labels, []);
+  assert.deepEqual(p.labels, []);
   // A line's big words come along with its word places, when well formed.
   const bigLine = [100, 200, 500, 230, 20, [0, 0, 2], [450, 500, 300, 440], [0, 190, 240]];
   const tall = readPrinted({ ...good, lines: { ...good.lines, main: [bigLine, good.lines.main[1]] } }, pieces, "Berakhot 2a");

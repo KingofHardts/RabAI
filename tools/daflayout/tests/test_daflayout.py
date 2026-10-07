@@ -152,9 +152,9 @@ class WordPositions(unittest.TestCase):
 
 
 try:
-    from daflayout.scan import stray_tall_letters
+    from daflayout.scan import stray_bits, stray_tall_letters
 except ImportError:  # the scanning libraries (numpy, scipy) aren't installed
-    stray_tall_letters = None
+    stray_bits = stray_tall_letters = None
 
 
 @unittest.skipIf(stray_tall_letters is None, "needs numpy and scipy")
@@ -172,6 +172,15 @@ class StrayLetters(unittest.TestCase):
         notes = self.piece(250, 380, 425, 438, 10, 20)  # a margin note's line
         beside = self.piece(396, 438, 423, 438, 14, 5)  # the next column's letters, same baseline
         self.assertFalse(stray_tall_letters(beside, notes))
+
+    def test_a_few_small_letters_inside_a_line_join_it(self):
+        line = self.piece(1078, 1328, 309, 331, 14, 20)
+        bits = self.piece(1132, 1259, 304, 325, 10.5, 5)  # yuds and a lamed, sitting a little high
+        bits["comps"] = [(1255, 304, 1259, 312, 20, 1), (1205, 305, 1221, 325, 90, 2), (1132, 313, 1142, 325, 50, 3)]
+        self.assertTrue(stray_bits(bits, line))
+        beside = self.piece(1340, 1400, 309, 331, 10, 5)  # past the line's end: another column's
+        beside["comps"] = [(1340, 312, 1350, 325, 50, 4)]
+        self.assertFalse(stray_bits(beside, line))
 
     def test_a_full_line_is_not_a_stray(self):
         a = self.piece(708, 1069, 321, 338, 17, 40)
@@ -226,6 +235,27 @@ class Heading(unittest.TestCase):
         self.assertEqual([w[0] for w in out], ["תפלת", "השחר", "פרק", "רביעי", "ברכות", "כז"])
         self.assertEqual(out[0][1:], [1108, 100, 1199, 128])
         self.assertEqual(out[-1][1:], [404, 100, 436, 128])
+
+    @unittest.skipIf(stray_tall_letters is None, "needs numpy and scipy")
+    def test_a_label_at_a_lines_end_is_taken_out_of_it(self):
+        comps = [(100 + 20 * i, 300, 115 + 20 * i, 314, 90, i + 1) for i in range(10)]  # x 100-295
+        label = [(20, 300, 45, 314, 90, 11), (50, 300, 70, 314, 90, 12)]  # x 20-70, at the left end
+        line = {"comps": comps + label, "ocr": {
+            "heb": ("", 40.0, [("שלום", 200, 295), ("עליכם", 100, 190), ("תורה", 50, 70), ("אור", 20, 45)]),
+            "heb_rashi": ("", 80.0, [("שלום", 200, 295), ("עליכם", 100, 190), ("זזז", 20, 70)])}}
+        found = furniture.take_labels([line])
+        self.assertEqual(found, [["תורה אור", 20, 300, 70, 314]])
+        self.assertEqual(len(line["comps"]), 10)
+        self.assertEqual(line["box"][0], 100)
+        self.assertEqual(line["ocr"]["heb"][0], "שלום עליכם")
+        self.assertEqual(line["ocr"]["heb_rashi"][0], "שלום עליכם")
+
+    def test_the_words_of_a_verse_are_not_a_label(self):
+        comps = [(100 + 20 * i, 300, 115 + 20 * i, 314, 90, i + 1) for i in range(10)]
+        line = {"comps": comps, "ocr": {
+            "heb": ("", 40.0, [("נר", 260, 295), ("מצוה", 200, 250), ("ותורה", 130, 190), ("אור", 100, 125)]),
+            "heb_rashi": ("", 80.0, [])}}
+        self.assertEqual(furniture.take_labels([line]), [])
 
     def test_a_heading_that_reads_unlike_any_expected_is_left_out(self):
         comps = [self.blob(1000 - 60 * i, 1040 - 60 * i, label=i + 1) for i in range(8)]

@@ -13,7 +13,9 @@ For each amud of the Bavli:
    `https://storage.googleapis.com/manuscripts.sefaria.org/vilna-romm/`. Niddah has no scans there.
 2. Finds the printed lines and which column each belongs to (`scan.py`).
 3. Reads each line twice with Tesseract: once with the Hebrew model for the square letters of the
-   Gemara, once with a Rashi-script model for the commentaries (`read.py`).
+   Gemara, once with a Rashi-script model for the commentaries (`read.py`). A label printed at the
+   end of a commentary's line (תורה אור, where those notes begin beside it) is taken out of the line
+   and kept with its place, so the line is matched to its own words (`furniture.py`).
 4. Matches every line to the words it holds in the library's Gemara, Rashi and Tosafot, and where
    each line's words begin and end (`match.py`). The reading only has to be close: it is used to
    find the library's words, never shown.
@@ -39,7 +41,7 @@ For each amud of the Bavli:
 
 What is kept, per amud, is each line's box on the page, its letters' height, the library words it
 holds (passage ref and word numbers) and, when found, where each of them is printed on the line, plus
-a check of each passage's words and the heading's words with their places. The scans themselves are
+a check of each passage's words, and the heading's words and the labels with their places. The scans themselves are
 never committed, stored, or shown. The app shows the printed layout only for an amud where every
 word of its Gemara, Rashi and Tosafot was placed ("placed_all"); otherwise it falls back to its
 flowing layout. An amud is "complete" when, in addition, no word was placed by estimate.

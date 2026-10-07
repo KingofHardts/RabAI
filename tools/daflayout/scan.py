@@ -313,6 +313,21 @@ def stray_tall_letters(a, b):
     return abs(few["core"][3] - line["core"][3]) <= tol or abs(few["core"][1] - line["core"][1]) <= tol
 
 
+def stray_bits(a, b):
+    """A few small letters of a line (yuds, a lamed and the letter it stands over) whose middles sit
+    a little higher than the rest can come out as a piece of their own, inside the line's span and
+    within its height: shorter than the line, so stray_tall_letters doesn't take them."""
+    few, line = (a, b) if a["n"] < b["n"] else (b, a)
+    if few["n"] > STRAY:
+        return False
+    F, L = few["box"], line["box"]
+    tol = 0.5 * line["xh"]
+    if F[0] < L[0] - tol or F[2] > L[2] + tol:
+        return False
+    top, bottom = line["core"][1] - 0.2 * line["xh"], line["core"][3] + 0.2 * line["xh"]
+    return all(top <= (c[1] + c[3]) / 2 <= bottom for c in few["comps"])
+
+
 def merge_across(lines, segs):
     """Where a gap between columns ends partway through a printed line (at the top of the Gemara's
     column, under the commentaries' top lines), the line's letters fall on both sides of the gap's end
@@ -330,7 +345,7 @@ def merge_across(lines, segs):
                 small, big = sorted((a["xh"], b["xh"]))
                 if abs(a["cy"] - b["cy"]) >= 0.5 * big:
                     continue
-                if big > 1.3 * small and not stray_tall_letters(a, b):
+                if big > 1.3 * small and not (stray_tall_letters(a, b) or stray_bits(a, b)):
                     continue
                 A, B = a["box"], b["box"]
                 gap = max(A[0], B[0]) - min(A[2], B[2])

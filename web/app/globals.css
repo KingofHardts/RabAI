@@ -370,6 +370,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .daf-text .dw.big { font-size: 1.9em; line-height: 1; font-weight: 700; }
 .daf-printed .daf-pline { position: absolute; white-space: nowrap; text-align: right; overflow: visible; }
 .daf-printed .daf-head { position: absolute; white-space: nowrap; text-align: right; overflow: visible; font-family: var(--font-vilna-heading), var(--font-vilna), var(--font-he); font-synthesis: none; }
+.daf-printed .daf-label { font-family: var(--font-vilna), var(--font-he); }
 .daf-printed .dhead-fit { display: inline-block; white-space: nowrap; transform-origin: right center; }
 .daf-printed .daf-pfit { display: inline-block; white-space: nowrap; transform-origin: right center; }
 .daf-printed .dw.big { font-size: 1.6em; line-height: 0; }

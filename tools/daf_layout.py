@@ -127,7 +127,14 @@ def heading_of(g, ink, res, choices, amud):
     import numpy as np
     from daflayout.furniture import find_heading
     from daflayout.scan import components
-    tops = [L["box"][1] for part in PARTS for L in res[part]]  # the box of each line's ordinary letters
+    # The text's top: the highest of the full lines (a short piece matched up in a margin's corner
+    # doesn't count).
+    tops = []
+    for part in PARTS:
+        widths = sorted(L["box"][2] - L["box"][0] for L in res[part])
+        if widths:
+            wide = widths[len(widths) // 2] * 0.6
+            tops += [L["box"][1] for L in res[part] if L["box"][2] - L["box"][0] >= wide]
     xhs = [L["xh"] for L in res["main"] if L["xh"]]
     if not choices or not tops or not xhs:
         return []
@@ -137,6 +144,7 @@ def heading_of(g, ink, res, choices, amud):
 
 
 def page_task(job):
+    from daflayout.furniture import take_labels
     from daflayout.match import layout
     from daflayout.scan import find_lines, load
     section, scan, prev, cur, nxt, dup, choices = job
@@ -147,13 +155,14 @@ def page_task(job):
         g, ink = load(scan)
         lab, lines = find_lines(g, ink)
         _reader.read(g, lab, lines)
+        labels = take_labels(lines)
         res = layout(lines, prev, cur, nxt, dup)
         try:
             heading = heading_of(g, ink, res, choices, section[-1])
         except Exception as e:  # the heading is extra; a page never fails over it
             print(f"  {section}: no heading ({type(e).__name__}: {e})", flush=True)
             heading = []
-        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading,
+        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading, "labels": labels,
                 "seconds": round(time.time() - t, 1)}
     except Exception as e:  # one bad page never stops a tractate
         return {"section": section, "error": f"{type(e).__name__}: {e}", "trace": traceback.format_exc()[-800:]}
@@ -308,6 +317,7 @@ def reconcile(tractate, results, text, twin):
             "checks": [fingerprint(words_of(he[ref])) for ref in refs],
             "lines": lines,
             "heading": r.get("heading", []),
+            "labels": r.get("labels", []),
             "estimated": guesses,
             "missing": missing,
             "trimmed": r["trimmed"],
