@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { profileSummary, type LearnerProfile } from "../learner-profile";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { CORE_PREMISES } from "./core-premises.generated";
 import { mapAnswer, answerText, type AnswerBlock, type AnswerSource } from "./citations";
@@ -31,6 +32,8 @@ export interface AskInput {
   growth?: boolean;
   /** The person asked to go deeper: think harder and allow a fuller answer. */
   deep?: boolean;
+  /** What the person told RabAI about themselves and what they have been learning (checked). */
+  profile?: LearnerProfile;
 }
 
 /** Progress reports while an answer is being made, for a live screen. */
@@ -317,6 +320,7 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
       ? `Word study: the person asked about ${input.word}${input.focusRef ? ` in ${input.focusRef}` : ""}. Other passages that contain this exact word were searched for and are attached if found; the library has no root index yet, so do not claim other places its root appears.`
       : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
+    input.profile ? profileSummary(input.profile) : "",
   ]
     .filter(Boolean)
     .join("\n");

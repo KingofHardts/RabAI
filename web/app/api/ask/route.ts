@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { libraryMode } from "@/lib/library";
+import { parseProfile } from "@/lib/learner-profile";
 import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type AskResult, type LineAction, type Turn } from "@/lib/engine/answer";
 
 export const runtime = "nodejs";
@@ -36,7 +37,8 @@ function parse(body: unknown): AskInput | string {
     }
   }
 
-  return { question, action, focusRef, word, history, growth: b.growth === true, deep: b.deep === true };
+  const profile = b.profile && typeof b.profile === "object" ? parseProfile(b.profile) : undefined;
+  return { question, action, focusRef, word, history, growth: b.growth === true, deep: b.deep === true, ...(profile ? { profile } : {}) };
 }
 
 /**

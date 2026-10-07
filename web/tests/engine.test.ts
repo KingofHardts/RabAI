@@ -226,3 +226,16 @@ test("checking a translation quotes the person's attempt", () => {
   assert.match(q, /my own translation of Shabbat 21b:4/);
   assert.match(q, /the taste of Beis Shammai/);
 });
+
+test("what the person told RabAI travels in the settings, after the cached instructions, and only when remembering is on", async () => {
+  const { emptyProfile, withStated } = await import("../lib/learner-profile");
+  const profile = withStated(emptyProfile(), { level: "new", hebrew: "some" });
+  const { params } = planRequest({ question: "What is the Shema?", profile }, lib, config);
+  const system = params.system as Array<{ text: string; cache_control?: unknown }>;
+  assert.match(system[2].text, /About the person/);
+  assert.match(system[2].text, /new to learning/);
+  assert.ok(!system[1].text.includes("About the person"), "the cached part never changes from person to person");
+  const off = planRequest({ question: "What is the Shema?", profile: { ...profile, remember: false } }, lib, config);
+  assert.ok(!(off.params.system as Array<{ text: string }>)[2].text.includes("About the person"));
+  assert.match(CORE_PREMISES, /What you know about the person/);
+});

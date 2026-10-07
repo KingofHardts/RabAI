@@ -32,6 +32,8 @@ import ContentsGrid from "./ContentsGrid";
 import DafColumn from "./DafColumn";
 import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
+import AboutYou from "./AboutYou";
+import { PROFILE_KEY, emptyProfile, forgetNoticed, noticed, parseProfile, withStated, type Activity, type LearnerProfile } from "@/lib/learner-profile";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
@@ -268,6 +270,11 @@ function plainAnswer(result: AskResult | undefined): string {
 
 /** The word without punctuation at either end, for saving and asking. */
 /** A tapped word without the punctuation around it. A geresh right after a letter (ר׳, וכו׳) is part of the word. */
+/** The book a section belongs to: "Rashi on Berakhot 2a" -> "Rashi on Berakhot", "Genesis 1" -> "Genesis". */
+function bookOfSection(section: string): string {
+  return section.replace(/\s+\d+[ab]?(?::\S*)?$/, "").trim() || section;
+}
+
 function bareWord(text: string): string {
   const t = text.replace(/^[\s"'״׳“”‘’()[\]{}.,;:!?׃־–—…]+|[\s"'״“”‘’()[\]{}.,;:!?׃־–—…]+$/g, "");
   return /[א-ת\u0591-\u05C7]['׳]$/.test(t) ? t : t.replace(/['׳]+$/, "");
@@ -459,6 +466,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const listening = dictation.state === "listening";
   const [growth, setGrowth] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** What RabAI knows about the person: what they told it and what it noticed (on this device). */
+  const [profile, setProfile] = useState<LearnerProfile>(emptyProfile);
+  const profileRef = useRef<LearnerProfile>(emptyProfile());
+  const [aboutOpen, setAboutOpen] = useState(false);
+  /** Something the person did that RabAI may remember. Nothing happens when remembering is off. */
+  const notice = useCallback((a: Activity) => {
+    const next = noticed(profileRef.current, a);
+    if (next === profileRef.current) return;
+    profileRef.current = next;
+    setProfile(next);
+    store(PROFILE_KEY, JSON.stringify(next));
+  }, []);
+
   /** Learn's screens: the library, My words, or the Gemara's key words. */
   const [learnView, setLearnView] = useState<"library" | "words" | "phrases">("library");
   const [lang, setLang] = useState<Lang>("both");
@@ -564,6 +584,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setDafColumn(readStored("rabai_daf_column", ["on", "off"] as const, "off") === "on");
     setDafZoomHint(readStored("rabai_daf_zoom_hint", ["seen", "new"] as const, "new") === "new");
+    try {
+      profileRef.current = parseProfile(JSON.parse(window.localStorage.getItem(PROFILE_KEY) ?? "null"));
+      setProfile(profileRef.current);
+    } catch {
+      /* nothing kept */
+    }
     setMyWords(readSavedWords());
     setTranslations(Object.fromEntries(Object.entries(readKeptTranslations()).map(([ref, result]) => [ref, { result }])));
     setSpeechOk(canSpeak());
@@ -658,7 +684,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     recentRef.current = next;
     setRecent(next);
     store(RECENT_KEY, JSON.stringify(next));
-  }, [reader]);
+    notice({ kind: "book", title: bookOfSection(reader.section) });
+  }, [reader, notice]);
 
   // ---- the Gemara page ----
   usePinchZoom(dafMainRef, {
@@ -698,6 +725,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       recentRef.current = next;
       setRecent(next);
       store(RECENT_KEY, JSON.stringify(next));
+      notice({ kind: "book", title: at.tractate });
       try {
         const kept = JSON.parse(window.localStorage.getItem(`${OUTLINE_KEY}${section}`) ?? "null");
         if (kept && Array.isArray(kept.lines)) setOutlines((prev) => ({ ...prev, [section]: kept }));
@@ -833,6 +861,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     const w = dafPick ? bareWord(dafPick.word) : "";
     if (!w || /\s/.test(w) || wordInfo[w]) return; // (a short form for several words has no one entry)
+    notice({ kind: "word", word: w });
     setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
     fetch(`/api/word?w=${encodeURIComponent(w)}`)
       .then((r) => r.json())
@@ -905,10 +934,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       spokenInput.current = false;
       setMode("chat");
       setPending(true);
+      notice({ kind: "question" });
       setLive({ status: "Thinking it through", text: "" });
       try {
         const result = await postAsk(
-          { question: q, history, growth, deep: opts.deep === true },
+          { question: q, history, growth, deep: opts.deep === true, profile: profileRef.current.remember ? profileRef.current : undefined },
           {
             onStatus: (text) => setLive((l) => (l ? { ...l, status: text } : l)),
             onText: (delta) => setLive((l) => (l ? { ...l, text: l.text + delta } : l)),
@@ -933,7 +963,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         setLive(null);
       }
     },
-    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen, chatId],
+    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen, chatId, notice],
   );
 
   const onSubmit = (e: FormEvent) => {
@@ -1161,8 +1191,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       try {
         const body =
           action === "ask"
-            ? { question, focusRef: ref, growth }
-            : { question, action, focusRef: ref, word, growth };
+            ? { question, focusRef: ref, growth, profile: profileRef.current.remember ? profileRef.current : undefined }
+            : { question, action, focusRef: ref, word, growth, profile: profileRef.current.remember ? profileRef.current : undefined };
         const result = await postAsk(body, {
           onStatus: (status) => update((a) => ({ ...a, status })),
           onText: (delta) => update((a) => ({ ...a, live: (a.live ?? "") + delta })),
@@ -1175,7 +1205,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         }));
       }
     },
-    [growth],
+    [growth, notice],
   );
 
   // ---- my words ----
@@ -1275,6 +1305,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     store("rabai_growth", on ? "on" : "off");
   };
 
+  // ---- what RabAI knows about the person (lib/learner-profile.ts) ----
+  const keepProfile = useCallback((next: LearnerProfile) => {
+    if (next === profileRef.current) return;
+    profileRef.current = next;
+    setProfile(next);
+    store(PROFILE_KEY, JSON.stringify(next));
+  }, []);
+
   // ---------------------------------------------------------------------------
 
   // Look up a tapped word in the library's dictionaries. No AI: RabAI explains a word only
@@ -1285,6 +1323,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const token = line?.tokens[wordCard.index];
     const w = token ? bareWord(token.text) : "";
     if (!w || wordInfo[w]) return;
+    notice({ kind: "word", word: w });
     setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
     fetch(`/api/word?w=${encodeURIComponent(w)}`)
       .then((r) => r.json())
@@ -2598,13 +2637,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </span>
                   </span>
                 </label>
+                <button
+                  type="button"
+                  className="settings-row"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setAboutOpen(true);
+                  }}
+                >
+                  <strong>About you</strong>
+                  <span className="muted">
+                    {profile.remember ? "What you told RabAI, and what it remembers of your learning" : "Remembering is off"}
+                  </span>
+                </button>
                 <div className="settings-about">
                   <p>RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                   {libraryMode === "testing" && (
                     <p>{TESTING_LABEL}</p>
                   )}
                   {libraryMode === "development" && <p>{DEV_NOTE}</p>}
-                  <p>Your chats, saved words, marks and recent reading stay on this device.</p>
+                  <p>Your chats, saved words, marks, recent reading and what RabAI knows about you stay on this device.</p>
                 </div>
               </div>
             </>
@@ -2720,10 +2772,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
                             </button>
                           )}
-                          <button type="button" className="btn quiet" disabled={pending} onClick={() => void send("Tell me more.", { deep: true })}>
+                          <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "deeper" }); void send("Tell me more.", { deep: true }); }}>
                             Tell me more
                           </button>
-                          <button type="button" className="btn quiet" disabled={pending} onClick={() => void send("Can you say that more simply?")}>
+                          <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
                             Say it more simply
                           </button>
                         </div>
@@ -3136,6 +3188,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         >
           Ask about this
         </button>
+      )}
+
+      {aboutOpen && (
+        <AboutYou
+          profile={profile}
+          onStated={(stated) => keepProfile(withStated(profileRef.current, stated))}
+          onRemember={(on) => keepProfile({ ...profileRef.current, remember: on, updatedAt: Date.now() })}
+          onForgetNoticed={() => keepProfile(forgetNoticed(profileRef.current))}
+          onForgetAll={() => keepProfile({ ...emptyProfile(), updatedAt: Date.now() })}
+          onClose={() => setAboutOpen(false)}
+        />
       )}
     </div>
   );
