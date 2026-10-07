@@ -198,7 +198,8 @@ const FINAL_TO_REGULAR: Record<string, string> = { ך: "כ", ם: "מ", ן: "נ",
 const isLetter = (ch: string) => ch >= "א" && ch <= "ת";
 /** Vowel points, dagesh and shin/sin dots: marks that sit on a letter and take no width of their own. */
 const isPoint = (ch: string) => ch >= "\u0591" && ch <= "\u05C7" && !"\u05BE\u05C0\u05C3\u05C6".includes(ch);
-const lettersOf = (w: string) => [...w].filter(isLetter).map((ch) => FINAL_TO_REGULAR[ch] ?? ch).join("");
+/** A word's letters only: no points, punctuation or quotation marks, and final letters made regular. */
+export const lettersOf = (w: string) => [...w].filter(isLetter).map((ch) => FINAL_TO_REGULAR[ch] ?? ch).join("");
 
 /** A word as the library spells it: the vowels shown with it taken off. */
 export const withoutPoints = (w: string) => [...w].filter((ch) => !isPoint(ch)).join("");

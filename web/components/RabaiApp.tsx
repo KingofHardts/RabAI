@@ -31,6 +31,7 @@ import LibraryShelves from "./LibraryShelves";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
+import { readKeptTranslation, type GlossRow, type Translation } from "@/lib/engine/gloss";
 
 // ---------------------------------------------------------------------------
 // Types the screens use
@@ -174,6 +175,10 @@ const WORDS_KEY = "rabai_words";
 const MARKS_KEY = "rabai_marks";
 /** RabAI's outline of each page, kept so the same page is never outlined twice. */
 const OUTLINE_KEY = "rabai_outline:";
+/** RabAI's translations, kept on the device so the same passage is never translated twice. */
+const TRANSLATIONS_KEY = "rabai_translations";
+const MAX_KEPT_TRANSLATIONS = 60;
+const TRANSLATE_FAILED = "RabAI couldn't translate this just now. Please try again.";
 const MARK_COLORS = [
   { id: "yellow", label: "Yellow" },
   { id: "green", label: "Green" },
@@ -196,6 +201,60 @@ function store(key: string, value: string) {
   } catch {
     /* storage can be unavailable; the setting simply won't persist */
   }
+}
+
+function readKeptTranslations(): Record<string, Translation> {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(TRANSLATIONS_KEY) ?? "[]");
+    const out: Record<string, Translation> = {};
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        const t = readKeptTranslation(item);
+        if (t && !out[t.ref]) out[t.ref] = t;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Keeps a translation on the device, newest first; the oldest go when there are too many. */
+function keepTranslation(t: Translation) {
+  let list: unknown[] = [];
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(TRANSLATIONS_KEY) ?? "[]");
+    if (Array.isArray(raw)) list = raw.filter((x) => !x || typeof x !== "object" || (x as { ref?: unknown }).ref !== t.ref);
+  } catch {
+    /* start a fresh list */
+  }
+  store(TRANSLATIONS_KEY, JSON.stringify([t, ...list].slice(0, MAX_KEPT_TRANSLATIONS)));
+}
+
+/** A word-by-word translation: each of the library's words (or a short expression) over its English. */
+function Interlinear({ rows, active }: { rows: GlossRow[]; active?: number }) {
+  return (
+    <div className="interlinear" dir="rtl">
+      {rows.map((r) => {
+        const on = active !== undefined && active >= r.at && active < r.at + r.n;
+        return (
+          <span key={r.at} className={`gl${r.en === null ? " none" : ""}${on ? " on" : ""}`}>
+            <span className="gl-he he" lang="he">
+              {r.he}
+            </span>
+            {r.expanded && (
+              <span className="gl-full he" lang="he">
+                {r.expanded}
+              </span>
+            )}
+            <span className="gl-en" dir="ltr" lang="en" title={r.en === null ? "RabAI gave no English for this word." : undefined}>
+              {r.en ?? "—"}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 function readSavedWords(): SavedWord[] {
@@ -458,6 +517,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [outlineState, setOutlineState] = useState<{ loading: boolean; error?: string } | null>(null);
   const [showOutline, setShowOutline] = useState(false);
   const [marks, setMarks] = useState<Record<string, string>>({});
+  const [translations, setTranslations] = useState<Record<string, { loading?: boolean; error?: string; result?: Translation }>>({});
+  const [wordByWord, setWordByWord] = useState<Record<string, boolean>>({});
 
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -474,6 +535,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setMyWords(readSavedWords());
+    setTranslations(Object.fromEntries(Object.entries(readKeptTranslations()).map(([ref, result]) => [ref, { result }])));
     setSpeechOk(canSpeak());
     try {
       chatsRef.current = parseChats(JSON.parse(window.localStorage.getItem(CHATS_KEY) ?? "[]"));
@@ -646,6 +708,29 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     } catch (err) {
       setOutlineState({ loading: false, error: err instanceof Error ? err.message : "RabAI couldn't outline this page just now." });
       setShowOutline(false);
+    }
+  };
+
+  /** RabAI's translation of a passage, asked for only when the person taps Translate or Word by word. */
+  const translate = async (ref: string, context: string[], openWords: boolean) => {
+    if (openWords) setWordByWord((prev) => ({ ...prev, [ref]: true }));
+    const have = translations[ref];
+    if (have?.loading || have?.result) return;
+    setTranslations((prev) => ({ ...prev, [ref]: { loading: true } }));
+    try {
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref, context }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? TRANSLATE_FAILED);
+      const result = readKeptTranslation(json);
+      if (!result || result.ref !== ref) throw new Error(TRANSLATE_FAILED);
+      setTranslations((prev) => ({ ...prev, [ref]: { result } }));
+      keepTranslation(result);
+    } catch (err) {
+      setTranslations((prev) => ({ ...prev, [ref]: { error: err instanceof Error ? err.message : TRANSLATE_FAILED } }));
     }
   };
 
@@ -1668,6 +1753,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const line = outline?.lines.find((l) => l.ref === picked?.ref);
     const answer = picked ? lineAnswers[picked.ref] : undefined;
     const partName = dafPick?.part === "main" ? "line" : "comment";
+    const tr = picked ? translations[picked.ref] : undefined;
+    const showWords = picked ? !!wordByWord[picked.ref] : false;
+    // Read a comment with the line it explains, and a line of Gemara with the line before it.
+    const mainAt = picked && daf && dafPick?.part === "main" ? daf.main.findIndex((p) => p.ref === picked.ref) : -1;
+    const trContext = !picked ? [] : dafPick?.part === "main" ? (mainAt > 0 && daf ? [daf.main[mainAt - 1].ref] : []) : picked.on ? [picked.on] : [];
     const goToSource = (r: string) => {
       closeDaf();
       void openReader(r);
@@ -1822,8 +1912,51 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     <p className="fine-left">Translation: {daf.editions.mainEnglish}.</p>
                   )}
                 </>
-              ) : (
-                <p className="muted">No English translation of this {partName} is in the library yet. RabAI can explain it.</p>
+              ) : !tr?.result?.general ? (
+                <div className="tr-offer">
+                  <p className="muted">No English translation of this {partName} is in the library yet.</p>
+                  <button
+                    type="button"
+                    className="chip-btn primary"
+                    disabled={tr?.loading}
+                    onClick={() => void translate(picked.ref, trContext, false)}
+                  >
+                    {tr?.loading ? "Translating…" : `Translate this ${partName}`}
+                  </button>
+                  {tr?.loading && <p className="fine-left">This can take up to half a minute.</p>}
+                </div>
+              ) : null}
+              {tr?.error && <p className="daf-alert tr-alert">{tr.error}</p>}
+              {(tr?.result?.general || (showWords && tr?.result)) && (
+                <div className="rabai-tr">
+                  <p className="rabai-tr-label">
+                    <strong>RabAI’s translation.</strong> Not from the library, and not yet reviewed by the rabbinic board.
+                  </p>
+                  {tr.result.general && !picked.en && <p className="daf-panel-en">{tr.result.general}</p>}
+                  {showWords &&
+                    (tr.result.words ? (
+                      <Interlinear rows={tr.result.words} active={dafPick.index} />
+                    ) : (
+                      <p className="muted">RabAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
+                    ))}
+                </div>
+              )}
+              {(picked.en || tr?.result) && (
+                <div className="follow tr-tools">
+                  <button
+                    type="button"
+                    className="chip-btn"
+                    aria-pressed={showWords && !!tr?.result}
+                    disabled={tr?.loading}
+                    onClick={() =>
+                      showWords && tr?.result
+                        ? setWordByWord((prev) => ({ ...prev, [picked.ref]: false }))
+                        : void translate(picked.ref, trContext, true)
+                    }
+                  >
+                    {tr?.loading ? "Translating…" : showWords && tr?.result ? "Hide word by word" : "Word by word"}
+                  </button>
+                </div>
               )}
 
               {word && (

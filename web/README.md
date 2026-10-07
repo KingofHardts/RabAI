@@ -44,7 +44,11 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   the dictionaries, the Rashi and Tosafot on that line (lightly shaded on the page), and
   questions to ask RabAI. "Show the flow" colors each line by what it does (question, answer,
   proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
-  and is kept on the device. The person can mark lines in four colors. The shape follows the
+  and is kept on the device. When the library has no English for a line, a Rashi or a Tosafot,
+  "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under
+  each of the library's words, with the tapped word outlined. Both are labeled as RabAI's, not
+  from the library and not yet reviewed; they run only when tapped and are kept on the device
+  (`/api/translate`). The person can mark lines in four colors. The shape follows the
   printed page, but lines break where the screen breaks them. A link like `/?daf=Berakhot 2a`
   opens a page directly. (`/api/daf?ref=` and `/api/daf/outline`; the layout method is ported
   from the MIT-licensed daf-renderer, see `THIRD-PARTY-NOTICES.md`.)

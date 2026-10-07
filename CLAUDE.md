@@ -59,6 +59,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabAI's outline of the
   argument: run it only when the person asks, keep it on the device, and always label it as
   not yet reviewed by the rabbinic board (founding spec, open question 15).
+- "Translate this" and "Word by word" on the page view (`/api/translate`,
+  `web/lib/engine/translate.ts`, `web/lib/engine/gloss.ts`) are RabAI's own translation: run
+  them only when the person taps, keep them on the device, and always label them as not from the
+  library and not yet reviewed by the rabbinic board (founding spec, open question 16). The
+  Hebrew in a word-by-word list always comes from the library's text; the model's list only
+  attaches English to it.
 - When the library has a layout for an amud that places every word (table `daf_layout`, made by
   `tools/daf_layout.py` from Sefaria's Vilna scans; see `tools/daflayout/README.md`), the page
   is drawn line for line as printed (`web/components/DafPrinted.tsx`, `readPrinted` in

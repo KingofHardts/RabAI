@@ -139,6 +139,13 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   passage's words: first the entries that cite that very line, then entries whose headword
   matches. This is how the Yerushalmi is taught until an Orthodox translation can be licensed.
 
+  Josh (2026-10-07): on the printed-page view, "Translate this" gives RabAI's own translation of
+  a line of Gemara, a Rashi or a Tosafot that the library has no English for, and "Word by word"
+  sets RabAI's English under each word of any passage. Both run only when the person taps, are
+  kept on the device, and are labeled "RabAI's translation. Not from the library, and not yet
+  reviewed by the rabbinic board." The Hebrew in a word-by-word list is always the library's own
+  text; RabAI only adds the English. See open question 16.
+
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
   still enters only with their written permission.
@@ -279,3 +286,10 @@ These need a decision before launch. Each one changes behavior.
     sugya, not a source, and the app labels it "not yet reviewed by the rabbinic board". It
     runs only when the person asks. Should the board review a sample of outlines before
     launch, keep the label, or turn the feature off until outlines are reviewed page by page?
+16. **RabAI's translations on the page.** For a line of Gemara, a Rashi or a Tosafot that has
+    no English in the library, a person can ask RabAI for a translation, and for any passage, a
+    word-by-word translation under the text. RabAI is told to follow the text's own meaning (the
+    Gemara as Rashi explains it) and add nothing else, and the app labels it "not from the
+    library, and not yet reviewed by the rabbinic board". Should the board review a sample
+    before launch, keep the label, or turn the feature off until an Orthodox translation of
+    those texts can be licensed?

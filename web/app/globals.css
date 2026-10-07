@@ -465,3 +465,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   }
   .daf-body.with-panel .daf-main { padding-bottom: 55dvh; }
 }
+
+/* RabAI's own translation of a passage: always set apart from the library's text, and labeled. */
+:root { --rabai: #8A4B08; --rabai-bg: #FBF1E4; }
+@media (prefers-color-scheme: dark) { :root { --rabai: #F2B66B; --rabai-bg: #33260F; } }
+.tr-offer { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.tr-offer .muted { margin: 0; }
+.tr-alert { margin: 8px 0 0; }
+.rabai-tr { margin: 10px 0 4px; padding: 10px 12px; border-radius: 10px; background: var(--rabai-bg); border-inline-start: 3px solid var(--rabai); }
+.rabai-tr-label { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+.rabai-tr-label strong { color: var(--rabai); }
+.rabai-tr .daf-panel-en { margin-bottom: 6px; }
+.tr-tools { margin-top: 6px; }
+.interlinear { display: flex; flex-wrap: wrap; gap: 8px 6px; margin-top: 6px; }
+.interlinear .gl { display: inline-flex; flex-direction: column; align-items: center; text-align: center; max-width: 9.5em; padding: 3px 5px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
+.interlinear .gl.on { border-color: var(--rabai); box-shadow: 0 0 0 1px var(--rabai); }
+.interlinear .gl-he { font-size: 18px; line-height: 1.3; }
+.interlinear .gl-full { font-size: 12px; color: var(--muted); }
+.interlinear .gl-en { font-size: 12.5px; line-height: 1.25; color: var(--ink); font-family: var(--font-ui); }
+.interlinear .gl.none .gl-en { color: var(--muted); }
