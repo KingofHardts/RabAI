@@ -527,6 +527,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const readerBodyRef = useRef<HTMLDivElement>(null);
+  const readerHeadRef = useRef<HTMLDivElement>(null);
+  /** On a phone the reader's bar slides away while reading down, and comes back on the way up. */
+  const [barHidden, setBarHidden] = useState(false);
+  const [headHeight, setHeadHeight] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -945,6 +949,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       lastFocus.current = document.activeElement as HTMLElement | null;
       setReaderOpen(true);
       setReaderRef(ref);
+      setBarHidden(false);
       setReaderMenu(null);
       setSelected(null);
       setWordCard(null);
@@ -980,6 +985,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const closeCard = useCallback(() => {
     setSelected(null);
     setWordCard(null);
+    setBarHidden(false);
     setTryRef(null);
   }, []);
 
@@ -1048,9 +1054,37 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (!anchor) return;
     const r = anchor.getBoundingClientRect();
     const b = body.getBoundingClientRect();
-    const target = b.top + Math.min(80, b.height * 0.15);
-    if (r.top < b.top || r.bottom > b.top + b.height * 0.45) body.scrollBy({ top: r.top - target, behavior: "smooth" });
+    const top = b.top + (barHidden ? 0 : headHeight);
+    const target = top + Math.min(24, b.height * 0.05);
+    if (r.top < top || r.bottom > b.top + b.height * 0.45) body.scrollBy({ top: r.top - target, behavior: "smooth" });
+    // Only when something new is tapped, not when the bar moves.
   }, [wide, selected, wordCard]);
+
+  // The bar's height, so the text starts below it on a phone (where the bar floats over the text).
+  useEffect(() => {
+    const head = readerHeadRef.current;
+    if (!head || !readerOpen) return;
+    const measure = () => setHeadHeight(head.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(head);
+    return () => ro.disconnect();
+  }, [readerOpen, readerRef]);
+
+  // On a phone, reading down slides the bar away; scrolling up, or reaching the top, brings it back.
+  useEffect(() => {
+    const body = readerBodyRef.current;
+    if (wide || !readerOpen || !body) return;
+    let last = body.scrollTop;
+    const onScroll = () => {
+      const y = body.scrollTop;
+      if (y < 40 || last - y > 6) setBarHidden(false);
+      else if (y - last > 6) setBarHidden(true);
+      last = y;
+    };
+    body.addEventListener("scroll", onScroll, { passive: true });
+    return () => body.removeEventListener("scroll", onScroll);
+  }, [wide, readerOpen, readerRef]);
 
   // Bring a line's answer into view when it starts and when it arrives (when it shows under the line).
   useEffect(() => {
@@ -2412,7 +2446,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   return (
-    <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}`}>
+    <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}${readerOpen && mode === "learn" ? " reader-full" : ""}`}>
       <section className="convo" aria-label={mode === "chat" ? "Conversation" : "Learn"}>
         <header className="top">
           <div className="brand">
@@ -2795,14 +2829,31 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
       {readerOpen && <button type="button" className="scrim" aria-label="Close the text" onClick={closeReader} tabIndex={-1} />}
 
-      <aside className={`reader${readerOpen ? " open" : ""}`} aria-label="Source reader">
+      <aside
+        className={`reader${readerOpen ? " open" : ""}${barHidden && !readerMenu ? " bar-hidden" : ""}`}
+        aria-label="Source reader"
+        style={headHeight ? ({ ["--head-h" as string]: `${headHeight}px` } as CSSProperties) : undefined}
+      >
         {!readerRef ? null : (
           <>
-            <div className="reader-head">
+            <div className="reader-head" ref={readerHeadRef}>
               <div className="reader-bar">
-                <button ref={closeRef} type="button" className="rb-icon" aria-label="Close the text" onClick={closeReader}>
-                  ✕
-                </button>
+                {wide && mode === "chat" ? (
+                  <button ref={closeRef} type="button" className="rb-icon" aria-label="Close the text" onClick={closeReader}>
+                    ✕
+                  </button>
+                ) : (
+                  <button
+                    ref={closeRef}
+                    type="button"
+                    className="rb-back"
+                    aria-label={mode === "learn" ? "Back to the library" : "Back to the chat"}
+                    onClick={closeReader}
+                  >
+                    <span aria-hidden="true">←</span>
+                    <span className="rb-back-label">{mode === "learn" ? "Library" : "Chat"}</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   className="rb-title"

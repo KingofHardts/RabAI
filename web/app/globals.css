@@ -52,6 +52,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 @media (min-width: 980px) {
   .app.with-reader { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
   .app:not(.with-reader) .reader { display: none; }
+  /* A text opened from Learn has the whole screen; the library is one tap back. From a chat it
+     opens beside the answer, because seeing both is the point. */
+  .app.reader-full { grid-template-columns: minmax(0, 1fr); }
+  .app.reader-full .convo { display: none; }
+  .app.reader-full .reader { border: 0; }
+  .app.reader-full .reader-head { padding-inline: max(10px, calc((100% - 880px) / 2)); }
+  .app.reader-full .reader-body { padding-inline: max(20px, calc((100% - 840px) / 2)); }
 }
 
 /* ---------- conversation column ---------- */
@@ -95,10 +102,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--accent);
   background: var(--tint); border: 1px solid transparent; border-radius: 999px; vertical-align: 1px; line-height: 1.6;
 }
-.cite:hover { border-color: var(--accent); }
 .follow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chip-btn { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; min-height: 40px; text-align: start; }
-.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
 .label-sm { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
 
 .note {
@@ -139,7 +144,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 @media (hover: hover) { .btn.primary:hover:not(:disabled) { color: var(--accent-ink); filter: brightness(1.1); } }
 .btn.quiet { border-color: transparent; background: none; color: var(--accent); padding-inline: 8px; }
 .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: none; color: var(--muted); display: grid; place-items: center; padding: 0; flex: none; }
-.icon-btn:hover, .icon-btn[aria-expanded="true"] { background: var(--tint); color: var(--accent); }
+.icon-btn[aria-expanded="true"] { background: var(--tint); color: var(--accent); }
 .muted { color: var(--muted); }
 .msg-ai .body .welcome-tag { font-family: var(--font-ui); font-size: 13px; color: var(--muted); }
 @media (min-width: 561px) { .msg-ai .body .welcome-tag { display: none; } }
@@ -169,17 +174,18 @@ p.muted { margin: 0; }
 .reader { background: var(--surface); border-inline-start: 1px solid var(--line); min-width: 0; height: 100dvh; display: flex; flex-direction: column; }
 .reader-head { border-bottom: 1px solid var(--line); padding: 6px 10px 6px; display: grid; gap: 2px; position: relative; }
 .reader-bar { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+.rb-back { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; border-radius: 10px; padding: 0 10px 0 6px; min-height: 40px; font-size: 14.5px; font-weight: 600; color: var(--accent); }
+.rb-back span:first-child { font-size: 20px; line-height: 1; }
+@media (max-width: 420px) { .rb-back-label { display: none; } }
 .rb-icon { width: 40px; height: 40px; border: 0; background: none; border-radius: 10px; font-size: 20px; line-height: 1; color: var(--ink); flex: none; display: grid; place-items: center; padding: 0; }
-.rb-icon:hover:not(:disabled) { background: var(--tint); }
 .rb-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; border: 0; background: none; padding: 6px 8px; border-radius: 10px; text-align: start; overflow: hidden; }
-.rb-title:hover:not(:disabled) { background: var(--tint); }
 .rb-title:disabled { opacity: 1; }
 .rb-t { font-family: var(--font-voice); font-weight: 600; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .rb-title .he { font-size: 19px; color: var(--muted); white-space: nowrap; }
 .rb-caret { font-size: 12px; color: var(--muted); }
 .rb-nav { display: flex; flex: none; }
 .rb-btn { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 0 12px; min-height: 40px; font-size: 14px; font-weight: 600; color: var(--ink); }
-.rb-btn:hover, .rb-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.rb-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 .rb-btn[aria-expanded="true"] { background: var(--tint); }
 .reader-label { margin: 0; font-size: 12.5px; color: var(--muted); padding: 0 6px; }
 .reader-label .link { font-size: 12.5px; min-height: 0; padding: 0; }
@@ -194,12 +200,10 @@ p.muted { margin: 0; }
 .rb-toc { max-height: min(60dvh, 520px); overflow-y: auto; }
 .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
 .toc-grid button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; min-height: 40px; font-size: 14px; }
-.toc-grid button:hover { border-color: var(--accent); color: var(--accent); }
 .toc-grid button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .reader-hint { margin: 0; font-size: 13px; color: var(--muted); padding: 0 6px; }
 .reader-hint .link { font-size: 13px; min-height: 0; padding: 0; }
 .comm-count { display: inline-flex; align-items: center; gap: 4px; margin: -2px 12px 4px; border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 500; padding: 4px 8px; border-radius: 999px; min-height: 32px; }
-.comm-count:hover { background: var(--tint); }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: max-content; }
 .seg button { background: none; border: 0; padding: 6px 14px; font-size: 13.5px; color: var(--muted); min-height: 36px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
@@ -207,7 +211,6 @@ p.muted { margin: 0; }
 .reader-state { padding: 32px 8px; color: var(--muted); text-align: center; }
 
 .line { display: block; width: 100%; text-align: start; background: none; border: 0; border-radius: 10px; padding: 12px 12px; margin: 2px 0; cursor: pointer; -webkit-user-select: text; user-select: text; }
-.line:hover { background: var(--tint); }
 .line.cited { background: var(--hl); }
 .line.selected { box-shadow: inset 0 0 0 2px var(--accent); }
 .line .num { font-family: var(--font-ui); font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
@@ -252,20 +255,26 @@ p.muted { margin: 0; }
 .glossary .he { font-size: 21px; }
 .glossary .cite { justify-self: start; }
 
-/* phone: the reader is a sheet */
+/* phone: the reader fills the screen; its bar floats over the text and slides away while reading down */
 @media (max-width: 979px) {
   .reader {
-    position: fixed; inset: auto 0 0 0; height: 88dvh; z-index: 20; border: 0; border-radius: 18px 18px 0 0;
-    box-shadow: var(--shadow); transform: translateY(105%); visibility: hidden;
+    position: fixed; inset: 0; height: 100dvh; z-index: 20; border: 0;
+    transform: translateY(105%); visibility: hidden;
     transition: transform .28s ease, visibility 0s linear .28s;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .reader-head {
+    position: absolute; top: 0; inset-inline: 0; z-index: 6; background: var(--surface);
+    padding-top: calc(6px + env(safe-area-inset-top, 0px)); transition: transform .22s ease;
+  }
+  .reader.bar-hidden .reader-head { transform: translateY(-105%); }
+  .reader-body { padding-top: calc(var(--head-h, 110px) + 8px); }
   .reader.open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
   .scrim { position: fixed; inset: 0; background: rgba(10, 14, 22, .35); z-index: 15; border: 0; padding: 0; }
 }
 @media (min-width: 980px) { .scrim { display: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .reader { transition: none; }
+  .reader, .reader-head { transition: none; }
   .dots::after { animation: none; content: "..."; }
   .mic.on, .caret { animation: none; }
 }
@@ -373,7 +382,6 @@ p.muted { margin: 0; }
 
 /* tap any word */
 .w-tap { cursor: pointer; border-radius: 5px; padding: 0 1px; transition: background .12s; }
-.w-tap:hover { background: var(--tint); }
 .w-tap.on { background: var(--hl); box-shadow: 0 0 0 2px var(--accent); }
 .breakdown { color: var(--ink); }
 .label-inline { font-weight: 600; }
@@ -382,12 +390,10 @@ p.muted { margin: 0; }
 .breakdown .he, .breakdown-guess .he, .entry-reading .he { display: inline; font-size: 17px; }
 .entry-reading { color: var(--muted); font-size: 12.5px; margin: 0 0 4px !important; }
 .chip-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.chip-btn.primary:hover { color: var(--accent-ink); opacity: .92; }
 
 /* ---------- saved chats ---------- */
 .top-actions { display: flex; align-items: center; gap: 6px; flex: none; }
 .chats-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; min-height: 44px; font-weight: 600; color: var(--muted); }
-.chats-btn:hover { color: var(--accent); border-color: var(--accent); }
 .chats-btn.on { color: var(--accent); border-color: var(--accent); background: var(--tint); }
 .chats-panel { max-width: 760px; margin: 0 auto; padding: 18px 16px 40px; }
 .chats-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -404,7 +410,6 @@ p.muted { margin: 0; }
 .chat-row.current { border-color: var(--accent); }
 .chat-row-main { display: flex; align-items: stretch; }
 .chat-open { flex: 1; min-width: 0; text-align: start; background: none; border: 0; padding: 12px 14px; display: grid; gap: 2px; border-radius: 14px; min-height: 56px; }
-.chat-open:hover .chat-title { color: var(--accent); }
 .chat-title { font-weight: 600; overflow-wrap: anywhere; }
 .chat-sub { color: var(--muted); font-size: 13px; }
 .chat-more { background: none; border: 0; border-inline-start: 1px solid var(--line); width: 52px; font-size: 20px; color: var(--muted); border-radius: 0 14px 14px 0; }
@@ -481,7 +486,6 @@ p.muted { margin: 0; }
    letters are 0.726 of its size, Romm Vilna's 0.543). */
 .daf-text.rashi .open, .daf-text.tosafot .open { font-family: var(--font-vilna), var(--font-he); font-size: 1.337em; }
 .daf-text .dw { pointer-events: auto; cursor: pointer; border-radius: 3px; }
-.daf-text .dw:hover { background: var(--tint); }
 .daf-text .dw.on { background: var(--accent); color: var(--accent-ink); }
 .daf-text .dw.big { font-size: 1.9em; line-height: 1; font-weight: 700; }
 .daf-printed .daf-pline { position: absolute; white-space: nowrap; text-align: right; overflow: visible; }
@@ -575,7 +579,6 @@ p.muted { margin: 0; }
 .wc-word { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; flex: none; }
 .wc .wc-he { font-size: 30px; line-height: 1.3; text-align: center; }
 .wc-step { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--accent); font-size: 20px; line-height: 1; padding: 0; flex: none; }
-.wc-step:hover { border-color: var(--accent); }
 .wc-note, .wc-breakdown { padding: 0 16px; text-align: center; font-size: 14px; color: var(--muted); flex: none; }
 .wc-breakdown p { margin: 2px 0 0; }
 .wc .gloss { font-family: var(--font-voice); font-size: 16px; font-weight: 600; color: var(--ink); }
@@ -631,3 +634,24 @@ p.muted { margin: 0; }
 .dict-full .entry-text.he { font-size: 17px; text-align: right; font-family: var(--font-he); }
 @media (prefers-reduced-motion: reduce) { .wc-sheet { transition: none; } }
 .wc .muted, .wc .parts { color: var(--muted); }
+
+
+/* Hover colors only where a pointer hovers, so a tap on a phone doesn't leave one behind. */
+@media (hover: hover) {
+  .cite:hover { border-color: var(--accent); }
+  .chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn:hover { background: var(--tint); color: var(--accent); }
+  .rb-back:hover { background: var(--tint); }
+  .rb-icon:hover:not(:disabled) { background: var(--tint); }
+  .rb-title:hover:not(:disabled) { background: var(--tint); }
+  .rb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toc-grid button:not([aria-current]):hover { border-color: var(--accent); color: var(--accent); }
+  .comm-count:hover { background: var(--tint); }
+  .line:not(.cited):not(.selected):hover { background: var(--tint); }
+  .w-tap:not(.on):hover { background: var(--tint); }
+  .chip-btn.primary:hover { color: var(--accent-ink); opacity: .92; }
+  .chats-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .chat-open:hover .chat-title { color: var(--accent); }
+  .daf-text .dw:not(.on):hover { background: var(--tint); }
+  .wc-step:hover { border-color: var(--accent); }
+}

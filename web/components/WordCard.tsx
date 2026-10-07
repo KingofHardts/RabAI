@@ -76,6 +76,8 @@ export default function WordCard(props: WordCardProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // This Escape closes the card only, not the reader or page behind it.
+        e.stopPropagation();
         handlers.current.onClose();
         return;
       }

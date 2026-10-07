@@ -20,8 +20,10 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   or sent anywhere else.
 - **Highlight and ask.** Highlight any words in an answer or a text, and an "Ask about this"
   button appears.
-- **Read.** Tapping a source opens the page or chapter with the cited line highlighted. One bar
-  holds everything: the title (tap it for the book's contents, `/api/contents?book=`), arrows to
+- **Read.** Tapping a source opens the page or chapter with the cited line highlighted: beside
+  the answer when it comes from a chat (on a computer), and on the whole screen when it comes
+  from Learn or on a phone, with "← Library" or "← Chat" to go back. On a phone the bar slides
+  away while reading down and comes back on the way up. One bar holds everything: the title (tap it for the book's contents, `/api/contents?book=`), arrows to
   the previous and next chapter or amud, "Page" for the printed Gemara page, and **Aa** for the
   language (Hebrew, English, or both) and which commentators to show under every line. The other
   commentaries fold into a count on each line ("6 comments"); tapping it opens them in the card.
