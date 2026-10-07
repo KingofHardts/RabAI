@@ -175,6 +175,12 @@ test("a stored layout is used only when it fits the text exactly", () => {
   ]);
   assert.deepEqual(readPrinted({ ...good, labels: [["<script>", 600, 230, 650, 245]] }, pieces, "Berakhot 2a")?.labels, []);
   assert.deepEqual(p.labels, []);
+  assert.deepEqual(p.marks, []);
+  assert.deepEqual(readPrinted({ ...good, marks: [["*", 300, 190, 310, 200], ["°", 320, 190, 329, 199]] }, pieces, "Berakhot 2a")?.marks, [
+    { mark: "*", box: [300, 190, 310, 200] },
+    { mark: "°", box: [320, 190, 329, 199] },
+  ]);
+  assert.deepEqual(readPrinted({ ...good, marks: [["x", 300, 190, 310, 200]] }, pieces, "Berakhot 2a")?.marks, []);
   // A line's big words come along with its word places, when well formed.
   const bigLine = [100, 200, 500, 230, 20, [0, 0, 2], [450, 500, 300, 440], [0, 190, 240]];
   const tall = readPrinted({ ...good, lines: { ...good.lines, main: [bigLine, good.lines.main[1]] } }, pieces, "Berakhot 2a");

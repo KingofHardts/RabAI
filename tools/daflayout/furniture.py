@@ -15,6 +15,8 @@ words by the gaps between them, read with Tesseract, and lined up with the words
 heading that doesn't line up well is left out rather than guessed.
 """
 
+from pathlib import Path
+
 from rapidfuzz.distance import Indel
 
 ONES = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"]
@@ -336,4 +338,100 @@ def take_labels(lines):
             for model, (text, conf, read) in list(ocr.items()):
                 kept = [w for w in read if (w[1] + w[2]) / 2 > x1 + 2 or (w[1] + w[2]) / 2 < x0 - 2]
                 ocr[model] = (" ".join(w[0] for w in kept), conf, kept)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------
+# Note marks set above the text: the asterisk and the ring
+
+FONT = Path(__file__).resolve().parents[2] / "web" / "app" / "fonts" / "RommVilna-Regular.ttf"
+STAR_LIKE = 0.5  # how alike a mark's shape must be to the font's asterisk (and more than to any letter)
+_shapes = {}
+
+
+def _shape(mask, n=20):
+    """A blob's shape, centered in a square and scaled to n x n, for comparing shapes."""
+    import numpy as np
+    from PIL import Image
+
+    ys, xs = np.nonzero(mask)
+    if not len(ys):
+        return None
+    m = mask[ys.min(): ys.max() + 1, xs.min(): xs.max() + 1].astype(float)
+    h, w = m.shape
+    side = max(h, w)
+    square = np.zeros((side, side))
+    square[(side - h) // 2: (side - h) // 2 + h, (side - w) // 2: (side - w) // 2 + w] = m
+    v = np.asarray(Image.fromarray((square * 255).astype(np.uint8)).resize((n, n), Image.BILINEAR), float)
+    v -= v.mean()
+    norm = np.linalg.norm(v)
+    return v / norm if norm else v
+
+
+def _font_shapes():
+    """The asterisk's shape and every letter's, drawn from the Vilna typeface (once)."""
+    if not _shapes:
+        import numpy as np
+        from PIL import Image, ImageDraw, ImageFont
+
+        font = ImageFont.truetype(str(FONT), 48)
+        for ch in "*" + "אבגדהוזחטיכלמנסעפצקרשת":
+            im = Image.new("L", (96, 96), 0)
+            ImageDraw.Draw(im).text((24, 24), ch, font=font, fill=255)
+            _shapes[ch] = _shape(np.asarray(im) > 128)
+    return _shapes
+
+
+def mark_kind(mask, xh):
+    """What a small raised mark is: "*" (an asterisk), "°" (a ring), or None (anything else: a
+    geresh, a small reference letter, a speck). mask: the mark's ink (a boolean array); xh: its line's
+    letter height. Only shapes that can't be mistaken are named."""
+    from scipy import ndimage
+
+    h, w = mask.shape
+    if not h or not w or h > 0.8 * xh:
+        return None
+    if h / w >= 1.6:
+        return None  # a geresh, or a narrow letter
+    hole = ndimage.binary_fill_holes(mask) & ~mask
+    holes = int(hole.sum())
+    v = _shape(mask)
+    if v is None:
+        return None
+    like = {ch: float((v * t).sum()) for ch, t in _font_shapes().items()}
+    # A ring is empty in the middle; an asterisk's arms meet there (and, inked in, can close a small
+    # hole between them).
+    middle = hole[max(0, h // 2 - 1): h // 2 + 2, max(0, w // 2 - 1): w // 2 + 2]
+    if holes >= 2 and middle.any() and 0.7 <= h / w <= 1.4 and h <= 0.65 * xh:
+        return "°"
+    if max(like, key=like.get) == "*" and like["*"] >= STAR_LIKE:
+        return "*"
+    return None
+
+
+def note_marks(res, lab):
+    """The asterisks and rings above the lines of a page (layout's result, whose lines carry the
+    raised blobs found on them): [[mark, left, top, right, bottom], ...]. A word whose place on its line
+    took in a mark at its edge is trimmed to its letters. The lines' raised blobs are dropped."""
+    out = []
+    for part in res:
+        for L in res[part]:
+            groups = L.pop("raised", None) or []
+            # each blob on its own: an asterisk and a ring are one blob each, and can touch each other
+            for c in [c for g in groups for c in g]:
+                x0, y0, x1, y1 = c[:4]
+                kind = mark_kind(lab[y0:y1, x0:x1] == c[5], L["xh"])
+                if not kind:
+                    continue
+                out.append([kind, x0, y0, x1, y1])
+                # a word's place that takes in the mark (or part of it) ends where the mark starts
+                for x in L.get("xs") or []:
+                    if x[0] >= x1 or x[1] <= x0:
+                        continue
+                    if (x0 + x1) / 2 >= (x[0] + x[1]) / 2:
+                        cut = [x[0], min(x[1], x0 - 1)]  # the mark at the word's right, before its first letter
+                    else:
+                        cut = [max(x[0], x1 + 1), x[1]]
+                    if cut[1] - cut[0] >= 0.5 * (x[1] - x[0]):
+                        x[:] = cut
     return out

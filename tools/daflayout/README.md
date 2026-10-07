@@ -29,7 +29,10 @@ For each amud of the Bavli:
    mark) is left out. When the words don't line up well, the line gets no word places and the app
    spreads its words evenly across the printed line. A word whose letters are mostly much taller
    than its line's (a commentary's first words, the word that opens a Mishnah or a chapter) has its
-   letters' height kept too, so the app draws it at its printed size.
+   letters' height kept too, so the app draws it at its printed size. The marks set above the text
+   that point to a note (an asterisk, a small ring) are found by their shape, kept with their
+   places, and taken out of the words' places (`furniture.py`); a small reference letter or a geresh
+   is not named this way, and is left out.
 6. Places each word once across the whole tractate, because a comment can start on one amud and end
    on the next (`reconcile` in `daf_layout.py`).
 7. Finds the page's heading, the line above the text that names the chapter and the tractate, with
@@ -41,7 +44,8 @@ For each amud of the Bavli:
 
 What is kept, per amud, is each line's box on the page, its letters' height, the library words it
 holds (passage ref and word numbers) and, when found, where each of them is printed on the line, plus
-a check of each passage's words, and the heading's words and the labels with their places. The scans themselves are
+a check of each passage's words, and the heading's words, the labels and the note marks with their
+places. The scans themselves are
 never committed, stored, or shown. The app shows the printed layout only for an amud where every
 word of its Gemara, Rashi and Tosafot was placed ("placed_all"); otherwise it falls back to its
 flowing layout. An amud is "complete" when, in addition, no word was placed by estimate.

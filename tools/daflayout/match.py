@@ -538,6 +538,26 @@ def print_order(pieces, part, before, cur, after, dup, stream, opts, opening=16,
 # One page
 
 
+def raised_marks(comps, xh):
+    """Small blobs set above a line's letters (a note's asterisk or ring, a reference letter, a geresh),
+    grouped where they touch, right to left: lists of blobs (x0, y0, x1, y1, area, label). What each is
+    is decided later, from its shape (furniture.mark_kind)."""
+    sized = [c for c in comps if 0.75 * xh <= c[3] - c[1] <= 1.3 * xh]
+    if len(sized) < 3:
+        return []
+    top = sorted(c[1] for c in sized)[len(sized) // 2]
+    bottom = sorted(c[3] for c in sized)[len(sized) // 2]
+    small = sorted((c for c in comps if c[3] - c[1] <= 0.8 * xh and c[1] < top - 0.15 * xh and c[3] < bottom - 0.25 * xh),
+                   key=lambda c: -c[2])
+    groups = []
+    for c in small:
+        if groups and min(d[0] for d in groups[-1]) - c[2] <= 1:
+            groups[-1].append(tuple(int(v) for v in c))
+        else:
+            groups.append([tuple(int(v) for v in c)])
+    return groups
+
+
 BIG = 1.6  # a word whose letters are this many times the line's letter height is printed large
 
 
@@ -647,7 +667,8 @@ def layout(lines, prev, cur, nxt, dup=None):
             out.append({"box": [int(v) for v in L["core"]], "xh": round(float(L["xh"]), 1), "spans": spans(st, a, b),
                         "agree": round(float(agree), 3), "filled": bool(L["filled"]), "where": sorted({w[3] for w in words}),
                         "nwords": b - a, "xs": [[int(x0), int(x1)] for x0, x1 in xs] if xs else None,
-                        "big": big_words(ink, xs, float(L["xh"])) if xs else None})
+                        "big": big_words(ink, xs, float(L["xh"])) if xs else None,
+                        "raised": raised_marks([c for q in L["pieces"] for c in lines[q["i"]]["comps"]], float(L["xh"]))})
         # the next page's first word or two, printed under the last line, is a catchword
         if out and out[-1]["where"] == ["next"] and out[-1]["nwords"] <= 2:
             out.pop()

@@ -156,6 +156,29 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
             </div>
           );
         })}
+        {printed.marks.map((m, n) => {
+          const [x0, y0, x1, y1] = m.box;
+          return (
+            <svg
+              key={`m${n}`}
+              className="daf-mark"
+              viewBox="0 0 10 10"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              style={{ left: (x0 - ax0) * k, top: (y0 - ay0) * k, width: (x1 - x0) * k, height: (y1 - y0) * k }}
+            >
+              {m.mark === "°" ? (
+                <circle cx="5" cy="5" r="3.7" fill="none" stroke="currentColor" strokeWidth="2.2" />
+              ) : (
+                <g stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                  <line x1="5" y1="0.9" x2="5" y2="9.1" />
+                  <line x1="1.45" y1="2.95" x2="8.55" y2="7.05" />
+                  <line x1="1.45" y1="7.05" x2="8.55" y2="2.95" />
+                </g>
+              )}
+            </svg>
+          );
+        })}
         {printed.lines.map((line, n) => {
           const [x0, y0, x1, y1] = line.box;
           const h = (y1 - y0) * k;

@@ -155,6 +155,12 @@ export interface DafHeadingWord {
   box: [number, number, number, number];
 }
 
+/** A note's mark above the text: an asterisk or a ring, and its box on the scan. */
+export interface DafMark {
+  mark: "*" | "°";
+  box: [number, number, number, number];
+}
+
 export interface DafPrinted {
   /** The part of the scan the lines fill: left, top, right, bottom. */
   area: [number, number, number, number];
@@ -163,6 +169,8 @@ export interface DafPrinted {
   heading: DafHeadingWord[];
   /** Labels printed inside the text's lines (such as תורה אור, where those notes begin). */
   labels: DafHeadingWord[];
+  /** The note marks set above the text: asterisks and rings, where they print. */
+  marks: DafMark[];
   /**
    * Words whose line is an estimate, as "ref#word": the reading of the scan didn't settle it (a word
    * it couldn't read, or one two lines both read), so it was put beside its neighbor in the text.
@@ -296,6 +304,7 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
   }
   const heading = readHeading(r.heading);
   const labels = readHeading(r.labels, LABEL);
+  const marks = readMarks(r.marks);
   const boxes = [...out.map((l) => l.box), ...heading.map((w) => w.box)];
   const pad = 6;
   const area: [number, number, number, number] = [
@@ -304,7 +313,7 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
     Math.max(...boxes.map((b) => b[2])) + pad,
     Math.max(...boxes.map((b) => b[3])) + pad,
   ];
-  return { area, lines: out, estimated, heading, labels };
+  return { area, lines: out, estimated, heading, labels, marks };
 }
 
 const HEADING_WORD = /^(?:[\u05D0-\u05EA]{1,12}|[0-9]{1,4})$/;
@@ -343,6 +352,19 @@ function wordPlaces(raw: unknown, spans: Array<[string, number, number]>, x0: nu
     if (l > r || l < x0 - slack || r > x1 + slack) return undefined;
     if (out.length && r > out[out.length - 1][1] + slack) return undefined;
     out.push([l, r]);
+  }
+  return out;
+}
+
+/** The note marks of a layout: [mark, left, top, right, bottom] each; none if any is malformed. */
+export function readMarks(raw: unknown): DafMark[] {
+  if (!Array.isArray(raw) || raw.length > 400) return [];
+  const out: DafMark[] = [];
+  for (const m of raw) {
+    if (!Array.isArray(m) || m.length !== 5 || (m[0] !== "*" && m[0] !== "°") || !m.slice(1).every(isNum)) return [];
+    const [x0, y0, x1, y1] = m.slice(1) as number[];
+    if (x1 <= x0 || y1 <= y0) return [];
+    out.push({ mark: m[0], box: [x0, y0, x1, y1] });
   }
   return out;
 }

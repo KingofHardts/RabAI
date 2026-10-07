@@ -257,6 +257,35 @@ class Heading(unittest.TestCase):
             "heb_rashi": ("", 80.0, [])}}
         self.assertEqual(furniture.take_labels([line]), [])
 
+    @unittest.skipIf(stray_tall_letters is None, "needs numpy and scipy")
+    def test_a_ring_an_asterisk_and_a_geresh_are_told_apart(self):
+        import numpy as np
+        yy, xx = np.mgrid[0:9, 0:9]
+        d = np.hypot(yy - 4, xx - 4)
+        ring = (d >= 2.0) & (d <= 4.3)
+        star = np.zeros((11, 11), bool)
+        for t in (0, 60, 120):
+            a = np.radians(t)
+            for r in np.linspace(-5, 5, 41):
+                star[int(round(5 + r * np.cos(a))), int(round(5 + r * np.sin(a)))] = True
+        star = star | np.roll(star, 1, axis=1)
+        geresh = np.zeros((10, 3), bool)
+        geresh[:, 1] = True
+        self.assertEqual(furniture.mark_kind(ring, 17), "°")
+        self.assertEqual(furniture.mark_kind(star, 17), "*")
+        self.assertIsNone(furniture.mark_kind(geresh, 17))
+        self.assertIsNone(furniture.mark_kind(np.ones((16, 12), bool), 17))  # too big for a mark
+
+    def test_a_marks_place_is_taken_out_of_the_word_beside_it(self):
+        import numpy as np
+        lab = np.zeros((50, 200), int)
+        yy, xx = np.mgrid[0:9, 0:9]
+        lab[10:19, 100:109][(np.hypot(yy - 4, xx - 4) >= 2.0) & (np.hypot(yy - 4, xx - 4) <= 4.3)] = 7
+        res = {"main": [{"xh": 17, "xs": [[104, 150], [40, 99]], "raised": [[(100, 10, 109, 19, 40, 7)]]}]}
+        self.assertEqual(furniture.note_marks(res, lab), [["°", 100, 10, 109, 19]])
+        self.assertEqual(res["main"][0]["xs"], [[110, 150], [40, 99]])
+        self.assertNotIn("raised", res["main"][0])
+
     def test_a_heading_that_reads_unlike_any_expected_is_left_out(self):
         comps = [self.blob(1000 - 60 * i, 1040 - 60 * i, label=i + 1) for i in range(8)]
         choices = furniture.expected("ברכות", [(4, "תפלת השחר")], 27, "a")

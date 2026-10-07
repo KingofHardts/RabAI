@@ -157,7 +157,9 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   note saying so. Where the print abbreviates (הקב״ה for "הקדוש ברוך הוא"), the library's full
   words are set small in the abbreviation's place. The page's heading (chapter, tractate, and the
   daf's or page's number) is drawn where the scan prints it; its words are the chapter names from
-  Sefaria's index of the tractate, and the scan only gives their places.
+  Sefaria's index of the tractate, and the scan only gives their places. Labels set in a line
+  (תורה אור) and the asterisks and rings that point to notes are drawn where they print; they are
+  found by shape, and a mark the tool can't name for certain is left off rather than guessed.
 
   Vowels on the page (Josh asked, 2026-10-07): a reader can turn on nekudot. They come from a
   vocalized copy of the same Gemara text (Sefaria's William Davidson Edition, vocalized), marked

@@ -144,7 +144,7 @@ def heading_of(g, ink, res, choices, amud):
 
 
 def page_task(job):
-    from daflayout.furniture import take_labels
+    from daflayout.furniture import note_marks, take_labels
     from daflayout.match import layout
     from daflayout.scan import find_lines, load
     section, scan, prev, cur, nxt, dup, choices = job
@@ -157,12 +157,13 @@ def page_task(job):
         _reader.read(g, lab, lines)
         labels = take_labels(lines)
         res = layout(lines, prev, cur, nxt, dup)
+        marks = note_marks(res, lab)
         try:
             heading = heading_of(g, ink, res, choices, section[-1])
         except Exception as e:  # the heading is extra; a page never fails over it
             print(f"  {section}: no heading ({type(e).__name__}: {e})", flush=True)
             heading = []
-        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading, "labels": labels,
+        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading, "labels": labels, "marks": marks,
                 "seconds": round(time.time() - t, 1)}
     except Exception as e:  # one bad page never stops a tractate
         return {"section": section, "error": f"{type(e).__name__}: {e}", "trace": traceback.format_exc()[-800:]}
@@ -318,6 +319,7 @@ def reconcile(tractate, results, text, twin):
             "lines": lines,
             "heading": r.get("heading", []),
             "labels": r.get("labels", []),
+            "marks": r.get("marks", []),
             "estimated": guesses,
             "missing": missing,
             "trimmed": r["trimmed"],
