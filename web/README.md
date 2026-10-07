@@ -92,7 +92,12 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   ("Kiddushin 40b") all work (`lib/library/catalog.ts`). My words (saved only on the device) and
   the Gemara's key words each have their own screen.
 - **Settings** (the gear at the top): "Help me grow closer to HaShem", off unless the person
-  turns it on, and a note on what RabAI is and where things are kept.
+  turns it on, "About you", and a note on what RabAI is and where things are kept.
+- **About you.** The person can tell RabAI how much they have learned, how well they read Hebrew,
+  their community and what they want to learn, and see what RabAI has noticed while they learn
+  (the books they read, the words they look up more than once). RabAI uses it only to pitch its
+  explanations, never to change what the sources say. It stays on the device, and the person can
+  change it, forget it, or turn remembering off. See `docs/learner-profiles.md`.
 
 ## How an answer is made
 
@@ -256,6 +261,27 @@ doubles it; the faster model is about half):
 | Everything in the library without English | 44 million | about $8,000 |
 
 These are estimates from counting the requests; a small fill first gives the real number.
+
+### Translating inside a Claude Code session (no API spend)
+
+The library can also be filled by Claude in a Claude Code session, on the maintainer's Claude
+plan instead of the API. The requests and the checks are the same as a batch fill; only the step
+that calls the API is replaced (`scripts/translate-here.ts`):
+
+1. `send` writes the requests for the chosen books to `library/session-translations/` on the
+   session's computer (never committed: it holds the library's texts).
+2. Claude answers each request in the session, following the request's own instructions.
+3. `collect` checks the answers exactly like a batch fill and keeps them in a translation library
+   on that computer.
+4. `seal` seals them with the inbox's public key into `translations-inbox/`, and the push starts
+   the "RabAI's translation inbox" workflow (`.github/workflows/translations-inbox.yml`). Only that
+   workflow can open the files (its private key stays in the translation library's database), so
+   unreviewed translations are never public. It checks each translation against the testing
+   library's text again, keeps it, and removes the file.
+
+The inbox workflow's first run creates the translation library if it isn't there yet, connects the
+app to it, and writes `translations-inbox/public-key.pem`. It never calls a model and spends
+nothing.
 
 ## Checks
 

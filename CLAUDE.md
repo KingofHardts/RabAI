@@ -76,6 +76,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   delete the database. Batch fills (`web/scripts/translate-library.ts`, workflow
   `.github/workflows/translations.yml`) spend money: only the maintainer runs them, always with
   a spending limit.
+- Translations can also be made inside a Claude Code session (`web/scripts/translate-here.ts`):
+  the same requests and the same checks as a batch fill, answered in the session instead of by
+  the API. They reach the shared translation library only as sealed files in
+  `translations-inbox/` (`web/lib/library/inbox-seal.ts`), which only the inbox workflow
+  (`.github/workflows/translations-inbox.yml`) can open. Never commit an unsealed translation or
+  a request file; `library/session-translations/` stays on the session's computer.
+- The learner profile (`web/lib/learner-profile.ts`, "About you") shapes only how RabAI explains,
+  never what the sources say. It keeps learning activity only, never anything else about a
+  person's life. The person can see, change and forget all of it, and turn remembering off; with
+  it off, nothing is noticed or sent. The server always rebuilds the lines the model sees from a
+  checked copy (`parseProfile`, `profileSummary`), placed after the cached instructions. See
+  `docs/learner-profiles.md`.
 - When the library has a layout for an amud that places every word (table `daf_layout`, made by
   `tools/daf_layout.py` from Sefaria's Vilna scans; see `tools/daflayout/README.md`), the page
   is drawn line for line as printed (`web/components/DafPrinted.tsx`, `readPrinted` in

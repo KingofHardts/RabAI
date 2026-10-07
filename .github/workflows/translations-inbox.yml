@@ -1,0 +1,76 @@
+name: RabAI's translation inbox
+
+# Imports translations made inside a Claude Code session (web/scripts/translate-here.ts) into RabAI's
+# translation library. They arrive as sealed files in translations-inbox/: only this job can open
+# them, with the private key it keeps in the translation library's own database, so unreviewed
+# translations are never public. Each translation is checked again against the testing library's
+# text before it is kept. Spends nothing: no model is called here.
+#
+# Runs by itself when files in translations-inbox/ are pushed to main, or by hand. The first run
+# creates the translation library (and connects the app to it) and writes the inbox's public key,
+# translations-inbox/public-key.pem.
+
+on:
+  push:
+    branches: [main]
+    paths: ["translations-inbox/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: translations
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Connect to the libraries (creates the translation library the first time)
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: python3 tools/translations_setup.py --inbox
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      - name: Make sure the inbox has a key
+        working-directory: web
+        run: npx tsx scripts/translations-inbox.ts key
+
+      - name: Import sealed translations
+        working-directory: web
+        run: npx tsx scripts/translations-inbox.ts import
+
+      - name: Save the public key and clear what was imported
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A translations-inbox
+          if git diff --cached --quiet; then
+            echo "Nothing to save."
+            exit 0
+          fi
+          git commit -q -m "Translation inbox: save the public key and clear imported files [skip ci]"
+          for attempt in 1 2 3 4; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep $((attempt * 5))
+          done
+          exit 1
