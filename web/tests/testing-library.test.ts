@@ -169,6 +169,20 @@ test("the reader: a commentary opens on its verse, with the commentary beside it
   assert.equal(comments[0].on, "Genesis 1:1");
 });
 
+test("the reader: a section knows the sections before and after it, and a book lists its sections in order", async () => {
+  const store = await storePromise;
+  const first = await store.section("Genesis 1");
+  assert.equal(first?.prev, undefined);
+  assert.equal(first?.next, "Genesis 2");
+  const second = await store.section("Genesis 2");
+  assert.equal(second?.prev, "Genesis 1");
+  assert.equal(second?.next, "Genesis 10");
+  // In the book's own order, not in the order of the letters ("Genesis 10" would sort before "Genesis 2").
+  assert.deepEqual(await store.contents("Genesis"), ["Genesis 1", "Genesis 2", "Genesis 10"]);
+  assert.deepEqual(await store.contents("Berakhot"), ["Berakhot 2a"]);
+  assert.deepEqual(await store.contents("No such book"), []);
+});
+
 test("books and the planner's catalog", async () => {
   const store = await storePromise;
   const books = await store.books();

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPassage, getSection, loadLibrary, type Library } from "@/lib/library";
+import { getPassage, getSection, listSections, loadLibrary, type Library } from "@/lib/library";
 import { studyPassages } from "@/lib/library/word-study";
 import { testingStore } from "@/lib/library/testing";
 import type { Passage, Work } from "@/lib/library/types";
@@ -23,10 +23,16 @@ export async function GET(request: Request) {
   const all = section.lines.flatMap((l) => [l.passage, ...l.commentaries]);
   const { tokens, study } = studyPassages(lib, all);
   const focus = getPassage(lib, ref);
+  // The sections before and after, among this work's sections.
+  const siblings = listSections(lib).filter((s) => s.workId === section.work.id).map((s) => s.section);
+  const at = siblings.indexOf(section.section);
 
   return NextResponse.json({
     focus: focus?.ref ?? null,
     libraryMode: lib.mode,
+    ...(at > 0 ? { prev: siblings[at - 1] } : {}),
+    ...(at >= 0 && at < siblings.length - 1 ? { next: siblings[at + 1] } : {}),
+    book: section.work.title,
     section: section.section,
     sectionHe: section.sectionHe,
     work: section.work,
@@ -82,6 +88,9 @@ async function testingSection(ref: string, lib: Library) {
   return NextResponse.json({
     focus,
     libraryMode: lib.mode,
+    ...(found.prev ? { prev: found.prev } : {}),
+    ...(found.next ? { next: found.next } : {}),
+    book: s.book,
     section: first.section,
     sectionHe: first.sectionHe,
     work,

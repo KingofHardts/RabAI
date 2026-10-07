@@ -195,8 +195,13 @@ export interface TestingStore {
    * without its front letters or ending. Each entry carries the reading it was found under.
    */
   wordEntries(word: string, limit?: number): Promise<Array<Passage & { reading: WordReading }>>;
-  /** A whole section for the reader, with each line's commentaries. */
-  section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]> } | null>;
+  /**
+   * A whole section for the reader, with each line's commentaries, and the sections before and
+   * after it in the same book.
+   */
+  section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]>; prev?: string; next?: string } | null>;
+  /** A book's sections in order ("Berakhot 2a", "Berakhot 2b", ...), for its table of contents. */
+  contents(title: string): Promise<string[]>;
   /**
    * One amud of the Bavli as printed: its Gemara, and the Rashi and Tosafot written on it, each
    * in full and in order. Null when the library has no Gemara at this ref.
@@ -669,7 +674,31 @@ export function createTestingStore(db: Db): TestingStore {
           commentaries.set(base, list);
         }
       }
-      return { lines, commentaries };
+      // The sections before and after, in the book's own order.
+      const seqs = (rows.length ? rows : [first]).map((r) => r.seq);
+      const [before, after] = await Promise.all([
+        db.all(
+          "SELECT p.ref FROM passages p JOIN titles t ON t.id = p.title_id WHERE t.title = ? AND p.seq < ? ORDER BY p.seq DESC LIMIT 1",
+          [first.title, Math.min(...seqs)],
+        ),
+        db.all(
+          "SELECT p.ref FROM passages p JOIN titles t ON t.id = p.title_id WHERE t.title = ? AND p.seq > ? ORDER BY p.seq LIMIT 200",
+          [first.title, Math.max(...seqs)],
+        ),
+      ]);
+      const prev = before[0] ? sectionOf(String(before[0].ref)) : undefined;
+      const next = after.map((r) => sectionOf(String(r.ref))).find((x) => x !== section);
+      return { lines, commentaries, ...(prev && prev !== section ? { prev } : {}), ...(next ? { next } : {}) };
+    },
+
+    async contents(title) {
+      const rows = await db.all(
+        `SELECT rtrim(rtrim(p.ref, '0123456789'), ':') AS s, MIN(p.seq) AS q
+         FROM passages p JOIN titles t ON t.id = p.title_id
+         WHERE t.title = ? GROUP BY s ORDER BY q LIMIT 4000`,
+        [title],
+      );
+      return [...new Set(rows.map((r) => String(r.s).trim()).filter(Boolean))];
     },
 
     async daf(section) {

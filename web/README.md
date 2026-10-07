@@ -20,8 +20,13 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   or sent anywhere else.
 - **Highlight and ask.** Highlight any words in an answer or a text, and an "Ask about this"
   button appears.
-- **Read.** Tapping a source opens the page or chapter with the cited line highlighted, in
-  Hebrew, English, or both, with the commentaries under the line they explain.
+- **Read.** Tapping a source opens the page or chapter with the cited line highlighted. One bar
+  holds everything: the title (tap it for the book's contents, `/api/contents?book=`), arrows to
+  the previous and next chapter or amud, "Page" for the printed Gemara page, and **Aa** for the
+  language (Hebrew, English, or both) and which commentators to show under every line. The other
+  commentaries fold into a count on each line ("6 comments"); tapping it opens them in the card.
+  Under the bar, one line says the text is from the testing library and not yet approved by the
+  rabbinic board, with the editions one tap away.
 - **Tap a word.** Tapping any Hebrew or Aramaic word opens a card beside it (a short sheet at
   the bottom on a phone) with the word first, then tabs: **Meaning**, **Translation**,
   **Commentary**, **Ask**. Meaning shows what the library's dictionaries say (Jastrow and the

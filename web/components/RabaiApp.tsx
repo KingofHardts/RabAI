@@ -56,6 +56,10 @@ interface ReaderLine extends Passage {
 interface ReaderData {
   focus: string | null;
   libraryMode: LibraryMode;
+  /** The book, and the sections before and after this one in it. */
+  book?: string;
+  prev?: string;
+  next?: string;
   section: string;
   sectionHe: string;
   work: Work;
@@ -449,6 +453,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // Word study: the card for a tapped word or line, and which of its tabs is open.
   const [wordCard, setWordCard] = useState<{ ref: string; index: number } | null>(null);
   const [cardTab, setCardTab] = useState<CardTab>("meaning");
+  /** The reader's open menu: the display choices (Aa), the book's contents, or the edition details. */
+  const [readerMenu, setReaderMenu] = useState<"aa" | "contents" | "about" | null>(null);
+  const [contents, setContents] = useState<Record<string, { loading?: boolean; error?: string; sections?: string[] }>>({});
+  /** Commentators whose comments show under every line (by name); the others fold into a count. */
+  const [inlineComms, setInlineComms] = useState<string[]>([]);
+  const [readerHint, setReaderHint] = useState(false);
   const [cardPos, setCardPos] = useState<CSSProperties | undefined>(undefined);
   const wide = useWide();
   const [wordInfo, setWordInfo] = useState<Record<string, WordLookup>>({});
@@ -494,6 +504,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [dafVowels, setDafVowels] = useState(false);
   const dafZoomChosen = useRef(false);
   const [dafQuestion, setDafQuestion] = useState("");
+  const [dafMenu, setDafMenu] = useState<"view" | "contents" | null>(null);
   const [outlines, setOutlines] = useState<Record<string, { lines: OutlineLine[]; model?: string }>>({});
   const [outlineState, setOutlineState] = useState<{ loading: boolean; error?: string } | null>(null);
   const [showOutline, setShowOutline] = useState(false);
@@ -512,6 +523,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
+    setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
+    try {
+      const kept = JSON.parse(window.localStorage.getItem("rabai_inline_comms") ?? "[]");
+      if (Array.isArray(kept)) setInlineComms(kept.filter((x): x is string => typeof x === "string").slice(0, 20));
+    } catch {
+      /* nothing kept */
+    }
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setMyWords(readSavedWords());
@@ -651,6 +669,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const closeDaf = () => {
     setDafRef(null);
     setDafPick(null);
+    setDafMenu(null);
     setOutlineState(null);
     const url = new URL(window.location.href);
     if (url.searchParams.has("daf")) {
@@ -784,12 +803,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (!dafRef) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (dafPick) setDafPick(null);
+      if (dafMenu) setDafMenu(null);
+      else if (dafPick) setDafPick(null);
       else closeDaf();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dafRef, dafPick]);
+  }, [dafRef, dafPick, dafMenu]);
 
   // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
@@ -911,6 +931,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       lastFocus.current = document.activeElement as HTMLElement | null;
       setReaderOpen(true);
       setReaderRef(ref);
+      setReaderMenu(null);
       setSelected(null);
       setWordCard(null);
       setTryRef(null);
@@ -952,12 +973,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (!readerOpen || dafRef) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (wordCard || selected) closeCard();
+      if (readerMenu) setReaderMenu(null);
+      else if (wordCard || selected) closeCard();
       else closeReader();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readerOpen, dafRef, closeReader, closeCard, wordCard, selected]);
+  }, [readerOpen, dafRef, closeReader, closeCard, wordCard, selected, readerMenu]);
 
   // Scroll the cited line into view and move focus into the sheet on phones.
   useEffect(() => {
@@ -1028,6 +1050,41 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const chooseLang = (l: Lang) => {
     setLang(l);
     store("rabai_lang", l);
+  };
+
+  const toggleInline = (name: string) => {
+    setInlineComms((prev) => {
+      const next = prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name];
+      store("rabai_inline_comms", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  /** Opens the card on the comments of a line. */
+  const openComments = (ref: string) => {
+    setSelected(ref);
+    setWordCard(null);
+    setCardTab("commentary");
+  };
+
+  /** The book's table of contents, fetched once per book. */
+  const openContents = () => {
+    if (readerMenu === "contents") return setReaderMenu(null);
+    setReaderMenu("contents");
+    const book = reader?.book;
+    if (!book || contents[book]?.sections || contents[book]?.loading) return;
+    setContents((prev) => ({ ...prev, [book]: { loading: true } }));
+    fetch(`/api/contents?book=${encodeURIComponent(book)}`)
+      .then((r) => r.json())
+      .then((j: { sections?: string[]; error?: string }) =>
+        setContents((prev) => ({ ...prev, [book]: j.sections ? { sections: j.sections } : { error: j.error ?? "The contents couldn't be loaded." } })),
+      )
+      .catch(() => setContents((prev) => ({ ...prev, [book]: { error: "The contents couldn't be loaded." } })));
+  };
+
+  const dismissHint = () => {
+    setReaderHint(false);
+    store("rabai_reader_hint", "seen");
   };
 
   const askLine = useCallback(
@@ -1986,77 +2043,155 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     return (
       <div className="daf-view" role="dialog" aria-modal="true" aria-label={daf ? `${daf.section}, the page as printed` : "The page as printed"}>
         <div className="daf-bar">
-          <button type="button" className="chip-btn" onClick={closeDaf}>
-            ← Back
+          <button type="button" className="rb-icon" aria-label="Back" onClick={closeDaf}>
+            ←
           </button>
-          <div className="daf-title">
-            {daf && (
-              <span className="he" lang="he">
-                {daf.labelHe}
-              </span>
-            )}
-            <span>{dafRef}</span>
-          </div>
-          <div className="daf-tools">
+          <div className="daf-nav">
             <button
               type="button"
-              className="chip-btn"
+              className="rb-icon"
               disabled={!daf?.prev || dafLoading}
               onClick={() => daf?.prev && void openDaf(daf.prev)}
               aria-label={daf?.prev ? `Previous page, ${daf.prev}` : "Previous page"}
             >
-              ‹<span className="wide"> Back a page</span>
+              ‹
             </button>
             <button
               type="button"
-              className="chip-btn"
+              className="rb-title"
+              aria-expanded={dafMenu === "contents"}
+              aria-label={`${dafRef}: choose a page`}
+              disabled={!daf}
+              onClick={() => {
+                if (dafMenu === "contents") return setDafMenu(null);
+                setDafMenu("contents");
+                const book = daf?.section.replace(/ \d+[ab]$/, "");
+                if (!book || contents[book]?.sections || contents[book]?.loading) return;
+                setContents((prev) => ({ ...prev, [book]: { loading: true } }));
+                fetch(`/api/contents?book=${encodeURIComponent(book)}`)
+                  .then((r) => r.json())
+                  .then((j: { sections?: string[]; error?: string }) =>
+                    setContents((prev) => ({ ...prev, [book]: j.sections ? { sections: j.sections } : { error: j.error ?? "The pages couldn't be listed." } })),
+                  )
+                  .catch(() => setContents((prev) => ({ ...prev, [book]: { error: "The pages couldn't be listed." } })));
+              }}
+            >
+              {daf && (
+                <span className="he" lang="he">
+                  {daf.labelHe}
+                </span>
+              )}
+              <span className="rb-t">{dafRef}</span>
+              <span className="rb-caret" aria-hidden="true">
+                ▾
+              </span>
+            </button>
+            <button
+              type="button"
+              className="rb-icon"
               disabled={!daf || dafLoading}
               onClick={() => daf && void openDaf(daf.next)}
               aria-label={daf ? `Next page, ${daf.next}` : "Next page"}
             >
-              <span className="wide">Next page </span>›
-            </button>
-            <div className="seg" role="group" aria-label="Page size">
-              <button type="button" aria-label="Smaller page" disabled={dafZoom <= 1} onClick={() => {
-                  dafZoomChosen.current = true;
-                  setDafZoom((z) => Math.max(1, z - 0.5));
-                }}>
-                −
-              </button>
-              <button type="button" aria-label="Bigger page" disabled={dafZoom >= 3} onClick={() => {
-                  dafZoomChosen.current = true;
-                  setDafZoom((z) => Math.min(3, z + 0.5));
-                }}>
-                +
-              </button>
-            </div>
-            <button
-              type="button"
-              className={`chip-btn${dafVowels ? " primary" : ""}`}
-              aria-pressed={dafVowels}
-              disabled={!daf?.main.some((p) => p.vowels)}
-              title={daf && !daf.main.some((p) => p.vowels) ? "The library has no vowels for this tractate yet." : undefined}
-              onClick={() => {
-                setDafVowels((v) => {
-                  store("rabai_daf_vowels", v ? "off" : "on");
-                  return !v;
-                });
-              }}
-            >
-              <span lang="he">נִקּוּד</span>
-              <span className="wide"> Vowels</span>
-            </button>
-            <button
-              type="button"
-              className={`chip-btn${showOutline ? " primary" : ""}`}
-              aria-pressed={showOutline}
-              disabled={!daf || outlineState?.loading}
-              onClick={() => void showFlow()}
-            >
-              {outlineState?.loading ? "Outlining…" : showOutline ? "Hide the flow" : "Show the flow"}
+              ›
             </button>
           </div>
+          <button
+            type="button"
+            className={`rb-btn flow-btn${showOutline ? " on" : ""}`}
+            aria-pressed={showOutline}
+            disabled={!daf || outlineState?.loading}
+            onClick={() => void showFlow()}
+          >
+            {outlineState?.loading ? "Outlining…" : showOutline ? "Hide the flow" : "Show the flow"}
+          </button>
+          <button type="button" className="rb-btn" aria-expanded={dafMenu === "view"} onClick={() => setDafMenu(dafMenu === "view" ? null : "view")}>
+            View
+          </button>
+          {dafMenu === "view" && (
+            <div className="rb-menu daf-menu" role="group" aria-label="View">
+              <div className="view-row">
+                <span>Page size</span>
+                <div className="seg" role="group" aria-label="Page size">
+                  <button type="button" aria-label="Smaller page" disabled={dafZoom <= 1} onClick={() => {
+                      dafZoomChosen.current = true;
+                      setDafZoom((z) => Math.max(1, z - 0.5));
+                    }}>
+                    −
+                  </button>
+                  <button type="button" aria-label="Bigger page" disabled={dafZoom >= 3} onClick={() => {
+                      dafZoomChosen.current = true;
+                      setDafZoom((z) => Math.min(3, z + 0.5));
+                    }}>
+                    +
+                  </button>
+                </div>
+              </div>
+              <label className="rb-check">
+                <input
+                  type="checkbox"
+                  checked={dafVowels}
+                  disabled={!daf?.main.some((p) => p.vowels)}
+                  onChange={() =>
+                    setDafVowels((v) => {
+                      store("rabai_daf_vowels", v ? "off" : "on");
+                      return !v;
+                    })
+                  }
+                />
+                Vowels{" "}
+                <span lang="he" dir="rtl">
+                  נִקּוּד
+                </span>
+              </label>
+              {daf && !daf.main.some((p) => p.vowels) && <p className="fine-left">The library has no vowels for this tractate yet.</p>}
+              <label className="rb-check narrow-only">
+                <input type="checkbox" checked={showOutline} disabled={!daf || outlineState?.loading} onChange={() => void showFlow()} />
+                Show the flow (RabAI’s outline)
+              </label>
+            </div>
+          )}
+          {dafMenu === "contents" && daf && (
+            <div className="rb-menu daf-menu rb-toc">
+              {(() => {
+                const book = daf.section.replace(/ \d+[ab]$/, "");
+                const c = contents[book];
+                if (!c || c.loading)
+                  return (
+                    <p className="muted">
+                      Listing the pages<span className="dots" />
+                    </p>
+                  );
+                if (c.error) return <p className="muted">{c.error}</p>;
+                return (
+                  <>
+                    <p className="label-sm">{book}</p>
+                    <div className="toc-grid">
+                      {(c.sections ?? []).map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          aria-current={sec === daf.section ? "page" : undefined}
+                          onClick={() => {
+                            setDafMenu(null);
+                            void openDaf(sec);
+                          }}
+                        >
+                          {sec.slice(book.length + 1)}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
+        {daf && (
+          <p className="reader-label daf-label" title={daf.libraryLabel}>
+            <span className="tag-gray">Testing library</span> Not yet approved by the rabbinic board.
+          </p>
+        )}
         {outlineState?.error && <p className="daf-alert">{outlineState.error}</p>}
         {showOutline && outline && (
           <div className="daf-legend" aria-label="What the colors mean">
@@ -2100,16 +2235,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   const printed = daf.printed;
                   return printed ? <DafPrinted data={{ ...daf, printed }} {...props} /> : <DafPage data={daf} {...props} />;
                 })()}
-                <p className="daf-note">
-                  {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}.{" "}
-                  {daf.printed
-                    ? "Every line, and nearly every word on it, is where it is on the printed Vilna page, read from a scan of the Romm printing. Abbreviations are shown as the print has them; tap one for the words it stands for. Where the scan didn't settle one, the library's full words are set small in its place."
-                    : "The shape follows the printed Vilna page, but the lines break where your screen breaks them."}{" "}
-                  {daf.printed && daf.printed.estimated.length > 0
-                    ? `${daf.printed.estimated.length === 1 ? "One word" : `${daf.printed.estimated.length} words`} with a dotted underline ${daf.printed.estimated.length === 1 ? "is" : "are"} placed by estimate: the scan didn't show for certain which line ${daf.printed.estimated.length === 1 ? "it is" : "they are"} on. `
-                    : ""}
-                  Tap any word.
-                </p>
+                {daf.printed && daf.printed.estimated.length > 0 && (
+                  <p className="daf-note">
+                    {daf.printed.estimated.length === 1 ? "One word" : `${daf.printed.estimated.length} words`} with a dotted underline{" "}
+                    {daf.printed.estimated.length === 1 ? "is" : "are"} placed by estimate: the scan didn’t show for certain which line{" "}
+                    {daf.printed.estimated.length === 1 ? "it is" : "they are"} on.
+                  </p>
+                )}
+                <details className="daf-note daf-about">
+                  <summary>About this page</summary>
+                  <p>
+                    {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}.{" "}
+                    {daf.printed
+                      ? "Every line, and nearly every word on it, is where it is on the printed Vilna page, read from a scan of the Romm printing. Abbreviations are shown as the print has them; tap one for the words it stands for. Where the scan didn't settle one, the library's full words are set small in its place."
+                      : "The shape follows the printed Vilna page, but the lines break where your screen breaks them."}
+                  </p>
+                </details>
               </>
             ) : null}
           </div>
@@ -2303,10 +2444,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <h1>RabAI</h1>
               <div className="sub">An AI Torah teacher</div>
             </div>
-            {libraryMode === "development" && <span className="badge">Development build</span>}
+            {libraryMode === "development" && (
+              <span className="badge" title={DEV_NOTE}>
+                <span className="wide">Development build</span>
+                <span className="narrow">Dev</span>
+              </span>
+            )}
             {libraryMode === "testing" && (
               <span className="badge" title={TESTING_LABEL}>
-                Testing library
+                <span className="wide">Testing library</span>
+                <span className="narrow">Testing</span>
               </span>
             )}
           </div>
@@ -2323,7 +2470,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               }}
             >
               <ChatsIcon />
-              <span>Chats</span>
+              <span className="chats-label">Chats</span>
             </button>
             <div className="mode-switch" role="group" aria-label="Chat or learn">
               <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
@@ -2652,51 +2799,171 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         {!readerRef ? null : (
           <>
             <div className="reader-head">
-              <div className="reader-title">
-                <h2>{reader?.section ?? readerRef}</h2>
-                {reader && (
-                  <span className="he" lang="he">
-                    {reader.sectionHe}
-                  </span>
-                )}
-                <button ref={closeRef} type="button" className="close" onClick={closeReader}>
-                  Close
+              <div className="reader-bar">
+                <button ref={closeRef} type="button" className="rb-icon" aria-label="Close the text" onClick={closeReader}>
+                  ✕
                 </button>
-              </div>
-              <div className="reader-tools">
-                <div className="seg" role="group" aria-label="Language">
-                  <button type="button" aria-pressed={lang === "he"} onClick={() => chooseLang("he")} lang="he">
-                    עברית
+                <button
+                  type="button"
+                  className="rb-title"
+                  aria-expanded={readerMenu === "contents"}
+                  aria-label={`${reader?.section ?? readerRef}: contents`}
+                  disabled={!reader?.book}
+                  onClick={openContents}
+                >
+                  <span className="rb-t">{reader?.section ?? readerRef}</span>
+                  {reader && (
+                    <span className="he" lang="he">
+                      {reader.sectionHe}
+                    </span>
+                  )}
+                  {reader?.book && (
+                    <span className="rb-caret" aria-hidden="true">
+                      ▾
+                    </span>
+                  )}
+                </button>
+                <div className="rb-nav">
+                  <button
+                    type="button"
+                    className="rb-icon"
+                    disabled={!reader?.prev || readerLoading}
+                    aria-label={reader?.prev ? `Previous: ${reader.prev}` : "Previous"}
+                    onClick={() => reader?.prev && void openReader(reader.prev)}
+                  >
+                    ‹
                   </button>
-                  <button type="button" aria-pressed={lang === "both"} onClick={() => chooseLang("both")}>
-                    Both
-                  </button>
-                  <button type="button" aria-pressed={lang === "en"} onClick={() => chooseLang("en")}>
-                    English
+                  <button
+                    type="button"
+                    className="rb-icon"
+                    disabled={!reader?.next || readerLoading}
+                    aria-label={reader?.next ? `Next: ${reader.next}` : "Next"}
+                    onClick={() => reader?.next && void openReader(reader.next)}
+                  >
+                    ›
                   </button>
                 </div>
                 {reader?.libraryMode === "testing" && reader.work.id === "talmud-bavli" && parseAmud(reader.section) && (
-                  <button type="button" className="study-toggle page-toggle" onClick={() => void openDaf(reader.section)}>
-                    See the page
+                  <button type="button" className="rb-btn" onClick={() => void openDaf(reader.section)} title="See this page as printed">
+                    <span aria-hidden="true">▤</span> Page
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="rb-btn"
+                  aria-expanded={readerMenu === "aa"}
+                  aria-label="Display: language and commentaries"
+                  onClick={() => setReaderMenu(readerMenu === "aa" ? null : "aa")}
+                >
+                  Aa
+                </button>
               </div>
-              {reader &&
-                (reader.libraryMode === "development" ? (
-                  <div className="dev-strip">
-                    {DEV_NOTE} Tap a word for its meaning, or a line to ask about it.
+              {reader && (
+                <p className="reader-label">
+                  {reader.libraryMode === "testing" ? (
+                    <>
+                      <span className="tag-gray">Testing library</span> Not yet approved by the rabbinic board.
+                    </>
+                  ) : reader.libraryMode === "development" ? (
+                    <>
+                      <span className="tag-gray">Development texts</span> Not an approved edition.
+                    </>
+                  ) : (
+                    <>{reader.work.title}</>
+                  )}{" "}
+                  <button
+                    type="button"
+                    className="link"
+                    aria-expanded={readerMenu === "about"}
+                    onClick={() => setReaderMenu(readerMenu === "about" ? null : "about")}
+                  >
+                    Editions
+                  </button>
+                </p>
+              )}
+              {reader && readerMenu === "about" && (
+                <div className="rb-menu">
+                  <p>
+                    {reader.libraryMode === "testing" ? TESTING_LABEL : reader.libraryMode === "development" ? DEV_NOTE : null}
+                  </p>
+                  <p>
+                    {reader.work.edition ? `Hebrew: ${reader.work.edition}. ` : ""}English: {reader.work.translation.by}.
+                  </p>
+                </div>
+              )}
+              {reader && readerMenu === "aa" && (
+                <div className="rb-menu" role="group" aria-label="Display">
+                  <p className="label-sm">Language</p>
+                  <div className="seg" role="group" aria-label="Language">
+                    <button type="button" aria-pressed={lang === "he"} onClick={() => chooseLang("he")} lang="he">
+                      עברית
+                    </button>
+                    <button type="button" aria-pressed={lang === "both"} onClick={() => chooseLang("both")}>
+                      Both
+                    </button>
+                    <button type="button" aria-pressed={lang === "en"} onClick={() => chooseLang("en")}>
+                      English
+                    </button>
                   </div>
-                ) : reader.libraryMode === "testing" ? (
-                  <div className="dev-strip">
-                    {TESTING_LABEL} {reader.work.edition ? `Hebrew: ${reader.work.edition}.` : ""} English:{" "}
-                    {reader.work.translation.by}. Tap a word for its meaning, or a line to ask about it.
-                  </div>
-                ) : (
-                  <div className="edition">
-                    {reader.work.title}: {reader.work.edition} English: {reader.work.translation.by}.{" "}
-                    Tap a word for its meaning, or a line to ask about it.
-                  </div>
-                ))}
+                  {(() => {
+                    const names = [...new Set(reader.lines.flatMap((l) => l.commentaries.map((c) => c.author || c.label)))].sort((a, b) => a.localeCompare(b));
+                    return names.length ? (
+                      <>
+                        <p className="label-sm">Show under each line</p>
+                        <div className="rb-checks">
+                          {names.map((n) => (
+                            <label key={n} className="rb-check">
+                              <input type="checkbox" checked={inlineComms.includes(n)} onChange={() => toggleInline(n)} />
+                              {n}
+                            </label>
+                          ))}
+                        </div>
+                        <p className="fine-left">The others fold into a count on each line. Tap the count to read them.</p>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+              {reader && readerMenu === "contents" && (
+                <div className="rb-menu rb-toc">
+                  {(() => {
+                    const book = reader.book ?? "";
+                    const c = contents[book];
+                    if (!c || c.loading)
+                      return (
+                        <p className="muted">
+                          Loading the contents<span className="dots" />
+                        </p>
+                      );
+                    if (c.error) return <p className="muted">{c.error}</p>;
+                    return (
+                      <>
+                        <p className="label-sm">{book}</p>
+                        <div className="toc-grid">
+                          {(c.sections ?? []).map((sec) => (
+                            <button
+                              key={sec}
+                              type="button"
+                              aria-current={sec === reader.section ? "page" : undefined}
+                              onClick={() => void openReader(sec)}
+                            >
+                              {sec.startsWith(`${book} `) ? sec.slice(book.length + 1) : sec}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              {reader && readerHint && (
+                <p className="reader-hint">
+                  Tap a word for its meaning, or a line to ask about it.{" "}
+                  <button type="button" className="link" onClick={dismissHint}>
+                    Got it
+                  </button>
+                </p>
+              )}
             </div>
             <div className={`reader-body lang-${lang}${selected && !wide ? " with-sheet" : ""}`} ref={readerBodyRef} data-askable="reader">
               {readerLoading ? (
@@ -2706,17 +2973,30 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ) : readerError ? (
                 <p className="reader-state">{readerError}</p>
               ) : reader ? (
-                reader.lines.map((line) => (
-                  <div key={line.ref}>
-                    {renderLine(line, false)}
-                    {line.commentaries.length > 0 && (
-                      <div className="comms">
-                        <div className="comms-label">On this line</div>
-                        {line.commentaries.map((c) => renderLine(c, true, c.label))}
-                      </div>
-                    )}
-                  </div>
-                ))
+                reader.lines.map((line) => {
+                  // Comments fold into a count, except those the person chose to show, the one a
+                  // source pointed at, and the one open in the card.
+                  const shown = line.commentaries.filter(
+                    (c) => inlineComms.includes(c.author || c.label) || c.ref === reader.focus || c.ref === selected,
+                  );
+                  const folded = line.commentaries.length - shown.length;
+                  return (
+                    <div key={line.ref}>
+                      {renderLine(line, false)}
+                      {folded > 0 && (
+                        <button
+                          type="button"
+                          className="comm-count"
+                          aria-label={`${folded === 1 ? "One comment" : `${folded} comments`} on ${line.label}`}
+                          onClick={() => openComments(line.ref)}
+                        >
+                          {folded === 1 ? "1 comment" : `${folded} comments`} <span aria-hidden="true">›</span>
+                        </button>
+                      )}
+                      {shown.length > 0 && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
+                    </div>
+                  );
+                })
               ) : null}
             </div>
             {renderReaderCard()}
