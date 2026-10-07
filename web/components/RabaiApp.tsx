@@ -33,7 +33,21 @@ import DafColumn from "./DafColumn";
 import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import AboutYou from "./AboutYou";
-import { PROFILE_KEY, emptyProfile, forgetNoticed, noticed, parseProfile, withStated, type Activity, type LearnerProfile } from "@/lib/learner-profile";
+import AccountDialog from "./AccountDialog";
+import AnswerFeedback from "./AnswerFeedback";
+import { useAccount, type AccountApi } from "./use-account";
+import {
+  PROFILE_KEY,
+  emptyProfile,
+  forgetAll,
+  forgetNoticed,
+  noticed,
+  parseProfile,
+  withRemember,
+  withStated,
+  type Activity,
+  type LearnerProfile,
+} from "@/lib/learner-profile";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
@@ -268,6 +282,13 @@ function plainAnswer(result: AskResult | undefined): string {
   return result?.blocks.map((b) => b.text).join("") ?? "";
 }
 
+/** The person's question that an answer replied to: the last message of theirs before it. */
+function questionBefore(messages: ChatMessage[], id: number): string {
+  const i = messages.findIndex((m) => m.id === id);
+  for (let j = i - 1; j >= 0; j--) if (messages[j].role === "user") return messages[j].text ?? "";
+  return "";
+}
+
 /** The word without punctuation at either end, for saving and asking. */
 /** A tapped word without the punctuation around it. A geresh right after a letter (ר׳, וכו׳) is part of the word. */
 /** The book a section belongs to: "Rashi on Berakhot 2a" -> "Rashi on Berakhot", "Genesis 1" -> "Genesis". */
@@ -470,6 +491,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [profile, setProfile] = useState<LearnerProfile>(emptyProfile);
   const profileRef = useRef<LearnerProfile>(emptyProfile());
   const [aboutOpen, setAboutOpen] = useState(false);
+  /** The person's account, when they sign in (use-account.ts); set below, once the chats exist. */
+  const accountRef = useRef<AccountApi | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
   /** Something the person did that RabAI may remember. Nothing happens when remembering is off. */
   const notice = useCallback((a: Activity) => {
     const next = noticed(profileRef.current, a);
@@ -477,6 +501,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     profileRef.current = next;
     setProfile(next);
     store(PROFILE_KEY, JSON.stringify(next));
+    accountRef.current?.profileChanged();
   }, []);
 
   /** Learn's screens: the library, My words, or the Gemara's key words. */
@@ -614,11 +639,51 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   // ---- saved chats ----
-  const saveChats = useCallback((next: SavedChat[]) => {
+  /** Keep chats on this device only (also used when the account sends its copy). */
+  const setChatsLocal = useCallback((next: SavedChat[]) => {
     chatsRef.current = next;
     setChats(next);
     store(CHATS_KEY, serializeChats(next));
   }, []);
+  /** Keep chats, and send the change to the person's account when they are signed in. */
+  const saveChats = useCallback(
+    (next: SavedChat[]) => {
+      const prev = chatsRef.current;
+      setChatsLocal(next);
+      accountRef.current?.chatsChanged(prev, next);
+    },
+    [setChatsLocal],
+  );
+
+  // ---- the person's account (use-account.ts): their profile and chats on every device ----
+  const account = useAccount({
+    getProfile: () => profileRef.current,
+    setProfile: (p) => {
+      profileRef.current = p;
+      setProfile(p);
+      store(PROFILE_KEY, JSON.stringify(p));
+    },
+    getChats: () => chatsRef.current,
+    setChats: setChatsLocal,
+    clearDevice: () => {
+      profileRef.current = emptyProfile();
+      setProfile(profileRef.current);
+      setChatsLocal([]);
+      try {
+        window.localStorage.removeItem(PROFILE_KEY);
+        window.localStorage.removeItem(CHATS_KEY);
+      } catch {
+        /* storage can be unavailable */
+      }
+      setMessages([]);
+      setChatId(null);
+    },
+  });
+  useEffect(() => {
+    accountRef.current = account.api;
+  }, [account.api]);
+  const signedIn = account.state.status === "signed-in";
+  const accountsOn = account.state.status !== "off" && account.state.status !== "loading";
 
   // Save the conversation as it goes: after each answer, never mid-answer.
   useEffect(() => {
@@ -639,7 +704,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   }, [messages, pending, chatId, saveChats]);
 
   const updateChat = (id: string, change: Partial<Pick<SavedChat, "title" | "category">>) =>
-    saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change } : c)));
+    saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change, changedAt: Date.now() } : c)));
 
   const startNewChat = () => {
     if (pending) return;
@@ -1308,9 +1373,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // ---- what RabAI knows about the person (lib/learner-profile.ts) ----
   const keepProfile = useCallback((next: LearnerProfile) => {
     if (next === profileRef.current) return;
+    const rememberChanged = next.remember !== profileRef.current.remember;
     profileRef.current = next;
     setProfile(next);
     store(PROFILE_KEY, JSON.stringify(next));
+    if (rememberChanged) accountRef.current?.rememberChanged();
+    else accountRef.current?.profileChanged();
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -2032,7 +2100,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             )}
           </div>
         </div>
-        <p className="fine-left">Saved only on this device. Clearing your browser’s data removes them.</p>
+        {signedIn ? (
+          <p className="fine-left">Saved in your account, on all your devices.</p>
+        ) : (
+          <p className="fine-left">
+            Saved only on this device. Clearing your browser’s data removes them.
+            {accountsOn && (
+              <>
+                {" "}
+                <button type="button" className="link" onClick={() => setAccountOpen(true)}>
+                  Sign in to keep them on all your devices
+                </button>
+              </>
+            )}
+          </p>
+        )}
         {chats.length > 6 && (
           <>
             <label className="sr-only" htmlFor="chat-filter">
@@ -2095,12 +2177,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         {chats.length > 1 &&
           (confirmDelete === "__all__" ? (
             <p className="confirm all">
-              Delete all {chats.length} chats from this device?{" "}
+              {signedIn ? `Delete all ${chats.length} chats, from your account and all your devices?` : `Delete all ${chats.length} chats from this device?`}{" "}
               <button
                 type="button"
                 className="chip-btn danger"
                 onClick={() => {
-                  saveChats([]);
+                  if (signedIn) {
+                    setChatsLocal([]);
+                    account.api.deleteAllChats();
+                  } else saveChats([]);
                   setConfirmDelete(null);
                   setMessages([]);
                   setChatId(null);
@@ -2114,7 +2199,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </p>
           ) : (
             <button type="button" className="link delete-all" onClick={() => setConfirmDelete("__all__")}>
-              Delete all chats on this device
+              {signedIn ? "Delete all chats" : "Delete all chats on this device"}
             </button>
           ))}
       </div>
@@ -2650,13 +2735,42 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     {profile.remember ? "What you told RabAI, and what it remembers of your learning" : "Remembering is off"}
                   </span>
                 </button>
+                {accountsOn && (
+                  <button
+                    type="button"
+                    className="settings-row"
+                    onClick={() => {
+                      setSettingsOpen(false);
+                      setAccountOpen(true);
+                    }}
+                  >
+                    <strong>Your account</strong>
+                    <span className="muted">
+                      {signedIn
+                        ? "Signed in. Download your data, sign out, or delete your account"
+                        : "Sign in with your email to keep your learning on all your devices"}
+                    </span>
+                  </button>
+                )}
                 <div className="settings-about">
                   <p>RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                   {libraryMode === "testing" && (
                     <p>{TESTING_LABEL}</p>
                   )}
                   {libraryMode === "development" && <p>{DEV_NOTE}</p>}
-                  <p>Your chats, saved words, marks, recent reading and what RabAI knows about you stay on this device.</p>
+                  {signedIn ? (
+                    <p>
+                      Your chats and what RabAI knows about you are kept in your account. Saved words, marks and recent reading
+                      stay on this device.
+                    </p>
+                  ) : (
+                    <p>Your chats, saved words, marks, recent reading and what RabAI knows about you stay on this device.</p>
+                  )}
+                  <p>
+                    <a href="/privacy" target="_blank" rel="noopener">
+                      What RabAI keeps, and why
+                    </a>
+                  </p>
                 </div>
               </div>
             </>
@@ -2722,6 +2836,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </p>
                   )}
                   <p className="welcome-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                  {account.state.justSignedIn && signedIn && (
+                    <p className="account-note" role="status">
+                      You’re signed in. Your chats and what RabAI knows about you now follow you to your other devices.
+                    </p>
+                  )}
+                  {account.state.ended && account.state.status === "signed-out" && (
+                    <p className="account-note">
+                      Your sign-in ended, so your chats were taken off this device. They’re safe in your account.{" "}
+                      <button type="button" className="link" onClick={() => setAccountOpen(true)}>
+                        Sign in again
+                      </button>
+                    </p>
+                  )}
                   {messages.length === 0 &&
                     STARTERS.map((g) => (
                       <div key={g.label} className="starters">
@@ -2779,6 +2906,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                             Say it more simply
                           </button>
                         </div>
+                      )}
+                      {m.result?.status === "answered" && account.state.feedback && (
+                        <AnswerFeedback
+                          question={questionBefore(messages, m.id)}
+                          answer={plainAnswer(m.result)}
+                          sources={m.result.sources.map((s) => s.ref)}
+                        />
                       )}
                     </div>
                   </div>
@@ -3193,13 +3327,24 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       {aboutOpen && (
         <AboutYou
           profile={profile}
+          signedIn={signedIn}
+          onAccount={
+            accountsOn
+              ? () => {
+                  setAboutOpen(false);
+                  setAccountOpen(true);
+                }
+              : undefined
+          }
           onStated={(stated) => keepProfile(withStated(profileRef.current, stated))}
-          onRemember={(on) => keepProfile({ ...profileRef.current, remember: on, updatedAt: Date.now() })}
+          onRemember={(on) => keepProfile(withRemember(profileRef.current, on))}
           onForgetNoticed={() => keepProfile(forgetNoticed(profileRef.current))}
-          onForgetAll={() => keepProfile({ ...emptyProfile(), updatedAt: Date.now() })}
+          onForgetAll={() => keepProfile(forgetAll(profileRef.current))}
           onClose={() => setAboutOpen(false)}
         />
       )}
+
+      {accountOpen && <AccountDialog state={account.state} api={account.api} onClose={() => setAccountOpen(false)} />}
     </div>
   );
 }

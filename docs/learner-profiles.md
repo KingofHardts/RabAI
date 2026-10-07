@@ -46,27 +46,36 @@ Code: `web/lib/learner-profile.ts`, `web/components/AboutYou.tsx`, `profile` in
 There are no accounts yet, so the profile lives in the person's browser, like saved chats. It works
 now, costs nothing, and keeps the person's data with them.
 
-### Phase 2: accounts, so the profile follows the person (needs the maintainer's choices)
+### Phase 2: accounts, so the profile follows the person (built 2026-10-07)
 
-To follow a person between their phone and their computer, RabAI needs sign-in. Proposed:
+The maintainer chose (2026-10-07): sign-in by email link, remembering on from the start (with the
+switch to turn it off), and "Was this helpful?" now.
 
-- **Sign-in by email link** (no passwords), through a mail service such as Resend, or "Sign in
-  with Google". Either needs an account the maintainer creates; nobody pastes keys into a chat.
-- **A database for people**, `rabai-people` on Turso (small: a few kilobytes per person):
-  - `people (id, email_hash, created_at, last_seen)`
-  - `profiles (person_id, stated, observed, updated_at)`, the same shape as on the device
-  - `chats (person_id, id, title, category, messages, updated_at)` for saved chats
-  - `progress (person_id, ref, kind, at)` for what they learned and practiced, for the chavrusa mode
-- On first sign-in, what is on the device is copied up once; after that the server copy is the
-  one used, and the device keeps a cached copy for speed and offline use.
-- A privacy notice before launch, and "Download my data" and "Delete my account" buttons.
+- **Sign-in by email link** (no passwords), sent through Resend. The link page shows a Sign in
+  button, and pressing it is what uses the link, so a mail program that opens links to check
+  them can't use one up. The access lock still comes first: a link opened on a device that hasn't
+  entered the access code asks for the code, then returns to the link.
+- **The people database**, `rabai-people` on Turso, its own database beside the testing library
+  (`web/lib/account/people.ts`). It holds no email address (only a keyed check of it), no token
+  (only hashes), each person's profile and saved chats, and feedback that is never linked to a
+  person.
+- **First sign-in on a device:** what the device learned before is added to the account once;
+  after that each change goes to the account and to the person's other devices. For chats, the
+  copy changed last wins, and a deletion reaches every device. Forgetting, and turning
+  remembering off, win over any older copy.
+- **Signed in, an answer uses the account's profile.** The server still rebuilds the lines the
+  model sees from a checked copy (`parseProfile`, `profileSummary`). The profile shapes only how
+  RabAI explains, never what the sources say.
+- A privacy page (`/privacy`), and Download my data, Sign out and Delete my account.
+- Setup: the "Accounts" section of `web/README.md`.
+- Still to come: the `progress` table for the chavrusa mode (phase 4).
 
 ### Phase 3: RabAI gets better for everyone, with people in charge
 
 Learning from many people must never let anyone change Torah content by using the app. So the
 shared learning goes through people:
 
-- **"Was this helpful?"** on each answer, with an optional reason (a source is wrong, too hard, too
+- **"Was this helpful?"** (built 2026-10-07) on each answer, with an optional reason (a source is wrong, too hard, too
   long, not what I asked, doesn't sound Orthodox). It is sent only when the person taps it, with
   the question and answer, never with their profile.
 - **A weekly report for the maintainer and the board**: the questions asked most, answers marked
@@ -87,6 +96,6 @@ review.
 
 ## Decisions for the maintainer
 
-1. Sign-in: email link (recommended) or Google.
-2. Whether remembering starts on (as built now, with a clear switch) or asks first.
-3. Whether to build "Was this helpful?" now; it needs only a small table in an existing database.
+Answered 2026-10-07: sign-in by email link; remembering starts on, with a clear switch; build
+"Was this helpful?" now. Still open: whether the weekly report should be sent automatically
+(today the maintainer runs `web/scripts/feedback-report.ts` by hand).
