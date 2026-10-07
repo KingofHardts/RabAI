@@ -53,8 +53,13 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   (Gemara, Halacha, or anything they name), each in its own color. Open one to pick it up,
   rename it, move it, or delete it (one at a time or all at once). A saved answer is the same
   checked answer the person saw; nothing is rewritten.
-- **Learn.** Browse the library, pick up where you left off (the last texts you opened), read a
-  text, ask RabAI to learn it with you, review My words
+- **Learn.** Browse the library by shelf (Tanakh, Mishnah, Talmud, Halacha, Midrash, and so on),
+  grouped the way learners know it: the six orders of the Mishnah and Talmud, the three parts of
+  Tanakh, the books of the Mishneh Torah. Each book's card lists its commentaries in the library
+  (Rishonim, then Acharonim). The book search forgives spelling and order: "Kidushin",
+  "Gemara Kiddushin", "Kesubos", "Tosfos Kidushin", Hebrew names, part of a name, or a name with
+  a page ("Kiddushin 40b") all work (`lib/library/catalog.ts`). Pick up where you left off (the
+  last texts you opened), read a text, ask RabAI to learn it with you, review My words
   (saved only on the device), and the Gemara's key words. The "grow closer to HaShem" setting
   lives here, off unless the person turns it on.
 

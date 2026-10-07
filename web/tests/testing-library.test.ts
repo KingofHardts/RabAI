@@ -171,6 +171,10 @@ test("books and the planner's catalog", async () => {
   const books = await store.books();
   assert.deepEqual(books.map((b) => b.title).sort(), ["Berakhot", "Genesis", "Jastrow", "Jerusalem Talmud Berakhot", "Rashi on Genesis"]);
   assert.equal(books.find((b) => b.title === "Genesis")?.firstRef, "Genesis 1:1");
+  // Each book carries its Sefaria categories and its place in reading order, for the shelves.
+  assert.deepEqual(books.find((b) => b.title === "Jastrow")?.categories, ["Reference", "Dictionary"]);
+  assert.deepEqual(books.find((b) => b.title === "Genesis")?.categories, []);
+  assert.deepEqual(books.map((b) => b.order), [...books.map((b) => b.order)].sort((a, b) => a - b));
   assert.match(await store.catalog(), /^Babylonian Talmud: Berakhot$/m);
 });
 

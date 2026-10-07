@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
@@ -27,6 +27,8 @@ import {
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
+import LibraryShelves from "./LibraryShelves";
+import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
 
@@ -67,6 +69,9 @@ interface SectionSummary {
   firstRef: string;
   lineCount: number;
   commentaryCount: number;
+  /** Sefaria's category path (testing library), for placing the book on a shelf. */
+  categories?: string[];
+  order?: number;
 }
 
 type Lang = "he" | "both" | "en";
@@ -153,7 +158,6 @@ const ACTIONS: Array<{ id: LineAction; label: string }> = [
 
 const DEV_NOTE = "Development texts for testing. Not yet an approved edition or translation.";
 /** How many books the Learn tab shows at once from the testing library. */
-const BOOKS_SHOWN = 40;
 const WORDS_KEY = "rabai_words";
 /** The person's own marks on the page: a color for each line or comment they marked. */
 const MARKS_KEY = "rabai_marks";
@@ -166,18 +170,6 @@ const MARK_COLORS = [
   { id: "pink", label: "Pink" },
 ];
 const MAX_SAVED_WORDS = 500;
-
-/** The books whose English or Hebrew name holds every word typed, at most BOOKS_SHOWN of them. */
-function filterSections(sections: SectionSummary[], filter: string): SectionSummary[] {
-  const words = filter.toLowerCase().split(/[\s,]+/).filter(Boolean);
-  const hits = words.length
-    ? sections.filter((s) => {
-        const name = `${s.section} ${s.sectionHe} ${s.workTitle}`.toLowerCase();
-        return words.every((w) => name.includes(w));
-      })
-    : sections;
-  return hits.slice(0, BOOKS_SHOWN);
-}
 
 function readStored<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -413,7 +405,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   const [sections, setSections] = useState<SectionSummary[] | null>(null);
-  const [bookFilter, setBookFilter] = useState("");
+  // The library's books for the shelves; a book without categories is placed by its work's name.
+  const catalogBooks = useMemo<CatalogBook[]>(
+    () =>
+      (sections ?? []).map((s, i) => ({
+        title: s.section,
+        he: s.sectionHe,
+        firstRef: s.firstRef,
+        workTitle: s.workTitle,
+        categories: s.categories ?? [],
+        order: s.order ?? i,
+      })),
+    [sections],
+  );
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
   // Saved chats and recent reading, on this device only.
   const [chats, setChats] = useState<SavedChat[]>([]);
@@ -2118,64 +2122,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ) : sections.length === 0 ? (
                 <p className="note">No texts are in the library yet. They appear here once the rabbinic board approves them.</p>
               ) : (
-                <>
-                {sections.length > BOOKS_SHOWN && (
-                  <div className="card">
-                    <label className="label-sm" htmlFor="book-filter">
-                      Find a book ({sections.length} in the library)
-                    </label>
-                    <input
-                      id="book-filter"
-                      className="book-filter"
-                      type="search"
-                      value={bookFilter}
-                      placeholder="Berakhot, Rashi on Genesis, Mishnah Berurah…"
-                      onChange={(e) => setBookFilter(e.target.value)}
-                    />
-                    {libraryMode === "testing" && <p className="note">{TESTING_LABEL}</p>}
-                  </div>
-                )}
-                {filterSections(sections, bookFilter).map((s) => (
-                  <div key={s.section} className="card">
-                    <div className="card-row">
-                      <h3>{s.section}</h3>
-                      <span className="he" lang="he">
-                        {s.sectionHe}
-                      </span>
-                    </div>
-                    <p>
-                      {s.workTitle}
-                      {s.lineCount > 0 ? ` · ${s.lineCount} ${s.lineCount === 1 ? "passage" : "passages"}` : ""}
-                      {s.commentaryCount > 0 ? ` · ${s.commentaryCount} commentar${s.commentaryCount === 1 ? "y" : "ies"}` : ""}
-                    </p>
-                    <div className="follow">
-                      <button type="button" className="chip-btn" onClick={() => void openReader(s.firstRef)}>
-                        Read it
-                      </button>
-                      {(s.workId === "talmud-bavli" || s.workTitle === "Talmud Bavli") && parseAmud(s.firstRef) && (
-                        <button type="button" className="chip-btn" onClick={() => void openDaf(s.firstRef)}>
-                          See the page
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="chip-btn"
-                        disabled={pending}
-                        onClick={() =>
-                          void send(
-                            `Let's learn ${s.section} together. Start at the beginning, one line at a time, and ask me what I think before you explain.`,
-                          )
-                        }
-                      >
-                        Learn it with RabAI
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {sections.length > BOOKS_SHOWN && filterSections(sections, bookFilter).length === 0 && (
-                  <p className="note">No book by that name yet. Try a shorter part of the name.</p>
-                )}
-                </>
+                <LibraryShelves
+                  books={catalogBooks}
+                  label={libraryMode === "testing" ? TESTING_LABEL : undefined}
+                  pending={pending}
+                  onRead={(ref) => void openReader(ref)}
+                  onPage={(ref) => void openDaf(ref)}
+                  onLearn={(title) =>
+                    void send(
+                      `Let's learn ${title} together. Start at the beginning, one line at a time, and ask me what I think before you explain.`,
+                    )
+                  }
+                />
               )}
 
               <div className="card">

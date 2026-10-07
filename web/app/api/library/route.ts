@@ -27,6 +27,8 @@ export async function GET() {
         firstRef: b.firstRef,
         lineCount: 0,
         commentaryCount: 0,
+        categories: b.categories,
+        order: b.order,
       })),
       phrases: phraseGlossary(lib),
     });

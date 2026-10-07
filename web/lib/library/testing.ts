@@ -214,9 +214,20 @@ export interface TestingStore {
    */
   vowels(refs: string[]): Promise<Map<string, string>>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
-  books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string }>>;
+  books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string; categories: string[]; order: number }>>;
   /** The short list of book names the lookup planner may use. */
   catalog(): Promise<string>;
+}
+
+/** A title's Sefaria category path, stored as JSON; empty when missing or unreadable. */
+function parseCategories(raw: unknown): string[] {
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((c): c is string => typeof c === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Remove vowels and cantillation, as the build does for the search index. */
@@ -703,9 +714,9 @@ export function createTestingStore(db: Db): TestingStore {
 
     async books() {
       const rows = await db.all(
-        `SELECT t.title, t.he_title, w.title AS work_title,
+        `SELECT t.id, t.title, t.he_title, t.categories, w.title AS work_title,
                 (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
-         FROM titles t JOIN works w ON w.id = t.work ORDER BY w.title, t.id`,
+         FROM titles t JOIN works w ON w.id = t.work ORDER BY t.id`,
       );
       return rows
         .filter((r) => r.first_ref)
@@ -714,6 +725,8 @@ export function createTestingStore(db: Db): TestingStore {
           he: String(r.he_title ?? r.title),
           firstRef: String(r.first_ref),
           workTitle: String(r.work_title),
+          categories: parseCategories(r.categories),
+          order: Number(r.id),
         }));
     },
 
