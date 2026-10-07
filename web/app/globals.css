@@ -86,6 +86,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .mode-switch button { border: 0; background: none; border-radius: 999px; padding: 8px 20px; min-height: 40px; font-weight: 600; color: var(--muted); }
 .mode-switch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
 
+.convo-body { flex: 1; min-height: 0; display: flex; }
+.convo-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chats-col { width: 290px; flex: none; border-inline-end: 1px solid var(--line); overflow-y: auto; overscroll-behavior: contain; }
+.chats-col-inner { padding: 16px 12px 24px; }
+.chats-col .chats-head h2 { font-size: 18px; }
+.chats-col .chat-open { padding: 10px 12px; min-height: 52px; }
+.chats-col .chat-more { width: 44px; }
+.chats-col .chat-group { margin-top: 16px; }
+@media (min-width: 980px) { .app.mode-chat:not(.with-reader) .chats-btn, .app.mode-chat:not(.with-reader) .chat-head .new-chat { display: none; } }
 .scroll { flex: 1; overflow-y: auto; padding: 20px 16px 24px; overscroll-behavior: contain; }
 .thread { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 
@@ -94,6 +103,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   padding: 10px 14px; border-radius: 16px 16px 4px 16px; white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .msg-ai { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; }
+.msg-ai.bare { grid-template-columns: minmax(0, 1fr); }
 .msg-ai .body { font-family: var(--font-voice); font-size: 17px; line-height: 1.65; min-width: 0; overflow-wrap: anywhere; }
 .msg-ai .body p { margin: 0 0 12px; }
 .msg-ai .body p:last-child { margin-bottom: 0; }
@@ -401,7 +411,7 @@ p.muted { margin: 0; }
 .chats-panel .book-filter { margin: 12px 0 0; }
 .chat-group { margin-top: 18px; }
 .group-name { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; gap: 8px; }
-.group-name::before, .chat-meta .dot { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; display: inline-block; }
+.group-name::before, .chat-head .dot { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; display: inline-block; }
 .tone-0 { color: var(--tone-0); } .tone-1 { color: var(--tone-1); } .tone-2 { color: var(--tone-2); }
 .tone-3 { color: var(--tone-3); } .tone-4 { color: var(--tone-4); } .tone-5 { color: var(--tone-5); }
 .tone-none { color: var(--muted); }
@@ -423,9 +433,24 @@ p.muted { margin: 0; }
 .chip-btn.danger { border-color: var(--danger); color: var(--danger); }
 .delete-all { display: block; margin-top: 22px; color: var(--muted); font-size: 13px; }
 .confirm.all { margin-top: 22px; }
-.chat-meta { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); padding: 2px 0 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-.chat-meta .saved-note { color: var(--muted); }
-.chat-meta .link { font-size: 13px; }
+/* the open chat's name, with its menu (rename, category, delete) and "New chat" */
+.chat-head { border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.chat-head-row { display: flex; align-items: center; gap: 8px; }
+.chat-name { margin: 0; flex: 1; min-width: 0; font-family: var(--font-voice); font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-head .icon-btn { font-size: 20px; }
+.chat-head .chat-tools { border-top: 0; padding: 8px 0 0; }
+.new-chat { flex: none; }
+@media (max-width: 560px) { .new-chat { padding-inline: 4px; } }
+/* the suggested first questions */
+.starters { margin-top: 4px; }
+.starters .label-sm { margin: 12px 0 6px; }
+.starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.starter { text-align: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 52px; font-family: var(--font-ui); font-size: 14.5px; line-height: 1.4; color: var(--ink); }
+@media (hover: hover) { .starter:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); } }
+.msg-ai .body .welcome-rav { font-family: var(--font-ui); font-size: 13.5px; color: var(--muted); }
+/* "Not a rav" is under the box on a computer, and in the welcome on a phone, so the box is one row. */
+@media (min-width: 980px) { .msg-ai .body .welcome-rav { display: none; } }
+@media (max-width: 979px) { .composer .fine { display: none; } }
 
 /* ---------- the Gemara page as printed ---------- */
 :root {

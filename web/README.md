@@ -74,10 +74,12 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   opens a page directly. (`/api/daf?ref=` and `/api/daf/outline`; the layout method is ported
   from the MIT-licensed daf-renderer, see `THIRD-PARTY-NOTICES.md`.)
 - **Your chats.** Every conversation is saved as it goes, on this device only (there are no
-  accounts yet). The Chats button lists them by category, with the person's own categories
-  (Gemara, Halacha, or anything they name), each in its own color. Open one to pick it up,
-  rename it, move it, or delete it (one at a time or all at once). A saved answer is the same
-  checked answer the person saw; nothing is rewritten.
+  accounts yet). On a computer they are a column beside the conversation; on a phone the Chats
+  button lists them. They are grouped by category, with the person's own categories (Gemara,
+  Halacha, or anything they name), each in its own color. Open one to pick it up, rename it,
+  move it, or delete it (one at a time or all at once); the open chat's name and a ⋯ menu for the
+  same sit at the top of the conversation. A saved answer is the same checked answer the person
+  saw; nothing is rewritten.
 - **Learn.** The library's home: "Continue" cards for the last texts opened (line by line or as
   the printed page), a search box that stays at the top, then the shelves: Tanakh, Mishnah,
   Talmud, Halacha, Midrash and Prayer, with "More" for the rest (on a computer, a list down the

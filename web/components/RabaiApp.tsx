@@ -138,13 +138,20 @@ interface SavedWord {
   savedAt: number;
 }
 
-const STARTERS = [
-  "Why does the Torah start with Creation?",
-  "Why do we add a Chanukah light each night?",
-  "What did Hillel say about the whole Torah on one foot?",
-  "I had a hard day. Can we talk?",
-  "My friend and I had a falling out. How do I make it right?",
-  "Help me read the first words of the Torah",
+/** chatTools holds a chat's id while its menu is open in the list; this, for the open chat's own menu. */
+const HEAD_TOOLS = "__head__";
+
+const STARTERS: Array<{ label: string; items: string[] }> = [
+  {
+    label: "Ask about Torah",
+    items: [
+      "Why does the Torah start with Creation?",
+      "Why do we add a Chanukah light each night?",
+      "What did Hillel say about the whole Torah on one foot?",
+      "Help me read the first words of the Torah",
+    ],
+  },
+  { label: "Talk about life", items: ["I had a hard day. Can we talk?", "My friend and I had a falling out. How do I make it right?"] },
 ];
 
 const ACTIONS: Array<{ id: LineAction; label: string }> = [
@@ -1901,22 +1908,82 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       </label>
     );
 
-  const renderChatsPanel = () => {
+  /** Rename, move to a category, or delete one chat. */
+  const chatToolsFor = (c: SavedChat) => (
+    <>
+      {renameDraft?.id === c.id ? (
+        <form
+          className="category-new"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const t = renameDraft.text.replace(/\s+/g, " ").trim().slice(0, 70);
+            if (t) updateChat(c.id, { title: t });
+            setRenameDraft(null);
+          }}
+        >
+          <label className="sr-only" htmlFor={`name-${c.id}`}>
+            Chat name
+          </label>
+          <input
+            id={`name-${c.id}`}
+            autoFocus
+            maxLength={70}
+            value={renameDraft.text}
+            onChange={(e) => setRenameDraft({ id: c.id, text: e.target.value })}
+          />
+          <button type="submit" className="chip-btn">
+            Save
+          </button>
+          <button type="button" className="chip-btn" onClick={() => setRenameDraft(null)}>
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <button type="button" className="chip-btn" onClick={() => setRenameDraft({ id: c.id, text: c.title })}>
+          Rename
+        </button>
+      )}
+      {categoryPicker(c)}
+      {confirmDelete === c.id ? (
+        <span className="confirm">
+          Delete this chat?{" "}
+          <button type="button" className="chip-btn danger" onClick={() => deleteChat(c.id)}>
+            Delete
+          </button>
+          <button type="button" className="chip-btn" onClick={() => setConfirmDelete(null)}>
+            Keep it
+          </button>
+        </span>
+      ) : (
+        <button type="button" className="chip-btn" onClick={() => setConfirmDelete(c.id)}>
+          Delete
+        </button>
+      )}
+    </>
+  );
+
+  /**
+   * The saved chats: the left column of Chat on a computer, the whole screen on a phone. "Saved
+   * on this device" is said here, once.
+   */
+  const renderChatsPanel = (column = false) => {
     const words = chatFilter.toLowerCase().split(/\s+/).filter(Boolean);
     const shown = words.length
       ? chats.filter((c) => words.every((w) => `${c.title} ${c.category}`.toLowerCase().includes(w)))
       : chats;
     return (
-      <div className="chats-panel">
+      <div className={column ? "chats-col-inner" : "chats-panel"}>
         <div className="chats-head">
-          <h2>Your chats</h2>
+          <h2>{column ? "Chats" : "Your chats"}</h2>
           <div className="follow tight">
-            <button type="button" className="chip-btn primary" onClick={startNewChat} disabled={pending}>
-              New chat
+            <button type="button" className="btn primary" onClick={startNewChat} disabled={pending}>
+              + New chat
             </button>
-            <button type="button" className="chip-btn" onClick={() => setChatsOpen(false)}>
-              Back
-            </button>
+            {!column && (
+              <button type="button" className="btn" onClick={() => setChatsOpen(false)}>
+                Back
+              </button>
+            )}
           </div>
         </div>
         <p className="fine-left">Saved only on this device. Clearing your browser’s data removes them.</p>
@@ -1971,58 +2038,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           ⋯
                         </button>
                       </div>
-                      {open && (
-                        <div className="chat-tools">
-                          {renameDraft?.id === c.id ? (
-                            <form
-                              className="category-new"
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const t = renameDraft.text.replace(/\s+/g, " ").trim().slice(0, 70);
-                                if (t) updateChat(c.id, { title: t });
-                                setRenameDraft(null);
-                              }}
-                            >
-                              <label className="sr-only" htmlFor={`name-${c.id}`}>
-                                Chat name
-                              </label>
-                              <input
-                                id={`name-${c.id}`}
-                                autoFocus
-                                maxLength={70}
-                                value={renameDraft.text}
-                                onChange={(e) => setRenameDraft({ id: c.id, text: e.target.value })}
-                              />
-                              <button type="submit" className="chip-btn">
-                                Save
-                              </button>
-                              <button type="button" className="chip-btn" onClick={() => setRenameDraft(null)}>
-                                Cancel
-                              </button>
-                            </form>
-                          ) : (
-                            <button type="button" className="chip-btn" onClick={() => setRenameDraft({ id: c.id, text: c.title })}>
-                              Rename
-                            </button>
-                          )}
-                          {categoryPicker(c)}
-                          {confirmDelete === c.id ? (
-                            <span className="confirm">
-                              Delete this chat?{" "}
-                              <button type="button" className="chip-btn danger" onClick={() => deleteChat(c.id)}>
-                                Delete
-                              </button>
-                              <button type="button" className="chip-btn" onClick={() => setConfirmDelete(null)}>
-                                Keep it
-                              </button>
-                            </span>
-                          ) : (
-                            <button type="button" className="chip-btn" onClick={() => setConfirmDelete(c.id)}>
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      {open && <div className="chat-tools">{chatToolsFor(c)}</div>}
                     </li>
                   );
                 })}
@@ -2060,6 +2076,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   const currentChat = chatId ? chats.find((c) => c.id === chatId) : undefined;
+  /** On a computer, the saved chats are a column beside the conversation. */
+  const chatsColumn = mode === "chat" && wide && !readerOpen;
 
   const PART_LABEL = { main: "Gemara", rashi: "Rashi", tosafot: "Tosafot" } as const;
 
@@ -2527,6 +2545,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               className={`chats-btn${chatsOpen && mode === "chat" ? " on" : ""}`}
               aria-pressed={chatsOpen && mode === "chat"}
               onClick={() => {
+                // On a computer the chats are a column beside the conversation.
+                if (wide && !readerOpen) {
+                  setChatsOpen(false);
+                  return chooseMode("chat");
+                }
                 const opening = !(chatsOpen && mode === "chat");
                 setChatsOpen(opening);
                 setChatTools(null);
@@ -2581,19 +2604,42 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           )}
         </header>
 
+        <div className="convo-body">
+          {chatsColumn && (
+            <aside className="chats-col" aria-label="Your chats">
+              {renderChatsPanel(true)}
+            </aside>
+          )}
+          <div className="convo-main">
         <div className="scroll" ref={scrollRef}>
-          {mode === "chat" && chatsOpen ? (
+          {mode === "chat" && chatsOpen && !chatsColumn ? (
             renderChatsPanel()
           ) : mode === "chat" ? (
             <div className="thread" role="log" aria-live="polite" aria-relevant="additions">
               {currentChat && (
-                <div className="chat-meta">
-                  <span className={`dot ${categoryTone(currentChat.category)}`} aria-hidden="true" />
-                  <span className="saved-note">Saved on this device</span>
-                  {categoryPicker(currentChat)}
-                  <button type="button" className="link" onClick={startNewChat} disabled={pending}>
-                    New chat
-                  </button>
+                <div className="chat-head">
+                  <div className="chat-head-row">
+                    <span className={`dot ${categoryTone(currentChat.category)}`} aria-hidden="true" />
+                    <h2 className="chat-name">{currentChat.title}</h2>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label="This chat: rename, category, delete"
+                      aria-expanded={chatTools === HEAD_TOOLS}
+                      onClick={() => {
+                        setChatTools(chatTools === HEAD_TOOLS ? null : HEAD_TOOLS);
+                        setConfirmDelete(null);
+                        setRenameDraft(null);
+                        setCategoryDraft(null);
+                      }}
+                    >
+                      ⋯
+                    </button>
+                    <button type="button" className="btn quiet new-chat" onClick={startNewChat} disabled={pending}>
+                      + New chat
+                    </button>
+                  </div>
+                  {chatTools === HEAD_TOOLS && <div className="chat-tools">{chatToolsFor(currentChat)}</div>}
                 </div>
               )}
               <div className="msg-ai">
@@ -2616,18 +2662,20 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       steps are in web/README.md.
                     </p>
                   )}
-                  {messages.length === 0 && (
-                    <>
-                      <p className="label-sm">You could start with</p>
-                      <div className="follow" style={{ marginTop: 0 }}>
-                        {STARTERS.map((s) => (
-                          <button key={s} type="button" className="chip-btn" onClick={() => void send(s)} disabled={pending}>
-                            {s}
-                          </button>
-                        ))}
+                  <p className="welcome-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                  {messages.length === 0 &&
+                    STARTERS.map((g) => (
+                      <div key={g.label} className="starters">
+                        <p className="label-sm">{g.label}</p>
+                        <div className="starter-grid">
+                          {g.items.map((q) => (
+                            <button key={q} type="button" className="starter" onClick={() => void send(q)} disabled={pending}>
+                              {q}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </>
-                  )}
+                    ))}
                 </div>
               </div>
 
@@ -2637,10 +2685,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     {m.text}
                   </div>
                 ) : (
-                  <div key={m.id} className="msg-ai">
-                    <div className="mark" aria-hidden="true">
-                      ר
-                    </div>
+                  <div key={m.id} className="msg-ai bare">
                     <div className="body" data-askable="chat">
                       {m.result && <SafetyCard result={m.result} />}
                       {m.result && m.result.blocks.length > 0 && (
@@ -2661,22 +2706,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           {speechOk && (
                             <button
                               type="button"
-                              className="chip-btn listen"
+                              className="btn quiet listen"
                               aria-pressed={speakingId === `m${m.id}`}
                               onClick={() => listen(`m${m.id}`, plainAnswer(m.result))}
                             >
                               <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
                             </button>
                           )}
-                          {m.result.sources[0] && (
-                            <button type="button" className="chip-btn" onClick={() => void openReader(m.result!.sources[0].ref)}>
-                              Open {m.result.sources[0].ref}
-                            </button>
-                          )}
-                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Tell me more.", { deep: true })}>
+                          <button type="button" className="btn quiet" disabled={pending} onClick={() => void send("Tell me more.", { deep: true })}>
                             Tell me more
                           </button>
-                          <button type="button" className="chip-btn" disabled={pending} onClick={() => void send("Can you say that more simply?")}>
+                          <button type="button" className="btn quiet" disabled={pending} onClick={() => void send("Can you say that more simply?")}>
                             Say it more simply
                           </button>
                         </div>
@@ -2687,10 +2727,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
 
               {pending && (
-                <div className="msg-ai">
-                  <div className="mark" aria-hidden="true">
-                    ר
-                  </div>
+                <div className="msg-ai bare">
                   <div className="body">
                     {live?.text ? (
                       <LiveText text={live.text} />
@@ -2833,7 +2870,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           )}
         </div>
 
-        {mode === "chat" && !chatsOpen && (
+        {mode === "chat" && (!chatsOpen || chatsColumn) && (
           <div className="composer">
             <form onSubmit={onSubmit}>
               {dictation.supported && (
@@ -2874,6 +2911,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <p className="fine">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
           </div>
         )}
+          </div>
+        </div>
       </section>
 
       {dafRef && renderDafView()}
