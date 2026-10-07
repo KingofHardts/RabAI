@@ -173,10 +173,10 @@ Moving RabAI off Senior Stylist:
   Sessions call the Vercel API with `curl` and never see the token.
 
 Open items:
-- The testing library is being rebuilt 2026-10-07 from the expanded canon (714 works; 766
-  editions in the testing plan; about 2,471 MB of Sefaria files). A local test build of the
-  earlier 737-edition plan measured 4,025 MB, so the new one should be about 4.1 GB, inside
-  Turso's 5 GB free plan. The last finished rebuild was 2026-10-06 (92 editions).
+- The testing library on Turso was rebuilt 2026-10-07 (run #3, commit `f4c1c02`): 3,004,660
+  passages, 5,444 books, 764 editions, 4,061 MB, inside Turso's 5 GB free plan. The build took
+  about 8 minutes and the upload about 3. It has no printed-page layouts yet: the "Make the
+  printed-page layouts" workflow has never been run.
 - Recanati on the Torah is held out (`orthodox: review`): a modern Hebrew translation of the
   Zohar passages is mixed into its text (`docs/transcription-check.md`).
 - License requests for the texts still left out are listed by organization in
