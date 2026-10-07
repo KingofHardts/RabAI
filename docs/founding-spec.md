@@ -68,7 +68,9 @@ verses of the Torah is one example.
 The library is a whitelist ([`canon/canon.yaml`](../canon/canon.yaml)). Every work carries:
 
 - author, era and region
-- category: Mikra and meforshim, Torah SheBaal Peh, halacha, or hashkafah and mussar
+- category: Mikra and meforshim, Torah SheBaal Peh, halacha, hashkafah and mussar, or
+  Kabbalah. The Kabbalah works are proposed only. They wait on the board's decision about how
+  RabAI treats Kabbalah (questions 1 to 3 in [`library-comparison.md`](library-comparison.md)).
 - stream: shared, Litvish, Chassidish, Sephardi, Religious Zionist, Modern Orthodox, or Torah
   im Derech Eretz
 - minhag, for halacha works: Ashkenazi, Sephardi, or both

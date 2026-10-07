@@ -125,6 +125,15 @@ excluded:
       - "AI version"
       - "automated translation"
       - "Le Talmud de Jérusalem, Moïse Schwab, 1871. converted via DeepL"
+      - "Yad Hachasakah, based on L. Mandelstamm,1851 German translation. Translated by DeepL"
+      - "Google Translate"
+      - "ChatGPT"
+      - "OpenAI, 2024"
+      - "Open Torah Ai"
+      - "AI Pardes"
+      - "Beer Hagolah, Maharal, translated using AI"
+      - "Marahal Beer Hagola with help from AI"
+      - "Espanto Traducción por AI adaptación Jaim Yoel ben Avraham "
 
   - id: conservative-yeshiva-translations
     title: Translations from the Conservative Yeshiva (Daf Shevui and others)
@@ -142,6 +151,7 @@ excluded:
     board_may_reconsider: false
     sefaria_versions:
       - "Orchot Tzaddikim, trans. Seymour J. Cohen, Ktav Pub House, 1982"
+      - "Orchot Tzaddikim, trans. Seymour J. Cohen [with corrections]"
 
   - id: sifre-finkelstein-jts
     title: Sifre on Deuteronomy, edited by Louis Finkelstein (JTS, 1969)
@@ -172,6 +182,9 @@ excluded:
     board_may_reconsider: false
     sefaria_versions:
       - "Hilkhot Yom ha-Kippurim, trans. by Jan M. Brahms. HUC, 1976"
+      - "Hilchot Kidushin, trans. by Steven H. Garten. HUC, 1975"
+      - "Hupah veKiddushin, trans. by Norman T. Roman. HUC, 1975"
+      - "Samson H. Levey, Hebrew Union College, 1934"
 
   - id: kabbalah-and-ecology
     title: Translations from Kabbalah and Ecology by Rabbi Dr. David Mevorach Seidenberg
@@ -189,3 +202,116 @@ excluded:
     sefaria_versions:
       - "Rodkinson"
       - "Rodkinson Talmud"
+
+  # The entries below name translations found while comparing the library with Mercava's
+  # catalog (docs/library-comparison.md, questions 11 and 13; 2026-10-07). "Library question
+  # N" below means question N there. Version names are as Sefaria lists them. Our builder only
+  # uses versions the canon lists, so none of these could enter by accident; listing them
+  # writes the intent down.
+
+  - id: sefer-hayashar-cohen
+    title: Sefer HaYashar, translated by Seymour J. Cohen (1973)
+    reason: The translator was a Conservative rabbi (see orchot-tzaddikim-cohen).
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Sefer Hayashar, trans. Seymour J. Cohen. 1973."
+
+  - id: sefer-yetzirah-kalisch
+    title: Sefer Yetzirah, translated by Isidor Kalisch (New York, 1877)
+    reason: The translator was a Reform rabbi. Public domain, which makes it easy to import by mistake.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Sefer Yezirah, trans. by Isidor Kalisch. New York, 1877"
+
+  - id: siddur-sim-shalom
+    title: Siddur Sim Shalom
+    reason: The Conservative movement's siddur. Its text and translation are not Orthodox.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Siddur Sim Shalom"
+
+  - id: conservative-and-egalitarian-responsa
+    title: Responsa and translations from Conservative and egalitarian institutions (Rabbi David Golinkin, Hadar)
+    reason: >-
+      Not Orthodox. Sefaria places them beside the Mishneh Torah and Shulchan Arukh
+      commentaries and the minor tractates.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "responsum from rabbi Golinkin"
+      - "Hadar Egalitarianism Tshuva"
+      - "Rabbi Ethan Tucker's translation"
+
+  - id: meszler-gifts-for-the-poor
+    title: Gifts for the Poor (Mishneh Torah), translated by Joseph B. Meszler (2003)
+    reason: As far as we know the translator is a Reform rabbi.
+    board_may_reconsider: true
+    notes: To confirm. If he is not, the board can look at the translation like any other.
+    sefaria_versions:
+      - "Gifts for the Poor, Trans. by Joseph B. Meszler, Williamsburg, Virginia, 2003"
+
+  - id: mccaul-radak
+    title: The "McCaul Translation" of Radak on Zechariah
+    reason: >-
+      Probably by Alexander McCaul, a Christian missionary, whose translation served his
+      argument with Judaism.
+    board_may_reconsider: true
+    notes: To confirm who the translator is.
+    sefaria_versions:
+      - "McCaul Translation"
+
+  - id: academic-translations-other
+    title: Academic translations of Heikhalot, the minor tractates, Megillat Ta'anit, the Mekhilta and others
+    reason: >-
+      Translations by university scholars outside the tradition (Morton Smith and Gershom
+      Scholem, James Montgomery, Solomon Zeitlin, Jacob Lauterbach, Jonathan Brumberg-Kraus,
+      Yitzhak Berger). Their notes and choices are not from inside the mesorah.
+    board_may_reconsider: true
+    notes: >-
+      Yitzhak Berger's Hebrew critical edition of Radak on Chronicles is not listed here; it
+      waits on library question 9 (scholars' editions).
+    sefaria_versions:
+      - "THE GREATER TREATISE CONCERNING THE PALACES OF HEAVEN, translated from the Hebrew and Aramaic by Morton Smith, corrected by Gershom Scholem, transcribed and edited with notes by Don Karr"
+      - "Scholem, Gershom"
+      - "James Montgomery (1907)"
+      - "James Montogmery (1907)"
+      - "Megillat Taanit, trans. Solomon Zeitlin"
+      - "Lauterbach"
+      - "Shulhan Shel Arba, translated by Jonathan Brumberg-Kraus, 2010"
+      - "The Commentary of Radak to Chronicles: A Translation with Introduction and Supercommentary, by Yitzhak Berger, Brown University, 2007"
+
+  - id: keter-malkhut-zangwill
+    title: Keter Malkhut, translated by Israel Zangwill (JPS, 1923)
+    reason: A literary translation by a writer outside the tradition.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "Selected Religious Poems of Solomon Ibn Gabirol, trans. Israel Zangwill. JPS, Philadelphia, 1923"
+
+  - id: ramban-letter-schechter
+    title: The Ramban's letter to his son, as edited and translated by Solomon Schechter (Jewish Quarterly Review, 1892)
+    reason: >-
+      Edited and translated by Solomon Schechter, who later led the Jewish Theological
+      Seminary (Conservative). Sefaria uses the same version name for his Hebrew text and his
+      English, so this bars both.
+    board_may_reconsider: true
+    notes: >-
+      The board may prefer a traditional printing; see also Iggeret HaRamban in
+      canon.yaml.
+    sefaria_versions:
+      - "Jewish Quaterly Review, 1892, Solomon Schechter"
+
+  - id: unattributed-translations
+    title: Translations that name no translator (Sefaria Responsa Anthology, Wikisource English)
+    reason: >-
+      Nobody can say whose understanding of the text they carry, like the Sefaria Community
+      Translation.
+    board_may_reconsider: true
+    notes: >-
+      Suggested in library question 13. "Iggeret HaGra -- Wikisource" is not listed
+      because Sefaria uses the same name for the Hebrew text; the canon lists only the Hebrew.
+      "The Sefaria Midrash Rabbah, 2022" also names no translator; the canon holds it for review.
+    sefaria_versions:
+      - "Sefaria Responsa Anthology"
+      - "Responsa Responsa Anthology"
+      - "Tales of Rabbi Nachman -- Wikisource"
+      - "Tikkun HaKlali - Wikisource "
+      - "Ben Ish Chai  by Yosef Chayim, translated by Wikisource"

@@ -15,6 +15,28 @@ board. **The rabbinic board decides what is Torah content.** Everything below ab
 author, its standing, or a translator's background is our best understanding, offered as a
 suggestion for the board to confirm. Where we could not check something, we say so.
 
+## Update, later on 2026-10-07: most suggestions are now in the canon
+
+After this comparison, the suggested additions were added to `canon/canon.yaml`, all as
+**proposed**. Nothing is approved.
+
+- The canon went from 89 works to **707**: 618 new works, and 14 existing works widened (the
+  easy fixes in section 5, plus the Chayei Adam, Mishnah Berurah and Or Yisrael files).
+- The private testing library's plan went from 95 editions to **739**, and from about 811 MB
+  to about 2,449 MB of Sefaria files. The rebuilt library should be roughly 3.5 to 4.5 GB.
+  The maintainer checks the hosting plan's storage and the build's time limit before
+  rebuilding.
+- **Kabbalah** is a new category with 30 works, all waiting on questions 1 to 3 below.
+- Debated works and authors (questions 4, 6, 7 and 8) are in with a neutral note naming the
+  question. Rabbi Yosef ibn Yahya (question 5), the scholars' editions (question 9), works whose
+  license Sefaria lists as unknown (question 17) and translators the board doesn't know yet
+  (question 12) stay out.
+- The non-Orthodox and machine translations in questions 11 and 13 are now listed by name in
+  `canon/excluded.yaml`.
+
+A note in `canon/canon.yaml` that says "library question N" means question N in section 3
+below. The tables in sections 1, 2 and 4 describe the library before this change.
+
 ## How we checked
 
 - **Mercava's list** was transcribed from the maintainer's screenshots of Mercava's catalog,

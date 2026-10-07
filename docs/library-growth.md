@@ -8,11 +8,16 @@ How RabAI gets as many authentic, vetted Orthodox sources as possible, and what 
   editions. That is a choice we made, not a technical limit.
 - **The canon is a founding list.** It covers the core of Tanakh, the Oral Torah, halacha,
   and hashkafah and mussar. `python3 tools/validate.py` prints the current count.
+- **The canon grew on 2026-10-07** to 707 works (739 editions in the private testing
+  library), from a comparison with Mercava's catalog: the Tosefta, the minor tractates, the
+  commentaries around the Talmud and the codes, responsa, Midrash, Chassidus, mussar, the
+  siddur and Haggadah, and Kabbalah. All are proposed. See
+  [`library-comparison.md`](library-comparison.md).
 - **English is the bottleneck.** Almost every classic sefer is available in Hebrew and is free
   to use. Most good Orthodox English translations are under copyright and need an agreement
   with the publisher.
 
-## What is missing
+## What was missing from the founding list
 
 | Area | Missing today | Examples |
 |---|---|---|
