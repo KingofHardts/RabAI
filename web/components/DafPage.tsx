@@ -2,6 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { computeSpacers, correctSpacers, mainColumn, sideColumn, splitOpening, withoutPoints, type DafData, type DafPiece, type DafSpacers } from "@/lib/library/daf";
+import type { FlowView } from "@/lib/engine/outline-phrases";
+import { phraseNumbers, wrapPhrases } from "./flow-phrases";
 
 /*
  * One amud of the Bavli set the way it is printed: the Gemara in the middle, Rashi on the inner
@@ -22,8 +24,8 @@ export interface DafPageProps {
   selectedRef: string | null;
   linkedRefs: ReadonlySet<string>;
   activeWord: { ref: string; index: number } | null;
-  /** The outline's kind for each Gemara line, such as "question" or "answer". */
-  kinds: Readonly<Record<string, string>>;
+  /** RabAI's outline, when "Show the flow" is on: its phrases, the kind shown, and the current phrase. */
+  flow: FlowView | null;
   /** The person's own marks: a color name for each line or comment they marked. */
   marks: Readonly<Record<string, string>>;
   /** printedAs: the print's short form, when the word tapped is one (ק״ש); word is then the words it stands for. */
@@ -43,7 +45,7 @@ function wordsOf(text: string): string[] {
 
 const HAS_LETTERS = /[א-ת]/;
 
-export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord, vowels }: DafPageProps) {
+export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWord, flow, marks, onWord, vowels }: DafPageProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const measureRefs = { main: useRef<HTMLDivElement>(null), rashi: useRef<HTMLDivElement>(null), tosafot: useRef<HTMLDivElement>(null) };
   const layerRefs = { main: useRef<HTMLDivElement>(null), rashi: useRef<HTMLDivElement>(null), tosafot: useRef<HTMLDivElement>(null) };
@@ -153,33 +155,35 @@ export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWor
     const opening = part === "main" ? 0 : wordsOf(splitOpening(p.he).opening).length;
     const cls = [
       "dseg",
-      part === "main" && kinds[p.ref] ? `k-${kinds[p.ref]}` : "",
       marks[p.ref] ? `mark-${marks[p.ref]}` : "",
       interactive && selectedRef === p.ref ? "sel" : "",
       interactive && linkedRefs.has(p.ref) ? "linked" : "",
     ]
       .filter(Boolean)
       .join(" ");
+    // The flow's colors are on the Gemara as shown, not on the measuring copies (they move nothing).
+    const lineFlow = part === "main" && interactive ? flow : null;
+    const phraseOf = phraseNumbers(lineFlow, p.ref, words.length);
+    const entries = words.map((w, i) => {
+      const bold = i < opening || (part === "main" && /^(מתני|גמ)['׳]/.test(w));
+      const big = part === "main" && n === 0 && i === 0 && data.daf === 2 && data.amud === "a";
+      const tappable = interactive && HAS_LETTERS.test(w);
+      const on = interactive && activeWord?.ref === p.ref && activeWord.index === i;
+      return {
+        n: phraseOf[i],
+        before: i > 0 ? " " : null,
+        word: tappable ? (
+          <span data-i={i} className={`dw${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}`}>
+            {(vowels && p.vowels?.[i]) || w}
+          </span>
+        ) : (
+          <span className={bold ? "open" : undefined}>{w}</span>
+        ),
+      };
+    });
     return (
       <span key={p.ref} className={cls} data-ref={interactive ? p.ref : undefined} data-part={part}>
-        {words.map((w, i) => {
-          const bold = i < opening || (part === "main" && /^(מתני|גמ)['׳]/.test(w));
-          const big = part === "main" && n === 0 && i === 0 && data.daf === 2 && data.amud === "a";
-          const tappable = interactive && HAS_LETTERS.test(w);
-          const on = interactive && activeWord?.ref === p.ref && activeWord.index === i;
-          return (
-            <span key={i}>
-              {i > 0 && " "}
-              {tappable ? (
-                <span data-i={i} className={`dw${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}`}>
-                  {(vowels && p.vowels?.[i]) || w}
-                </span>
-              ) : (
-                <span className={bold ? "open" : undefined}>{w}</span>
-              )}
-            </span>
-          );
-        })}{" "}
+        {wrapPhrases(entries, lineFlow, p.ref, p.ref)}{" "}
       </span>
     );
   };

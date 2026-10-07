@@ -517,9 +517,30 @@ p.muted { margin: 0; }
   .daf-bar .rb-title .he { font-size: 19px; }
 }
 .daf-alert { margin: 8px 16px 0; color: var(--care-ink); background: var(--care-bg); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
-.daf-legend { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.daf-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.legend-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
 .legend-chip { border-radius: 999px; padding: 3px 10px; color: var(--page-ink); }
+/* Each color is a filter: choosing one shows only that kind on the page. */
+button.legend-chip { border: 1px solid transparent; font-family: var(--font-ui); font-size: 13px; font-weight: 500; min-height: 34px; padding: 4px 12px; display: inline-flex; align-items: center; gap: 6px; }
+button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-shadow: inset 0 0 0 1px var(--page-ink); font-weight: 700; }
+.legend-chip.all { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.legend-chip.all[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+/* While one kind is shown, the others are outlined only, so the chosen color stands out and every label stays readable. */
+.daf-legend.filtering button.legend-chip[class*="k-"]:not([aria-pressed="true"]) { background: transparent; border-color: var(--line); color: var(--ink); }
+.legend-count { font-size: 12px; font-variant-numeric: tabular-nums; opacity: .75; }
+.flow-step-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--tint); }
 .legend-note { color: var(--muted); }
+@media (max-width: 640px) {
+  /* On a phone: "Step through", then the colors scrolling sideways on one row, and the label below,
+     so the page keeps its room. */
+  .daf-legend { padding: 6px 12px; gap: 4px 8px; }
+  .flow-step-btn { order: -1; flex: none; }
+  .legend-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: 1 1 0; padding-bottom: 2px; }
+  .legend-chips::-webkit-scrollbar { display: none; }
+  button.legend-chip { flex: none; }
+  .legend-note { flex: 1 1 100%; font-size: 12px; }
+}
+@media (pointer: coarse) { button.legend-chip { min-height: 44px; } }
 .daf-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 .daf-main { overflow: auto; padding: 16px; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
 .daf-hint { padding: 4px 16px; border-bottom: 1px solid var(--line); }
@@ -565,19 +586,61 @@ p.muted { margin: 0; }
 .daf-printed .rashi.placed .tall, .daf-printed .tosafot.placed .tall { font-family: var(--font-vilna), var(--font-he); font-weight: 400; }
 .daf-printed .placed .tall .dwi { font-size: 1em; }
 .daf-text .dseg { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; }
-.daf-text .dseg.k-mishnah { background: var(--k-mishnah); } .daf-text .dseg.k-question { background: var(--k-question); }
-.daf-text .dseg.k-answer { background: var(--k-answer); } .daf-text .dseg.k-statement { background: var(--k-statement); }
-.daf-text .dseg.k-proof { background: var(--k-proof); } .daf-text .dseg.k-challenge { background: var(--k-challenge); }
-.daf-text .dseg.k-resolution { background: var(--k-resolution); } .daf-text .dseg.k-story { background: var(--k-story); }
+/* RabAI's phrases (components/flow-phrases.tsx): each phrase's color fills behind its words. The
+   spans have no size of their own, so no word moves; the ring for the phrase being stepped through
+   is a shadow, which takes no room either. */
+.daf-text .dphr { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; box-shadow: var(--phr-mark, 0 0 #0000), var(--phr-ring, 0 0 #0000); }
+.daf-text .dphr.k-mishnah { background-color: var(--k-mishnah); } .daf-text .dphr.k-question { background-color: var(--k-question); }
+.daf-text .dphr.k-answer { background-color: var(--k-answer); } .daf-text .dphr.k-statement { background-color: var(--k-statement); }
+.daf-text .dphr.k-proof { background-color: var(--k-proof); } .daf-text .dphr.k-challenge { background-color: var(--k-challenge); }
+.daf-text .dphr.k-resolution { background-color: var(--k-resolution); } .daf-text .dphr.k-story { background-color: var(--k-story); }
+.daf-text .dphr.cur { --phr-ring: 0 0 0 2px var(--accent); }
 .daf-text .dseg.mark-yellow { --mark: var(--m-yellow); } .daf-text .dseg.mark-green { --mark: var(--m-green); }
 .daf-text .dseg.mark-blue { --mark: var(--m-blue); } .daf-text .dseg.mark-pink { --mark: var(--m-pink); }
 .daf-text .dseg[class*="mark-"] { box-shadow: inset 0 -0.32em 0 var(--mark); }
-.daf-text .dseg.sel { background-image: linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 20%, transparent)); }
-.daf-text .dseg.linked { background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 10%, transparent)); }
-.legend-chip.k-mishnah, .kind-note.k-mishnah { background: var(--k-mishnah); } .legend-chip.k-question, .kind-note.k-question { background: var(--k-question); }
-.legend-chip.k-answer, .kind-note.k-answer { background: var(--k-answer); } .legend-chip.k-statement, .kind-note.k-statement { background: var(--k-statement); }
-.legend-chip.k-proof, .kind-note.k-proof { background: var(--k-proof); } .legend-chip.k-challenge, .kind-note.k-challenge { background: var(--k-challenge); }
-.legend-chip.k-resolution, .kind-note.k-resolution { background: var(--k-resolution); } .legend-chip.k-story, .kind-note.k-story { background: var(--k-story); }
+/* A colored phrase sits over its line: it carries the line's mark and tint too, so they still show. */
+.daf-text .dseg[class*="mark-"] .dphr { --phr-mark: inset 0 -0.32em 0 var(--mark); }
+.daf-text .dseg.sel, .daf-text .dseg.sel .dphr[class*=" k-"] { background-image: linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 20%, transparent)); }
+.daf-text .dseg.linked, .daf-text .dseg.linked .dphr[class*=" k-"] { background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 10%, transparent)); }
+.legend-chip.k-mishnah, .kind-note.k-mishnah, .flow-kind.k-mishnah { background: var(--k-mishnah); } .legend-chip.k-question, .kind-note.k-question, .flow-kind.k-question { background: var(--k-question); }
+.legend-chip.k-answer, .kind-note.k-answer, .flow-kind.k-answer { background: var(--k-answer); } .legend-chip.k-statement, .kind-note.k-statement, .flow-kind.k-statement { background: var(--k-statement); }
+.legend-chip.k-proof, .kind-note.k-proof, .flow-kind.k-proof { background: var(--k-proof); } .legend-chip.k-challenge, .kind-note.k-challenge, .flow-kind.k-challenge { background: var(--k-challenge); }
+.legend-chip.k-resolution, .kind-note.k-resolution, .flow-kind.k-resolution { background: var(--k-resolution); } .legend-chip.k-story, .kind-note.k-story, .flow-kind.k-story { background: var(--k-story); }
+/* The step-through bar (components/FlowBar.tsx), below the page. */
+.flow-bar { flex: none; border-top: 1px solid var(--line); background: var(--surface); padding: 8px 16px calc(10px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; max-height: 44dvh; overflow-y: auto; box-shadow: 0 -6px 18px rgba(20, 30, 50, .08); }
+.flow-top { display: flex; align-items: center; gap: 8px; }
+.flow-kind { flex: none; border-radius: 999px; padding: 3px 12px; font-size: 13.5px; font-weight: 700; color: var(--page-ink); }
+.flow-count { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flow-nav { flex: none; display: flex; gap: 6px; }
+.flow-move { min-width: 84px; }
+.flow-move[aria-disabled="true"] { opacity: .45; cursor: default; }
+.flow-x { flex: none; min-width: 40px; min-height: 40px; margin-inline-start: 0; }
+.flow-body { display: grid; gap: 6px; }
+.flow-body p { margin: 0; }
+.flow-he { font-size: 20px; line-height: 1.55; text-align: right; }
+.flow-body .flow-by { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.flow-note { background: var(--rabai-bg); border-inline-start: 3px solid var(--rabai); border-radius: 10px; padding: 6px 10px; font-size: 14.5px; }
+.flow-note .flow-by strong { color: var(--rabai); }
+.flow-en { font-family: var(--font-voice); font-size: 15.5px; line-height: 1.5; }
+.flow-en .flow-by { font-family: var(--font-ui); }
+.flow-en-text { max-height: 6em; overflow-y: auto; }
+@media (min-width: 980px) {
+  .flow-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); grid-template-areas: "he he" "note en"; align-items: start; }
+  .flow-he { grid-area: he; }
+  .flow-note { grid-area: note; }
+  .flow-en { grid-area: en; }
+}
+@media (max-width: 640px) {
+  .flow-bar { padding: 6px 12px calc(8px + env(safe-area-inset-bottom, 0px)); gap: 4px; }
+  .flow-top { gap: 6px; }
+  .flow-wide { display: none; }
+  .flow-move { min-width: 0; min-height: 44px; padding-inline: 10px; }
+  .flow-x { min-width: 36px; }
+  .flow-he { font-size: 18px; line-height: 1.45; }
+  .flow-note { padding: 4px 10px; font-size: 14px; }
+  .flow-en { font-size: 15px; }
+  .flow-en-text { max-height: 4.5em; }
+}
 .part-chip { border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 700; }
 .part-main { background: var(--tint); color: var(--accent); }
 .part-rashi { background: var(--jastrow-bg); color: var(--jastrow); }
@@ -707,6 +770,7 @@ p.muted { margin: 0; }
   .rb-icon:hover:not(:disabled) { background: var(--tint); }
   .rb-title:hover:not(:disabled) { background: var(--tint); }
   .rb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .flow-btn.on:hover { color: var(--accent-ink); }
   .toc-grid button:not([aria-current]):hover { border-color: var(--accent); color: var(--accent); }
   .comm-count:hover { background: var(--tint); }
   .line:not(.cited):not(.selected):hover { background: var(--tint); }

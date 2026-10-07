@@ -36,7 +36,23 @@ import AboutYou from "./AboutYou";
 import { PROFILE_KEY, emptyProfile, forgetNoticed, noticed, parseProfile, withStated, type Activity, type LearnerProfile } from "@/lib/learner-profile";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
-import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
+import {
+  OUTLINE_LABELS,
+  OUTLINE_VERSION,
+  flowSteps,
+  keptOutline,
+  kindCounts,
+  nearestStep,
+  outlineKey,
+  phraseOfWord,
+  readKeptOutline,
+  type FlowView,
+  type OutlineKind,
+  type OutlineLine,
+  type PhraseAt,
+} from "@/lib/engine/outline-phrases";
+import FlowLegend from "./FlowLegend";
+import FlowBar from "./FlowBar";
 import { readKeptTranslation, type GlossRow, type Translation } from "@/lib/engine/gloss";
 
 // ---------------------------------------------------------------------------
@@ -168,8 +184,6 @@ const DEV_NOTE = "Development texts for testing. Not yet an approved edition or 
 const WORDS_KEY = "rabai_words";
 /** The person's own marks on the page: a color for each line or comment they marked. */
 const MARKS_KEY = "rabai_marks";
-/** RabAI's outline of each page, kept so the same page is never outlined twice. */
-const OUTLINE_KEY = "rabai_outline:";
 /** RabAI's translations, kept on the device so the same passage is never translated twice. */
 const TRANSLATIONS_KEY = "rabai_translations";
 const MAX_KEPT_TRANSLATIONS = 60;
@@ -554,6 +568,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [outlines, setOutlines] = useState<Record<string, { lines: OutlineLine[]; model?: string }>>({});
   const [outlineState, setOutlineState] = useState<{ loading: boolean; error?: string } | null>(null);
   const [showOutline, setShowOutline] = useState(false);
+  /** The flow's legend filter (one kind's color only), and the phrase being stepped through. */
+  const [flowOnly, setFlowOnly] = useState<OutlineKind | null>(null);
+  const [flowStep, setFlowStep] = useState<PhraseAt | null>(null);
   const [marks, setMarks] = useState<Record<string, string>>({});
   const [translations, setTranslations] = useState<Record<string, { loading?: boolean; error?: string; result?: Translation }>>({});
   const [wordByWord, setWordByWord] = useState<Record<string, boolean>>({});
@@ -711,6 +728,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setDafPick(null);
     setDafQuestion("");
     setDafError(null);
+    setFlowStep(null);
+    setFlowOnly(null);
     setDafLoading(true);
     try {
       const res = await fetch(`/api/daf?ref=${encodeURIComponent(section)}`);
@@ -727,8 +746,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       store(RECENT_KEY, JSON.stringify(next));
       notice({ kind: "book", title: at.tractate });
       try {
-        const kept = JSON.parse(window.localStorage.getItem(`${OUTLINE_KEY}${section}`) ?? "null");
-        if (kept && Array.isArray(kept.lines)) setOutlines((prev) => ({ ...prev, [section]: kept }));
+        // Checked again against the page as it is now; an outline kept in the old, line-by-line form isn't read.
+        const kept = readKeptOutline(JSON.parse(window.localStorage.getItem(outlineKey(section)) ?? "null"), (json as DafData).main);
+        if (kept) setOutlines((prev) => ({ ...prev, [section]: kept }));
       } catch {
         /* no outline kept */
       }
@@ -745,6 +765,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setDafPick(null);
     setDafMenu(null);
     setOutlineState(null);
+    setFlowStep(null);
     const url = new URL(window.location.href);
     if (url.searchParams.has("daf")) {
       url.searchParams.delete("daf");
@@ -762,6 +783,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (!daf) return;
     if (outlines[daf.section]) {
       setShowOutline(!showOutline);
+      setFlowStep(null);
+      setFlowOnly(null);
       return;
     }
     setShowOutline(true);
@@ -774,9 +797,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "RabAI couldn't outline this page just now.");
-      const kept = { lines: json.lines as OutlineLine[], model: json.model as string | undefined };
+      // Checked on the device too: every phrase is the page's own words, every English the library's.
+      const kept = readKeptOutline({ v: OUTLINE_VERSION, lines: json.lines, model: json.model }, daf.main);
+      if (!kept) throw new Error("RabAI couldn't outline this page just now.");
       setOutlines((prev) => ({ ...prev, [daf.section]: kept }));
-      store(`${OUTLINE_KEY}${daf.section}`, JSON.stringify(kept));
+      store(outlineKey(daf.section), keptOutline(kept));
       setOutlineState(null);
     } catch (err) {
       setOutlineState({ loading: false, error: err instanceof Error ? err.message : "RabAI couldn't outline this page just now." });
@@ -880,11 +905,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       if (e.key !== "Escape") return;
       if (dafMenu) setDafMenu(null);
       else if (dafPick) setDafPick(null);
+      else if (flowStep) setFlowStep(null);
       else closeDaf();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [dafRef, dafPick, dafMenu]);
+  }, [dafRef, dafPick, dafMenu, flowStep]);
 
   // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
@@ -2129,7 +2155,37 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const renderDafView = () => {
     const outline = daf ? outlines[daf.section] : undefined;
-    const kinds: Record<string, string> = showOutline && outline ? Object.fromEntries(outline.lines.map((l) => [l.ref, l.kind])) : {};
+    const shownOutline = showOutline ? outline : undefined;
+    const flow: FlowView | null = shownOutline
+      ? { phrases: Object.fromEntries(shownOutline.lines.map((l) => [l.ref, l.phrases])), only: flowOnly, current: flowStep }
+      : null;
+    const steps = shownOutline ? flowSteps(shownOutline.lines, flowOnly) : [];
+    const stepAt = flowStep ? steps.findIndex((s) => s.ref === flowStep.ref && s.n === flowStep.n) : -1;
+    const chooseFlowOnly = (kind: OutlineKind | null) => {
+      setFlowOnly(kind);
+      if (!shownOutline || !flowStep) return;
+      const next = flowSteps(shownOutline.lines, kind);
+      const at = nearestStep(shownOutline.lines, next, flowStep);
+      setFlowStep(at >= 0 ? { ref: next[at].ref, n: next[at].n } : null);
+    };
+    const toggleSteps = () => {
+      if (flowStep) {
+        setFlowStep(null);
+        return;
+      }
+      // Start at the phrase of the word being looked at, if there is one.
+      let at = 0;
+      if (dafPick?.part === "main" && shownOutline) {
+        const n = phraseOfWord(shownOutline.lines.find((l) => l.ref === dafPick.ref)?.phrases, dafPick.index);
+        at = nearestStep(shownOutline.lines, steps, { ref: dafPick.ref, n: Math.max(0, n) });
+      }
+      if (steps[at]) setFlowStep({ ref: steps[at].ref, n: steps[at].n });
+    };
+    const closeSteps = () => {
+      setFlowStep(null);
+      // Back to the button that opened it, for the keyboard.
+      requestAnimationFrame(() => document.querySelector<HTMLElement>(".daf-view .flow-step-btn")?.focus());
+    };
     const pieces = daf ? [...daf.main, ...daf.rashi, ...daf.tosafot, ...(daf.printed?.extra ?? [])] : [];
     const picked = dafPick ? pieces.find((p) => p.ref === dafPick.ref) : undefined;
     const linked = new Set<string>();
@@ -2141,7 +2197,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const word = dafPick ? bareWord(dafPick.word) : "";
     const lookup = word ? wordInfo[word] : undefined;
     const first = lookup?.entries?.[0];
-    const line = outline?.lines.find((l) => l.ref === picked?.ref);
+    const line = shownOutline?.lines.find((l) => l.ref === picked?.ref);
+    // What the phrase holding the tapped word does, in RabAI's outline.
+    const phrase = line && dafPick ? line.phrases[phraseOfWord(line.phrases, dafPick.index)] : undefined;
     const answer = picked ? lineAnswers[picked.ref] : undefined;
     const partName = dafPick?.part === "main" ? "line" : "comment";
     // Read a comment with the line it explains, and a line of Gemara with the line before it.
@@ -2320,15 +2378,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </p>
         )}
         {outlineState?.error && <p className="daf-alert">{outlineState.error}</p>}
-        {showOutline && outline && (
-          <div className="daf-legend" aria-label="What the colors mean">
-            {OUTLINE_KINDS.filter((k) => outline.lines.some((l) => l.kind === k)).map((k) => (
-              <span key={k} className={`legend-chip k-${k}`}>
-                {OUTLINE_LABELS[k]}
-              </span>
-            ))}
-            <span className="legend-note">RabAI’s outline of the argument, not yet reviewed by the rabbinic board.</span>
-          </div>
+        {shownOutline && (
+          <FlowLegend counts={kindCounts(shownOutline.lines)} only={flowOnly} onOnly={chooseFlowOnly} stepping={!!flowStep} onStep={toggleSteps} />
         )}
         <div className={`daf-body${picked ? " with-panel" : ""}`}>
           <div className="daf-main" ref={dafMainRef}>
@@ -2347,9 +2398,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     selectedRef: dafPick?.ref ?? null,
                     linkedRefs: linked,
                     activeWord: dafPick ? { ref: dafPick.ref, index: dafPick.index } : null,
-                    kinds,
+                    flow,
                     marks,
                     onWord: (ref: string, index: number, w: string, part: "main" | "rashi" | "tosafot", printedAs?: string) => {
+                      // While stepping through, a word of the Gemara moves the steps to its phrase.
+                      const n = flowStep && part === "main" ? phraseOfWord(flow?.phrases[ref], index) : -1;
+                      if (n >= 0 && steps.some((s) => s.ref === ref && s.n === n)) setFlowStep({ ref, n });
                       if (dafPick?.ref === ref && dafPick.index === index) return setDafPick(null);
                       // Another word of the same line keeps the open tab; a new line opens on the word's meaning.
                       if (dafPick?.ref !== ref) {
@@ -2407,10 +2461,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               }
               breakdown={first && !lookup?.abbreviation ? renderBreakdown(first) : undefined}
               aboveTabs={
-                line && showOutline ? (
-                  <p className={`kind-note k-${line.kind}`}>
-                    <strong>{OUTLINE_LABELS[line.kind as OutlineKind]}.</strong> {line.note}{" "}
-                    <span className="fine-inline">RabAI’s outline, not yet reviewed.</span>
+                line ? (
+                  <p className={`kind-note k-${(phrase ?? line).kind}`}>
+                    <strong>{OUTLINE_LABELS[(phrase ?? line).kind]}.</strong> {phrase?.note || line.note}{" "}
+                    <span className="fine-inline">RabAI’s outline, not yet reviewed by the rabbinic board.</span>
                   </p>
                 ) : undefined
               }
@@ -2556,6 +2610,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </WordCard>
           )}
         </div>
+        {/* Below the page, never over it. On a phone the word card's sheet takes this place while it is open. */}
+        {daf && stepAt >= 0 && !(picked && !wide) && (
+          <FlowBar
+            steps={steps}
+            index={stepAt}
+            only={flowOnly}
+            text={(ref) => daf.main.find((p) => p.ref === ref)}
+            englishBy={daf.editions.mainEnglish}
+            onMove={(i) => setFlowStep({ ref: steps[i].ref, n: steps[i].n })}
+            onClose={closeSteps}
+          />
+        )}
       </div>
     );
   };
