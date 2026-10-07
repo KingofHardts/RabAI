@@ -154,8 +154,12 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   scan doesn't show for certain which line a word is on (two lines both read it, it is in a run of
   up to six words no line read clearly, or its line reads too little like the words matched to
   it), the word is put on the likeliest line and marked on the page with a dotted underline and a
-  note saying so. Where the print abbreviates (הקב״ה for "הקדוש ברוך הוא"), the library's full
-  words are set small in the abbreviation's place. The page's heading (chapter, tractate, and the
+  note saying so. Where the print abbreviates or cuts a word short and the library spells it out
+  (ק״ש for "קריאת שמע", ר׳ for "רבי"), the page shows the short form as printed, and tapping it
+  shows the words it stands for. Its letters are always the library's own (the start of each word,
+  or more of its letters in order); only which letters, and the mark, come from the scan, and only
+  when the scan settles it. Otherwise the library's full words are set small in the
+  abbreviation's place. The page's heading (chapter, tractate, and the
   daf's or page's number) is drawn where the scan prints it; its words are the chapter names from
   Sefaria's index of the tractate, and the scan only gives their places. Labels set in a line
   (תורה אור) and the asterisks and rings that point to notes are drawn where they print; they are

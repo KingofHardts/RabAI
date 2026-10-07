@@ -143,6 +143,13 @@ export interface DafPrintedLine {
    * Only with `words`.
    */
   big?: Array<[number, number, number]>;
+  /**
+   * Words the print sets as one short form, where the library spells them out: the print's ק״ש
+   * for "קריאת שמע", ר׳ for "רבי". For each, the number of its first word among the line's words,
+   * how many words it stands for, and the form. Its letters are always the library's own (see
+   * shortForms); only which ones, and the mark, come from the scan. Only with `words`.
+   */
+  short?: Array<[number, number, string]>;
 }
 
 /**
@@ -266,31 +273,40 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
   const refs = r.refs, checks = r.checks, lines = r.lines;
   if (!Array.isArray(refs) || !Array.isArray(checks) || refs.length !== checks.length || !lines || typeof lines !== "object") return null;
   const counts: number[] = [];
+  const texts: string[][] = [];
   for (let i = 0; i < refs.length; i++) {
     const p = typeof refs[i] === "string" ? pieces.get(refs[i]) : undefined;
     if (!p) return null;
     const words = pieceWords(p.he);
     if (wordsFingerprint(words) !== checks[i]) return null;
     counts.push(words.length);
+    texts.push(words);
   }
   const out: DafPrintedLine[] = [];
   for (const part of ["main", "rashi", "tosafot"] as const) {
     const list = (lines as Record<string, unknown>)[part];
     if (!Array.isArray(list)) return null;
     for (const row of list) {
-      if (!Array.isArray(row) || row.length < 6 || row.length > 8 || !row.slice(0, 5).every(isNum) || !Array.isArray(row[5])) return null;
+      if (!Array.isArray(row) || row.length < 6 || row.length > 9 || !row.slice(0, 5).every(isNum) || !Array.isArray(row[5])) return null;
       const [x0, y0, x1, y1, letter] = row as number[];
       const flat = row[5] as unknown[];
       if (x1 <= x0 || y1 <= y0 || letter <= 0 || flat.length === 0 || flat.length % 3 !== 0 || !flat.every(isNum)) return null;
       const spans: Array<[string, number, number]> = [];
+      const lineWords: Array<[number, string]> = []; // [span number, word] for each word on the line
       for (let i = 0; i < flat.length; i += 3) {
         const [k, a, b] = flat.slice(i, i + 3) as number[];
         if (!Number.isInteger(k) || k < 0 || k >= refs.length || !(0 <= a && a < b && b <= counts[k])) return null;
         spans.push([refs[k] as string, a, b]);
+        for (let w = a; w < b; w++) lineWords.push([spans.length - 1, texts[k][w]]);
       }
       const words = wordPlaces(row[6], spans, x0, x1);
       const big = words ? bigWords(row[7], words.length) : undefined;
-      out.push(words ? { part, box: [x0, y0, x1, y1], letter, spans, words, ...(big ? { big } : {}) } : { part, box: [x0, y0, x1, y1], letter, spans });
+      const short = words ? shortForms(row[8], lineWords) : undefined;
+      out.push(
+        words
+          ? { part, box: [x0, y0, x1, y1], letter, spans, words, ...(big ? { big } : {}), ...(short ? { short } : {}) }
+          : { part, box: [x0, y0, x1, y1], letter, spans },
+      );
     }
   }
   if (!out.length) return null;
@@ -377,6 +393,70 @@ function bigWords(raw: unknown, n: number): Array<[number, number, number]> | un
     const [k, top, bottom] = raw.slice(i, i + 3) as number[];
     if (!Number.isInteger(k) || k < 0 || k >= n || bottom <= top || (out.length && k <= out[out.length - 1][0])) return undefined;
     out.push([k, top, bottom]);
+  }
+  return out;
+}
+
+const SHORT_FORM = /^[\u05D0-\u05EA]{1,6}\u05F3$|^[\u05D0-\u05EA]{1,7}\u05F4[\u05D0-\u05EA]$/;
+
+/**
+ * Whether printed letters are a short form of these words (letters only, final forms as regular):
+ * one piece per word, in order, each starting with its word's first letter and the rest of its
+ * letters found in that word in order, and no piece all of a word of three or more letters. The same
+ * test as abbreviates() in tools/daflayout/words.py.
+ */
+export function abbreviates(t: string, words: string[]): boolean {
+  const seen = new Map<string, boolean>();
+  const fits = (i: number, k: number): boolean => {
+    const key = `${i},${k}`;
+    const known = seen.get(key);
+    if (known !== undefined) return known;
+    let ok = false;
+    if (k === words.length) ok = i === t.length;
+    else {
+      const w = words[k];
+      if (i < t.length && w && t[i] === w[0]) {
+        let j = i + 1;
+        let at = 1;
+        ok = fits(j, k + 1);
+        while (!ok && j < t.length) {
+          at = w.indexOf(t[j], at);
+          if (at < 0) break;
+          j += 1;
+          at += 1;
+          ok = (j - i < w.length || w.length < 3) && fits(j, k + 1);
+        }
+      }
+    }
+    seen.set(key, ok);
+    return ok;
+  };
+  return t.length > 0 && fits(0, 0);
+}
+
+/**
+ * A line's short forms, when every one is sound: in order and apart, within one passage, and made of
+ * the library's own letters for the words it stands for (a word cut short is the start of the word,
+ * then ׳; several words are their letters by abbreviates(), with ״ before the last). Anything else
+ * is dropped, and those words are drawn as the library spells them.
+ */
+function shortForms(raw: unknown, lineWords: Array<[number, string]>): Array<[number, number, string]> | undefined {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > 200) return undefined;
+  const out: Array<[number, number, string]> = [];
+  let next = 0;
+  for (const f of raw) {
+    if (!Array.isArray(f) || f.length !== 3 || !isNum(f[0]) || !isNum(f[1]) || typeof f[2] !== "string") return undefined;
+    const [i, n, form] = f as [number, number, string];
+    if (!Number.isInteger(i) || !Number.isInteger(n) || i < next || n < 1 || n > 6 || i + n > lineWords.length) return undefined;
+    if (!SHORT_FORM.test(form)) return undefined;
+    const group = lineWords.slice(i, i + n);
+    if (group.some(([span, w]) => span !== group[0][0] || /["'\u05F3\u05F4]/.test(w))) return undefined;
+    const letters = lettersOf(form);
+    const full = group.map(([, w]) => lettersOf(w));
+    if (n === 1 ? !(full[0].startsWith(letters) && letters.length < full[0].length) : !form.includes("\u05F4") || !abbreviates(letters, full)) return undefined;
+    if (n === 1 && !form.endsWith("\u05F3")) return undefined;
+    out.push([i, n, form]);
+    next = i + n;
   }
   return out;
 }

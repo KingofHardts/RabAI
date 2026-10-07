@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from daf_layout import reconcile  # noqa: E402
 from daflayout.dups import twins  # noqa: E402
 from daflayout.text import fingerprint, letters, plain_text, words_of  # noqa: E402
-from daflayout.words import _chunks, ink_runs, marks, word_positions  # noqa: E402
+from daflayout.words import _chunks, abbreviates, ink_runs, marks, word_places, word_positions  # noqa: E402
 
 
 class Text(unittest.TestCase):
@@ -105,6 +105,12 @@ class WordPositions(unittest.TestCase):
         self.assertEqual(out[2][1], boxes[2][1])
         self.assertEqual(out[4][0], boxes[2][0])
         self.assertTrue(out[2][0] == out[3][1] and out[3][0] == out[4][1])
+
+    def test_words_read_as_one_are_split_where_the_print_sets_them_apart(self):
+        # printed: ומאי וטהר, a narrow space apart; Tesseract read them as one word
+        blobs, boxes = printed([[10, 10, 5, 10], [10, 10, 10, 10]], space=4)
+        read = [("ומאיוטהר", boxes[1][0], boxes[0][1])]
+        self.assertEqual(word_positions(blobs, ["ומאי", "וטהר"], 14, read), boxes)
 
     def test_a_printed_mark_the_library_lacks_is_left_out(self):
         blobs, boxes = printed([[10, 10], [8], [10, 10]])
@@ -299,6 +305,72 @@ except ImportError:  # numpy or rapidfuzz isn't installed
 
 
 @unittest.skipIf(big_words is None, "needs numpy and rapidfuzz")
+def letters_at(start, widths, top=100, xh=14, inside=1):
+    """Blobs (x0, x1, height, top) of letters printed right to left from start; returns them and
+    where the next letter would go."""
+    blobs, x = [], start
+    for w in widths:
+        blobs.append((x - w, x, xh, top))
+        x -= w + inside
+    return blobs, x + inside
+
+
+class ShortForms(unittest.TestCase):
+    def test_an_abbreviation_is_set_as_printed(self):
+        # printed: בר פפא הקב"ה; the library: בר פפא הקדוש ברוך הוא
+        blobs, boxes = printed([[10, 10], [10, 10, 10], [10, 10, 10, 4, 10]])
+        read = [("בר", *boxes[0]), ("פפא", *boxes[1]), ('הקב"ה', *boxes[2])]
+        places, short = word_places(blobs, ["בר", "פפא", "הקדוש", "ברוך", "הוא"], 14, read)
+        self.assertEqual(short, [[2, 3, "הקב״ה"]])
+        self.assertEqual(places[2][1], boxes[2][1])  # the words still share the printed word's place
+
+    def test_letters_from_inside_a_word(self):
+        # ואב"א for "ואיבעית אימא": ו-א-ב of the first word (its י left out), א of the second
+        self.assertTrue(abbreviates("ואבא", ["ואיבעית", "אימא"]))
+        blobs, boxes = printed([[10, 10, 10, 4, 10], [10, 10]])
+        read = [('ואב"א', *boxes[0]), ("רב", *boxes[1])]
+        _, short = word_places(blobs, ["ואיבעית", "אימא", "רב"], 14, read)
+        self.assertEqual(short, [[0, 2, "ואב״א"]])
+
+    def test_a_short_form_run_together_with_a_whole_word(self):
+        # printed: ת"ר מפני, a narrow space apart; Tesseract read them as one word, ת'ר*מפני. That is
+        # not one short form of the three words, but a short form and a whole word.
+        self.assertTrue(abbreviates("תרמפני", ["תנו", "רבנן", "מפני"]))
+        self.assertFalse(abbreviates("תרמפני", ["תנו", "רבנן", "מפני"], whole=False))
+        blobs, boxes = printed([[10, 4, 10], [10, 10, 10, 5]], space=4)
+        places, short = word_places(blobs, ["תנו", "רבנן", "מפני"], 14, [("ת'ר*מפני", boxes[1][0], boxes[0][1])])
+        self.assertEqual(short, [[0, 2, "ת״ר"]])
+        self.assertEqual(places[2], boxes[1])
+        self.assertEqual([places[1][0], places[0][1]], boxes[0])  # the short form shares its printed place
+
+    def test_a_word_cut_short_with_its_mark(self):
+        # אמר ר' יוחנן: the ׳ is a small mark hanging from the top of the letters
+        a, x = letters_at(1000, [10, 10, 10])
+        r, x = letters_at(x - 10, [10])
+        geresh = [(x - 5, x - 2, 5, 99)]
+        y, _ = letters_at(x - 12, [10, 5, 10, 10, 5])
+        blobs = a + r + geresh + y
+        read = [("אמר", 968, 1000), ("ר'", x - 5, r[0][1]), ("יוחנן", y[-1][0], y[0][1])]
+        places, short = word_places(blobs, ["אמר", "רבי", "יוחנן"], 14, read)
+        self.assertEqual(short, [[1, 1, "ר׳"]])
+        self.assertEqual(places[1], [x - 5, r[0][1]])
+
+    def test_a_last_letter_read_as_a_mark_is_not_cut_short(self):
+        # the print has לדבר in full; Tesseract read its ר as ׳
+        a, x = letters_at(1000, [10, 10, 10])
+        b, x = letters_at(x - 10, [10, 10, 10, 10])
+        c, _ = letters_at(x - 10, [10, 10])
+        read = [("זכר", 968, 1000), ("לדב׳", b[-1][0], b[0][1]), ("אכל", c[-1][0], c[0][1])]
+        _, short = word_places(a + b + c, ["זכר", "לדבר", "אכל"], 14, read)
+        self.assertEqual(short, [])
+
+    def test_a_word_the_library_already_sets_short_is_left_as_it_is(self):
+        blobs, boxes = printed([[10, 4, 10], [10, 10]])
+        read = [('ק"ש', *boxes[0]), ("רב", *boxes[1])]
+        _, short = word_places(blobs, ['ק"ש', "רב"], 14, read)
+        self.assertEqual(short, [])
+
+
 class BigWords(unittest.TestCase):
     def test_a_word_printed_large_is_found(self):
         ink = [(200, 220, 30, 100), (180, 198, 31, 99), (150, 165, 14, 104), (130, 146, 15, 104)]
@@ -389,6 +461,13 @@ class Reconcile(unittest.TestCase):
         rec = reconcile("Berakhot", results, self.text, {})[0]
         self.assertEqual(rec["lines"]["main"], [[0, 0, 100, 10, 8, [0, 0, 3], [90, 100, 60, 80, 0, 50]]])
         self.assertEqual(rec["lines"]["rashi"], [[0, 0, 100, 10, 8, [1, 0, 2]]])  # none found: none kept
+
+    def test_short_forms_are_kept(self):
+        main = line([["Berakhot 2a:1", 0, 3]], xs=[[90, 100], [60, 80], [0, 50]])
+        main["short"] = [[1, 2, "ב״ג"]]
+        results = [page("Berakhot 2a", main=[main], rashi=[line([["Rashi on Berakhot 2a:1:1", 0, 2]])])]
+        rec = reconcile("Berakhot", results, self.text, {})[0]
+        self.assertEqual(rec["lines"]["main"], [[0, 0, 100, 10, 8, [0, 0, 3], [90, 100, 60, 80, 0, 50], [], [[1, 2, "ב״ג"]]]])
 
     def test_a_line_with_a_word_added_by_estimate_has_no_positions(self):
         results = [page("Berakhot 2a", main=[line([["Berakhot 2a:1", 0, 2]], xs=[[90, 100], [60, 80]])],

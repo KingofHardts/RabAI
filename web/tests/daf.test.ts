@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  abbreviates,
   amudLabelHe,
   commentBase,
   computeSpacers,
@@ -193,6 +194,40 @@ test("a stored layout is used only when it fits the text exactly", () => {
   for (const bad of [[["<b>", 1, 2, 3, 4]], [["ברכות", 400, 150, 300, 180]], [["ברכות", 1, 2]], "ברכות"]) {
     assert.deepEqual(readPrinted({ ...good, heading: bad }, pieces, "Berakhot 2a")?.heading, []);
   }
+});
+
+test("the print's short forms are used only when made of the library's own letters", () => {
+  const he = "אמר רבי יוחנן קריאת שמע ואיבעית אימא";
+  const pieces = new Map<string, DafPiece & { part: DafPart }>([["Berakhot 2a:1", { ref: "Berakhot 2a:1", he, en: "", part: "main" }]]);
+  const places = [960, 1000, 940, 955, 880, 935, 830, 860, 830, 860, 760, 800, 760, 800];
+  const withShort = (short: unknown) => ({
+    v: 1,
+    section: "Berakhot 2a",
+    complete: true,
+    refs: ["Berakhot 2a:1"],
+    checks: [wordsFingerprint(he.split(" "))],
+    lines: { main: [[700, 200, 1000, 230, 20, [0, 0, 7], places, [], short]], rashi: [], tosafot: [] },
+  });
+  const good = [[1, 1, "ר׳"], [3, 2, "ק״ש"], [5, 2, "ואב״א"]];
+  assert.deepEqual(readPrinted(withShort(good), pieces, "Berakhot 2a")?.lines[0].short, good);
+  // letters the words don't have, a word not cut short, a cut word without its ׳ or several words
+  // without their ״, forms that overlap or run past the line, or anything else: none are used
+  for (const bad of [
+    [[3, 2, "ק״ת"]],
+    [[1, 1, "רבי׳"]],
+    [[1, 1, "ר״ב"]],
+    [[3, 2, "קש׳"]],
+    [[0, 3, "אמ״י"]],
+    [[3, 2, "ק״ש"], [4, 1, "ש׳"]],
+    [[6, 2, "א״א"]],
+    [[1, 1, "<b>"]],
+    "ק״ש",
+  ]) {
+    assert.equal(readPrinted(withShort(bad), pieces, "Berakhot 2a")?.lines[0].short, undefined, JSON.stringify(bad));
+  }
+  assert.ok(abbreviates("הקבה", ["הקדוש", "ברוך", "הוא"]));
+  assert.ok(abbreviates("ואבא", ["ואיבעית", "אימא"]));
+  assert.ok(!abbreviates("תרמפני", ["תנו", "רבנן", "מפני"]));
 });
 
 test("a line's word places are used only when they fit the line", () => {

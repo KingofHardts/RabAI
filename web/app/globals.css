@@ -410,6 +410,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .daf-panel-en { margin: 0 0 4px; font-family: var(--font-voice); font-size: 16px; }
 .daf-word { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 4px; }
 .daf-word-he { font-size: 24px; margin: 0; }
+.daf-word-full { margin: 2px 0 8px; font-size: 14px; color: var(--muted); }
 .daf-panel .ask-line { padding: 10px 0 0; }
 .mark-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 13.5px; color: var(--muted); }
 .mark-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }

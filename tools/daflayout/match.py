@@ -15,7 +15,7 @@ from rapidfuzz.distance import Indel
 
 from .align import candidates, prefix_costs
 from .text import letters, words_of
-from .words import word_positions
+from .words import word_places
 
 PARTS = ("main", "rashi", "tosafot")
 READING = {"main": "heb", "rashi": "heb_rashi", "tosafot": "heb_rashi"}
@@ -587,7 +587,9 @@ def layout(lines, prev, cur, nxt, dup=None):
     lines: the page's line pieces, each with "box", "xh" and "ocr" (see read.py).
     prev, cur, nxt: {"main"|"rashi"|"tosafot": [{"ref", "he"}, ...]} for the previous amud, this one
     and the next (prev may be None on a tractate's first page). dup: {part: words the library has twice}.
-    Returns {part: [{"box", "xh", "spans", "agree", "filled", "where", "nwords"}, ...]} in reading order; "box"
+    Returns {part: [{"box", "xh", "spans", "agree", "filled", "where", "nwords", "xs", "big", "short",
+    "raised"}, ...]} in reading order; "short" lists the words the print sets in a short form, as
+    [first word on the line, how many, the form] (see words.short_form); "box"
     is the line's ordinary letters (see scan.finish_line)."""
     pieces = pieces_of(lines)
     dup = dup or {}
@@ -663,11 +665,12 @@ def layout(lines, prev, cur, nxt, dup=None):
             ink = [(c[0], c[2], c[3] - c[1], c[1]) for q in L["pieces"] for c in lines[q["i"]]["comps"]]
             read = [lines[q["i"]]["ocr"][READING[part]] for q in L["pieces"]]
             printed = sorted((w for r in read if len(r) > 2 for w in r[2]), key=lambda w: -w[2])
-            xs = word_positions(ink, [w[2] for w in words], float(L["xh"]), printed)
+            xs, short = word_places(ink, [w[2] for w in words], float(L["xh"]), printed)
             out.append({"box": [int(v) for v in L["core"]], "xh": round(float(L["xh"]), 1), "spans": spans(st, a, b),
                         "agree": round(float(agree), 3), "filled": bool(L["filled"]), "where": sorted({w[3] for w in words}),
                         "nwords": b - a, "xs": [[int(x0), int(x1)] for x0, x1 in xs] if xs else None,
                         "big": big_words(ink, xs, float(L["xh"])) if xs else None,
+                        "short": short if xs else [],
                         "raised": raised_marks([c for q in L["pieces"] for c in lines[q["i"]]["comps"]], float(L["xh"]))})
         # the next page's first word or two, printed under the last line, is a catchword
         if out and out[-1]["where"] == ["next"] and out[-1]["nwords"] <= 2:

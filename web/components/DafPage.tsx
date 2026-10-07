@@ -26,7 +26,8 @@ export interface DafPageProps {
   kinds: Readonly<Record<string, string>>;
   /** The person's own marks: a color name for each line or comment they marked. */
   marks: Readonly<Record<string, string>>;
-  onWord: (ref: string, index: number, word: string, part: Part) => void;
+  /** printedAs: the print's short form, when the word tapped is one (ק״ש); word is then the words it stands for. */
+  onWord: (ref: string, index: number, word: string, part: Part, printedAs?: string) => void;
   /** Show the Gemara's vowels, where the library has them (they never move a word). */
   vowels: boolean;
 }

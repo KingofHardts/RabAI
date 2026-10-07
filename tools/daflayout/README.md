@@ -25,8 +25,20 @@ For each amud of the Bavli:
    a yud is as small as a period, but it hangs from the top of the letters, so it is kept as a
    letter. The library's words are then lined up with the printed words by their letters. Where the
    print abbreviates (הקב״ה for "הקדוש ברוך הוא") or sets two words with no space between them, the
-   library's words share the printed word's place. A printed word the library doesn't have (a note's
-   mark) is left out. When the words don't line up well, the line gets no word places and the app
+   library's words share the printed word's place. Where Tesseract read two printed words as one,
+   they are split at the gap that fits them best. A printed word the library doesn't have (a note's
+   mark) is left out.
+
+   Where the print abbreviates or cuts a word short and the library spells it out (ק״ש for "קריאת
+   שמע", ואב״א for "ואיבעית אימא", ר׳ for "רבי"), the short form is kept, so the app can show it
+   as printed. It is kept only when the scan settles it: its letters are exactly what Tesseract
+   read there and are the library's own (each word's first letter, then more of its letters in
+   order; a cut word is its start), the mark is where the print puts it (״ before the last letter,
+   ׳ at the end), the printed word is about as wide as the short form rather than the full words,
+   and, for a cut word, the ink shows a ׳ (a small mark hanging from the top of the letters) or the
+   printed word is far too narrow for the whole word, since Tesseract sometimes reads a last ר as a
+   ׳. A short form Tesseract ran together with a whole word (א״ר יוסי read as one) is split from it
+   at their gap. Anything else is left as the library spells it. When the words don't line up well, the line gets no word places and the app
    spreads its words evenly across the printed line. A word whose letters are mostly much taller
    than its line's (a commentary's first words, the word that opens a Mishnah or a chapter) has its
    letters' height kept too, so the app draws it at its printed size. The marks set above the text
@@ -43,9 +55,9 @@ For each amud of the Bavli:
    heading that doesn't line up is left out rather than guessed.
 
 What is kept, per amud, is each line's box on the page, its letters' height, the library words it
-holds (passage ref and word numbers) and, when found, where each of them is printed on the line, plus
-a check of each passage's words, and the heading's words, the labels and the note marks with their
-places. The scans themselves are
+holds (passage ref and word numbers) and, when found, where each of them is printed on the line and
+which of them the print sets as a short form, plus a check of each passage's words, and the
+heading's words, the labels and the note marks with their places. The scans themselves are
 never committed, stored, or shown. The app shows the printed layout only for an amud where every
 word of its Gemara, Rashi and Tosafot was placed ("placed_all"); otherwise it falls back to its
 flowing layout. An amud is "complete" when, in addition, no word was placed by estimate.

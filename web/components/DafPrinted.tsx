@@ -25,6 +25,7 @@ const LETTER_EM: Record<DafPart, number> = { main: 0.543, rashi: 0.726, tosafot:
 const HAS_LETTERS = /[א-ת]/;
 /** The same for the heading's typeface (Romm Vilna Heading): its letters, and its figures. */
 const HEADING_EM = { letters: 0.541, figures: 0.51 };
+const ESTIMATE_NOTE = "Placed by estimate: the scan didn't show for certain which line this word is on.";
 /** A word set in a wider space than its letters need is stretched at most this much (then it sits at its right). */
 const MAX_STRETCH = 1.35;
 
@@ -125,7 +126,9 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
     const w = (e.target as HTMLElement).closest<HTMLElement>("[data-i]");
     const seg = w?.closest<HTMLElement>("[data-ref]");
     if (!w || !seg) return;
-    onWord(seg.dataset.ref!, Number(w.dataset.i), withoutPoints(w.textContent ?? ""), seg.dataset.part as DafPart);
+    // A short form stands for the library's words: those are what is looked up.
+    const short = w.dataset.short;
+    onWord(seg.dataset.ref!, Number(w.dataset.i), withoutPoints(short ? (w.dataset.full ?? "") : (w.textContent ?? "")), seg.dataset.part as DafPart, short);
   };
 
   return (
@@ -185,12 +188,14 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
           const font = (line.letter * k) / LETTER_EM[line.part];
           const places = line.words;
           const tall = new Map((line.big ?? []).map(([w, top, bottom]) => [w, [top, bottom] as const]));
+          const short = new Map((line.short ?? []).map(([w, n, form]) => [w, [n, form] as const]));
+          let skip = 0; // the rest of a short form's words, drawn by its first
           let words = 0;
           // In a line with word places, each word is a box as wide as the printed word, after a gap as
           // wide as the printed space (the space before the line's first word is from the line's right).
           let edge = x1;
-          const placed = (w: number, inner: ReactNode, cls: string | undefined, key: number, extra: Record<string, unknown>) => {
-            const [l, r] = places![w];
+          const placed = (w: number, inner: ReactNode, cls: string | undefined, key: number, extra: Record<string, unknown>, n = 1) => {
+            const [l, r] = [places![w + n - 1][0], places![w][1]];
             const gap = Math.max(0, edge - r) * k;
             edge = l;
             // A word printed larger than its line is set at its own letters' height, where they print.
@@ -230,12 +235,38 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
               const big = p.part === "main" && ref === firstMain && i === 0 && data.daf === 2 && data.amud === "a";
               const on = activeWord?.ref === ref && activeWord.index === i;
               const est = estimated.has(wordKey(ref, i));
-              const title = est ? "Placed by estimate: the scan didn't show for certain which line this word is on." : undefined;
+              const title = est ? ESTIMATE_NOTE : undefined;
               if (places) {
+                if (skip > 0) {
+                  skip--;
+                  words++;
+                  continue;
+                }
                 const letters = HAS_LETTERS.test(w);
                 const cls = letters
                   ? `dw dplaced${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}${est ? " est" : ""}`
                   : `dplaced${bold ? " open" : ""}`;
+                const sf = short.get(words);
+                if (sf && letters) {
+                  // The print's short form for these words (ק״ש for "קריאת שמע"), in their place, with
+                  // the punctuation the library sets around them.
+                  const [n, form] = sf;
+                  const group = p.words.slice(i, i + n);
+                  const span = Array.from({ length: n }, (_, d) => i + d);
+                  const onAny = activeWord?.ref === ref && span.includes(activeWord.index);
+                  const estAny = span.some((d) => estimated.has(wordKey(ref, d)));
+                  const gcls = `dw dplaced short${bold ? " open" : ""}${onAny ? " on" : ""}${estAny ? " est" : ""}`;
+                  const full = group.join(" ");
+                  const lead = group[0].match(/^[^\u05D0-\u05EA]*/)?.[0] ?? "";
+                  const trail = group[n - 1].match(/[^\u05D0-\u05EA\u0591-\u05C7]*$/)?.[0] ?? "";
+                  const note = `${form}: printed short for ${withoutPoints(full)}`;
+                  out.push(
+                    ...placed(words, `${lead}${form}${trail}`, gcls, i, { "data-i": i, "data-short": form, "data-full": full, title: estAny ? `${note}. ${ESTIMATE_NOTE}` : note }, n),
+                  );
+                  skip = n - 1;
+                  words++;
+                  continue;
+                }
                 out.push(...placed(words++, shown, cls, i, letters ? { "data-i": i, title } : {}));
                 continue;
               }

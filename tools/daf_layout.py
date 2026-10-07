@@ -200,20 +200,27 @@ def reconcile(tractate, results, text, twin):
             out = []
             for L in r["parts"][part]:
                 words, at, xs, tall, big, k = [], {}, iter(L.get("xs") or []), {}, L.get("big") or {}, 0
-                for ref, a, b in L["spans"]:
-                    for w in range(a, b):
-                        x = next(xs, None)
-                        if x is not None:
-                            at[(ref, w)] = x
-                        if k in big or str(k) in big:
-                            tall[(ref, w)] = big.get(k, big.get(str(k)))
-                        k += 1
-                        if keep[(ref, w)] == id(L):
-                            words.append((ref, w))
-                        else:
-                            r["trimmed"][part] += 1
+                every = [(ref, w) for ref, a, b in L["spans"] for w in range(a, b)]
+                for ref, w in every:
+                    x = next(xs, None)
+                    if x is not None:
+                        at[(ref, w)] = x
+                    if k in big or str(k) in big:
+                        tall[(ref, w)] = big.get(k, big.get(str(k)))
+                    k += 1
+                    if keep[(ref, w)] == id(L):
+                        words.append((ref, w))
+                    else:
+                        r["trimmed"][part] += 1
+                # words the print sets as one short form: by the words they are, so they can be found
+                # again after words are moved between lines
+                short = {}
+                for a, n, form in L.get("short") or []:
+                    run = every[a:a + n]
+                    if len(run) == n and len({ref for ref, _ in run}) == 1:
+                        short[run[0]] = (run, form)
                 if words:
-                    line = {**L, "words": words, "at": at, "tall": tall}
+                    line = {**L, "words": words, "at": at, "tall": tall, "short": short}
                     out.append(line)
                     for k in words:
                         where[k] = line
@@ -304,8 +311,18 @@ def reconcile(tractate, results, text, twin):
                     row.append([v for x in xs for v in x])
                     # words printed larger than the line: [word number on the line, top, bottom, ...]
                     tall = [v for i, k in enumerate(L["words"]) if k in L["tall"] for v in (i, *L["tall"][k])]
-                    if tall:
+                    # words the print sets as one short form: [[word number on the line, how many, form], ...],
+                    # when they are still together on this line
+                    short = []
+                    for i, k in enumerate(L["words"]):
+                        if k in L["short"]:
+                            run, form = L["short"][k]
+                            if L["words"][i:i + len(run)] == run:
+                                short.append([i, len(run), form])
+                    if tall or short:
                         row.append(tall)
+                    if short:
+                        row.append(short)
                 lines[part].append(row)
         placed_all = not any(missing.values())
         records.append({

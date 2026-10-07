@@ -66,7 +66,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   numbers, and each word's place on its line are stored. `readPrinted` refuses a layout that
   leaves any word unplaced or whose word checks don't match the library's text; keep that check.
   Words the scan didn't settle (listed in the layout's `estimated`) are drawn with a dotted
-  underline and a note; never show them unmarked. Keep the word splitting in
+  underline and a note; never show them unmarked. A printed short form (ק״ש, ר׳) is shown only when
+  its letters come from the library's own words in that place: `readPrinted` checks this
+  (`shortForms` in `daf.ts`, the same test as `abbreviates` in `tools/daflayout/words.py`); keep
+  the two in step. Keep the word splitting in
   `tools/daflayout/text.py` identical to the app's (both have tests on the same check value).
   The layouts are made by the "Make the printed-page layouts" workflow
   (`.github/workflows/daf-layout.yml`, run by hand), and `tools/library_upload.py` carries

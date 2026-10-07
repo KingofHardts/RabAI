@@ -432,7 +432,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [daf, setDaf] = useState<DafData | null>(null);
   const [dafLoading, setDafLoading] = useState(false);
   const [dafError, setDafError] = useState<string | null>(null);
-  const [dafPick, setDafPick] = useState<{ ref: string; index: number; word: string; part: "main" | "rashi" | "tosafot" } | null>(null);
+  const [dafPick, setDafPick] = useState<{ ref: string; index: number; word: string; part: "main" | "rashi" | "tosafot"; printedAs?: string } | null>(null);
   const [dafZoom, setDafZoom] = useState(1);
   const [dafVowels, setDafVowels] = useState(false);
   const dafZoomChosen = useRef(false);
@@ -645,7 +645,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // Look up the word tapped on the page, as for a word tapped in the reader.
   useEffect(() => {
     const w = dafPick ? bareWord(dafPick.word) : "";
-    if (!w || wordInfo[w]) return;
+    if (!w || /\s/.test(w) || wordInfo[w]) return; // (a short form for several words has no one entry)
     setWordInfo((prev) => ({ ...prev, [w]: { loading: true } }));
     fetch(`/api/word?w=${encodeURIComponent(w)}`)
       .then((r) => r.json())
@@ -1752,8 +1752,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     activeWord: dafPick ? { ref: dafPick.ref, index: dafPick.index } : null,
                     kinds,
                     marks,
-                    onWord: (ref: string, index: number, w: string, part: "main" | "rashi" | "tosafot") => {
-                      setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part });
+                    onWord: (ref: string, index: number, w: string, part: "main" | "rashi" | "tosafot", printedAs?: string) => {
+                      setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part, printedAs });
                       setDafQuestion("");
                     },
                   };
@@ -1763,7 +1763,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <p className="daf-note">
                   {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}.{" "}
                   {daf.printed
-                    ? "Every line, and nearly every word on it, is where it is on the printed Vilna page, read from a scan of the Romm printing. Where the print uses an abbreviation, the library's full words are set small in its place."
+                    ? "Every line, and nearly every word on it, is where it is on the printed Vilna page, read from a scan of the Romm printing. Abbreviations are shown as the print has them; tap one for the words it stands for. Where the scan didn't settle one, the library's full words are set small in its place."
                     : "The shape follows the printed Vilna page, but the lines break where your screen breaks them."}{" "}
                   {daf.printed && daf.printed.estimated.length > 0
                     ? `${daf.printed.estimated.length === 1 ? "One word" : `${daf.printed.estimated.length} words`} with a dotted underline ${daf.printed.estimated.length === 1 ? "is" : "are"} placed by estimate: the scan didn't show for certain which line ${daf.printed.estimated.length === 1 ? "it is" : "they are"} on. `
@@ -1806,8 +1806,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <div className="daf-word">
                   <p className="label-sm">The word you tapped</p>
                   <p className="he daf-word-he" lang="he">
-                    {word}
+                    {dafPick.printedAs ?? word}
                   </p>
+                  {dafPick.printedAs && (
+                    <p className="daf-word-full">
+                      Printed short for{" "}
+                      <span className="he" lang="he">
+                        {word}
+                      </span>
+                      .
+                    </p>
+                  )}
                   {lookup?.loading && (
                     <p className="muted">
                       Looking it up in the dictionaries<span className="dots" />
@@ -1819,6 +1828,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   {lookup && !lookup.loading && !lookup.error && entries.length === 0 && (
                     <p className="muted">None of the library’s dictionaries has this word yet. RabAI can explain it.</p>
                   )}
+                  {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabAI can explain it.</p>}
                 </div>
               )}
 
@@ -1827,7 +1837,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   type="button"
                   className={`chip-btn${word && lookup && !lookup.loading && !entries.length ? " primary" : ""}`}
                   disabled={answer?.loading || !word}
-                  onClick={() => void askLine(picked.ref, "word", "", word)}
+                  onClick={() => void askLine(picked.ref, "word", "", dafPick.printedAs ? `${dafPick.printedAs} (${word})` : word)}
                 >
                   Ask RabAI about this word
                 </button>
