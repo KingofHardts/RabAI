@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import {
   buildShelves,
   commentariesOf,
+  lastPlaceIn,
+  MAIN_SHELVES,
   placeBooks,
   placeRef,
   searchBooks,
+  sectionIn,
+  sectionLabel,
   shelfInfo,
   type BookSet,
   type CatalogBook,
@@ -14,15 +18,24 @@ import {
   type ShelfId,
 } from "@/lib/library/catalog";
 import { parseAmud } from "@/lib/library/daf";
+import { whenLabel, type RecentReading } from "@/lib/saved-chats";
+import ContentsGrid from "./ContentsGrid";
+
+/*
+ * The library home (docs/ui-research.md, 3.3): "Continue" cards for recent reading, a search box
+ * that stays at the top, the main shelves with "More" for the rest, and a page for each book with
+ * its pages or chapters to jump to. On a wide screen the shelves become a list on the left.
+ */
 
 const SHELF_KEY = "rabai-shelf";
+const OPEN_AS_KEY = "rabai-open-as";
 
-/** What is open: one book, or a collection of books (with one picked from it), shown under the group it was opened from. */
-interface Picked {
+/** What is open in place of the shelf: a book's page or a collection's page. */
+interface Page {
   book?: string;
   set?: BookSet;
-  /** The group the card opens under ("Talmud Bavli|Seder Nashim"); none for search results. */
-  anchor?: string;
+  /** Where "Back" goes. */
+  from: "shelf" | "search" | "set";
 }
 
 /** Words shared at the start of every name ("Mishnah ", "Mishneh Torah, "), so tiles can leave them off. */
@@ -38,35 +51,49 @@ function trimStart(name: string, start: string): string {
   return start && name.startsWith(start) && name.length > start.length ? name.slice(start.length) : name;
 }
 
-/** Each shelf keeps one color, from the app's tones. */
-const SHELF_TONES: Partial<Record<ShelfId, number>> = { tanakh: 0, mishnah: 1, talmud: 2, halacha: 3, midrash: 4, commentaries: 5 };
+/** Each shelf keeps one muted color, shown only as a thin edge. */
+const SHELF_TONES: Partial<Record<ShelfId, number>> = { tanakh: 0, mishnah: 1, talmud: 2, halacha: 3, midrash: 4, prayer: 5 };
 function shelfColor(id: ShelfId): string {
-  return `var(--tone-${SHELF_TONES[id] ?? 5})`;
+  return `var(--shelf-${SHELF_TONES[id] ?? 6})`;
 }
 
-function readShelf(): ShelfId | null {
+function readStored(key: string): string | null {
   try {
-    return (window.localStorage.getItem(SHELF_KEY) as ShelfId | null) ?? null;
+    return window.localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+function store(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    /* the choice simply won't be remembered */
   }
 }
 
 export default function LibraryShelves({
   books,
   label,
+  recent,
   pending,
   onRead,
   onPage,
   onLearn,
+  extras,
 }: {
   books: CatalogBook[];
-  /** A note shown under the search box (the testing library's label). */
+  /** The testing library's label, shown under the search box. */
   label?: string;
+  /** Recent reading, newest first, for "Continue" and a book's "Continue at". */
+  recent: RecentReading[];
   pending: boolean;
   onRead: (ref: string) => void;
   onPage: (ref: string) => void;
   onLearn: (title: string) => void;
+  /** Shown at the end of the home (My words, the key words). */
+  extras?: ReactNode;
 }) {
   const placed = useMemo(() => placeBooks(books), [books]);
   const shelves = useMemo(() => buildShelves(placed), [placed]);
@@ -75,126 +102,180 @@ export default function LibraryShelves({
   const [query, setQuery] = useState("");
   const [shelfId, setShelfId] = useState<ShelfId | null>(null);
   const [partIndex, setPartIndex] = useState(0);
-  const [picked, setPicked] = useState<Picked | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState<Page | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [openAs, setOpenAs] = useState<"text" | "page">("text");
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const stored = readShelf();
+    const stored = readStored(SHELF_KEY) as ShelfId | null;
     if (stored) setShelfId(stored);
+    if (readStored(OPEN_AS_KEY) === "page") setOpenAs("page");
   }, []);
 
   const shelf = shelves.find((s) => s.id === shelfId) ?? shelves.find((s) => s.id === "talmud") ?? shelves[0];
   const part = shelf?.parts[Math.min(partIndex, shelf.parts.length - 1)];
   const search = query.trim() ? searchBooks(placed, query) : null;
+  const main = shelves.filter((s) => MAIN_SHELVES.includes(s.id));
+  const more = shelves.filter((s) => !MAIN_SHELVES.includes(s.id));
+
+  /** The book a section belongs to (the longest title that holds it), for its Hebrew name. */
+  const bookOf = (section: string): PlacedBook | undefined => {
+    let best: PlacedBook | undefined;
+    for (const b of placed) if (sectionIn(b.title, section) !== null && (!best || b.title.length > best.title.length)) best = b;
+    return best;
+  };
+
+  const toTop = () =>
+    requestAnimationFrame(() => {
+      const el = rootRef.current;
+      if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
+    });
 
   const chooseShelf = (id: ShelfId) => {
     setShelfId(id);
     setPartIndex(0);
-    setPicked(null);
-    try {
-      window.localStorage.setItem(SHELF_KEY, id);
-    } catch {
-      /* the choice simply won't be remembered */
-    }
+    setPage(null);
+    setMoreOpen(false);
+    store(SHELF_KEY, id);
   };
 
-  // A card opened from inside another card stays where that card was.
-  const open = (p: Picked) => {
-    setPicked((prev) => ({ ...p, anchor: "anchor" in p ? p.anchor : prev?.anchor }));
-    requestAnimationFrame(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  const open = (p: Page) => {
+    setPage(p);
+    toTop();
+  };
+
+  const back = () => {
+    if (page?.from === "set" && page.set) setPage({ set: page.set, from: "shelf" });
+    else setPage(null);
+    toTop();
+  };
+
+  const chooseOpenAs = (v: "text" | "page") => {
+    setOpenAs(v);
+    store(OPEN_AS_KEY, v);
   };
 
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && search?.books[0]) {
       e.preventDefault();
-      open({ book: search.books[0].title, anchor: undefined });
+      if (search.place) onRead(placeRef(search.books[0], search.place));
+      else open({ book: search.books[0].title, from: "search" });
     }
     if (e.key === "Escape") setQuery("");
   };
 
-  const pickedBook = picked?.book ? byTitle.get(picked.book) : undefined;
-  const anchorOf = (groupKey: string) => `${part?.name ?? ""}|${groupKey}`;
-  const anchorShown = !!picked?.anchor && !!part?.groups.some((g) => anchorOf(g.key) === picked.anchor);
+  // ------------------------------------------------------------------ a book's page
 
-  /** "Read it", "See the page" and "Learn it" for one book. */
-  const actions = (b: PlacedBook) => {
+  const bookPage = (b: PlacedBook) => {
     const base = b.commentary?.on ? byTitle.get(b.commentary.on) : undefined;
-    const bavliPage = b.part === "Talmud Bavli" ? (b.commentary ? base?.firstRef : b.firstRef) : undefined;
-    return (
-      <div className="follow">
-        <button type="button" className="chip-btn primary" onClick={() => onRead(b.firstRef)}>
-          Read it
-        </button>
-        {bavliPage && parseAmud(bavliPage) && (
-          <button type="button" className="chip-btn" onClick={() => onPage(bavliPage)}>
-            See the page
-          </button>
-        )}
-        {base && (
-          <button type="button" className="chip-btn" onClick={() => open({ book: base.title })}>
-            Open {base.title}
-          </button>
-        )}
-        <button type="button" className="chip-btn" disabled={pending} onClick={() => onLearn(b.title)}>
-          Learn it with RabAI
-        </button>
-      </div>
-    );
-  };
-
-  const bookCard = (b: PlacedBook) => {
+    const bavli = b.part === "Talmud Bavli";
+    const bavliPage = bavli ? (b.commentary ? base?.firstRef : b.firstRef) : undefined;
+    const pageOk = !!bavliPage && !!parseAmud(bavliPage);
+    const gridAsPage = bavli && !b.commentary && openAs === "page";
+    const last = lastPlaceIn(b.title, recent);
     const commentaries = commentariesOf(placed, b.title);
+    const goTo = (sec: string, asPage: boolean) => (asPage ? onPage(sec) : onRead(sec));
+    const heading = bavli && !b.commentary ? "Pages (dafim)" : b.shelf === "tanakh" || b.shelf === "mishnah" ? "Chapters" : "Sections";
     return (
-      <>
-        <div className="card-row">
-          <h3>{b.title}</h3>
+      <div className="book-page" aria-label={b.title}>
+        <div className="bp-head">
+          <h2>{b.title}</h2>
           <span className="he" lang="he" dir="rtl">
             {b.he}
           </span>
         </div>
-        <p>{b.where}</p>
-        {actions(b)}
+        <p className="bp-where">{b.where}</p>
+        <div className="follow">
+          {last ? (
+            <>
+              <button type="button" className="btn primary" onClick={() => goTo(last.ref, !!last.page)}>
+                Continue at {sectionIn(b.title, last.title)}
+                {last.page ? " (the page)" : ""}
+              </button>
+              <button type="button" className="btn" onClick={() => onRead(b.firstRef)}>
+                Start at the beginning
+              </button>
+            </>
+          ) : (
+            <button type="button" className="btn primary" onClick={() => onRead(b.firstRef)}>
+              Start reading
+            </button>
+          )}
+          {pageOk && (
+            <button type="button" className="btn" onClick={() => onPage(bavliPage!)}>
+              See the page
+            </button>
+          )}
+          {base && (
+            <button type="button" className="btn" onClick={() => open({ book: base.title, from: page?.from ?? "shelf" })}>
+              Open {base.title}
+            </button>
+          )}
+          <button type="button" className="btn quiet" disabled={pending} onClick={() => onLearn(b.title)}>
+            Learn it with RabAI
+          </button>
+        </div>
+
+        <section className="bp-section">
+          <div className="bp-section-head">
+            <h3>{heading}</h3>
+            {bavli && !b.commentary && (
+              <div className="seg" role="group" aria-label="Open a page as">
+                <button type="button" aria-pressed={openAs === "text"} onClick={() => chooseOpenAs("text")}>
+                  Line by line
+                </button>
+                <button type="button" aria-pressed={openAs === "page"} onClick={() => chooseOpenAs("page")}>
+                  The printed page
+                </button>
+              </div>
+            )}
+          </div>
+          <ContentsGrid book={b.title} current={last?.title} onOpen={(sec) => goTo(sec, gridAsPage)} />
+        </section>
+
         {commentaries.length > 0 && (
-          <div className="book-commentaries">
-            <p className="label-sm">Commentaries on {b.title} in the library</p>
+          <section className="bp-section">
+            <h3>Commentaries in the library</h3>
             {commentaries.map((e) => (
-              <div key={e.era} className="era-row">
+              <p key={e.era} className="era-line">
                 <span className="era">{e.name}</span>
-                <div className="follow tight">
-                  {e.books.map((c) => (
-                    <button key={c.title} type="button" className="chip-btn" onClick={() => open({ book: c.title })} title={c.title}>
+                {e.books.map((c, i) => (
+                  <span key={c.title}>
+                    {i > 0 ? " · " : " "}
+                    <button type="button" className="link" title={c.title} onClick={() => open({ book: c.title, from: page?.from ?? "shelf" })}>
                       {c.commentary!.label}
                     </button>
-                  ))}
-                </div>
-              </div>
+                  </span>
+                ))}
+              </p>
             ))}
-          </div>
+          </section>
         )}
-      </>
+      </div>
     );
   };
 
-  const setCard = (s: BookSet) => {
+  const setPageView = (s: BookSet) => {
     const start = sharedStart(s.books.map((b) => b.title));
     const heStart = sharedStart(s.books.map((b) => b.he));
     return (
-      <>
-        <div className="card-row">
-          <h3>{s.name}</h3>
+      <div className="book-page" aria-label={s.name}>
+        <div className="bp-head">
+          <h2>{s.name}</h2>
           {s.he && (
             <span className="he" lang="he" dir="rtl">
               {s.he}
             </span>
           )}
         </div>
-        <p>
+        <p className="bp-where">
           {s.gloss ? `${s.gloss} · ` : ""}
           {s.books.length} books
         </p>
         <div className="tiles">
           {s.books.map((b) => (
-            <button key={b.title} type="button" className="tile" onClick={() => open({ book: b.title, set: s })}>
+            <button key={b.title} type="button" className="tile" onClick={() => open({ book: b.title, set: s, from: "set" })}>
               <span>{b.commentary?.on ?? trimStart(b.title, start)}</span>
               <span className="he" lang="he" dir="rtl">
                 {trimStart(b.he, heStart)}
@@ -202,93 +283,204 @@ export default function LibraryShelves({
             </button>
           ))}
         </div>
-      </>
+      </div>
     );
   };
 
-  const opened = picked && (pickedBook || picked.set) && (
-    <div className="card book-card" ref={cardRef}>
-      <button type="button" className="link close-card" aria-label="Close" onClick={() => setPicked(null)}>
-        ×
-      </button>
-      {pickedBook ? (
-        <>
-          {picked.set && (
-            <button type="button" className="link back-link" onClick={() => open({ set: picked.set })}>
-              ← {picked.set.name}
+  const pageBook = page?.book ? byTitle.get(page.book) : undefined;
+  const backLabel =
+    page?.from === "set" && page.set ? page.set.name : page?.from === "search" ? "Search results" : (shelf?.name ?? "The library");
+
+  // ------------------------------------------------------------------ the shelves
+
+  const shelfTab = (s: (typeof shelves)[number], extra = "") => (
+    <button
+      key={`${s.id}${extra}`}
+      type="button"
+      aria-pressed={s.id === shelf?.id}
+      className={`shelf-tab${extra ? ` ${extra}` : ""}`}
+      style={{ ["--shelf" as string]: shelfColor(s.id) }}
+      onClick={() => chooseShelf(s.id)}
+    >
+      <span>{s.name}</span>
+      <span className="he" lang="he">
+        {s.he}
+      </span>
+    </button>
+  );
+
+  const shelfView = shelf && (
+    <div className="shelf" style={{ ["--shelf" as string]: shelfColor(shelf.id) }}>
+      {shelf.parts.length > 1 && (
+        <div className="seg shelf-parts">
+          {shelf.parts.map((p, i) => (
+            <button
+              key={p.name ?? i}
+              type="button"
+              aria-pressed={p === part}
+              onClick={() => {
+                setPartIndex(i);
+                setPage(null);
+              }}
+            >
+              {p.name}
             </button>
-          )}
-          {bookCard(pickedBook)}
-        </>
-      ) : (
-        setCard(picked.set!)
+          ))}
+        </div>
       )}
+      {part?.groups.map((g) => {
+        const start = sharedStart(g.books.map((b) => b.title));
+        const heStart = sharedStart(g.books.map((b) => b.he));
+        const name = g.name || (part.groups.length > 1 ? "More works" : "");
+        return (
+          <section key={g.key || "books"} className="shelf-group">
+            {name && (
+              <h4>
+                {name}
+                {g.he && (
+                  <span className="he" lang="he">
+                    {g.he}
+                  </span>
+                )}
+              </h4>
+            )}
+            <div className="tiles">
+              {g.books.map((b) => (
+                <button key={b.title} type="button" className="tile" onClick={() => open({ book: b.title, from: "shelf" })}>
+                  <span>{trimStart(b.title, start)}</span>
+                  <span className="he" lang="he" dir="rtl">
+                    {trimStart(b.he, heStart)}
+                  </span>
+                </button>
+              ))}
+              {g.sets.map((s) => (
+                <button key={s.name} type="button" className="tile set" onClick={() => open({ set: s, from: "shelf" })}>
+                  <span>{s.name}</span>
+                  <span className="count">
+                    {s.gloss ? `${s.gloss} · ` : ""}
+                    {s.books.length} {s.books.length === 1 ? "book" : "books"}
+                  </span>
+                  {s.he && (
+                    <span className="he" lang="he" dir="rtl">
+                      {s.he}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 
+  // A "More" shelf that is open shows in the first row too, so the row says where you are.
+  const openMore = shelf && !MAIN_SHELVES.includes(shelf.id) ? shelf : null;
+
   return (
-    <div className="library">
-      <div className="card">
-        <div className="card-row">
-          <h3>The library</h3>
-          <span className="he" lang="he" dir="rtl">
-            ספרייה
-          </span>
-        </div>
-        <label className="label-sm" htmlFor="book-filter">
-          Find a book ({placed.length} in the library). Type any part of its name, in English or Hebrew.
+    <div className="library" ref={rootRef}>
+      {!query && !page && recent.length > 0 && (
+        <section className="continue" aria-label="Continue reading">
+          <h2 className="lib-h">Continue</h2>
+          <div className="continue-row">
+            {recent.map((r) => {
+              const b = bookOf(r.title);
+              return (
+                <button
+                  key={`${r.title}${r.page ? ":page" : ""}`}
+                  type="button"
+                  className="continue-card"
+                  style={{ ["--shelf" as string]: b ? shelfColor(b.shelf) : undefined }}
+                  onClick={() => (r.page ? onPage(r.ref) : onRead(r.ref))}
+                >
+                  <span className="cc-title">{r.title}</span>
+                  {b && (
+                    <span className="he cc-he" lang="he" dir="rtl">
+                      {b.he}
+                    </span>
+                  )}
+                  <span className="cc-meta">
+                    {r.page ? "The printed page" : "Line by line"} · {whenLabel(r.at)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <div className="lib-search">
+        <label className="sr-only" htmlFor="book-filter">
+          Find a book ({placed.length} in the library), in English or Hebrew
         </label>
         <input
           id="book-filter"
           className="book-filter"
           type="search"
           value={query}
-          placeholder="Kiddushin, Gemara Berachos, Rashi on Bereishis, משנה ברורה…"
-          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Find a book: Berakhot, Rashi on Bereishis, משנה ברורה…`}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(null);
+          }}
           onKeyDown={onSearchKey}
           autoComplete="off"
           spellCheck={false}
         />
-        {label && <p className="note">{label}</p>}
       </div>
+      {label && (
+        <p className="lib-label" title={label}>
+          <span className="tag-gray">Testing library</span> {placed.length} books, not yet approved by the rabbinic board.
+        </p>
+      )}
 
-      {search ? (
-        <div className="card">
+      {page && (pageBook || page.set) ? (
+        <div className="lib-page">
+          <button type="button" className="link back-link" onClick={back}>
+            ← {backLabel}
+          </button>
+          {pageBook ? bookPage(pageBook) : setPageView(page.set!)}
+        </div>
+      ) : search ? (
+        <div className="lib-results">
           {search.books.length === 0 ? (
-            <p>No book by that name in the library yet. Try a shorter part of the name.</p>
+            <p className="muted">No book by that name in the library yet. Try a shorter part of the name.</p>
           ) : (
             <>
-              {search.closest && <p className="note">No book has all of those words. These come closest.</p>}
-              {search.place && search.books[0] && (
-                <div className="follow tight">
-                  <button type="button" className="chip-btn primary" onClick={() => onRead(placeRef(search.books[0], search.place!))}>
-                    Open {placeRef(search.books[0], search.place)}
-                  </button>
-                  {search.books[0].part === "Talmud Bavli" && !search.books[0].commentary && parseAmud(placeRef(search.books[0], search.place)) && (
-                    <button type="button" className="chip-btn" onClick={() => onPage(placeRef(search.books[0], search.place!))}>
-                      See that page
-                    </button>
-                  )}
-                </div>
-              )}
-              {search.shelf && (
-                <div className="follow tight">
-                  <button
-                    type="button"
-                    className="chip-btn"
-                    onClick={() => {
-                      chooseShelf(search.shelf!);
-                      setQuery("");
-                    }}
-                  >
-                    Browse the {shelfInfo(search.shelf).name} shelf
-                  </button>
-                </div>
-              )}
+              {search.closest && <p className="muted">No book has all of those words. These come closest.</p>}
               <ul className="book-results">
+                {search.place && search.books[0] && (
+                  <li>
+                    <button type="button" className="book-result go" onClick={() => onRead(placeRef(search.books[0], search.place!))}>
+                      <span className="t">Open {placeRef(search.books[0], search.place)}</span>
+                      <span className="where">Line by line</span>
+                    </button>
+                    {search.books[0].part === "Talmud Bavli" &&
+                      !search.books[0].commentary &&
+                      parseAmud(placeRef(search.books[0], search.place)) && (
+                        <button type="button" className="link" onClick={() => onPage(placeRef(search.books[0], search.place!))}>
+                          or see that page as printed
+                        </button>
+                      )}
+                  </li>
+                )}
+                {search.shelf && (
+                  <li>
+                    <button
+                      type="button"
+                      className="book-result go"
+                      onClick={() => {
+                        chooseShelf(search.shelf!);
+                        setQuery("");
+                      }}
+                    >
+                      <span className="t">Browse the {shelfInfo(search.shelf).name} shelf</span>
+                    </button>
+                  </li>
+                )}
                 {search.books.map((b) => (
                   <li key={b.title}>
-                    <button type="button" className="book-result" onClick={() => open({ book: b.title, anchor: undefined })}>
+                    <button type="button" className="book-result" onClick={() => open({ book: b.title, from: "search" })}>
                       <span className="t">{b.title}</span>
                       <span className="he" lang="he" dir="rtl">
                         {b.he}
@@ -301,108 +493,31 @@ export default function LibraryShelves({
             </>
           )}
         </div>
-      ) : null}
-
-      {(search || !anchorShown) && opened}
-
-      {!search && shelf && (
-        <div className="card shelf" style={{ ["--shelf" as string]: shelfColor(shelf.id) }}>
-          <div className="shelf-tabs" role="tablist" aria-label="Shelves">
-            {shelves.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                role="tab"
-                aria-selected={s.id === shelf.id}
-                className="shelf-tab"
-                style={{ ["--shelf" as string]: shelfColor(s.id) }}
-                onClick={() => chooseShelf(s.id)}
-              >
-                {s.name}
-                <span className="he" lang="he">
-                  {s.he}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {shelf.parts.length > 1 && (
-            <div className="seg shelf-parts">
-              {shelf.parts.map((p, i) => (
-                <button
-                  key={p.name ?? i}
-                  type="button"
-                  aria-pressed={p === part}
-                  onClick={() => {
-                    setPartIndex(i);
-                    setPicked(null);
-                  }}
-                >
-                  {p.name}
+      ) : (
+        <div className="lib-body">
+          <nav className="shelf-nav" aria-label="Shelves">
+            <div className="shelf-row">
+              {main.map((s) => shelfTab(s))}
+              {openMore && shelfTab(openMore, "from-more")}
+              {more.length > 0 && (
+                <button type="button" className="shelf-tab more-btn" aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)}>
+                  <span>More</span>
+                  <span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span>
                 </button>
-              ))}
+              )}
             </div>
-          )}
-
-          {part?.groups.map((g) => {
-            const start = sharedStart(g.books.map((b) => b.title));
-            const heStart = sharedStart(g.books.map((b) => b.he));
-            const anchor = anchorOf(g.key);
-            const name = g.name || (part.groups.length > 1 ? "More works" : "");
-            return (
-              <section key={g.key || "books"} className="shelf-group">
-                {name && (
-                  <h4>
-                    {name}
-                    {g.he && (
-                      <span className="he" lang="he">
-                        {g.he}
-                      </span>
-                    )}
-                  </h4>
-                )}
-                <div className="tiles">
-                  {g.books.map((b) => (
-                    <button
-                      key={b.title}
-                      type="button"
-                      className="tile"
-                      aria-pressed={pickedBook?.title === b.title}
-                      onClick={() => open({ book: b.title, anchor })}
-                    >
-                      <span>{trimStart(b.title, start)}</span>
-                      <span className="he" lang="he" dir="rtl">
-                        {trimStart(b.he, heStart)}
-                      </span>
-                    </button>
-                  ))}
-                  {g.sets.map((s) => (
-                    <button
-                      key={s.name}
-                      type="button"
-                      className="tile set"
-                      aria-pressed={picked?.set?.name === s.name && picked.anchor === anchor}
-                      onClick={() => open({ set: s, anchor })}
-                    >
-                      <span>{s.name}</span>
-                      <span className="count">
-                        {s.gloss ? `${s.gloss} · ` : ""}
-                        {s.books.length} {s.books.length === 1 ? "book" : "books"}
-                      </span>
-                      {s.he && (
-                        <span className="he" lang="he" dir="rtl">
-                          {s.he}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {picked?.anchor === anchor && opened}
-              </section>
-            );
-          })}
+            {more.length > 0 && (
+              <div className={`shelf-more${moreOpen ? " open" : ""}`}>
+                <p className="shelf-more-h">More shelves</p>
+                <div className="shelf-row">{more.map((s) => shelfTab(s))}</div>
+              </div>
+            )}
+          </nav>
+          <div className="lib-main">{shelfView}</div>
         </div>
       )}
+
+      {!query && !page && extras}
     </div>
   );
 }

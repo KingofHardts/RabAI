@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildShelves, commentariesOf, placeBooks, placeRef, searchBooks, skeleton, type CatalogBook } from "../lib/library/catalog";
+import { buildShelves, commentariesOf, lastPlaceIn, MAIN_SHELVES, placeBooks, placeRef, searchBooks, sectionIn, sectionLabel, skeleton, type CatalogBook } from "../lib/library/catalog";
 
 // Book names and Sefaria category paths shaped like the testing library's; no texts.
 let order = 0;
@@ -176,4 +176,22 @@ test("spelling keys", () => {
   assert.equal(skeleton("Ketubot"), skeleton("Kesubos"));
   assert.equal(skeleton("קידושין"), skeleton("קדושין"));
   assert.notEqual(skeleton("Shabbat"), skeleton("Shevuot"));
+});
+
+test("a section's place in its book, and the last place read there", () => {
+  assert.equal(sectionIn("Berakhot", "Berakhot 5b"), "5b");
+  assert.equal(sectionIn("Genesis", "Genesis 12"), "12");
+  assert.equal(sectionIn("Genesis", "Genesis Rabbah 1"), null);
+  assert.equal(sectionIn("Genesis", "Exodus 1"), null);
+  assert.equal(sectionLabel("Berakhot", "Berakhot 5b"), "5b");
+  assert.equal(sectionLabel("Mishneh Torah", "Mishneh Torah, Prayer 1"), "Prayer 1");
+  assert.equal(sectionLabel("Genesis", "Something else"), "Something else");
+  const recent = [
+    { title: "Genesis Rabbah 3", at: 3 },
+    { title: "Berakhot 5b", at: 2 },
+    { title: "Berakhot 2a", at: 1 },
+  ];
+  assert.equal(lastPlaceIn("Berakhot", recent)?.title, "Berakhot 5b");
+  assert.equal(lastPlaceIn("Genesis", recent), undefined);
+  assert.deepEqual(MAIN_SHELVES, ["tanakh", "mishnah", "talmud", "halacha", "midrash", "prayer"]);
 });

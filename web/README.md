@@ -72,15 +72,19 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   (Gemara, Halacha, or anything they name), each in its own color. Open one to pick it up,
   rename it, move it, or delete it (one at a time or all at once). A saved answer is the same
   checked answer the person saw; nothing is rewritten.
-- **Learn.** Browse the library by shelf (Tanakh, Mishnah, Talmud, Halacha, Midrash, and so on),
-  grouped the way learners know it: the six orders of the Mishnah and Talmud, the three parts of
-  Tanakh, the books of the Mishneh Torah. Each book's card lists its commentaries in the library
-  (Rishonim, then Acharonim). The book search forgives spelling and order: "Kidushin",
-  "Gemara Kiddushin", "Kesubos", "Tosfos Kidushin", Hebrew names, part of a name, or a name with
-  a page ("Kiddushin 40b") all work (`lib/library/catalog.ts`). Pick up where you left off (the
-  last texts you opened), read a text, ask RabAI to learn it with you, review My words
-  (saved only on the device), and the Gemara's key words. The "grow closer to HaShem" setting
-  lives here, off unless the person turns it on.
+- **Learn.** The library's home: "Continue" cards for the last texts opened (line by line or as
+  the printed page), a search box that stays at the top, then the shelves: Tanakh, Mishnah,
+  Talmud, Halacha, Midrash and Prayer, with "More" for the rest (on a computer, a list down the
+  left). Books are grouped the way learners know them: the six orders of the Mishnah and Talmud,
+  the three parts of Tanakh, the books of the Mishneh Torah. A book opens its own page: continue
+  where you left off or start, a grid of its pages or chapters (a Bavli tractate's dafim can open
+  line by line or as the printed page), and its commentaries in the library (Rishonim, then
+  Acharonim). The book search forgives spelling and order: "Kidushin", "Gemara Kiddushin",
+  "Kesubos", "Tosfos Kidushin", Hebrew names, part of a name, or a name with a page
+  ("Kiddushin 40b") all work (`lib/library/catalog.ts`). My words (saved only on the device) and
+  the Gemara's key words each have their own screen.
+- **Settings** (the gear at the top): "Help me grow closer to HaShem", off unless the person
+  turns it on, and a note on what RabAI is and where things are kept.
 
 ## How an answer is made
 

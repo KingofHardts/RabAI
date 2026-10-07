@@ -28,6 +28,7 @@ import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voi
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
+import ContentsGrid from "./ContentsGrid";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
@@ -401,6 +402,15 @@ function ChatsIcon() {
   );
 }
 
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+    </svg>
+  );
+}
+
 function SpeakerIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -439,6 +449,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   );
   const listening = dictation.state === "listening";
   const [growth, setGrowth] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Learn's screens: the library, My words, or the Gemara's key words. */
+  const [learnView, setLearnView] = useState<"library" | "words" | "phrases">("library");
   const [lang, setLang] = useState<Lang>("both");
 
   const [readerRef, setReaderRef] = useState<string | null>(null);
@@ -455,7 +468,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [cardTab, setCardTab] = useState<CardTab>("meaning");
   /** The reader's open menu: the display choices (Aa), the book's contents, or the edition details. */
   const [readerMenu, setReaderMenu] = useState<"aa" | "contents" | "about" | null>(null);
-  const [contents, setContents] = useState<Record<string, { loading?: boolean; error?: string; sections?: string[] }>>({});
   /** Commentators whose comments show under every line (by name); the others fold into a count. */
   const [inlineComms, setInlineComms] = useState<string[]>([]);
   const [readerHint, setReaderHint] = useState(false);
@@ -549,6 +561,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   }, []);
 
   const chooseMode = (m: Mode) => {
+    // Tapping Learn again goes back to the library.
+    if (m === "learn") setLearnView("library");
     setMode(m);
     store("rabai_mode", m);
   };
@@ -1068,19 +1082,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   /** The book's table of contents, fetched once per book. */
-  const openContents = () => {
-    if (readerMenu === "contents") return setReaderMenu(null);
-    setReaderMenu("contents");
-    const book = reader?.book;
-    if (!book || contents[book]?.sections || contents[book]?.loading) return;
-    setContents((prev) => ({ ...prev, [book]: { loading: true } }));
-    fetch(`/api/contents?book=${encodeURIComponent(book)}`)
-      .then((r) => r.json())
-      .then((j: { sections?: string[]; error?: string }) =>
-        setContents((prev) => ({ ...prev, [book]: j.sections ? { sections: j.sections } : { error: j.error ?? "The contents couldn't be loaded." } })),
-      )
-      .catch(() => setContents((prev) => ({ ...prev, [book]: { error: "The contents couldn't be loaded." } })));
-  };
+  const openContents = () => setReaderMenu(readerMenu === "contents" ? null : "contents");
 
   const dismissHint = () => {
     setReaderHint(false);
@@ -1195,6 +1197,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       void send(`Can you explain this part: “${quote}”?`);
     }
   };
+
+  // Escape closes the settings menu.
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") setSettingsOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [settingsOpen]);
 
   const toggleGrowth = (on: boolean) => {
     setGrowth(on);
@@ -2062,19 +2074,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               aria-expanded={dafMenu === "contents"}
               aria-label={`${dafRef}: choose a page`}
               disabled={!daf}
-              onClick={() => {
-                if (dafMenu === "contents") return setDafMenu(null);
-                setDafMenu("contents");
-                const book = daf?.section.replace(/ \d+[ab]$/, "");
-                if (!book || contents[book]?.sections || contents[book]?.loading) return;
-                setContents((prev) => ({ ...prev, [book]: { loading: true } }));
-                fetch(`/api/contents?book=${encodeURIComponent(book)}`)
-                  .then((r) => r.json())
-                  .then((j: { sections?: string[]; error?: string }) =>
-                    setContents((prev) => ({ ...prev, [book]: j.sections ? { sections: j.sections } : { error: j.error ?? "The pages couldn't be listed." } })),
-                  )
-                  .catch(() => setContents((prev) => ({ ...prev, [book]: { error: "The pages couldn't be listed." } })));
-              }}
+              onClick={() => setDafMenu(dafMenu === "contents" ? null : "contents")}
             >
               {daf && (
                 <span className="he" lang="he">
@@ -2153,37 +2153,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           )}
           {dafMenu === "contents" && daf && (
             <div className="rb-menu daf-menu rb-toc">
-              {(() => {
-                const book = daf.section.replace(/ \d+[ab]$/, "");
-                const c = contents[book];
-                if (!c || c.loading)
-                  return (
-                    <p className="muted">
-                      Listing the pages<span className="dots" />
-                    </p>
-                  );
-                if (c.error) return <p className="muted">{c.error}</p>;
-                return (
-                  <>
-                    <p className="label-sm">{book}</p>
-                    <div className="toc-grid">
-                      {(c.sections ?? []).map((sec) => (
-                        <button
-                          key={sec}
-                          type="button"
-                          aria-current={sec === daf.section ? "page" : undefined}
-                          onClick={() => {
-                            setDafMenu(null);
-                            void openDaf(sec);
-                          }}
-                        >
-                          {sec.slice(book.length + 1)}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
+              <p className="label-sm">{daf.section.replace(/ \d+[ab]$/, "")}</p>
+              <ContentsGrid
+                book={daf.section.replace(/ \d+[ab]$/, "")}
+                current={daf.section}
+                loadingText="Listing the pages"
+                onOpen={(sec) => {
+                  setDafMenu(null);
+                  void openDaf(sec);
+                }}
+              />
             </div>
           )}
         </div>
@@ -2480,7 +2459,41 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 Learn
               </button>
             </div>
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Settings"
+              aria-expanded={settingsOpen}
+              onClick={() => setSettingsOpen(!settingsOpen)}
+            >
+              <GearIcon />
+            </button>
           </div>
+          {settingsOpen && (
+            <>
+              <button type="button" className="menu-scrim" aria-label="Close settings" onClick={() => setSettingsOpen(false)} />
+              <div className="settings-menu" role="dialog" aria-label="Settings">
+                <label className="switch">
+                  <input type="checkbox" checked={growth} onChange={(e) => toggleGrowth(e.target.checked)} />
+                  <span>
+                    <strong>Help me grow closer to HaShem</strong>
+                    <span className="muted">
+                      Off unless you turn it on. When it’s on, RabAI may gently offer one small step at a time, never with
+                      guilt.
+                    </span>
+                  </span>
+                </label>
+                <div className="settings-about">
+                  <p>RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                  {libraryMode === "testing" && (
+                    <p>{TESTING_LABEL}</p>
+                  )}
+                  {libraryMode === "development" && <p>{DEV_NOTE}</p>}
+                  <p>Your chats, saved words, marks and recent reading stay on this device.</p>
+                </div>
+              </div>
+            </>
+          )}
         </header>
 
         <div className="scroll" ref={scrollRef}>
@@ -2507,6 +2520,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     Shalom! I’m RabAI, an AI Torah teacher. Ask me anything, about Torah or about life.
                     {dictation.supported ? " Type, or tap the microphone and talk." : ""}
                   </p>
+                  {libraryMode === "testing" && (
+                    <p className="welcome-tag">
+                      <span className="tag-gray">Testing library</span> Sources are not yet approved by the rabbinic board.
+                    </p>
+                  )}
                   {!connected && (
                     <p className="note">
                       This build isn’t connected to its AI model yet, so I can find sources but can’t answer. The setup
@@ -2601,39 +2619,88 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
               )}
             </div>
-          ) : (
-            <div className="thread">
-              <div className="msg-ai">
-                <div className="mark" aria-hidden="true">
-                  ר
-                </div>
-                <div className="body">
-                  <p>Pick a text to read. Tap a line to ask about it, or highlight any words and ask about those.</p>
-                  <p>
-                    Tap any word to see what it means and how it is built.
+          ) : learnView === "words" ? (
+            <div className="thread learn-screen">
+              <button type="button" className="link back-link" onClick={() => setLearnView("library")}>
+                ← The library
+              </button>
+              <h2 className="screen-h">My words</h2>
+              {myWords.length === 0 ? (
+                <p className="muted">
+                  Words you save while reading appear here, so you can review them. Tap a word in any text, then “Save to My
+                  words”. They stay on this device.
+                </p>
+              ) : (
+                <>
+                  <p className="muted">
+                    {myWords.length} {myWords.length === 1 ? "word" : "words"}, saved on this device. Try to remember each one
+                    before you show its meaning.
                   </p>
-                </div>
-              </div>
-
-              {recent.length > 0 && (
-                <div className="card">
-                  <h3>Pick up where you left off</h3>
-                  <div className="follow">
-                    {recent.map((r) => (
-                      <button
-                        key={`${r.title}${r.page ? ":page" : ""}`}
-                        type="button"
-                        className="cite"
-                        onClick={() => void (r.page ? openDaf(r.ref) : openReader(r.ref))}
-                      >
-                        {r.title}
-                        {r.page ? " (the page)" : ""}
-                      </button>
+                  <ul className="my-words">
+                    {myWords.map((w) => (
+                      <li key={w.form}>
+                        <span className="he" lang="he">
+                          {w.form}
+                        </span>
+                        {revealed.has(w.form) ? (
+                          <span className="meaning">
+                            {w.gloss ?? "Ask RabAI about this word"}
+                            {w.root ? ` · root ${w.root}${w.rootMeaning ? ` (${w.rootMeaning})` : ""}` : ""}
+                          </span>
+                        ) : (
+                          <button type="button" className="link" onClick={() => setRevealed((prev) => new Set(prev).add(w.form))}>
+                            Show meaning
+                          </button>
+                        )}
+                        <span className="row-actions">
+                          <button type="button" className="link" onClick={() => void openReader(w.ref)}>
+                            {w.ref}
+                          </button>
+                          <button type="button" className="link" aria-label={`Remove ${w.form}`} onClick={() => removeWord(w.form)}>
+                            Remove
+                          </button>
+                        </span>
+                      </li>
                     ))}
-                  </div>
-                </div>
+                  </ul>
+                </>
               )}
-
+            </div>
+          ) : learnView === "phrases" ? (
+            <div className="thread learn-screen">
+              <button type="button" className="link back-link" onClick={() => setLearnView("library")}>
+                ← The library
+              </button>
+              <h2 className="screen-h">The Gemara’s key words</h2>
+              <p className="muted">
+                A handful of Aramaic phrases carry the give and take of every sugya. Learn these and you can follow the argument
+                on any page.
+              </p>
+              <ul className="glossary">
+                {glossary.map((g) => (
+                  <li key={g.id}>
+                    <span className="he" lang="he">
+                      {g.phrase}
+                    </span>
+                    <span>
+                      <strong>
+                        {g.meaning}
+                        {/[.?!]$/.test(g.meaning) ? "" : "."}
+                      </strong>{" "}
+                      {g.role}
+                    </span>
+                    {g.occurrences.length > 0 && (
+                      <button type="button" className="cite" onClick={() => void openReader(g.occurrences[0])}>
+                        See it in {g.occurrences[0]}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="fine-left">Written by the RabAI team for testing, until approved dictionaries replace these notes.</p>
+            </div>
+          ) : (
+            <div className="thread learn-home">
               {sections === null ? (
                 <p className="thinking">
                   Opening the library<span className="dots" />
@@ -2644,6 +2711,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <LibraryShelves
                   books={catalogBooks}
                   label={libraryMode === "testing" ? TESTING_LABEL : undefined}
+                  recent={recent}
                   pending={pending}
                   onRead={(ref) => void openReader(ref)}
                   onPage={(ref) => void openDaf(ref)}
@@ -2652,98 +2720,30 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       `Let's learn ${title} together. Start at the beginning, one line at a time, and ask me what I think before you explain.`,
                     )
                   }
+                  extras={
+                    <div className="lib-rows">
+                      <button type="button" className="lib-row" onClick={() => setLearnView("words")}>
+                        <span className="lr-t">My words</span>
+                        <span className="lr-sub">
+                          {myWords.length ? `${myWords.length} saved · Review` : "Words you save while reading"}
+                        </span>
+                        <span className="lr-chev" aria-hidden="true">
+                          ›
+                        </span>
+                      </button>
+                      {glossary.length > 0 && (
+                        <button type="button" className="lib-row" onClick={() => setLearnView("phrases")}>
+                          <span className="lr-t">The Gemara’s key words</span>
+                          <span className="lr-sub">{glossary.length} phrases that carry every sugya</span>
+                          <span className="lr-chev" aria-hidden="true">
+                            ›
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  }
                 />
               )}
-
-              <div className="card">
-                <h3>My words</h3>
-                {myWords.length === 0 ? (
-                  <p>Words you save while studying a text appear here, so you can review them. They stay on this device.</p>
-                ) : (
-                  <>
-                    <p>
-                      {myWords.length} {myWords.length === 1 ? "word" : "words"}, saved on this device. Try to remember each
-                      one before you show its meaning.
-                    </p>
-                    <ul className="my-words">
-                      {myWords.map((w) => (
-                        <li key={w.form}>
-                          <span className="he" lang="he">
-                            {w.form}
-                          </span>
-                          {revealed.has(w.form) ? (
-                            <span className="meaning">
-                              {w.gloss ?? "Ask RabAI about this word"}
-                              {w.root ? ` · root ${w.root}${w.rootMeaning ? ` (${w.rootMeaning})` : ""}` : ""}
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="link"
-                              onClick={() => setRevealed((prev) => new Set(prev).add(w.form))}
-                            >
-                              Show meaning
-                            </button>
-                          )}
-                          <span className="row-actions">
-                            <button type="button" className="link" onClick={() => void openReader(w.ref)}>
-                              {w.ref}
-                            </button>
-                            <button type="button" className="link" aria-label={`Remove ${w.form}`} onClick={() => removeWord(w.form)}>
-                              Remove
-                            </button>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-
-              {glossary.length > 0 && (
-                <div className="card">
-                  <h3>The Gemara’s key words</h3>
-                  <p>
-                    A handful of Aramaic phrases carry the give and take of every sugya. Learn these and you can follow the
-                    argument on any page.
-                  </p>
-                  <ul className="glossary">
-                    {glossary.map((g) => (
-                      <li key={g.id}>
-                        <span className="he" lang="he">
-                          {g.phrase}
-                        </span>
-                        <span>
-                          <strong>
-                            {g.meaning}
-                            {/[.?!]$/.test(g.meaning) ? "" : "."}
-                          </strong>{" "}
-                          {g.role}
-                        </span>
-                        {g.occurrences.length > 0 && (
-                          <button type="button" className="cite" onClick={() => void openReader(g.occurrences[0])}>
-                            See it in {g.occurrences[0]}
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="fine-left">Written by the RabAI team for testing, until approved dictionaries replace these notes.</p>
-                </div>
-              )}
-
-              <div className="card">
-                <label className="switch">
-                  <input type="checkbox" checked={growth} onChange={(e) => toggleGrowth(e.target.checked)} />
-                  <span>
-                    <h3 style={{ margin: 0 }}>Help me grow closer to HaShem</h3>
-                    <p>
-                      Off unless you turn it on. When it’s on, RabAI may gently offer one small step at a time, never with
-                      guilt. You can turn it off whenever you like.
-                    </p>
-                  </span>
-                </label>
-              </div>
             </div>
           )}
         </div>
@@ -2926,34 +2926,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
               {reader && readerMenu === "contents" && (
                 <div className="rb-menu rb-toc">
-                  {(() => {
-                    const book = reader.book ?? "";
-                    const c = contents[book];
-                    if (!c || c.loading)
-                      return (
-                        <p className="muted">
-                          Loading the contents<span className="dots" />
-                        </p>
-                      );
-                    if (c.error) return <p className="muted">{c.error}</p>;
-                    return (
-                      <>
-                        <p className="label-sm">{book}</p>
-                        <div className="toc-grid">
-                          {(c.sections ?? []).map((sec) => (
-                            <button
-                              key={sec}
-                              type="button"
-                              aria-current={sec === reader.section ? "page" : undefined}
-                              onClick={() => void openReader(sec)}
-                            >
-                              {sec.startsWith(`${book} `) ? sec.slice(book.length + 1) : sec}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    );
-                  })()}
+                  <p className="label-sm">{reader.book ?? reader.section}</p>
+                  <ContentsGrid book={reader.book ?? ""} current={reader.section} onOpen={(sec) => void openReader(sec)} />
                 </div>
               )}
               {reader && readerHint && (

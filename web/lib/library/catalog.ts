@@ -945,3 +945,29 @@ export function placeRef(book: PlacedBook, place: string): string {
   if (book.shelf === "talmud" && book.part === "Talmud Bavli" && !book.commentary && /^\d+$/.test(p)) return `${book.title} ${p}a`;
   return `${book.title} ${p}`;
 }
+
+// ---------------------------------------------------------------------------
+// A book's sections, and the library home
+
+/** The shelves on the first row of the library; the others are under "More". */
+export const MAIN_SHELVES: ShelfId[] = ["tanakh", "mishnah", "talmud", "halacha", "midrash", "prayer"];
+
+/**
+ * A section's short name inside its book: "5b" for "Berakhot 5b", "1" for "Genesis 1". Null when
+ * the section isn't in that book ("Genesis Rabbah 1" isn't in "Genesis").
+ */
+export function sectionIn(book: string, section: string): string | null {
+  if (!section.startsWith(`${book} `)) return null;
+  const rest = section.slice(book.length + 1);
+  return /^\d/.test(rest) ? rest : null;
+}
+
+/** A section's label in a grid of its book's sections: its short name, or the whole name. */
+export function sectionLabel(book: string, section: string): string {
+  return sectionIn(book, section) ?? (section.startsWith(`${book}, `) ? section.slice(book.length + 2) : section);
+}
+
+/** The newest place read in a book, if any (recent places are listed newest first). */
+export function lastPlaceIn<T extends { title: string }>(book: string, recent: T[]): T | undefined {
+  return recent.find((r) => sectionIn(book, r.title) !== null);
+}
