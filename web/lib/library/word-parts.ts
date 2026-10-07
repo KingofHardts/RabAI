@@ -88,6 +88,8 @@ export function abbreviationOf(
 export interface WordEntry {
   dictionary: string;
   note?: string;
+  /** The note in a few words, shown on the entry's one-line row. */
+  tag?: string;
   headword: string;
   ref: string;
   text: string;

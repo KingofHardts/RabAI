@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
@@ -28,8 +28,9 @@ import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voi
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
+import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import type { CatalogBook } from "@/lib/library/catalog";
-import { parseAmud, type DafData } from "@/lib/library/daf";
+import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
 import { readKeptTranslation, type GlossRow, type Translation } from "@/lib/engine/gloss";
 
@@ -118,28 +119,6 @@ function shortFormNote(a: NonNullable<WordLookup["abbreviation"]>): string {
   return a.kind === "geresh"
     ? `${a.form} is a word cut short, or a number written in letters. It isn't a word of its own, so the dictionaries don't list it. RabAI can say what it stands for here.`
     : `${a.form} is a short form (an abbreviation) for several words, not a word of its own, so it isn't looked up in the dictionaries. RabAI can say what it stands for here.`;
-}
-
-/** How a word was read to find an entry: "מ + אימתי", "ו + חכם + ים". */
-function readingText(found: WordEntry["found"]): string {
-  return [found.prefix.map(([letter]) => letter).join(""), found.form, found.suffix].filter(Boolean).join(" + ");
-}
-
-/** A dictionary entry, shortened until the person asks for all of it. */
-function EntryText({ entry }: { entry: WordEntry }) {
-  const [open, setOpen] = useState(false);
-  const long = entry.text.length > 260;
-  const text = open || !long ? entry.text : `${entry.text.slice(0, 240).replace(/\s+\S*$/, "")} …`;
-  return (
-    <p className={`entry-text${entry.lang === "he" ? " he" : ""}`} lang={entry.lang} dir={entry.lang === "he" ? "rtl" : undefined}>
-      {text}{" "}
-      {long && (
-        <button type="button" className="link" onClick={() => setOpen(!open)}>
-          {open ? "Less" : "More"}
-        </button>
-      )}
-    </p>
-  );
 }
 
 /** A word the person chose to keep. Saved only on this device. */
@@ -467,9 +446,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [lineAnswers, setLineAnswers] = useState<Record<string, LineAnswer>>({});
   const [lineQuestion, setLineQuestion] = useState("");
 
-  // Word study
-  const [studyMode, setStudyMode] = useState(false);
+  // Word study: the card for a tapped word or line, and which of its tabs is open.
   const [wordCard, setWordCard] = useState<{ ref: string; index: number } | null>(null);
+  const [cardTab, setCardTab] = useState<CardTab>("meaning");
+  const [cardPos, setCardPos] = useState<CSSProperties | undefined>(undefined);
+  const wide = useWide();
   const [wordInfo, setWordInfo] = useState<Record<string, WordLookup>>({});
   const [tryRef, setTryRef] = useState<string | null>(null);
   const [tryText, setTryText] = useState("");
@@ -531,7 +512,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
-    setStudyMode(readStored("rabai_study", ["on", "off"] as const, "off") === "on");
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setMyWords(readSavedWords());
@@ -738,6 +718,42 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     }
   };
 
+  /** The next or previous word of the tapped line or comment, as the page shows it. */
+  const stepDafWord = (dir: 1 | -1) => {
+    if (!dafPick) return;
+    const page = document.querySelector(".daf-view .daf");
+    if (!page) return;
+    const byIndex = new Map<number, HTMLElement>();
+    for (const el of page.querySelectorAll<HTMLElement>(`[data-ref="${CSS.escape(dafPick.ref)}"] [data-i]`)) {
+      const i = Number(el.dataset.i);
+      if (!byIndex.has(i)) byIndex.set(i, el);
+    }
+    const order = [...byIndex.keys()].sort((a, b) => a - b);
+    const next = order[order.indexOf(dafPick.index) + dir];
+    if (next === undefined) return;
+    const el = byIndex.get(next)!;
+    const short = el.dataset.short;
+    setDafPick({ ...dafPick, index: next, word: withoutPoints(short ? (el.dataset.full ?? "") : (el.textContent ?? "")), printedAs: short });
+  };
+
+  /** Selects a line or comment on the page, starting at its first word. */
+  const pickPiece = (ref: string, he: string, part: "main" | "rashi" | "tosafot") => {
+    setDafPick({ ref, index: 0, word: withoutPoints(pieceWords(he)[0] ?? ""), part });
+    setCardTab("meaning");
+    setDafQuestion("");
+  };
+
+  // On a phone, keep the tapped word in view above the card.
+  useEffect(() => {
+    if (wide || !dafPick) return;
+    const main = document.querySelector<HTMLElement>(".daf-view .daf-main");
+    const el = main?.querySelector<HTMLElement>(".dw.on");
+    if (!main || !el) return;
+    const r = el.getBoundingClientRect();
+    const m = main.getBoundingClientRect();
+    if (r.top < m.top || r.bottom > m.top + m.height * 0.45) main.scrollBy({ top: r.top - m.top - m.height * 0.2, behavior: "smooth" });
+  }, [wide, dafPick]);
+
   const markPiece = (ref: string, color: string | null) => {
     setMarks((prev) => {
       const next = { ...prev };
@@ -926,16 +942,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     lastFocus.current?.focus?.();
   }, []);
 
+  const closeCard = useCallback(() => {
+    setSelected(null);
+    setWordCard(null);
+    setTryRef(null);
+  }, []);
+
   useEffect(() => {
-    if (!readerOpen) return;
+    if (!readerOpen || dafRef) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (wordCard) setWordCard(null);
+      if (wordCard || selected) closeCard();
       else closeReader();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readerOpen, closeReader, wordCard]);
+  }, [readerOpen, dafRef, closeReader, closeCard, wordCard, selected]);
 
   // Scroll the cited line into view and move focus into the sheet on phones.
   useEffect(() => {
@@ -945,36 +967,73 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (window.matchMedia("(max-width: 979px)").matches) closeRef.current?.focus();
   }, [reader, readerLoading]);
 
-  // Bring a line's answer into view when it starts and when it arrives.
-  useEffect(() => {
-    if (!selected || !lineAnswers[selected]) return;
-    const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-answer-for="${CSS.escape(selected)}"]`);
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [lineAnswers, selected]);
+  // On a computer the card opens beside what was tapped: below it, or above it when there is more
+  // room there, inside the reader. On a phone it is a sheet at the bottom (no position needed).
+  const placeCard = useCallback(() => {
+    const body = readerBodyRef.current;
+    if (!wide || !selected || !body) return setCardPos(undefined);
+    const anchor =
+      (wordCard && body.querySelector<HTMLElement>(".w-tap.on")) || body.querySelector<HTMLElement>(`[data-ref="${CSS.escape(selected)}"]`);
+    if (!anchor) return setCardPos(undefined);
+    const r = anchor.getBoundingClientRect();
+    const b = body.getBoundingClientRect();
+    const width = Math.min(380, b.width - 24);
+    const left = Math.max(b.left + 12, Math.min(r.left + r.width / 2 - width / 2, b.right - 12 - width));
+    const below = window.innerHeight - r.bottom - 16;
+    const above = r.top - 16;
+    setCardPos(
+      below >= 340 || below >= above
+        ? { top: r.bottom + 8, left, width, maxHeight: Math.max(220, below) }
+        : { bottom: window.innerHeight - r.top + 8, left, width, maxHeight: Math.max(220, above) },
+    );
+  }, [wide, selected, wordCard]);
 
-  // Keep an opened word card in view.
+  useLayoutEffect(() => {
+    placeCard();
+  }, [placeCard, reader, lang]);
+
   useEffect(() => {
-    if (!wordCard) return;
-    const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-wordcard-for="${CSS.escape(wordCard.ref)}"]`);
+    if (!wide || !selected) return;
+    const body = readerBodyRef.current;
+    body?.addEventListener("scroll", placeCard, { passive: true });
+    window.addEventListener("resize", placeCard);
+    return () => {
+      body?.removeEventListener("scroll", placeCard);
+      window.removeEventListener("resize", placeCard);
+    };
+  }, [wide, selected, placeCard]);
+
+  // On a phone, keep what was tapped in view above the sheet: in the top part of the reader.
+  useEffect(() => {
+    const body = readerBodyRef.current;
+    if (wide || !selected || !body) return;
+    const anchor =
+      (wordCard && body.querySelector<HTMLElement>(".w-tap.on")) || body.querySelector<HTMLElement>(`[data-ref="${CSS.escape(selected)}"]`);
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect();
+    const b = body.getBoundingClientRect();
+    const target = b.top + Math.min(80, b.height * 0.15);
+    if (r.top < b.top || r.bottom > b.top + b.height * 0.45) body.scrollBy({ top: r.top - target, behavior: "smooth" });
+  }, [wide, selected, wordCard]);
+
+  // Bring a line's answer into view when it starts and when it arrives (when it shows under the line).
+  useEffect(() => {
+    if (selected || !reader) return;
+    const ref = Object.keys(lineAnswers).find((r) => lineAnswers[r]?.loading);
+    if (!ref) return;
+    const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-answer-for="${CSS.escape(ref)}"]`);
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [wordCard]);
+  }, [lineAnswers, selected, reader]);
 
   const chooseLang = (l: Lang) => {
     setLang(l);
     store("rabai_lang", l);
   };
 
-  const toggleStudy = () => {
-    const on = !studyMode;
-    setStudyMode(on);
-    setWordCard(null);
-    store("rabai_study", on ? "on" : "off");
-    if (on && lang === "en") chooseLang("both");
-  };
-
   const askLine = useCallback(
     async (ref: string, action: LineAction | "ask", question = "", word?: string) => {
       setSelected(ref);
+      setCardTab("ask");
       setLineAnswers((prev) => ({ ...prev, [ref]: { action, loading: true } }));
       const update = (change: (a: LineAnswer) => LineAnswer) =>
         setLineAnswers((prev) => (prev[ref]?.loading ? { ...prev, [ref]: change(prev[ref]) } : prev));
@@ -1107,8 +1166,44 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
   }, [wordCard, reader, wordInfo]);
 
-  const tapWord = (ref: string, index: number) =>
-    setWordCard(wordCard?.ref === ref && wordCard.index === index ? null : { ref, index });
+  /** Tapping a word opens the card on its meaning; tapping it again closes the card. */
+  const tapWord = (ref: string, index: number) => {
+    if (wordCard?.ref === ref && wordCard.index === index) return closeCard();
+    setCardTab((t) => (selected === ref && t !== "meaning" ? t : "meaning"));
+    setSelected(ref);
+    setWordCard({ ref, index });
+    setTryRef(null);
+  };
+
+  /** Tapping a line (not a word) opens the card for the whole line, on what can be asked. */
+  const tapLine = (ref: string) => {
+    if (selected === ref && !wordCard) return closeCard();
+    setCardTab((t) => (selected === ref && t !== "meaning" ? t : "ask"));
+    setSelected(ref);
+    setWordCard(null);
+    setLineQuestion("");
+  };
+
+  /** A line of the open text and, for a comment, the line it explains. */
+  const readerItem = (ref: string) => {
+    if (!reader) return null;
+    for (const line of reader.lines) {
+      if (line.ref === ref) return { p: line as Passage & { tokens: Token[] }, line, comment: null as ReaderCommentary | null };
+      const comment = line.commentaries.find((c) => c.ref === ref);
+      if (comment) return { p: comment as Passage & { tokens: Token[] }, line, comment };
+    }
+    return null;
+  };
+
+  /** The next or previous word of the same line, skipping marks that aren't words. */
+  const stepReaderWord = (dir: 1 | -1) => {
+    if (!wordCard) return;
+    const item = readerItem(wordCard.ref);
+    if (!item) return;
+    let i = wordCard.index + dir;
+    while (i >= 0 && i < item.p.tokens.length && bareWord(item.p.tokens[i].text) === "") i += dir;
+    if (i >= 0 && i < item.p.tokens.length) setWordCard({ ref: wordCard.ref, index: i });
+  };
 
   const renderBreakdown = (first: WordEntry) => (
     <>
@@ -1150,38 +1245,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       )}
     </>
   );
-
-  const renderEntries = (entries: WordEntry[]) => {
-    const first = entries[0];
-    return (
-      entries.length > 0 && (
-        <div className="entries">
-          <p className="label-sm">From the dictionaries</p>
-          {entries.map((e) => (
-            <div key={e.ref} className={`entry ${e.dictionary.startsWith("Jastrow") ? "dict-jastrow" : "dict-radak"}`}>
-              <div className="entry-head">
-                <span className="dict-chip">{e.dictionary}</span>
-                <span className="he" lang="he">
-                  {e.headword}
-                </span>
-              </div>
-              {first && readingText(e.found) !== readingText(first.found) && (
-                <p className="entry-reading">
-                  Another way to read the word:{" "}
-                  <span className="he" lang="he">
-                    {readingText(e.found)}
-                  </span>
-                  {e.found.guess ? " (a guess at its root)" : ""}
-                </p>
-              )}
-              <EntryText entry={e} />
-              {e.note && <p className="entry-note">{e.note}</p>}
-            </div>
-          ))}
-        </div>
-      )
-    );
-  };
 
   const renderLineAnswer = (ref: string, onOpen: (r: string) => void = (r) => void openReader(r)) => {
     const answer = lineAnswers[ref];
@@ -1229,56 +1292,112 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     );
   };
 
-  const renderWordCard = (p: Passage & { tokens: Token[] }) => {
-    if (!reader || !wordCard || wordCard.ref !== p.ref) return null;
-    const token = p.tokens[wordCard.index];
-    if (!token) return null;
-    const word = bareWord(token.text);
-    const root = token.root ? reader.wordStudy.roots[token.root] : undefined;
-    const phrase = token.phrase ? reader.wordStudy.phrases[token.phrase] : undefined;
-    const elsewhere = [...new Set([...(root?.occurrences ?? []), ...(phrase?.occurrences ?? [])])].filter((r) => r !== p.ref);
-    // A word inside a Gemara phrase is studied as the whole phrase, unless the word has its own root.
-    const heading = phrase && !root ? phrase.phrase : word;
-    const gloss = token.gloss ?? (phrase && !root ? phrase.meaning : undefined);
-    const saved = isSaved(heading);
+  /**
+   * The Translation tab: the library's English with its translator, or, when the library has none,
+   * RabAI's own translation (made only when the person taps, and always labeled), and its word by
+   * word under the library's words.
+   */
+  const renderTranslation = (o: {
+    ref: string;
+    en: string;
+    by?: string;
+    context: string[];
+    active?: number;
+    partName: string;
+    onSource: (r: string) => void;
+  }) => {
+    const tr = translations[o.ref];
+    const showWords = !!wordByWord[o.ref];
+    return (
+      <>
+        {o.en ? (
+          <>
+            <Folded className="tr-en" lines={8}>
+              {o.en}
+            </Folded>
+            {o.by && <p className="fine-left">Translation: {o.by}.</p>}
+          </>
+        ) : !tr?.result?.general ? (
+          <div className="tr-offer">
+            <p className="muted">No English translation of this {o.partName} is in the library yet.</p>
+            <button type="button" className="chip-btn primary" disabled={tr?.loading} onClick={() => void translate(o.ref, o.context, false)}>
+              {tr?.loading ? "Translating…" : `Translate this ${o.partName}`}
+            </button>
+            {tr?.loading && <p className="fine-left">This can take up to half a minute.</p>}
+          </div>
+        ) : null}
+        {tr?.error && <p className="daf-alert tr-alert">{tr.error}</p>}
+        {(tr?.result?.general || (showWords && tr?.result)) && (
+          <div className="rabai-tr">
+            <p className="rabai-tr-label">
+              <strong>RabAI’s translation.</strong> Not from the library, and not yet reviewed by the rabbinic board.
+            </p>
+            {tr.result.general && !o.en && <p className="daf-panel-en">{tr.result.general}</p>}
+            {showWords &&
+              (tr.result.words === undefined ? (
+                tr.loading && (
+                  <p className="muted">
+                    Translating word by word<span className="dots" />
+                  </p>
+                )
+              ) : tr.result.words ? (
+                <Interlinear rows={tr.result.words} active={o.active ?? -1} />
+              ) : (
+                <p className="muted">RabAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
+              ))}
+            {tr.result.readings && tr.result.readings.length > 0 && (
+              <div className="tr-readings">
+                <p className="label-sm">Other readings</p>
+                <ul>
+                  {tr.result.readings.map((r, i) => (
+                    <li key={i}>
+                      <span className="he" lang="he">
+                        {r.phrase}
+                      </span>
+                      : {r.reading}{" "}
+                      <button type="button" className="link tr-source" onClick={() => o.onSource(r.ref)}>
+                        {r.ref}
+                      </button>{" "}
+                      <span className="he tr-quote" lang="he">
+                        “{r.quote}”
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {tr.result.basis && tr.result.basis.length > 0 && (
+              <p className="tr-basis">Made from: {[...new Set(tr.result.basis.map((b) => b.label))].join("; ")}.</p>
+            )}
+          </div>
+        )}
+        {(o.en || tr?.result) && (
+          <div className="follow tr-tools">
+            <button
+              type="button"
+              className="chip-btn"
+              aria-pressed={showWords && !!tr?.result}
+              disabled={tr?.loading}
+              onClick={() =>
+                showWords && tr?.result ? setWordByWord((prev) => ({ ...prev, [o.ref]: false })) : void translate(o.ref, o.context, true)
+              }
+            >
+              {tr?.loading ? "Translating…" : showWords && tr?.result ? "Hide word by word" : "Word by word"}
+            </button>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  /** What the dictionaries say about a tapped word, from the library only. */
+  const renderMeaning = (word: string, onAsk: () => void, teamNotes: ReactNode = null) => {
     const lookup = wordInfo[word];
     const entries = lookup?.entries ?? [];
-    const first = entries[0];
-    const teamNotes = !!(token.parts || root || phrase);
+    const hasNotes = !!teamNotes;
     return (
-      <div className="wordcard" data-wordcard-for={p.ref} role="region" aria-label={`About ${heading}`}>
-        <div className="wordcard-head">
-          <span className="he" lang="he">
-            {heading}
-          </span>
-          {gloss && <span className="gloss">{gloss}</span>}
-          <button type="button" className="x" aria-label="Close word notes" onClick={() => setWordCard(null)}>
-            ×
-          </button>
-        </div>
-        {first && !lookup?.abbreviation && renderBreakdown(first)}
-        {token.parts && <p className="parts">{token.parts}</p>}
-        {root && (
-          <p>
-            Root{" "}
-            <span className="he" lang="he">
-              {root.root}
-            </span>
-            : {root.meaning}.{root.note ? ` ${root.note}` : ""}
-          </p>
-        )}
-        {phrase &&
-          (root ? (
-            <p>
-              Part of the phrase{" "}
-              <span className="he" lang="he">
-                {phrase.phrase}
-              </span>
-              , “{phrase.meaning}”. {phrase.role}
-            </p>
-          ) : (
-            <p>{phrase.role}</p>
-          ))}
+      <>
+        {teamNotes}
         {lookup?.loading && (
           <p className="muted">
             Looking it up in the dictionaries<span className="dots" />
@@ -1286,185 +1405,218 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         )}
         {lookup?.error && <p className="muted">{lookup.error}</p>}
         {lookup?.abbreviation && !lookup.loading && <p className="muted">{shortFormNote(lookup.abbreviation)}</p>}
-        {renderEntries(entries)}
-        {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && !teamNotes && (
+        {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabAI can explain it.</p>}
+        <DictRows entries={entries} />
+        {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && !hasNotes && (
           <p className="muted">
-            {lookup.available === false
-              ? "This build has no dictionaries yet."
-              : "None of the library’s dictionaries has this word yet."}{" "}
-            RabAI can explain it.
+            {lookup.available === false ? "This build has no dictionaries yet." : "None of the library’s dictionaries has this word yet."} RabAI can
+            explain it.
           </p>
         )}
-        {elsewhere.length > 0 && (
-          <>
-            <p className="label-sm">{root ? "This root also appears in" : "This phrase also appears in"}</p>
-            <div className="follow tight">
-              {elsewhere.map((r) => (
-                <button key={r} type="button" className="cite" onClick={() => void openReader(r)}>
-                  {r}
-                </button>
-              ))}
-            </div>
-          </>
+        {lookup && !lookup.loading && (lookup.abbreviation || entries.length === 0) && (
+          <div className="follow">
+            <button type="button" className="chip-btn primary" onClick={onAsk}>
+              Ask RabAI about this word
+            </button>
+          </div>
         )}
-        <div className="follow">
-          <button
-            type="button"
-            className={`chip-btn${!lookup?.loading && entries.length === 0 && !teamNotes ? " primary" : ""}`}
-            onClick={() => void askLine(p.ref, "word", "", heading)}
-          >
-            {heading === word ? "Ask RabAI about this word" : "Ask RabAI about this phrase"}
-          </button>
-          <button
-            type="button"
-            className="chip-btn"
-            aria-pressed={saved}
-            onClick={() =>
-              saved
-                ? removeWord(heading)
-                : saveWord({
-                    form: heading,
-                    gloss: gloss ?? (first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined),
-                    root: root?.root,
-                    rootMeaning: root?.meaning,
-                    ref: p.ref,
-                  })
-            }
-          >
-            {saved ? "Saved to My words ✓" : "Save to My words"}
-          </button>
-        </div>
-        {teamNotes && (
-          <p className="fine-left">Notes not marked with a dictionary are written by the RabAI team for testing.</p>
-        )}
-      </div>
+      </>
     );
   };
 
-  const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string) => {
-    const isSelected = selected === p.ref;
-    const answer = lineAnswers[p.ref];
-    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}`;
-    const label = (
-      <>
-        <span>{isCommentary ? (author ?? p.label) : p.label}</span>
-        <span className="he" lang="he">
-          {p.labelHe}
-        </span>
-      </>
-    );
+  /** "Save to My words", for the word in the card. */
+  const saveButton = (form: string, word: Omit<SavedWord, "savedAt" | "form">) => {
+    const saved = isSaved(form);
     return (
-      <div key={p.ref} className={isCommentary ? "comm" : undefined}>
-        {studyMode ? (
-          <div className={`${lineClass} study`} data-ref={p.ref}>
-            <span className="num">
-              {label}
-            </span>
-            <span className="he words" lang="he">
-              {p.tokens.map((t, i) => (
-                <span key={i}>
-                  {i > 0 && " "}
-                  {bareWord(t.text) === "" ? (
-                    t.text
-                  ) : (
-                  <button
-                    type="button"
-                    className={`w${t.root ? " known" : ""}${t.phrase ? " phr" : ""}`}
-                    aria-pressed={wordCard?.ref === p.ref && wordCard.index === i}
-                    onClick={() => tapWord(p.ref, i)}
-                  >
-                    {t.text}
-                  </button>
-                  )}
+      <button type="button" className="chip-btn quiet" aria-pressed={saved} onClick={() => (saved ? removeWord(form) : saveWord({ form, ...word }))}>
+        {saved ? "Saved to My words ✓" : "☆ Save to My words"}
+      </button>
+    );
+  };
+
+  /** The card for a word or a line in the reader. */
+  const renderReaderCard = () => {
+    if (!reader || !selected) return null;
+    const item = readerItem(selected);
+    if (!item) return null;
+    const { p, line, comment } = item;
+    const token = wordCard && wordCard.ref === p.ref ? p.tokens[wordCard.index] : undefined;
+    const word = token ? bareWord(token.text) : "";
+    const root = token?.root ? reader.wordStudy.roots[token.root] : undefined;
+    const phrase = token?.phrase ? reader.wordStudy.phrases[token.phrase] : undefined;
+    const elsewhere = [...new Set([...(root?.occurrences ?? []), ...(phrase?.occurrences ?? [])])].filter((r) => r !== p.ref);
+    // A word inside a Gemara phrase is studied as the whole phrase, unless the word has its own root.
+    const heading = phrase && !root ? phrase.phrase : word;
+    const gloss = token?.gloss ?? (phrase && !root ? phrase.meaning : undefined);
+    const lookup = word ? wordInfo[word] : undefined;
+    const first = lookup?.entries?.[0];
+    const answer = lineAnswers[p.ref];
+    const partName = comment ? "comment" : "line";
+    const at = reader.lines.findIndex((l) => l.ref === line.ref);
+    const context = comment ? [line.ref] : at > 0 ? [reader.lines[at - 1].ref] : [];
+    const askWord = () => void askLine(p.ref, "word", "", heading);
+    const tabs: CardTabInfo[] = [
+      ...(token ? [{ id: "meaning" as const, label: "Meaning" }] : []),
+      { id: "translation", label: "Translation" },
+      ...(comment
+        ? [{ id: "commentary" as const, label: "The line" }]
+        : line.commentaries.length
+          ? [{ id: "commentary" as const, label: "Commentary", count: line.commentaries.length }]
+          : []),
+      { id: "ask", label: "Ask" },
+    ];
+    const tab = tabs.some((t) => t.id === cardTab) ? cardTab : tabs[0].id;
+    const teamNotes =
+      token && (token.parts || root || phrase) ? (
+        <div className="team-notes">
+          {token.parts && <p className="parts">{token.parts}</p>}
+          {root && (
+            <p>
+              Root{" "}
+              <span className="he" lang="he">
+                {root.root}
+              </span>
+              : {root.meaning}.{root.note ? ` ${root.note}` : ""}
+            </p>
+          )}
+          {phrase &&
+            (root ? (
+              <p>
+                Part of the phrase{" "}
+                <span className="he" lang="he">
+                  {phrase.phrase}
                 </span>
-              ))}
-            </span>
-            <span className="en">{p.en}</span>
-            <button
-              type="button"
-              className="line-ask"
-              aria-expanded={isSelected}
-              onClick={() => {
-                setSelected(isSelected ? null : p.ref);
-                setLineQuestion("");
-              }}
-            >
-              {isSelected ? "Hide questions" : "Ask about this line"}
-            </button>
-          </div>
-        ) : (
-          // A div rather than a button, so the words can be highlighted and asked about.
-          <div
-            role="button"
-            tabIndex={0}
-            data-ref={p.ref}
-            className={lineClass}
-            aria-expanded={isSelected}
-            onClick={() => {
-              if (hasHighlight()) return;
-              setSelected(isSelected ? null : p.ref);
-              setLineQuestion("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" && e.key !== " ") return;
-              e.preventDefault();
-              setSelected(isSelected ? null : p.ref);
-              setLineQuestion("");
-            }}
-          >
-            <span className="num">{label}</span>
-            <span className="he" lang="he">
-              {p.tokens.length
-                ? p.tokens.map((t, i) => (
-                    <span key={i}>
-                      {i > 0 && " "}
-                      {bareWord(t.text) === "" ? (
-                        t.text
-                      ) : (
-                        <span
-                          className={`w-tap${wordCard?.ref === p.ref && wordCard.index === i ? " on" : ""}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!hasHighlight()) tapWord(p.ref, i);
-                          }}
-                        >
-                          {t.text}
-                        </span>
-                      )}
-                    </span>
-                  ))
-                : p.he}
-            </span>
-            <span className="en">{p.en}</span>
-          </div>
-        )}
-        {renderWordCard(p)}
-        {isSelected && (
+                , “{phrase.meaning}”. {phrase.role}
+              </p>
+            ) : (
+              <p>{phrase.role}</p>
+            ))}
+          {elsewhere.length > 0 && (
+            <>
+              <p className="label-sm">{root ? "This root also appears in" : "This phrase also appears in"}</p>
+              <div className="follow tight">
+                {elsewhere.map((r) => (
+                  <button key={r} type="button" className="cite" onClick={() => void openReader(r)}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <p className="fine-left">Notes not marked with a dictionary are written by the RabAI team for testing.</p>
+        </div>
+      ) : null;
+    return (
+      <WordCard
+        variant={wide ? "popover" : "sheet"}
+        style={wide ? cardPos : undefined}
+        ariaLabel={token ? `About ${heading}` : `About ${p.ref}`}
+        label={
           <>
-            <div className="actions" role="group" aria-label={`Ask about ${p.ref}`}>
+            <span>{comment ? (comment.author ?? comment.label) : p.label}</span>{" "}
+            <span className="he" lang="he">
+              {p.labelHe}
+            </span>
+          </>
+        }
+        word={token ? heading : undefined}
+        wordNote={gloss ? <span className="gloss">{gloss}</span> : undefined}
+        breakdown={first && !lookup?.abbreviation ? renderBreakdown(first) : undefined}
+        tabs={tabs}
+        tab={tab}
+        onTab={setCardTab}
+        onNext={token ? () => stepReaderWord(1) : undefined}
+        onPrev={token ? () => stepReaderWord(-1) : undefined}
+        onClose={closeCard}
+      >
+        {tab === "meaning" && token && (
+          <>
+            {renderMeaning(word, askWord, teamNotes)}
+            <div className="follow">
+              {saveButton(heading, {
+                gloss: gloss ?? (first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined),
+                root: root?.root,
+                rootMeaning: root?.meaning,
+                ref: p.ref,
+              })}
+            </div>
+          </>
+        )}
+        {tab === "translation" &&
+          renderTranslation({
+            ref: p.ref,
+            en: p.en,
+            by: comment ? comment.translation?.by : reader.work.translation.by,
+            context,
+            active: token ? wordCard?.index : undefined,
+            partName,
+            onSource: (r) => void openReader(r),
+          })}
+        {tab === "commentary" &&
+          (comment ? (
+            <div className="wc-pieces">
+              <div className="wc-piece">
+                <p className="he wc-piece-he" lang="he">
+                  {line.he}
+                </p>
+                {line.en && (
+                  <Folded className="wc-piece-en" lines={4}>
+                    {line.en}
+                  </Folded>
+                )}
+                <button type="button" className="link" onClick={() => tapLine(line.ref)}>
+                  Ask about this line
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="wc-pieces">
+              {line.commentaries.map((c) => (
+                <details key={c.ref} className="wc-piece">
+                  <summary>
+                    <strong>{c.author ?? c.label}</strong>{" "}
+                    <span className="he" lang="he">
+                      {pieceWords(c.he).slice(0, 8).join(" ")}
+                      {pieceWords(c.he).length > 8 ? " …" : ""}
+                    </span>
+                  </summary>
+                  <p className="he wc-piece-he" lang="he">
+                    {c.he}
+                  </p>
+                  {c.en && <p className="wc-piece-en">{c.en}</p>}
+                  <button type="button" className="link" onClick={() => tapLine(c.ref)}>
+                    Open this comment
+                  </button>
+                </details>
+              ))}
+            </div>
+          ))}
+        {tab === "ask" && (
+          <>
+            <div className="wc-asks" role="group" aria-label={`Ask about ${p.ref}`}>
+              {token && (
+                <button type="button" disabled={answer?.loading} onClick={askWord}>
+                  {heading === word ? "Ask RabAI about this word" : "Ask RabAI about this phrase"}
+                </button>
+              )}
               {ACTIONS.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  aria-pressed={answer?.action === a.id}
-                  disabled={answer?.loading}
-                  onClick={() => void askLine(p.ref, a.id)}
-                >
+                <button key={a.id} type="button" aria-pressed={answer?.action === a.id} disabled={answer?.loading} onClick={() => void askLine(p.ref, a.id)}>
                   {a.label}
                 </button>
               ))}
-              <button
-                type="button"
-                aria-pressed={tryRef === p.ref}
-                disabled={answer?.loading}
-                onClick={() => {
-                  setTryRef(tryRef === p.ref ? null : p.ref);
-                  setTryText("");
-                }}
-              >
-                Let me try translating
-              </button>
             </div>
+            <button
+              type="button"
+              className="link"
+              aria-pressed={tryRef === p.ref}
+              disabled={answer?.loading}
+              onClick={() => {
+                setTryRef(tryRef === p.ref ? null : p.ref);
+                setTryText("");
+              }}
+            >
+              {tryRef === p.ref ? "Ask a question instead" : "Let me try translating"}
+            </button>
             {tryRef === p.ref ? (
               <form
                 className="try-line"
@@ -1475,17 +1627,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   setTryRef(null);
                 }}
               >
-                <label htmlFor={`try-${p.ref}`}>
-                  Write the line in your own words. Try it without looking at the English.
-                </label>
-                <textarea
-                  id={`try-${p.ref}`}
-                  value={tryText}
-                  onChange={(e) => setTryText(e.target.value)}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="My translation…"
-                />
+                <label htmlFor={`try-${p.ref}`}>Write the {partName} in your own words. Try it without looking at the English.</label>
+                <textarea id={`try-${p.ref}`} value={tryText} onChange={(e) => setTryText(e.target.value)} rows={3} maxLength={2000} placeholder="My translation…" />
                 <button type="submit" disabled={!tryText.trim()}>
                   Check my translation
                 </button>
@@ -1505,7 +1648,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   id={`ask-${p.ref}`}
                   value={lineQuestion}
                   onChange={(e) => setLineQuestion(e.target.value)}
-                  placeholder="Or ask your own question about this line…"
+                  placeholder={`Ask about this ${partName}…`}
                   maxLength={2000}
                 />
                 <button type="submit" disabled={!lineQuestion.trim() || answer?.loading}>
@@ -1513,9 +1656,66 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </button>
               </form>
             )}
+            {renderLineAnswer(p.ref)}
           </>
         )}
-        {renderLineAnswer(p.ref)}
+      </WordCard>
+    );
+  };
+
+  const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string) => {
+    const isSelected = selected === p.ref;
+    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}`;
+    return (
+      <div key={p.ref} className={isCommentary ? "comm" : undefined}>
+        {/* A div rather than a button, so the words can be highlighted and asked about. */}
+        <div
+          role="button"
+          tabIndex={0}
+          data-ref={p.ref}
+          className={lineClass}
+          aria-expanded={isSelected}
+          onClick={() => {
+            if (!hasHighlight()) tapLine(p.ref);
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            tapLine(p.ref);
+          }}
+        >
+          <span className="num">
+            <span>{isCommentary ? (author ?? p.label) : p.label}</span>
+            <span className="he" lang="he">
+              {p.labelHe}
+            </span>
+          </span>
+          <span className="he" lang="he">
+            {p.tokens.length
+              ? p.tokens.map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && " "}
+                    {bareWord(t.text) === "" ? (
+                      t.text
+                    ) : (
+                      <span
+                        className={`w-tap${t.root ? " known" : ""}${wordCard?.ref === p.ref && wordCard.index === i ? " on" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!hasHighlight()) tapWord(p.ref, i);
+                        }}
+                      >
+                        {t.text}
+                      </span>
+                    )}
+                  </span>
+                ))
+              : p.he}
+          </span>
+          <span className="en">{p.en}</span>
+        </div>
+        {/* An answer shows in the card while it is open, and under its line after. */}
+        {!isSelected && renderLineAnswer(p.ref)}
       </div>
     );
   };
@@ -1752,13 +1952,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     }
     const word = dafPick ? bareWord(dafPick.word) : "";
     const lookup = word ? wordInfo[word] : undefined;
-    const entries = lookup?.entries ?? [];
-    const first = entries[0];
+    const first = lookup?.entries?.[0];
     const line = outline?.lines.find((l) => l.ref === picked?.ref);
     const answer = picked ? lineAnswers[picked.ref] : undefined;
     const partName = dafPick?.part === "main" ? "line" : "comment";
-    const tr = picked ? translations[picked.ref] : undefined;
-    const showWords = picked ? !!wordByWord[picked.ref] : false;
     // Read a comment with the line it explains, and a line of Gemara with the line before it.
     const mainAt = picked && daf && dafPick?.part === "main" ? daf.main.findIndex((p) => p.ref === picked.ref) : -1;
     const trContext = !picked ? [] : dafPick?.part === "main" ? (mainAt > 0 && daf ? [daf.main[mainAt - 1].ref] : []) : picked.on ? [picked.on] : [];
@@ -1766,6 +1963,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       closeDaf();
       void openReader(r);
     };
+    // The comments printed on the tapped line, or the line a tapped comment explains.
+    const onLine =
+      daf && picked && dafPick?.part === "main"
+        ? [
+            ...daf.rashi.filter((c) => c.on === picked.ref).map((c) => ({ ...c, part: "rashi" as const })),
+            ...daf.tosafot.filter((c) => c.on === picked.ref).map((c) => ({ ...c, part: "tosafot" as const })),
+          ]
+        : [];
+    const explained = daf && picked?.on ? daf.main.find((m) => m.ref === picked.on) : undefined;
+    const askDafWord = () =>
+      picked && dafPick && void askLine(picked.ref, "word", "", dafPick.printedAs ? `${dafPick.printedAs} (${word})` : word);
+    const dafTabs: CardTabInfo[] = [
+      ...(word ? [{ id: "meaning" as const, label: "Meaning" }] : []),
+      { id: "translation", label: "Translation" },
+      dafPick?.part === "main"
+        ? { id: "commentary", label: "Rashi & Tosafot", count: onLine.length }
+        : { id: "commentary", label: "The Gemara" },
+      { id: "ask", label: "Ask" },
+    ];
+    const dafTab = dafTabs.some((t) => t.id === cardTab) ? cardTab : dafTabs[0].id;
     return (
       <div className="daf-view" role="dialog" aria-modal="true" aria-label={daf ? `${daf.section}, the page as printed` : "The page as printed"}>
         <div className="daf-bar">
@@ -1871,8 +2088,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     kinds,
                     marks,
                     onWord: (ref: string, index: number, w: string, part: "main" | "rashi" | "tosafot", printedAs?: string) => {
-                      setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part, printedAs });
-                      setDafQuestion("");
+                      if (dafPick?.ref === ref && dafPick.index === index) return setDafPick(null);
+                      // Another word of the same line keeps the open tab; a new line opens on the word's meaning.
+                      if (dafPick?.ref !== ref) {
+                        setCardTab("meaning");
+                        setDafQuestion("");
+                      }
+                      setDafPick({ ref, index, word: w, part, printedAs });
                     },
                   };
                   const printed = daf.printed;
@@ -1892,217 +2114,177 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             ) : null}
           </div>
           {dafPick && picked && daf && (
-            <aside className="daf-panel" aria-label={`About ${picked.ref}`}>
-              <div className="daf-panel-head">
-                <span className={`part-chip part-${dafPick.part}`}>{PART_LABEL[dafPick.part]}</span>
-                <span className="daf-panel-ref">{picked.ref}</span>
-                <button type="button" className="x" aria-label="Close" onClick={() => setDafPick(null)}>
-                  ×
-                </button>
-              </div>
-              {line && showOutline && (
-                <p className={`kind-note k-${line.kind}`}>
-                  <strong>{OUTLINE_LABELS[line.kind as OutlineKind]}.</strong> {line.note}{" "}
-                  <span className="fine-inline">RabAI’s outline, not yet reviewed.</span>
-                </p>
-              )}
-              <p className="he daf-panel-he" lang="he">
-                {picked.he}
-              </p>
-              {picked.en ? (
+            <WordCard
+              variant={wide ? "panel" : "sheet"}
+              className="daf-card"
+              ariaLabel={`About ${picked.ref}`}
+              label={
                 <>
-                  <p className="daf-panel-en">{picked.en}</p>
-                  {dafPick.part === "main" && daf.editions.mainEnglish && (
-                    <p className="fine-left">Translation: {daf.editions.mainEnglish}.</p>
-                  )}
+                  <span className={`part-chip part-${dafPick.part}`}>{PART_LABEL[dafPick.part]}</span>{" "}
+                  <span className="wc-ref">{picked.ref}</span>
                 </>
-              ) : !tr?.result?.general ? (
-                <div className="tr-offer">
-                  <p className="muted">No English translation of this {partName} is in the library yet.</p>
-                  <button
-                    type="button"
-                    className="chip-btn primary"
-                    disabled={tr?.loading}
-                    onClick={() => void translate(picked.ref, trContext, false)}
-                  >
-                    {tr?.loading ? "Translating…" : `Translate this ${partName}`}
-                  </button>
-                  {tr?.loading && <p className="fine-left">This can take up to half a minute.</p>}
-                </div>
-              ) : null}
-              {tr?.error && <p className="daf-alert tr-alert">{tr.error}</p>}
-              {(tr?.result?.general || (showWords && tr?.result)) && (
-                <div className="rabai-tr">
-                  <p className="rabai-tr-label">
-                    <strong>RabAI’s translation.</strong> Not from the library, and not yet reviewed by the rabbinic board.
+              }
+              word={word ? (dafPick.printedAs ?? word) : undefined}
+              wordNote={
+                dafPick.printedAs ? (
+                  <>
+                    Printed short for{" "}
+                    <span className="he" lang="he">
+                      {word}
+                    </span>
+                    .
+                  </>
+                ) : undefined
+              }
+              breakdown={first && !lookup?.abbreviation ? renderBreakdown(first) : undefined}
+              aboveTabs={
+                line && showOutline ? (
+                  <p className={`kind-note k-${line.kind}`}>
+                    <strong>{OUTLINE_LABELS[line.kind as OutlineKind]}.</strong> {line.note}{" "}
+                    <span className="fine-inline">RabAI’s outline, not yet reviewed.</span>
                   </p>
-                  {tr.result.general && !picked.en && <p className="daf-panel-en">{tr.result.general}</p>}
-                  {showWords &&
-                    (tr.result.words === undefined ? (
-                      tr.loading && (
-                        <p className="muted">
-                          Translating word by word<span className="dots" />
-                        </p>
-                      )
-                    ) : tr.result.words ? (
-                      <Interlinear rows={tr.result.words} active={dafPick.index} />
-                    ) : (
-                      <p className="muted">RabAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
+                ) : undefined
+              }
+              tabs={dafTabs}
+              tab={dafTab}
+              onTab={setCardTab}
+              onNext={() => stepDafWord(1)}
+              onPrev={() => stepDafWord(-1)}
+              onClose={() => setDafPick(null)}
+              footer={
+                <div className="wc-line">
+                  <p className="label-sm">This {partName}</p>
+                  <Folded className="he wc-line-he" lines={2} lang="he">
+                    {picked.he}
+                  </Folded>
+                  <div className="mark-row" role="group" aria-label={`Mark this ${partName}`}>
+                    <span>Mark it:</span>
+                    {MARK_COLORS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`mark-dot mark-${c.id}`}
+                        aria-label={c.label}
+                        aria-pressed={marks[picked.ref] === c.id}
+                        onClick={() => markPiece(picked.ref, marks[picked.ref] === c.id ? null : c.id)}
+                      />
                     ))}
-                  {tr.result.readings && tr.result.readings.length > 0 && (
-                    <div className="tr-readings">
-                      <p className="label-sm">Other readings</p>
-                      <ul>
-                        {tr.result.readings.map((r, i) => (
-                          <li key={i}>
+                    {marks[picked.ref] && (
+                      <button type="button" className="link" onClick={() => markPiece(picked.ref, null)}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              }
+            >
+              {dafTab === "meaning" && word && (
+                <>
+                  {renderMeaning(word, askDafWord)}
+                  <div className="follow">
+                    {saveButton(word, {
+                      gloss: first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined,
+                      ref: picked.ref,
+                    })}
+                  </div>
+                </>
+              )}
+              {dafTab === "translation" &&
+                renderTranslation({
+                  ref: picked.ref,
+                  en: picked.en,
+                  by: dafPick.part === "main" ? daf.editions.mainEnglish : undefined,
+                  context: trContext,
+                  active: dafPick.index,
+                  partName,
+                  onSource: goToSource,
+                })}
+              {dafTab === "commentary" && (
+                <div className="wc-pieces">
+                  {dafPick.part === "main" ? (
+                    onLine.length ? (
+                      onLine.map((c) => (
+                        <details key={c.ref} className="wc-piece">
+                          <summary>
+                            <span className={`part-chip part-${c.part}`}>{PART_LABEL[c.part]}</span>{" "}
                             <span className="he" lang="he">
-                              {r.phrase}
+                              {pieceWords(c.he).slice(0, 7).join(" ")}
+                              {pieceWords(c.he).length > 7 ? " …" : ""}
                             </span>
-                            : {r.reading}{" "}
-                            <button type="button" className="link tr-source" onClick={() => goToSource(r.ref)}>
-                              {r.ref}
-                            </button>{" "}
-                            <span className="he tr-quote" lang="he">
-                              “{r.quote}”
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                          </summary>
+                          <p className="he wc-piece-he" lang="he">
+                            {c.he}
+                          </p>
+                          {c.en && <p className="wc-piece-en">{c.en}</p>}
+                          <button type="button" className="link" onClick={() => pickPiece(c.ref, c.he, c.part)}>
+                            Show on the page
+                          </button>
+                        </details>
+                      ))
+                    ) : (
+                      <p className="muted">The library has no Rashi or Tosafot on this line.</p>
+                    )
+                  ) : explained ? (
+                    <div className="wc-piece">
+                      <p className="he wc-piece-he" lang="he">
+                        {explained.he}
+                      </p>
+                      {explained.en && (
+                        <Folded className="wc-piece-en" lines={5}>
+                          {explained.en}
+                        </Folded>
+                      )}
+                      <button type="button" className="link" onClick={() => pickPiece(explained.ref, explained.he, "main")}>
+                        Show on the page
+                      </button>
                     </div>
-                  )}
-                  {tr.result.basis && tr.result.basis.length > 0 && (
-                    <p className="tr-basis">
-                      Made from: {[...new Set(tr.result.basis.map((b) => b.label))].join("; ")}.
-                    </p>
+                  ) : (
+                    <p className="muted">This comment isn’t linked to a line of the Gemara in the library.</p>
                   )}
                 </div>
               )}
-              {(picked.en || tr?.result) && (
-                <div className="follow tr-tools">
-                  <button
-                    type="button"
-                    className="chip-btn"
-                    aria-pressed={showWords && !!tr?.result}
-                    disabled={tr?.loading}
-                    onClick={() =>
-                      showWords && tr?.result
-                        ? setWordByWord((prev) => ({ ...prev, [picked.ref]: false }))
-                        : void translate(picked.ref, trContext, true)
-                    }
+              {dafTab === "ask" && (
+                <>
+                  <div className="wc-asks" role="group" aria-label={`Ask about ${picked.ref}`}>
+                    {word && (
+                      <button type="button" disabled={answer?.loading} onClick={askDafWord}>
+                        Ask RabAI about this word
+                      </button>
+                    )}
+                    <button type="button" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "explain")}>
+                      Explain this {partName}
+                    </button>
+                    {dafPick.part === "main" && (
+                      <button type="button" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "commentaries")}>
+                        What do Rashi and Tosafot say?
+                      </button>
+                    )}
+                  </div>
+                  <form
+                    className="ask-line"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (dafQuestion.trim()) void askLine(picked.ref, "ask", dafQuestion.trim());
+                    }}
                   >
-                    {tr?.loading ? "Translating…" : showWords && tr?.result ? "Hide word by word" : "Word by word"}
-                  </button>
-                </div>
+                    <label className="sr-only" htmlFor="daf-ask">
+                      Your own question about {picked.ref}
+                    </label>
+                    <input
+                      id="daf-ask"
+                      value={dafQuestion}
+                      onChange={(e) => setDafQuestion(e.target.value)}
+                      placeholder={`Ask about this ${partName}…`}
+                      maxLength={2000}
+                    />
+                    <button type="submit" disabled={!dafQuestion.trim() || answer?.loading}>
+                      Ask
+                    </button>
+                  </form>
+                  {renderLineAnswer(picked.ref, goToSource)}
+                </>
               )}
-
-              {word && (
-                <div className="daf-word">
-                  <p className="label-sm">The word you tapped</p>
-                  <p className="he daf-word-he" lang="he">
-                    {dafPick.printedAs ?? word}
-                  </p>
-                  {dafPick.printedAs && (
-                    <p className="daf-word-full">
-                      Printed short for{" "}
-                      <span className="he" lang="he">
-                        {word}
-                      </span>
-                      .
-                    </p>
-                  )}
-                  {lookup?.loading && (
-                    <p className="muted">
-                      Looking it up in the dictionaries<span className="dots" />
-                    </p>
-                  )}
-                  {lookup?.error && <p className="muted">{lookup.error}</p>}
-                  {lookup?.abbreviation && !lookup.loading && <p className="muted">{shortFormNote(lookup.abbreviation)}</p>}
-                  {first && !lookup?.abbreviation && renderBreakdown(first)}
-                  {renderEntries(entries)}
-                  {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && (
-                    <p className="muted">None of the library’s dictionaries has this word yet. RabAI can explain it.</p>
-                  )}
-                  {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabAI can explain it.</p>}
-                </div>
-              )}
-
-              <div className="follow">
-                <button
-                  type="button"
-                  className={`chip-btn${word && lookup && !lookup.loading && !entries.length ? " primary" : ""}`}
-                  disabled={answer?.loading || !word}
-                  onClick={() => void askLine(picked.ref, "word", "", dafPick.printedAs ? `${dafPick.printedAs} (${word})` : word)}
-                >
-                  Ask RabAI about this word
-                </button>
-                <button type="button" className="chip-btn" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "explain")}>
-                  Explain this {partName}
-                </button>
-                {dafPick.part === "main" && (
-                  <button type="button" className="chip-btn" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "commentaries")}>
-                    What do Rashi and Tosafot say?
-                  </button>
-                )}
-                {word && (
-                  <button
-                    type="button"
-                    className="chip-btn"
-                    aria-pressed={isSaved(word)}
-                    onClick={() =>
-                      isSaved(word)
-                        ? removeWord(word)
-                        : saveWord({
-                            form: word,
-                            gloss: first ? `${first.text.slice(0, 90).replace(/\s+\S*$/, "")} … (${first.dictionary})` : undefined,
-                            ref: picked.ref,
-                          })
-                    }
-                  >
-                    {isSaved(word) ? "Saved to My words ✓" : "Save to My words"}
-                  </button>
-                )}
-              </div>
-              <form
-                className="ask-line"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (dafQuestion.trim()) void askLine(picked.ref, "ask", dafQuestion.trim());
-                }}
-              >
-                <label className="sr-only" htmlFor="daf-ask">
-                  Your own question about {picked.ref}
-                </label>
-                <input
-                  id="daf-ask"
-                  value={dafQuestion}
-                  onChange={(e) => setDafQuestion(e.target.value)}
-                  placeholder={`Or ask your own question about this ${partName}…`}
-                  maxLength={2000}
-                />
-                <button type="submit" disabled={!dafQuestion.trim() || answer?.loading}>
-                  Ask
-                </button>
-              </form>
-              <div className="mark-row" role="group" aria-label={`Mark this ${partName}`}>
-                <span>Mark this {partName}:</span>
-                {MARK_COLORS.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`mark-dot mark-${c.id}`}
-                    aria-label={c.label}
-                    aria-pressed={marks[picked.ref] === c.id}
-                    onClick={() => markPiece(picked.ref, marks[picked.ref] === c.id ? null : c.id)}
-                  />
-                ))}
-                {marks[picked.ref] && (
-                  <button type="button" className="link" onClick={() => markPiece(picked.ref, null)}>
-                    Clear
-                  </button>
-                )}
-              </div>
-              {renderLineAnswer(picked.ref, goToSource)}
-            </aside>
+            </WordCard>
           )}
         </div>
       </div>
@@ -2281,7 +2463,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <div className="body">
                   <p>Pick a text to read. Tap a line to ask about it, or highlight any words and ask about those.</p>
                   <p>
-                    To learn the words themselves, turn on <strong>Study words</strong> and tap any word.
+                    Tap any word to see what it means and how it is built.
                   </p>
                 </div>
               </div>
@@ -2493,9 +2675,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     English
                   </button>
                 </div>
-                <button type="button" className="study-toggle" aria-pressed={studyMode} onClick={toggleStudy}>
-                  Study words
-                </button>
                 {reader?.libraryMode === "testing" && reader.work.id === "talmud-bavli" && parseAmud(reader.section) && (
                   <button type="button" className="study-toggle page-toggle" onClick={() => void openDaf(reader.section)}>
                     See the page
@@ -2505,21 +2684,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               {reader &&
                 (reader.libraryMode === "development" ? (
                   <div className="dev-strip">
-                    {DEV_NOTE} {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
+                    {DEV_NOTE} Tap a word for its meaning, or a line to ask about it.
                   </div>
                 ) : reader.libraryMode === "testing" ? (
                   <div className="dev-strip">
                     {TESTING_LABEL} {reader.work.edition ? `Hebrew: ${reader.work.edition}.` : ""} English:{" "}
-                    {reader.work.translation.by}. {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
+                    {reader.work.translation.by}. Tap a word for its meaning, or a line to ask about it.
                   </div>
                 ) : (
                   <div className="edition">
                     {reader.work.title}: {reader.work.edition} English: {reader.work.translation.by}.{" "}
-                    {studyMode ? "Tap any word to study it." : "Tap a word for its meaning, or a line to ask about it."}
+                    Tap a word for its meaning, or a line to ask about it.
                   </div>
                 ))}
             </div>
-            <div className={`reader-body lang-${studyMode && lang === "en" ? "both" : lang}`} ref={readerBodyRef} data-askable="reader">
+            <div className={`reader-body lang-${lang}${selected && !wide ? " with-sheet" : ""}`} ref={readerBodyRef} data-askable="reader">
               {readerLoading ? (
                 <p className="reader-state">
                   Opening the text<span className="dots" />
@@ -2540,6 +2719,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 ))
               ) : null}
             </div>
+            {renderReaderCard()}
           </>
         )}
       </aside>

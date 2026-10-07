@@ -22,27 +22,33 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   button appears.
 - **Read.** Tapping a source opens the page or chapter with the cited line highlighted, in
   Hebrew, English, or both, with the commentaries under the line they explain.
-- **Tap a word.** In normal reading, tapping any Hebrew or Aramaic word shows what the
-  library's dictionaries say about it (Jastrow and the Radak's Sefer HaShorashim in the testing
-  library), each entry labeled with its dictionary, plus how the word breaks down: the letters
-  in front ("and", "the", "from"), the ending, and for a conjugated word a guess at its root,
-  marked as a guess, with what was changed. This uses no AI. When no dictionary has the word,
-  "Ask RabAI about this word" becomes the main button; RabAI explains only when tapped.
-  (`/api/word?w=` does the lookup.)
-- **Ask about a line.** Tap a line for: Explain this, Word by word, What do the commentaries say,
-  Where is this used in halacha, or your own question.
-- **Study words.** Turn it on in the reader and tap any word: its parts, its root, and every
-  other place the root appears in the library (computed from the text, never typed by hand).
-  Gemara phrases such as תנו רבנן are marked and explained. "Ask RabAI about this word" sends
-  those passages along so RabAI can cite them.
+- **Tap a word.** Tapping any Hebrew or Aramaic word opens a card beside it (a short sheet at
+  the bottom on a phone) with the word first, then tabs: **Meaning**, **Translation**,
+  **Commentary**, **Ask**. Meaning shows what the library's dictionaries say (Jastrow and the
+  Radak's Sefer HaShorashim in the testing library): one row per entry with its dictionary's
+  name, its notice in a few words (Jastrow: "Not Orthodox · word meanings only"), and the
+  entry's first meaning on one line, cut from the dictionary's own text; a tap opens the whole
+  entry with the full notice. Above the tabs, how the word breaks down: the letters in front
+  ("and", "the", "from"), the ending, and for a conjugated word a guess at its root, marked as a
+  guess, with what was changed. The arrows beside the word move to the next or previous word.
+  This uses no AI. When no dictionary has the word, "Ask RabAI about this word" becomes the main
+  button; RabAI explains only when tapped. (`/api/word?w=` does the lookup.) Where the team's
+  word notes cover a word, the card also shows its parts, its root and every other place the
+  root appears in the library (computed from the text, never typed by hand), and Gemara phrases
+  such as תנו רבנן are explained; "Ask RabAI about this word" sends those passages along so
+  RabAI can cite them.
+- **Ask about a line.** Tap a line (not a word) for the same card on its Ask tab: Explain
+  this, Word by word, What do the commentaries say, Where is this used in halacha, or your own
+  question. The answer appears in the card; the text never moves.
 - **Try it yourself.** "Let me try translating" on any line: RabAI checks the person's own
   translation gently.
 - **See the page.** A Gemara text in the testing library opens as the printed page: the
   Gemara in the middle, Rashi on the inner side and Tosafot on the outer side, wrapping around
   each other the way the Vilna Shas is set (Rashi moves sides between amud a and amud b). Every
-  word can be tapped: the side panel shows that line's translation, the word's meanings from
-  the dictionaries, the Rashi and Tosafot on that line (lightly shaded on the page), and
-  questions to ask RabAI. "Show the flow" colors each line by what it does (question, answer,
+  word can be tapped: the same card opens in a side panel (a sheet on a phone), with the word
+  and its meanings first, then the line's translation, the Rashi and Tosafot on that line
+  (lightly shaded on the page) or the line a comment explains, and questions to ask RabAI; the
+  line's Hebrew and its four mark colors sit at the bottom. "Show the flow" colors each line by what it does (question, answer,
   proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
   and is kept on the device. When the library has no English for a line, a Rashi or a Tosafot,
   "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under

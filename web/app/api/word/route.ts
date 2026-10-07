@@ -7,10 +7,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** How each dictionary is named to the person, and whether it is a word tool only. */
-const DICTIONARIES: Record<string, { name: string; note?: string }> = {
+const DICTIONARIES: Record<string, { name: string; note?: string; tag?: string }> = {
   Jastrow: {
     name: "Jastrow's dictionary",
     note: "Its author was not Orthodox. RabAI uses it only for what words mean.",
+    // The same notice, short enough to sit on every entry's one-line row.
+    tag: "Not Orthodox · word meanings only",
   },
   "Sefer HaShorashim": { name: "The Radak's Sefer HaShorashim" },
 };
@@ -41,6 +43,7 @@ export async function GET(request: Request) {
       return {
         dictionary: dict.name,
         note: p.source?.wordToolOnly ? (dict.note ?? "RabAI uses this dictionary only for what words mean.") : dict.note,
+        tag: p.source?.wordToolOnly ? (dict.tag ?? "Word meanings only") : dict.tag,
         headword: p.ref.includes(", ") ? p.ref.slice(p.ref.indexOf(", ") + 2) : p.ref,
         ref: p.ref,
         text: english || p.he,

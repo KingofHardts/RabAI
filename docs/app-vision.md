@@ -118,7 +118,7 @@ time, never guilt.
 Many people want to read the words themselves one day. RabAI teaches the language the way the
 mesorah always has, by letting the texts explain one another:
 
-- **Study words.** In the reader, tap any word to see how it is built, its root, and every
+- **Tap a word.** In the reader, tap any word to see how it is built, its root, and every
   other place that root appears in the library. A root learned once is recognized everywhere:
   ב-ד-ל ("separate") in Bereishit is the root of Havdalah. The connections are computed from
   the library's own text, so each one is real and opens with a tap.
@@ -175,7 +175,7 @@ Small, excellent, and safe. Then grow.
 - Ask, with tappable sources
 - The reader, with Hebrew, English, and the commentaries on each line
 - Ask about any line
-- Study words, the Gemara's key words, try it yourself, and My words
+- Tap a word for its meaning, the Gemara's key words, try it yourself, and My words
 - A library that starts with what the board approves and the licenses allow first. A
   realistic start: Chumash with Rashi, and Mishnah.
 - English interface, Hebrew texts
