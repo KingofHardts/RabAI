@@ -59,6 +59,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabAI's outline of the
   argument: run it only when the person asks, keep it on the device, and always label it as
   not yet reviewed by the rabbinic board (founding spec, open question 15).
+- When the library has a layout for an amud that places every word (table `daf_layout`, made by
+  `tools/daf_layout.py` from Sefaria's Vilna scans; see `tools/daflayout/README.md`), the page
+  is drawn line for line as printed (`web/components/DafPrinted.tsx`, `readPrinted` in
+  `daf.ts`). Keep the scans out of the repo, the library and the app: only line boxes, word
+  numbers, and each word's place on its line are stored. `readPrinted` refuses a layout that
+  leaves any word unplaced or whose word checks don't match the library's text; keep that check.
+  Words the scan didn't settle (listed in the layout's `estimated`) are drawn with a dotted
+  underline and a note; never show them unmarked. Keep the word splitting in
+  `tools/daflayout/text.py` identical to the app's (both have tests on the same check value).
+  The layouts are made by the "Make the printed-page layouts" workflow
+  (`.github/workflows/daf-layout.yml`, run by hand), and `tools/library_upload.py` carries
+  them over when the library is rebuilt.
 - Saved chats and recent reading (`web/lib/saved-chats.ts`) live only in the person's browser.
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.

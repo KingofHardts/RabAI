@@ -105,6 +105,157 @@ export interface DafData {
   /** Which editions the page comes from, for the label under it. */
   editions: { main: string; mainEnglish: string; rashi: string; tosafot: string };
   libraryLabel: string;
+  /** Where each printed line sits on the Vilna page, when the library has it for this amud. */
+  printed?: DafPrinted;
+}
+
+// ---------------------------------------------------------------------------
+// The page line for line, as printed.
+//
+// tools/daf_layout.py reads a scan of the Romm Vilna printing and records, for every printed line,
+// its box on the page and the library words it holds. A comment can start on one page and end on
+// the next, so a line can hold words of the amud before or after this one; those pieces come along
+// in `extra`.
+
+export type DafPart = "main" | "rashi" | "tosafot";
+
+export interface DafPrintedLine {
+  part: DafPart;
+  /** The line's letters on the scan: left, top, right, bottom. */
+  box: [number, number, number, number];
+  /** How tall its letters are, in the same units. */
+  letter: number;
+  /** The words it holds: [passage ref, first word, past the last word], in reading order. */
+  spans: Array<[string, number, number]>;
+  /**
+   * Where each of those words is printed on the line, [left, right] in the scan's units, in reading
+   * order; missing when the scan didn't show every word's place (the words are then spread evenly).
+   */
+  words?: Array<[number, number]>;
+}
+
+export interface DafPrinted {
+  /** The part of the scan the lines fill: left, top, right, bottom. */
+  area: [number, number, number, number];
+  lines: DafPrintedLine[];
+  /**
+   * Words whose line is an estimate, as "ref#word": the reading of the scan didn't settle it (a word
+   * it couldn't read, or one two lines both read), so it was put beside its neighbor in the text.
+   */
+  estimated: string[];
+  /** Pieces of the neighboring amudim that lines on this page hold. */
+  extra: Array<DafPiece & { part: DafPart }>;
+}
+
+export const PRINTED_LAYOUT_VERSION = 1;
+
+/** The words of a passage as the page shows them. */
+export function pieceWords(he: string): string[] {
+  return he.split(/\s+/).filter(Boolean);
+}
+
+/**
+ * A short check of a passage's words (FNV-1a, 32 bits, over the UTF-8 of the words joined by one
+ * space). tools/daflayout/text.py computes the same when it makes a layout; when they differ, the
+ * library's text has changed since, and the layout's word numbers can't be trusted.
+ */
+export function wordsFingerprint(words: string[]): string {
+  let h = 0x811c9dc5;
+  for (const b of new TextEncoder().encode(words.join(" "))) {
+    h ^= b;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
+
+const isNum = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
+
+/** How an estimated word is named in DafPrinted.estimated. */
+export const wordKey = (ref: string, index: number) => `${ref}#${index}`;
+
+/**
+ * Turn a stored layout into the page's printed lines, or null when it can't be trusted: every word of
+ * the amud must be placed (a few may be estimates, which are listed), every passage it points into
+ * must be here with the same words it was made from, and every word number must exist. `pieces` holds
+ * this amud's pieces and any neighbors' the layout needs.
+ */
+export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { part: DafPart }>, section: string): Omit<DafPrinted, "extra"> | null {
+  if (!record || typeof record !== "object") return null;
+  const r = record as Record<string, unknown>;
+  if (r.v !== PRINTED_LAYOUT_VERSION || r.section !== section) return null;
+  if (r.complete !== true && r.placed_all !== true) return null;
+  const refs = r.refs, checks = r.checks, lines = r.lines;
+  if (!Array.isArray(refs) || !Array.isArray(checks) || refs.length !== checks.length || !lines || typeof lines !== "object") return null;
+  const counts: number[] = [];
+  for (let i = 0; i < refs.length; i++) {
+    const p = typeof refs[i] === "string" ? pieces.get(refs[i]) : undefined;
+    if (!p) return null;
+    const words = pieceWords(p.he);
+    if (wordsFingerprint(words) !== checks[i]) return null;
+    counts.push(words.length);
+  }
+  const out: DafPrintedLine[] = [];
+  for (const part of ["main", "rashi", "tosafot"] as const) {
+    const list = (lines as Record<string, unknown>)[part];
+    if (!Array.isArray(list)) return null;
+    for (const row of list) {
+      if (!Array.isArray(row) || (row.length !== 6 && row.length !== 7) || !row.slice(0, 5).every(isNum) || !Array.isArray(row[5])) return null;
+      const [x0, y0, x1, y1, letter] = row as number[];
+      const flat = row[5] as unknown[];
+      if (x1 <= x0 || y1 <= y0 || letter <= 0 || flat.length === 0 || flat.length % 3 !== 0 || !flat.every(isNum)) return null;
+      const spans: Array<[string, number, number]> = [];
+      for (let i = 0; i < flat.length; i += 3) {
+        const [k, a, b] = flat.slice(i, i + 3) as number[];
+        if (!Number.isInteger(k) || k < 0 || k >= refs.length || !(0 <= a && a < b && b <= counts[k])) return null;
+        spans.push([refs[k] as string, a, b]);
+      }
+      const words = wordPlaces(row[6], spans, x0, x1);
+      out.push(words ? { part, box: [x0, y0, x1, y1], letter, spans, words } : { part, box: [x0, y0, x1, y1], letter, spans });
+    }
+  }
+  if (!out.length) return null;
+  const estimated: string[] = [];
+  const guesses = r.estimated === undefined ? [] : r.estimated;
+  if (!Array.isArray(guesses) || guesses.length % 3 !== 0 || !guesses.every(isNum)) return null;
+  for (let i = 0; i < guesses.length; i += 3) {
+    const [k, a, b] = guesses.slice(i, i + 3) as number[];
+    if (!Number.isInteger(k) || k < 0 || k >= refs.length || !(0 <= a && a < b && b <= counts[k])) return null;
+    for (let w = a; w < b; w++) estimated.push(wordKey(refs[k] as string, w));
+  }
+  const pad = 6;
+  const area: [number, number, number, number] = [
+    Math.min(...out.map((l) => l.box[0])) - pad,
+    Math.min(...out.map((l) => l.box[1])) - pad,
+    Math.max(...out.map((l) => l.box[2])) + pad,
+    Math.max(...out.map((l) => l.box[3])) + pad,
+  ];
+  return { area, lines: out, estimated };
+}
+
+/**
+ * A line's word places, when they fit it: one [left, right] for each of its words, inside the line,
+ * each word to the left of (or touching) the one before it, as Hebrew runs. Anything else is
+ * dropped, and the line's words are spread evenly instead.
+ */
+function wordPlaces(raw: unknown, spans: Array<[string, number, number]>, x0: number, x1: number): Array<[number, number]> | undefined {
+  if (!Array.isArray(raw) || !raw.every(isNum)) return undefined;
+  const n = spans.reduce((s, [, a, b]) => s + b - a, 0);
+  if (raw.length !== 2 * n) return undefined;
+  const out: Array<[number, number]> = [];
+  const slack = 4;
+  for (let i = 0; i < raw.length; i += 2) {
+    const [l, r] = [raw[i] as number, raw[i + 1] as number];
+    if (l > r || l < x0 - slack || r > x1 + slack) return undefined;
+    if (out.length && r > out[out.length - 1][1] + slack) return undefined;
+    out.push([l, r]);
+  }
+  return out;
+}
+
+/** The passages a stored layout points into (for fetching the neighbors' pieces it needs). */
+export function printedRefs(record: unknown): string[] {
+  const refs = record && typeof record === "object" ? (record as { refs?: unknown }).refs : undefined;
+  return Array.isArray(refs) ? refs.filter((r): r is string => typeof r === "string").slice(0, 2000) : [];
 }
 
 // ---------------------------------------------------------------------------

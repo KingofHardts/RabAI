@@ -13,7 +13,8 @@ Settings (GitHub Actions secrets):
 What it does:
   1. Finds or creates a Turso group (in us-east-1, next to Vercel's default region).
   2. Replaces the database "rabai-library" with the new file. The database is down for the
-     few minutes of the upload.
+     few minutes of the upload. Before that, the printed-page layouts (table daf_layout, made by
+     tools/daf_layout.py, not from Sefaria) are copied from the old database into the new file.
   3. Makes a read-only token for the group. A group token keeps working when the database is
      rebuilt, so the app's settings only change the first time.
   4. With VERCEL_TOKEN: sets TURSO_DATABASE_URL and TURSO_AUTH_TOKEN on the Vercel project
@@ -121,6 +122,44 @@ def turso_group(token: str, org: str) -> str:
     return GROUP_NAME
 
 
+def keep_layouts(token: str, org: str, path: Path) -> int:
+    """Copy the daf_layout rows from the library being replaced into the new file. Returns how many."""
+    import sqlite3
+
+    try:
+        info = call("GET", f"{TURSO_API}/organizations/{org}/databases/{DB_NAME}", token)
+    except ApiError as e:
+        if e.status == 404:
+            return 0
+        raise
+    hostname = info["database"]["Hostname"]
+    read = database_token(token, org, DB_NAME, "read-only")
+
+    def query(sql: str, args: list) -> list:
+        body = {"requests": [{"type": "execute", "stmt": {"sql": sql, "args": args}}, {"type": "close"}]}
+        out = call("POST", f"https://{hostname}/v2/pipeline", read, body)["results"][0]
+        if out.get("type") != "ok":
+            return []
+        return [[c.get("value") for c in row] for row in out["response"]["result"]["rows"]]
+
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE IF NOT EXISTS daf_layout (section TEXT PRIMARY KEY, tractate TEXT NOT NULL, "
+                "complete INTEGER NOT NULL, made_on TEXT NOT NULL, data TEXT NOT NULL)")
+    kept, after = 0, ""
+    while True:
+        rows = query("SELECT section, tractate, complete, made_on, data FROM daf_layout WHERE section > ? ORDER BY section LIMIT 200",
+                     [{"type": "text", "value": after}])
+        if not rows:
+            break
+        con.executemany("INSERT OR REPLACE INTO daf_layout VALUES (?, ?, ?, ?, ?)",
+                        [(r[0], r[1], int(r[2]), r[3], r[4]) for r in rows])
+        kept += len(rows)
+        after = rows[-1][0]
+    con.commit()
+    con.close()
+    return kept
+
+
 def replace_database(token: str, org: str, group: str) -> str:
     """Delete the old library database (if any) and create an empty one ready for upload."""
     base = f"{TURSO_API}/organizations/{org}/databases"
@@ -135,8 +174,8 @@ def replace_database(token: str, org: str, group: str) -> str:
     return created["database"]["Hostname"]
 
 
-def database_token(token: str, org: str, name: str, access: str) -> str:
-    query = urllib.parse.urlencode({"expiration": "never", "authorization": access})
+def database_token(token: str, org: str, name: str, access: str, expiration: str = "never") -> str:
+    query = urllib.parse.urlencode({"expiration": expiration, "authorization": access})
     jwt = call("POST", f"{TURSO_API}/organizations/{org}/databases/{name}/auth/tokens?{query}", token)["jwt"]
     mask(jwt)
     return jwt
@@ -259,6 +298,7 @@ def main() -> int:
 
     org = turso_org(token)
     group = turso_group(token, org)
+    layouts = keep_layouts(token, org, path)
     hostname = replace_database(token, org, group)
     upload_token = database_token(token, org, DB_NAME, "full-access")
     print(f"Uploading {path.stat().st_size / 1e6:.0f} MB to {hostname}…", flush=True)
@@ -274,6 +314,7 @@ def main() -> int:
     summary(f"- Built {meta.get('built_at', '?')} from canon commit {meta.get('canon_commit', '?')}, "
             f"Sefaria export {meta.get('sefaria_export', '?')}")
     summary(f"- {meta.get('label', '')}")
+    summary(f"- {layouts} printed-page layouts kept from the previous library.")
     if vercel:
         update_vercel(vercel, url, read_token)
     else:

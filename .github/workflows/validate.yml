@@ -14,6 +14,8 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       - run: python3 tools/validate.py
+      - name: Test the printed-page layout tool
+        run: python3 -m unittest discover -s tools/daflayout/tests
 
   web:
     runs-on: ubuntu-latest

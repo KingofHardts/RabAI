@@ -24,6 +24,12 @@ CREATE TABLE links (a TEXT NOT NULL, b TEXT NOT NULL, kind TEXT);
 -- Dictionary headwords, without vowels, each pointing at its entry ("Jastrow, אָב II").
 CREATE TABLE lexicon (word TEXT NOT NULL, passage_id INTEGER NOT NULL);
 
+-- Where each printed line of an amud of the Bavli sits on the Vilna page, and the library words it
+-- holds (tools/daf_layout.py; read by testing.ts dafLayout). data is JSON; complete is 1 when every
+-- word of the amud was placed. Not built from Sefaria: tools/library_upload.py copies these rows from
+-- the library it replaces.
+CREATE TABLE daf_layout (section TEXT PRIMARY KEY, tractate TEXT NOT NULL, complete INTEGER NOT NULL, made_on TEXT NOT NULL, data TEXT NOT NULL);
+
 -- @indexes
 -- (created after loading)
 CREATE INDEX passages_ref ON passages (ref);

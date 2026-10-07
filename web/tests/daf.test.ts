@@ -10,6 +10,11 @@ import {
   parseAmud,
   plainText,
   prevAmud,
+  printedRefs,
+  readPrinted,
+  wordsFingerprint,
+  type DafPart,
+  type DafPiece,
   sideColumn,
   splitOpening,
   TOP_LINES,
@@ -103,4 +108,75 @@ test("once drawn, the spacers move until no two texts share a place", () => {
   assert.ok(shared && shared.end > 0);
   // Everything fits: nothing moves.
   assert.equal(correctSpacers(s, { ...d, mainBottom: 900, innerBottom: 560, outerBottom: 560 }), null);
+});
+
+test("a passage's words check the same as the layout tool's", () => {
+  // tools/daflayout/tests checks the same value.
+  assert.equal(wordsFingerprint(["שלום", "עולם"]), "dbd9eeb4");
+  assert.notEqual(wordsFingerprint(["שלום", "עולם"]), wordsFingerprint(["שלום", "עולם", "x"]));
+});
+
+test("a stored layout is used only when it fits the text exactly", () => {
+  const pieces = new Map<string, DafPiece & { part: DafPart }>([
+    ["Berakhot 2a:1", { ref: "Berakhot 2a:1", he: "א ב ג", en: "", part: "main" }],
+    ["Rashi on Berakhot 2a:1:1", { ref: "Rashi on Berakhot 2a:1:1", he: "ד ה", en: "", part: "rashi" }],
+  ]);
+  const good = {
+    v: 1,
+    section: "Berakhot 2a",
+    complete: true,
+    refs: ["Berakhot 2a:1", "Rashi on Berakhot 2a:1:1"],
+    checks: [wordsFingerprint(["א", "ב", "ג"]), wordsFingerprint(["ד", "ה"])],
+    lines: {
+      main: [[100, 200, 500, 230, 20, [0, 0, 2]], [100, 240, 300, 270, 20, [0, 2, 3]]],
+      rashi: [[600, 200, 800, 220, 14, [1, 0, 2]]],
+      tosafot: [],
+    },
+  };
+  const p = readPrinted(good, pieces, "Berakhot 2a");
+  assert.ok(p);
+  assert.deepEqual(p.estimated, []);
+  assert.deepEqual(p.area, [94, 194, 806, 276]);
+  assert.equal(p.lines.length, 3);
+  assert.deepEqual(p.lines[1], { part: "main", box: [100, 240, 300, 270], letter: 20, spans: [["Berakhot 2a:1", 2, 3]] });
+  assert.deepEqual(printedRefs(good), good.refs);
+
+  // Every word placed, a few by estimate: used, with the estimates listed.
+  const guessed = readPrinted({ ...good, complete: false, placed_all: true, estimated: [0, 2, 3] }, pieces, "Berakhot 2a");
+  assert.deepEqual(guessed?.estimated, ["Berakhot 2a:1#2"]);
+  assert.equal(readPrinted({ ...good, estimated: [0, 2, 4] }, pieces, "Berakhot 2a"), null);
+
+  // Another page, a layout with words left over, or a text that changed since: not used.
+  assert.equal(readPrinted(good, pieces, "Berakhot 2b"), null);
+  assert.equal(readPrinted({ ...good, complete: false }, pieces, "Berakhot 2a"), null);
+  assert.equal(readPrinted({ ...good, complete: false, placed_all: false }, pieces, "Berakhot 2a"), null);
+  assert.equal(readPrinted({ ...good, checks: [wordsFingerprint(["א", "ב"]), good.checks[1]] }, pieces, "Berakhot 2a"), null);
+  // A word number past the passage's end, or a passage that isn't here.
+  const past = { ...good, lines: { ...good.lines, rashi: [[600, 200, 800, 220, 14, [1, 0, 3]]] } };
+  assert.equal(readPrinted(past, pieces, "Berakhot 2a"), null);
+  const missing = new Map(pieces);
+  missing.delete("Rashi on Berakhot 2a:1:1");
+  assert.equal(readPrinted(good, missing, "Berakhot 2a"), null);
+  assert.equal(readPrinted("nonsense", pieces, "Berakhot 2a"), null);
+});
+
+test("a line's word places are used only when they fit the line", () => {
+  const pieces = new Map<string, DafPiece & { part: DafPart }>([["Berakhot 2a:1", { ref: "Berakhot 2a:1", he: "א ב ג", en: "", part: "main" }]]);
+  const withPlaces = (places: unknown) => ({
+    v: 1,
+    section: "Berakhot 2a",
+    complete: true,
+    refs: ["Berakhot 2a:1"],
+    checks: [wordsFingerprint(["א", "ב", "ג"])],
+    lines: { main: [[100, 200, 500, 230, 20, [0, 0, 3], places]], rashi: [], tosafot: [] },
+  });
+  const good = readPrinted(withPlaces([400, 500, 250, 380, 100, 230]), pieces, "Berakhot 2a");
+  assert.deepEqual(good?.lines[0].words, [[400, 500], [250, 380], [100, 230]]);
+  // The wrong number of places, a word left of the line, or words out of order: the line is kept,
+  // its words spread evenly.
+  for (const bad of [[400, 500, 250, 380], [400, 500, 250, 380, 20, 230], [100, 230, 250, 380, 400, 500], "x"]) {
+    const p = readPrinted(withPlaces(bad), pieces, "Berakhot 2a");
+    assert.ok(p);
+    assert.equal(p.lines[0].words, undefined);
+  }
 });

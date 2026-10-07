@@ -201,6 +201,13 @@ export interface TestingStore {
    * in full and in order. Null when the library has no Gemara at this ref.
    */
   daf(section: string): Promise<{ main: Passage[]; rashi: Passage[]; tosafot: Passage[] } | null>;
+  /** These passages in full, by exact ref (a printed page's lines can hold a neighboring amud's words). */
+  exact(refs: string[]): Promise<Passage[]>;
+  /**
+   * Where each printed line of an amud sits on the Vilna page (tools/daf_layout.py), or null when
+   * the library has no layout for it. Checked by readPrinted in daf.ts before it is shown.
+   */
+  dafLayout(section: string): Promise<unknown | null>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string }>>;
   /** The short list of book names the lookup planner may use. */
@@ -648,6 +655,29 @@ export function createTestingStore(db: Db): TestingStore {
       const [main, rashi, tosafot] = await Promise.all([rowsOf(tractate), rowsOf(`Rashi on ${tractate}`), rowsOf(`Tosafot on ${tractate}`)]);
       if (!main.length) return null;
       return { main, rashi, tosafot };
+    },
+
+    async exact(refs) {
+      const wanted = [...new Set(refs)].slice(0, 400);
+      const rows: Row[] = [];
+      for (let i = 0; i < wanted.length; i += 100) rows.push(...(await byExactRefs(wanted.slice(i, i + 100))));
+      return groupRows(rows, { full: true });
+    },
+
+    async dafLayout(section) {
+      let rows: Array<Record<string, unknown>>;
+      try {
+        rows = await db.all("SELECT data FROM daf_layout WHERE section = ?", [section]);
+      } catch {
+        return null; // a library built before the layouts existed has no such table
+      }
+      const raw = rows[0]?.data;
+      if (typeof raw !== "string") return null;
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        return null;
+      }
     },
 
     async books() {

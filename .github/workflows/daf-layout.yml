@@ -1,0 +1,66 @@
+name: Make the printed-page layouts
+
+# Reads the Romm Vilna scans Sefaria hosts and records, for every amud of the Bavli, where each
+# printed line sits and which library words it holds (tools/daf_layout.py, tools/daflayout/README.md).
+# The layouts are saved in the testing library on Turso (table daf_layout). Run it by hand: Actions,
+# "Make the printed-page layouts", Run workflow. The whole Shas takes about half an hour.
+#
+# Nothing is kept as an artifact: no scans, no text, no layouts. The repository is public, so its
+# logs are too; every token made here is masked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tractates:
+        description: "Only these tractates, separated by commas (empty: the whole Bavli)"
+        type: string
+        default: ""
+      store:
+        description: "Save the layouts in the library"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: library-build
+  cancel-in-progress: false
+
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tesseract and the Python packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q tesseract-ocr tesseract-ocr-heb python3-tesserocr \
+            python3-numpy python3-scipy python3-pil python3-rapidfuzz
+      - name: Get the Rashi-script model (KleiKodesh, Apache-2.0)
+        run: |
+          mkdir -p "$RUNNER_TEMP/tessdata"
+          cp /usr/share/tesseract-ocr/5/tessdata/heb.traineddata "$RUNNER_TEMP/tessdata/"
+          curl -fsSL --retry 4 -o "$RUNNER_TEMP/tessdata/heb_rashi.traineddata" \
+            "https://raw.githubusercontent.com/KleiKodesh/kleikodeshproject/493d1d59a2e07b422edcce1af1a6c7429945c2b8/KitveiHakodesh/vue-frontend/public/tesseract/heb_rashi.traineddata"
+          echo "c3bdf2c4188e037838e027de419e6e8ca663f1168fef3d09df1a3a46afab6c50  $RUNNER_TEMP/tessdata/heb_rashi.traineddata" | sha256sum -c -
+      - name: Test the layout tool
+        run: /usr/bin/python3 -m unittest discover -s tools/daflayout/tests
+      - name: Make the layouts
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          TRACTATES: ${{ inputs.tractates }}
+          STORE: ${{ inputs.store }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          export TESSDATA="$RUNNER_TEMP/tessdata"
+          args=(--turso --shard "$SHARD/20" --cache "$RUNNER_TEMP/vilna" --workers "$(nproc)")
+          if [ -n "$TRACTATES" ]; then args+=(--tractate "$TRACTATES"); fi
+          if [ "$STORE" = "true" ]; then args+=(--store); fi
+          /usr/bin/python3 tools/daf_layout.py "${args[@]}"

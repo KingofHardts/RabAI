@@ -363,6 +363,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .daf-text .dw:hover { background: var(--tint); }
 .daf-text .dw.on { background: var(--accent); color: var(--accent-ink); }
 .daf-text .dw.big { font-size: 1.9em; line-height: 1; font-weight: 700; }
+.daf-printed .daf-pline { position: absolute; white-space: nowrap; text-align: right; overflow: visible; }
+.daf-printed .daf-pfit { display: inline-block; white-space: nowrap; transform-origin: right center; }
+.daf-printed .dw.big { font-size: 1.6em; line-height: 0; }
+.daf-printed .dw.est { text-decoration: underline dotted; text-decoration-color: var(--muted); text-underline-offset: 0.18em; }
+/* A line whose word places are known: each word sits in a box as wide as the printed word. */
+.daf-printed .placed .dplaced, .daf-printed .placed .dgap { display: inline-block; white-space: pre; overflow: visible; vertical-align: top; }
+.daf-printed .placed .dwi { display: inline-block; white-space: nowrap; transform-origin: right center; }
+.daf-printed .placed .dw.big .dwi { font-size: 1em; }
 .daf-text .dseg { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; }
 .daf-text .dseg.k-mishnah { background: var(--k-mishnah); } .daf-text .dseg.k-question { background: var(--k-question); }
 .daf-text .dseg.k-answer { background: var(--k-answer); } .daf-text .dseg.k-statement { background: var(--k-statement); }

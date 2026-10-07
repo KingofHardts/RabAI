@@ -26,6 +26,7 @@ import {
 } from "@/lib/saved-chats";
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 import DafPage from "./DafPage";
+import DafPrinted from "./DafPrinted";
 import { parseAmud, type DafData } from "@/lib/library/daf";
 import { OUTLINE_KINDS, OUTLINE_LABELS, type OutlineKind, type OutlineLine } from "@/lib/engine/outline";
 
@@ -1626,7 +1627,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const renderDafView = () => {
     const outline = daf ? outlines[daf.section] : undefined;
     const kinds: Record<string, string> = showOutline && outline ? Object.fromEntries(outline.lines.map((l) => [l.ref, l.kind])) : {};
-    const pieces = daf ? [...daf.main, ...daf.rashi, ...daf.tosafot] : [];
+    const pieces = daf ? [...daf.main, ...daf.rashi, ...daf.tosafot, ...(daf.printed?.extra ?? [])] : [];
     const picked = dafPick ? pieces.find((p) => p.ref === dafPick.ref) : undefined;
     const linked = new Set<string>();
     if (daf && dafPick && picked) {
@@ -1724,22 +1725,31 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <p className="reader-state">{dafError}</p>
             ) : daf ? (
               <>
-                <DafPage
-                  data={daf}
-                  zoom={dafZoom}
-                  selectedRef={dafPick?.ref ?? null}
-                  linkedRefs={linked}
-                  activeWord={dafPick ? { ref: dafPick.ref, index: dafPick.index } : null}
-                  kinds={kinds}
-                  marks={marks}
-                  onWord={(ref, index, w, part) => {
-                    setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part });
-                    setDafQuestion("");
-                  }}
-                />
+                {(() => {
+                  const props = {
+                    zoom: dafZoom,
+                    selectedRef: dafPick?.ref ?? null,
+                    linkedRefs: linked,
+                    activeWord: dafPick ? { ref: dafPick.ref, index: dafPick.index } : null,
+                    kinds,
+                    marks,
+                    onWord: (ref: string, index: number, w: string, part: "main" | "rashi" | "tosafot") => {
+                      setDafPick(dafPick?.ref === ref && dafPick.index === index ? null : { ref, index, word: w, part });
+                      setDafQuestion("");
+                    },
+                  };
+                  const printed = daf.printed;
+                  return printed ? <DafPrinted data={{ ...daf, printed }} {...props} /> : <DafPage data={daf} {...props} />;
+                })()}
                 <p className="daf-note">
-                  {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}. The shape follows the
-                  printed Vilna page, but the lines break where your screen breaks them. Tap any word.
+                  {daf.libraryLabel} Gemara: {daf.editions.main}. Rashi and Tosafot: {daf.editions.rashi}.{" "}
+                  {daf.printed
+                    ? "Every line, and nearly every word on it, is where it is on the printed Vilna page, read from a scan of the Romm printing. Where the print uses an abbreviation, the library's full words are set small in its place."
+                    : "The shape follows the printed Vilna page, but the lines break where your screen breaks them."}{" "}
+                  {daf.printed && daf.printed.estimated.length > 0
+                    ? `${daf.printed.estimated.length === 1 ? "One word" : `${daf.printed.estimated.length} words`} with a dotted underline ${daf.printed.estimated.length === 1 ? "is" : "are"} placed by estimate: the scan didn't show for certain which line ${daf.printed.estimated.length === 1 ? "it is" : "they are"} on. `
+                    : ""}
+                  Tap any word.
                 </p>
               </>
             ) : null}

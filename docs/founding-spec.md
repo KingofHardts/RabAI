@@ -142,6 +142,20 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
   still enters only with their written permission.
+
+  The printed page, line for line (Josh asked, 2026-10-07): so that a word found on a line of a
+  printed Gemara is in the same place on RabAI's page, `tools/daf_layout.py` reads Sefaria's
+  scans of the Romm Vilna printing (1880-86, public domain) and records where each printed line
+  sits, which of the library's words it holds, and where on the line each word is printed. Only
+  those positions are kept, in the testing library. The scans are never stored, committed or
+  shown, and the words on the page are still the library's own text, so the layouts add no
+  content and are not a source. An amud is shown line for line only when every word of its
+  Gemara, Rashi and Tosafot was placed; otherwise the page keeps its flowing layout. Where the
+  scan doesn't show for certain which line a word is on (two lines both read it, it is in a run of
+  up to six words no line read clearly, or its line reads too little like the words matched to
+  it), the word is put on the likeliest line and marked on the page with a dotted underline and a
+  note saying so. Where the print abbreviates (הקב״ה for "הקדוש ברוך הוא"), the library's full
+  words are set small in the abbreviation's place.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
