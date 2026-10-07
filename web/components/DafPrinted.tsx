@@ -160,6 +160,7 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
           const h = (y1 - y0) * k;
           const font = (line.letter * k) / LETTER_EM[line.part];
           const places = line.words;
+          const tall = new Map((line.big ?? []).map(([w, top, bottom]) => [w, [top, bottom] as const]));
           let words = 0;
           // In a line with word places, each word is a box as wide as the printed word, after a gap as
           // wide as the printed space (the space before the line's first word is from the line's right).
@@ -168,11 +169,16 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
             const [l, r] = places![w];
             const gap = Math.max(0, edge - r) * k;
             edge = l;
+            // A word printed larger than its line is set at its own letters' height, where they print.
+            const t = tall.get(w);
+            const size = t
+              ? { marginTop: (t[0] - y0) * k, height: (t[1] - t[0]) * k, lineHeight: `${(t[1] - t[0]) * k}px`, fontSize: ((t[1] - t[0]) * k) / LETTER_EM.main }
+              : {};
             return [
               <span key={`g${key}`} className="dgap" style={{ width: gap }}>
                 {" "}
               </span>,
-              <span key={key} className={cls} style={{ width: (r - l) * k }} {...extra}>
+              <span key={key} className={t ? `${cls} tall` : cls} style={{ width: (r - l) * k, ...size }} {...extra}>
                 <span className="dwi" data-w={(r - l) * k}>
                   {inner}
                 </span>

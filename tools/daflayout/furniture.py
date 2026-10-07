@@ -262,11 +262,15 @@ def find_heading(comps, top, xh, choices, read, amud):
     # the group nearest the words is taken, and only when it is as wide as the number would print.
     def fits(g):
         b = box_of(g)
-        return 0.2 * len(number) * hh <= b[2] - b[0] <= 1.2 * len(number) * hh
+        marks = sum(1 for c in g if c[3] - c[1] >= 0.4 * hh)
+        return 0.2 * len(number) * hh <= b[2] - b[0] <= 1.2 * len(number) * hh and marks <= 2 * len(number)
 
+    # (specks of dirt aside)
+    groups = [g for g in groups if max(c[3] - c[1] for c in g) >= 0.3 * hh]
     if amud == "a":
+        # its letters hang from the heading's top (a lamed reaches above it)
         left = [g for g in groups if max(c[2] for c in g) < left_edge - APART * hh and max(c[3] - c[1] for c in g) >= 0.5 * hh
-                and abs(min(c[1] for c in g) - y0) <= 0.3 * hh]
+                and y0 - 0.5 * hh <= min(c[1] for c in g) <= y0 + 0.3 * hh]
         if left:
             g = max(left, key=lambda g: max(c[2] for c in g))
             if fits(g):
@@ -276,6 +280,6 @@ def find_heading(comps, top, xh, choices, read, amud):
         right = [g for g in groups if min(c[0] for c in g) > right_edge + APART * hh]
         if right:
             g = min(right, key=lambda g: min(c[0] for c in g))
-            if 0.6 * hh <= max(c[3] - c[1] for c in g) <= 0.95 * hh and fits(g):
+            if 0.5 * hh <= max(c[3] - c[1] for c in g) <= 0.95 * hh and fits(g):
                 out.insert(0, [number, *box_of(g)])
     return out

@@ -378,6 +378,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .daf-printed .placed .dplaced, .daf-printed .placed .dgap { display: inline-block; white-space: pre; overflow: visible; vertical-align: top; }
 .daf-printed .placed .dwi { display: inline-block; white-space: nowrap; transform-origin: right center; }
 .daf-printed .placed .dw.big .dwi { font-size: 1em; }
+.daf-printed .main.placed .tall { font-family: var(--font-vilna-title), var(--font-vilna), var(--font-he); font-weight: 400; }
+.daf-printed .rashi.placed .tall, .daf-printed .tosafot.placed .tall { font-family: var(--font-vilna), var(--font-he); font-weight: 400; }
+.daf-printed .placed .tall .dwi { font-size: 1em; }
 .daf-text .dseg { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; }
 .daf-text .dseg.k-mishnah { background: var(--k-mishnah); } .daf-text .dseg.k-question { background: var(--k-question); }
 .daf-text .dseg.k-answer { background: var(--k-answer); } .daf-text .dseg.k-statement { background: var(--k-statement); }

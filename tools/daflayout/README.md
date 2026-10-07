@@ -25,7 +25,9 @@ For each amud of the Bavli:
    print abbreviates (הקב״ה for "הקדוש ברוך הוא") or sets two words with no space between them, the
    library's words share the printed word's place. A printed word the library doesn't have (a note's
    mark) is left out. When the words don't line up well, the line gets no word places and the app
-   spreads its words evenly across the printed line.
+   spreads its words evenly across the printed line. A word whose letters are mostly much taller
+   than its line's (a commentary's first words, the word that opens a Mishnah or a chapter) has its
+   letters' height kept too, so the app draws it at its printed size.
 6. Places each word once across the whole tractate, because a comment can start on one amud and end
    on the next (`reconcile` in `daf_layout.py`).
 7. Finds the page's heading, the line above the text that names the chapter and the tractate, with

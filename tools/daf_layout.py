@@ -127,7 +127,7 @@ def heading_of(g, ink, res, choices, amud):
     import numpy as np
     from daflayout.furniture import find_heading
     from daflayout.scan import components
-    tops = [L["core"][1] for part in PARTS for L in res[part]]
+    tops = [L["box"][1] for part in PARTS for L in res[part]]  # the box of each line's ordinary letters
     xhs = [L["xh"] for L in res["main"] if L["xh"]]
     if not choices or not tops or not xhs:
         return []
@@ -150,7 +150,8 @@ def page_task(job):
         res = layout(lines, prev, cur, nxt, dup)
         try:
             heading = heading_of(g, ink, res, choices, section[-1])
-        except Exception:  # the heading is extra; a page never fails over it
+        except Exception as e:  # the heading is extra; a page never fails over it
+            print(f"  {section}: no heading ({type(e).__name__}: {e})", flush=True)
             heading = []
         return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading,
                 "seconds": round(time.time() - t, 1)}
@@ -188,18 +189,21 @@ def reconcile(tractate, results, text, twin):
         for part in PARTS:
             out = []
             for L in r["parts"][part]:
-                words, at, xs = [], {}, iter(L.get("xs") or [])
+                words, at, xs, tall, big, k = [], {}, iter(L.get("xs") or []), {}, L.get("big") or {}, 0
                 for ref, a, b in L["spans"]:
                     for w in range(a, b):
                         x = next(xs, None)
                         if x is not None:
                             at[(ref, w)] = x
+                        if k in big or str(k) in big:
+                            tall[(ref, w)] = big.get(k, big.get(str(k)))
+                        k += 1
                         if keep[(ref, w)] == id(L):
                             words.append((ref, w))
                         else:
                             r["trimmed"][part] += 1
                 if words:
-                    line = {**L, "words": words, "at": at}
+                    line = {**L, "words": words, "at": at, "tall": tall}
                     out.append(line)
                     for k in words:
                         where[k] = line
@@ -288,6 +292,10 @@ def reconcile(tractate, results, text, twin):
                 xs = [L["at"].get(k) for k in L["words"]]
                 if xs and all(xs):
                     row.append([v for x in xs for v in x])
+                    # words printed larger than the line: [word number on the line, top, bottom, ...]
+                    tall = [v for i, k in enumerate(L["words"]) if k in L["tall"] for v in (i, *L["tall"][k])]
+                    if tall:
+                        row.append(tall)
                 lines[part].append(row)
         placed_all = not any(missing.values())
         records.append({

@@ -137,6 +137,12 @@ export interface DafPrintedLine {
    * order; missing when the scan didn't show every word's place (the words are then spread evenly).
    */
   words?: Array<[number, number]>;
+  /**
+   * Words printed larger than the line (a commentary's first words, a chapter's opening word): for
+   * each, its number among the line's words and the [top, bottom] of its letters, in the scan's units.
+   * Only with `words`.
+   */
+  big?: Array<[number, number, number]>;
 }
 
 /**
@@ -262,7 +268,7 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
     const list = (lines as Record<string, unknown>)[part];
     if (!Array.isArray(list)) return null;
     for (const row of list) {
-      if (!Array.isArray(row) || (row.length !== 6 && row.length !== 7) || !row.slice(0, 5).every(isNum) || !Array.isArray(row[5])) return null;
+      if (!Array.isArray(row) || row.length < 6 || row.length > 8 || !row.slice(0, 5).every(isNum) || !Array.isArray(row[5])) return null;
       const [x0, y0, x1, y1, letter] = row as number[];
       const flat = row[5] as unknown[];
       if (x1 <= x0 || y1 <= y0 || letter <= 0 || flat.length === 0 || flat.length % 3 !== 0 || !flat.every(isNum)) return null;
@@ -273,7 +279,8 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
         spans.push([refs[k] as string, a, b]);
       }
       const words = wordPlaces(row[6], spans, x0, x1);
-      out.push(words ? { part, box: [x0, y0, x1, y1], letter, spans, words } : { part, box: [x0, y0, x1, y1], letter, spans });
+      const big = words ? bigWords(row[7], words.length) : undefined;
+      out.push(words ? { part, box: [x0, y0, x1, y1], letter, spans, words, ...(big ? { big } : {}) } : { part, box: [x0, y0, x1, y1], letter, spans });
     }
   }
   if (!out.length) return null;
@@ -331,6 +338,18 @@ function wordPlaces(raw: unknown, spans: Array<[string, number, number]>, x0: nu
     if (l > r || l < x0 - slack || r > x1 + slack) return undefined;
     if (out.length && r > out[out.length - 1][1] + slack) return undefined;
     out.push([l, r]);
+  }
+  return out;
+}
+
+/** A line's big words, when well formed: [word number, top, bottom] each, numbers in order. */
+function bigWords(raw: unknown, n: number): Array<[number, number, number]> | undefined {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length % 3 !== 0 || !raw.every(isNum)) return undefined;
+  const out: Array<[number, number, number]> = [];
+  for (let i = 0; i < raw.length; i += 3) {
+    const [k, top, bottom] = raw.slice(i, i + 3) as number[];
+    if (!Number.isInteger(k) || k < 0 || k >= n || bottom <= top || (out.length && k <= out[out.length - 1][0])) return undefined;
+    out.push([k, top, bottom]);
   }
   return out;
 }

@@ -538,6 +538,29 @@ def print_order(pieces, part, before, cur, after, dup, stream, opts, opening=16,
 # One page
 
 
+BIG = 1.6  # a word whose letters are this many times the line's letter height is printed large
+
+
+def big_words(ink, xs, xh):
+    """The words printed larger than their line (a commentary's first words, a chapter's opening
+    word), as {word number: (top, bottom)} of their letters. ink: the line's blobs (x0, x1, height,
+    top); xs: each word's [x0, x1]."""
+    out = {}
+    for k, (x0, x1) in enumerate(xs):
+        letters = [b for b in ink if b[0] >= x0 - 1 and b[1] <= x1 + 1 and b[2] >= 0.5 * xh]
+        if not letters:
+            continue
+        # Most of the word's letters must be tall: a lamed's or a final letter's reach doesn't count.
+        heights = sorted(b[2] for b in letters)
+        if heights[(len(heights) - 1) // 2] < BIG * xh:
+            continue
+        tall = [b for b in letters if b[2] >= BIG * xh]
+        h = sorted(b[2] for b in tall)[(len(tall) - 1) // 2]
+        top = sorted(b[3] for b in tall)[(len(tall) - 1) // 2]
+        out[k] = (int(top), int(top + h))
+    return out
+
+
 def layout(lines, prev, cur, nxt, dup=None):
     """Every printed line of each text on the page, with the words it holds.
 
@@ -623,7 +646,8 @@ def layout(lines, prev, cur, nxt, dup=None):
             xs = word_positions(ink, [w[2] for w in words], float(L["xh"]), printed)
             out.append({"box": [int(v) for v in L["core"]], "xh": round(float(L["xh"]), 1), "spans": spans(st, a, b),
                         "agree": round(float(agree), 3), "filled": bool(L["filled"]), "where": sorted({w[3] for w in words}),
-                        "nwords": b - a, "xs": [[int(x0), int(x1)] for x0, x1 in xs] if xs else None})
+                        "nwords": b - a, "xs": [[int(x0), int(x1)] for x0, x1 in xs] if xs else None,
+                        "big": big_words(ink, xs, float(L["xh"])) if xs else None})
         # the next page's first word or two, printed under the last line, is a catchword
         if out and out[-1]["where"] == ["next"] and out[-1]["nwords"] <= 2:
             out.pop()

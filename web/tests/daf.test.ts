@@ -169,6 +169,15 @@ test("a stored layout is used only when it fits the text exactly", () => {
     { text: "ברכות", box: [300, 150, 400, 180] },
   ]);
   assert.deepEqual(headed?.area, [94, 144, 806, 276]);
+  // A line's big words come along with its word places, when well formed.
+  const bigLine = [100, 200, 500, 230, 20, [0, 0, 2], [450, 500, 300, 440], [0, 190, 240]];
+  const tall = readPrinted({ ...good, lines: { ...good.lines, main: [bigLine, good.lines.main[1]] } }, pieces, "Berakhot 2a");
+  assert.deepEqual(tall?.lines[0].big, [[0, 190, 240]]);
+  for (const bad of [[2, 190, 240], [0, 240, 190], [0, 190]]) {
+    const row = [...bigLine.slice(0, 7), bad];
+    const p2 = readPrinted({ ...good, lines: { ...good.lines, main: [row, good.lines.main[1]] } }, pieces, "Berakhot 2a");
+    assert.equal(p2?.lines[0].big, undefined);
+  }
   for (const bad of [[["<b>", 1, 2, 3, 4]], [["ברכות", 400, 150, 300, 180]], [["ברכות", 1, 2]], "ברכות"]) {
     assert.deepEqual(readPrinted({ ...good, heading: bad }, pieces, "Berakhot 2a")?.heading, []);
   }

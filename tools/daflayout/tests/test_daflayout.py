@@ -233,6 +233,23 @@ class Heading(unittest.TestCase):
         self.assertEqual(furniture.find_heading(comps, 190, 14, choices, lambda blobs: "שלום", "a"), [])
 
 
+try:
+    from daflayout.match import big_words
+except ImportError:  # numpy or rapidfuzz isn't installed
+    big_words = None
+
+
+@unittest.skipIf(big_words is None, "needs numpy and rapidfuzz")
+class BigWords(unittest.TestCase):
+    def test_a_word_printed_large_is_found(self):
+        ink = [(200, 220, 30, 100), (180, 198, 31, 99), (150, 165, 14, 104), (130, 146, 15, 104)]
+        self.assertEqual(big_words(ink, [[180, 220], [130, 165]], 15), {0: (99, 129)})
+
+    def test_a_lamed_alone_does_not_make_a_word_large(self):
+        ink = [(200, 214, 26, 92), (186, 199, 15, 103)]  # על: the lamed reaches above the line
+        self.assertEqual(big_words(ink, [[186, 214]], 15), {})
+
+
 def line(spans, agree=1.0, xs=None):
     return {"box": [0, 0, 100, 10], "xh": 8, "spans": spans, "agree": agree, "xs": xs}
 
