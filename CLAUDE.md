@@ -114,12 +114,20 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - The page's vowels switch reads the library's `vowels` table, filled from editions marked
   `vowels_only` in the canon (a vocalized copy of another edition). Never search or quote a
   vowels-only edition; `vowelWords` in `daf.ts` only adds points to the library's own words.
-- Saved chats and recent reading (`web/lib/saved-chats.ts`) live only in the person's browser.
+- Saved chats and recent reading (`web/lib/saved-chats.ts`) live in the person's browser, and
+  saved chats also in their account when they are signed in.
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.
 - Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
   What the microphone hears goes into the text box and is never sent without the person
   pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied box.
+- Accounts (`web/lib/account/`, people database `rabai-people`) carry a person's profile and
+  chats between devices; setup is in `web/README.md`, "Accounts". Never store an email address
+  (only `emailCheck`), a sign-in link or a session token (only their hashes). Never change
+  `RABAI_AUTH_SECRET` once set: every account would become unreachable. Never delete the people
+  database; a person's rows go only when they delete their account. "Was this helpful?" feedback
+  is never linked to a person or a profile, and changes nothing by itself: people read it and
+  decide. Emailed links point only at the app's own address (`appUrl` in `config.ts`).
 - Before committing app changes: `cd web && npm test && npm run typecheck`.
 - **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
   `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
@@ -181,16 +189,19 @@ Moving RabAI off Senior Stylist:
   Sessions call the Vercel API with `curl` and never see the token.
 
 Open items:
-- The testing library on Turso was rebuilt 2026-10-07 (run #3, commit `f4c1c02`): 3,004,660
-  passages, 5,444 books, 764 editions, 4,061 MB, inside Turso's 5 GB free plan. The build took
-  about 8 minutes and the upload about 3. It has no printed-page layouts yet: the "Make the
-  printed-page layouts" workflow has never been run.
-- Recanati on the Torah is held out (`orthodox: review`): a modern Hebrew translation of the
-  Zohar passages is mixed into its text (`docs/transcription-check.md`).
+- The testing library on Turso was rebuilt 2026-10-07 (run #4, commit `8aa2fd7`): 3,006,539
+  passages, 5,445 books, 765 editions, 4,064 MB, inside Turso's 5 GB free plan, with the
+  debated books' cautions. Rebuild to add Rabbi Yosef ibn Yahya (canon `2a29b12`). It has no
+  printed-page layouts yet: the "Make the printed-page layouts" workflow has never been run.
+- Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
+  removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
+- No Zohar text can be used yet: the routes (Torat Emet's license, a typing of an old printing,
+  or the Sulam's rights holder) are in the canon (`zohar`) and `docs/permissions-plan.md`.
 - License requests for the texts still left out are listed by organization in
   `docs/permissions-plan.md`; none are sent yet.
-- Learner profiles phase 1 (on the device) is built. Phase 2 (accounts) waits on the
-  maintainer's choices in `docs/learner-profiles.md`.
+- Learner profiles: phase 1 (on the device) and phase 2 (accounts, "Was this helpful?") are
+  built. Accounts stay off online until the maintainer runs the "Accounts (the people
+  database)" workflow and sets up Resend with a verified domain (`web/README.md`, "Accounts").
 - Translating inside a Claude Code session works end to end (40 Rashi comments imported on
   2026-10-07). It uses the session's plan, not the API, but takes a lot of it (about 540,000
   tokens for 728 Hebrew words), so it suits chosen books, not all of Shas.

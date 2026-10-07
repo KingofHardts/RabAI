@@ -196,6 +196,60 @@ p.muted { margin: 0; }
 }
 .settings-about p { margin: 0 0 8px; }
 .settings-about p:last-child { margin: 0; }
+.settings-about a { color: var(--accent); }
+
+/* ---------- your account (use-account.ts, AccountDialog.tsx) ---------- */
+.account-card { width: min(480px, 100%); align-content: start; }
+.account-card p { margin: 0; font-size: 14.5px; }
+.account-lead { font-family: var(--font-voice); font-size: 17px !important; line-height: 1.6; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.account-actions a.btn { text-decoration: none; }
+.account-confirm { display: grid; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--bg); }
+.account-danger { border-top: 1px solid var(--line); padding-top: 12px; }
+.btn.quiet.danger-text { color: var(--danger); padding-inline: 0; }
+.account-form { display: grid; gap: 8px; }
+.account-form label { font-size: 14px; font-weight: 600; }
+.account-form input { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 10px 14px; font: inherit; font-size: 16px; min-height: 44px; }
+.account-form .btn { justify-self: start; }
+.account-form .muted { font-size: 13px; }
+.account-sent { display: grid; gap: 12px; }
+.account-sent .btn { justify-self: start; }
+.account-email { font-weight: 600; overflow-wrap: anywhere; }
+.account-foot { border-top: 1px solid var(--line); padding-top: 12px; font-size: 13.5px !important; }
+.account-foot a { color: var(--accent); }
+.msg-ai .body .account-note { font-family: var(--font-ui); font-size: 14px; line-height: 1.5; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--surface); color: var(--ink); }
+.account-note .link { min-height: 0; padding: 0; }
+.fine-left .link { font-size: 12px; min-height: 0; padding: 0; }
+
+/* ---------- "Was this helpful?" under an answer (AnswerFeedback.tsx) ---------- */
+.helpful { margin-top: 8px; display: grid; gap: 8px; font-family: var(--font-ui); }
+.helpful-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.msg-ai .body .helpful-q, .helpful-q { margin: 0; font-size: 13px; color: var(--muted); margin-inline-end: 4px; }
+.helpful .btn.quiet { color: var(--muted); font-size: 13.5px; }
+@media (hover: hover) { .helpful .btn.quiet:hover:not(:disabled) { color: var(--accent); } }
+.helpful-reasons { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface); }
+.helpful-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.helpful-chips .chip-btn { font-size: 13.5px; }
+.helpful-chips .chip-btn[aria-pressed="true"] { background: var(--tint); border-color: var(--accent); color: var(--accent); }
+.helpful-note { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.helpful-note textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; resize: vertical; min-height: 44px; }
+.msg-ai .body .helpful-fine { font-size: 12.5px; margin: 0; }
+.msg-ai .body .helpful-thanks { margin-top: 8px; font-family: var(--font-ui); font-size: 13px; color: var(--muted); }
+
+/* ---------- what RabAI keeps (app/privacy) ---------- */
+.privacy { min-height: 100dvh; padding: calc(24px + env(safe-area-inset-top, 0px)) 16px 32px; display: grid; justify-items: center; }
+.privacy-card { width: 100%; max-width: 680px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); font-family: var(--font-voice); font-size: 17px; line-height: 1.6; }
+.privacy-card h1 { font-size: 26px; line-height: 1.3; margin: 8px 0; font-weight: 600; }
+.privacy-card h2 { font-size: 19px; margin: 24px 0 8px; font-weight: 600; }
+.privacy-card p, .privacy-card ul { margin: 0 0 12px; }
+.privacy-card li { margin-bottom: 8px; }
+.privacy-card .muted { font-family: var(--font-ui); font-size: 14px; }
+.privacy-back { font-family: var(--font-ui); font-size: 14px; margin: 0 !important; }
+.privacy-back a, .unlock-links a { color: var(--accent); }
+.unlock-card p.unlock-links { font-family: var(--font-ui); font-size: 14px; }
+/* On the sign-in page the title says what the page is for, so it stays on a phone too. */
+.unlock-card .brand.signin h1 { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+@media (max-width: 559px) { .privacy { padding: 0; } .privacy-card { border-radius: 0; border: 0; box-shadow: none; padding: 16px; } }
 
 /* ---------- learn: the library home and its screens ---------- */
 .thread.learn-home { max-width: 1120px; gap: 0; }

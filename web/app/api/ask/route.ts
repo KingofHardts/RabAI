@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { libraryMode } from "@/lib/library";
 import { parseProfile } from "@/lib/learner-profile";
+import { profileForAsk } from "@/lib/account/ask-profile";
 import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type AskResult, type LineAction, type Turn } from "@/lib/engine/answer";
 
 export const runtime = "nodejs";
@@ -87,8 +88,12 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Send a JSON body." }, { status: 400 });
   }
-  const input = parse(body);
-  if (typeof input === "string") return NextResponse.json({ error: input }, { status: 422 });
+  const parsed = parse(body);
+  if (typeof parsed === "string") return NextResponse.json({ error: parsed }, { status: 422 });
+  // Signed in, the account's profile is used in place of the device's copy (lib/account/ask-profile.ts).
+  const profile = await profileForAsk(request, parsed.profile);
+  const input: AskInput = { ...parsed, profile };
+  if (!profile) delete input.profile;
   if ((body as Record<string, unknown>).stream === true) return liveAnswer(input);
 
   const result = await ask(input, anthropicClient());

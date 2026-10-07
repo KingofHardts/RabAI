@@ -1,6 +1,7 @@
 /*
- * Saved chats and recent reading, kept on the person's own device (there are no accounts yet).
- * Pure functions only: the app reads and writes localStorage, and these decide what is kept.
+ * Saved chats and recent reading, kept on the person's own device, and saved chats also in their
+ * account when they sign in (lib/account/). Pure functions only: the app reads and writes
+ * localStorage, and these decide what is kept.
  *
  * A saved answer is the same checked answer the person saw. Nothing here creates or changes a
  * citation; restoring a chat only shows again what citations.ts already passed.
@@ -21,6 +22,8 @@ export interface SavedChat {
   category: string;
   createdAt: number;
   updatedAt: number;
+  /** When its name or category last changed, so the change reaches the person's other devices. */
+  changedAt?: number;
   messages: SavedMessage[];
 }
 
@@ -93,6 +96,7 @@ export function parseChats(raw: unknown): SavedChat[] {
       category: typeof x.category === "string" ? cleanCategory(x.category) : "",
       createdAt: typeof x.createdAt === "number" ? x.createdAt : updatedAt,
       updatedAt,
+      ...(typeof x.changedAt === "number" && Number.isFinite(x.changedAt) && x.changedAt > 0 ? { changedAt: x.changedAt } : {}),
       messages: messages.slice(-MAX_MESSAGES_PER_CHAT),
     });
   }

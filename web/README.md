@@ -289,6 +289,53 @@ The inbox workflow's first run creates the translation library if it isn't there
 app to it, and writes `translations-inbox/public-key.pem`. It never calls a model and spends
 nothing.
 
+## Accounts and "Was this helpful?"
+
+With an account, a person's chats and what RabAI knows about them ("About you") follow them to
+every device they sign in on. Sign-in is by a link sent to their email; there are no passwords.
+Without accounts switched on, the app works exactly as before, with everything kept on the device.
+
+What the people database (`rabai-people`, on Turso) keeps, and what it never keeps:
+- No email address. Only a keyed check of it (an HMAC made with `RABAI_AUTH_SECRET`), so the same
+  address finds the same account but the stored value can't be turned back into the address.
+- Sign-in links and sessions only as hashes. A link works once, for 15 minutes.
+- Each person's profile and saved chats. "Your account" (the gear, then Your account) has
+  Download my data, Sign out and Delete my account; deleting removes everything kept for them.
+- "Was this helpful?" feedback: the question, the answer, the sources it cited and the reason
+  given. It is never linked to a person or a profile. It changes nothing by itself: the
+  maintainer and the board read it and decide (docs/learner-profiles.md, phase 3).
+
+Setting it up once:
+
+1. **The database.** In GitHub, open Actions, then "Accounts (the people database)", then Run
+   workflow. It uses the `TURSO_API_TOKEN` and `VERCEL_TOKEN` secrets the testing library already
+   uses. It creates the database (never deleting it), puts `PEOPLE_DATABASE_URL`,
+   `PEOPLE_AUTH_TOKEN` and `RABAI_AUTH_SECRET` into Vercel, and redeploys. From then on,
+   "Was this helpful?" works. (Without `VERCEL_TOKEN`: create a full-access token for the
+   `rabai-people` database in the Turso dashboard, and add the database's `libsql://` address,
+   that token, and a random `RABAI_AUTH_SECRET` of at least 32 characters to Vercel yourself.)
+2. **Email.** Create an account at [resend.com](https://resend.com) (the free plan sends 3,000
+   emails a month, up to 100 a day). Under Domains, add a domain you own and add the DNS records
+   it shows; Resend sends to other people's addresses only from a verified domain. Under API
+   Keys, create a key with sending access.
+3. **Vercel.** Add `RESEND_API_KEY` (that key) and `RABAI_MAIL_FROM` (for example
+   `RabAI <signin@your-domain>`), then redeploy. Sign-in then appears under the gear, Your
+   account.
+
+| Setting | Needed for | What it is |
+| --- | --- | --- |
+| `PEOPLE_DATABASE_URL`, `PEOPLE_AUTH_TOKEN` | both | The people database; set by the workflow. |
+| `RABAI_AUTH_SECRET` | sign-in | At least 32 characters; set once by the workflow. Never change it: a new one leaves every account unreachable. |
+| `RESEND_API_KEY`, `RABAI_MAIL_FROM` | sign-in | The mail service and the sender's address. |
+| `RABAI_APP_URL` | optional | The address emailed links point at. On the live site they point at its production address by default. |
+
+To read the feedback, on your own computer only (never in GitHub Actions, whose logs are public):
+create a read-only token for `rabai-people` in the Turso dashboard, then from `web/` run
+`PEOPLE_DATABASE_URL=libsql://… PEOPLE_AUTH_TOKEN=… npx tsx scripts/feedback-report.ts --days 7`.
+
+On your own computer, with no mail settings, a sign-in link is printed to the server's log
+instead of being emailed (never on Vercel).
+
 ## Checks
 
 ```bash

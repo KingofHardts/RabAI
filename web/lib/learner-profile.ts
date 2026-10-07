@@ -1,7 +1,8 @@
 /*
  * What RabAI knows about the person it is learning with (docs/learner-profiles.md).
  *
- * Two parts, both kept on the person's device for now (there are no accounts yet):
+ * Two parts, kept on the person's device, and in their account when they sign in
+ * (lib/account/, which merges the copies with mergeProfiles in lib/account/merge.ts):
  * - What they told RabAI ("About you" in settings): how much they have learned, their community,
  *   how well they read Hebrew, how they like answers, what they want to learn.
  * - What RabAI noticed while they learned: the books and sections they read, the words they
@@ -85,6 +86,14 @@ export interface LearnerProfile {
   stated: StatedProfile;
   observed: ObservedProfile;
   updatedAt: number;
+  /**
+   * When each part last changed, so two copies (this device and the person's account) can be
+   * merged without losing a change: what they told RabAI, the remember switch, and when they last
+   * asked RabAI to forget what it noticed. 0 when never.
+   */
+  statedAt: number;
+  rememberAt: number;
+  observedSince: number;
 }
 
 export const MAX_BOOKS = 12;
@@ -94,7 +103,16 @@ const MAX_TITLE = 80;
 const MAX_WORD = 30;
 
 export function emptyProfile(): LearnerProfile {
-  return { v: 1, remember: true, stated: {}, observed: { books: [], words: [], simpler: 0, deeper: 0, questions: 0 }, updatedAt: 0 };
+  return {
+    v: 1,
+    remember: true,
+    stated: {},
+    observed: { books: [], words: [], simpler: 0, deeper: 0, questions: 0 },
+    updatedAt: 0,
+    statedAt: 0,
+    rememberAt: 0,
+    observedSince: 0,
+  };
 }
 
 const oneOf = <T extends string>(values: readonly T[], v: unknown): T | undefined =>
@@ -107,6 +125,8 @@ export function cleanText(s: unknown, max: number): string {
 }
 
 const count = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), 1_000_000) : 0);
+/** A time in milliseconds (Date.now()); counts above are capped lower, so times have their own check. */
+const time = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), 4_102_444_800_000) : 0);
 
 /** A profile from storage or from a request, with anything unexpected dropped. */
 export function parseProfile(raw: unknown): LearnerProfile {
@@ -131,21 +151,25 @@ export function parseProfile(raw: unknown): LearnerProfile {
   if (Array.isArray(o.books)) {
     p.observed.books = o.books
       .map((b) => (b && typeof b === "object" ? (b as Record<string, unknown>) : {}))
-      .map((b) => ({ title: cleanText(b.title, MAX_TITLE), count: count(b.count), last: count(b.last) }))
+      .map((b) => ({ title: cleanText(b.title, MAX_TITLE), count: count(b.count), last: time(b.last) }))
       .filter((b) => b.title && b.count > 0)
       .slice(0, MAX_BOOKS);
   }
   if (Array.isArray(o.words)) {
     p.observed.words = o.words
       .map((w) => (w && typeof w === "object" ? (w as Record<string, unknown>) : {}))
-      .map((w) => ({ word: cleanText(w.word, MAX_WORD), count: count(w.count), last: count(w.last) }))
+      .map((w) => ({ word: cleanText(w.word, MAX_WORD), count: count(w.count), last: time(w.last) }))
       .filter((w) => w.word && w.count > 0)
       .slice(0, MAX_WORDS);
   }
   p.observed.simpler = count(o.simpler);
   p.observed.deeper = count(o.deeper);
   p.observed.questions = count(o.questions);
-  p.updatedAt = count(r.updatedAt);
+  p.updatedAt = time(r.updatedAt);
+  // A profile kept before these times existed: its own last change stands in for them.
+  p.statedAt = time(r.statedAt) || (Object.keys(p.stated).length ? p.updatedAt : 0);
+  p.rememberAt = time(r.rememberAt) || (p.remember ? 0 : p.updatedAt);
+  p.observedSince = time(r.observedSince);
   return p;
 }
 
@@ -183,12 +207,22 @@ export function noticed(profile: LearnerProfile, a: Activity, now = Date.now()):
 
 /** The person's own changes in "About you". */
 export function withStated(profile: LearnerProfile, stated: StatedProfile, now = Date.now()): LearnerProfile {
-  return { ...parseProfile({ ...profile, stated }), updatedAt: now };
+  return { ...parseProfile({ ...profile, stated }), updatedAt: now, statedAt: now };
+}
+
+/** Turn remembering on or off. */
+export function withRemember(profile: LearnerProfile, on: boolean, now = Date.now()): LearnerProfile {
+  return { ...profile, remember: on, updatedAt: now, rememberAt: now };
 }
 
 /** Forget everything RabAI noticed, keeping what the person said about themselves. */
 export function forgetNoticed(profile: LearnerProfile, now = Date.now()): LearnerProfile {
-  return { ...profile, observed: emptyProfile().observed, updatedAt: now };
+  return { ...profile, observed: emptyProfile().observed, updatedAt: now, observedSince: now };
+}
+
+/** Forget everything, including what the person said about themselves. Remembering stays as it was. */
+export function forgetAll(profile: LearnerProfile, now = Date.now()): LearnerProfile {
+  return { ...emptyProfile(), remember: profile.remember, rememberAt: profile.rememberAt, updatedAt: now, statedAt: now, observedSince: now };
 }
 
 /** The words looked up more than once: what to practice. */

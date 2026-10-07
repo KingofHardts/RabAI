@@ -52,3 +52,12 @@ test("the summary the model sees says what to use it for, and forgetting keeps w
   assert.equal(forgot.observed.simpler, 0);
   assert.equal(forgot.stated.level, "new");
 });
+
+test("times survive being saved and read back, so the newest is still known", () => {
+  const now = 1_760_000_000_000;
+  const kept = withStated(noticed(emptyProfile(), { kind: "book", title: "Berakhot" }, now), { level: "new" }, now + 1);
+  const p = parseProfile(JSON.parse(JSON.stringify(kept)));
+  assert.equal(p.observed.books[0].last, now);
+  assert.equal(p.updatedAt, now + 1);
+  assert.equal(p.statedAt, now + 1);
+});

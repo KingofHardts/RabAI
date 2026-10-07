@@ -25,6 +25,8 @@ import {
 
 export default function AboutYou({
   profile,
+  signedIn = false,
+  onAccount,
   onStated,
   onRemember,
   onForgetNoticed,
@@ -32,6 +34,10 @@ export default function AboutYou({
   onClose,
 }: {
   profile: LearnerProfile;
+  /** Signed in: this is kept in the person's account too. */
+  signedIn?: boolean;
+  /** Open "Your account" (only when accounts are switched on). */
+  onAccount?: () => void;
   onStated: (stated: StatedProfile) => void;
   onRemember: (on: boolean) => void;
   onForgetNoticed: () => void;
@@ -76,7 +82,18 @@ export default function AboutYou({
         </div>
         <p className="muted">
           RabAI uses this to explain things at your level, with words and examples that fit you. It never changes what the
-          sources say. It stays on this device, and you can change or forget any of it.
+          sources say.{" "}
+          {signedIn
+            ? "It is kept in your account, so it follows you to your other devices, and you can change or forget any of it."
+            : "It stays on this device, and you can change or forget any of it."}
+          {!signedIn && onAccount && (
+            <>
+              {" "}
+              <button type="button" className="link" onClick={onAccount}>
+                Sign in to keep it on all your devices
+              </button>
+            </>
+          )}
         </p>
 
         <label className="about-field">
@@ -156,7 +173,10 @@ export default function AboutYou({
         <section className="about-noticed" aria-label="What RabAI has noticed">
           <h3>What RabAI has noticed</h3>
           {!profile.remember ? (
-            <p className="muted">Remembering is off. RabAI notices nothing and sends nothing about you with your questions.</p>
+            <p className="muted">
+              Remembering is off. RabAI notices nothing and sends nothing about you with your questions
+              {signedIn ? ", and saves nothing new about you to your account" : ""}.
+            </p>
           ) : !o.books.length && !o.words.length && !o.questions ? (
             <p className="muted">Nothing yet. As you learn, the books you read and the words you look up show here.</p>
           ) : (
