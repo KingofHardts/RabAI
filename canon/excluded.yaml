@@ -381,3 +381,79 @@ excluded:
     board_may_reconsider: false
     sefaria_versions:
       - "Tzav veZiruz translation by Aubrey Glazer, 2025"
+
+  # The entries below come from the Zohar search (2026-10-07). Version names are exactly as
+  # Sefaria lists them.
+
+  - id: soncino-zohar
+    title: The Zohar, translated by Harry Sperling, Maurice Simon and Paul P. Levertoff (Soncino Press, London, 1931-1934)
+    reason: >-
+      Volumes III and IV (Exodus, and Leviticus chapters 1 to 11) were translated with Paul P.
+      Levertoff, who was baptized in 1895 and worked for Christian missions to the Jews; one study
+      describes his popularizing of Kabbalah as a missionizing tactic. Sefaria holds all five
+      volumes as one version, so his part cannot be left out on its own.
+    board_may_reconsider: true
+    notes: >-
+      Volumes I, II and V (Genesis, and Leviticus 12 to Deuteronomy) are credited to Harry
+      Sperling and Maurice Simon; Simon also co-edited the Soncino Midrash Rabbah, which the canon
+      lists for review. If the board wants those volumes, the build needs a way to take only some
+      sections of a version (the parashiyot of Genesis, and from Tazria on). The volume credits
+      come from library catalog records and should be checked against the title pages (to
+      confirm). The translation is partial: it leaves out the Idrot, most of the Ra'aya Mehemna
+      and the addenda, about a third of the Zohar's paragraphs. Sefaria lists it as public
+      domain, but volumes printed in 1931-1934 may be under US copyright until 2027-2030 (to
+      confirm).
+    sefaria_versions:
+      - "The Zohar; London, Soncino Press, 1933"
+
+  - id: pritzker-zohar
+    title: "The Zohar: Pritzker Edition, translated by Daniel C. Matt and others (Stanford University Press, 2004-2017), with its Aramaic text"
+    reason: >-
+      An academic translation, made from an Aramaic text that Professor Matt reconstructed from
+      manuscripts in place of the printed text. Its notes and choices are not from inside the
+      mesorah. Not on Sefaria's export as of 2026-10-07.
+    board_may_reconsider: true
+    notes: Library question 9 (scholars' editions) covers the Aramaic text as well as the translation.
+
+  - id: kabbalah-centre-zohar
+    title: The Zohar with the Sulam commentary in English, published by the Kabbalah Centre (ed. Michael Berg)
+    reason: >-
+      Orthodox authorities have repeatedly criticized the Kabbalah Centre; in the UK the Chief
+      Rabbi, the London Beth Din and the United Synagogue warned synagogues that it is outside
+      their authority (to confirm the date). Not on Sefaria's export.
+    board_may_reconsider: false
+
+  - id: zohar-english-fragments
+    title: Short translations of single Zohar passages on Sefaria, by translators we could not identify
+    reason: >-
+      Each is an excerpt of under 60 KB, by a translator who is unnamed or whom we could not
+      identify, and Sefaria lists each with license unknown. "Français [fr]" is a French
+      translation (Jean-Claude Sudre) filed as English.
+    board_may_reconsider: true
+    notes: >-
+      "Scholem, Gershom" is already barred (academic-translations-other), and David Mevorach
+      Seidenberg's version by kabbalah-and-ecology. Three other short Zohar versions are not
+      listed because Sefaria uses the same names on other books: "Ami Silver, 2020" (also on six
+      Chassidut titles), Leonard Moskowitz's "The Soul of Life" (his Nefesh HaChayim, waiting on
+      library question 12) and "Publicado em 5784, Saymon Pires da Silva [pt]" (Portuguese, on
+      140 titles). Ira Robinson may be the historian of that name (to confirm).
+    sefaria_versions:
+      - "Danny Strassman's translation"
+      - "Ira Robinson"
+      - "Zohar : Volume 1 : Daf 33b"
+      - "user27343"
+      - "Français [fr]"
+
+  - id: milchamot-hashem-qafih
+    title: Milchamot HaShem (The Wars of God), Rabbi Yichya Qafih (Jerusalem, 1931)
+    reason: >-
+      A polemic that rejects the Zohar's authenticity and questions the Arizal's Kabbalah. In 1914
+      Ashkenazi and Sephardi rabbis in Jerusalem issued bans against those who rejected the Zohar
+      (to confirm). Unlike Mitpachat Sefarim, which the canon keeps as a debated book, it rejects
+      the Zohar as a whole.
+    board_may_reconsider: true
+    notes: >-
+      On Sefaria under Kabbalah as "The Wars of God" (Hebrew from Wikisource, CC-BY-SA, 0.8 MB).
+      RabAI may describe the Dor De'ah view as another position. If the board prefers to keep it
+      as a debated book like Mitpachat Sefarim, it moves to canon.yaml with a caution. Its
+      version is not listed by name, because Sefaria calls it simply "ויקיטקסט" (Wikisource).

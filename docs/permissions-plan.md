@@ -79,7 +79,11 @@ cheapest requests are for a sentence: "you may use it" or "it copies the printin
 itself and lists with no license; (2) whether files with no license inside an otherwise open
 digital edition carry the same license as the rest of that edition; (3) whether texts copied
 from Hebrew Wikisource may be labeled CC-BY-SA, as Wikisource is; (4) whether they would add
-Solomon Buber's edition of Pesikta DeRav Kahana (Lyck, 1868), which is public domain.
+Solomon Buber's edition of Pesikta DeRav Kahana (Lyck, 1868), which is public domain; (5) the
+licenses of their three Hebrew Zohar files ("Vocalized Zohar, Israel 2013", "Sulam Edition,
+Jerusalem 1945" and "Hebrew Translation", title `Zohar`) and the Hebrew versions of the Idra
+Zuta; (6) whether they would import a typing of the Mantua or Vilna printing of the Zohar, for
+example Hebrew Wikisource's.
 
 **Why:** these are central works, and one reply from Sefaria clears most of them at once.
 
@@ -117,6 +121,20 @@ Chaim's Shemirat HaLashon ("Shemirat HaLashon -- Torat Emet 370"; we have only i
 the Maggid Mishneh, Lechem Mishneh, Kessef
 Mishneh and Ra'avad files listed above; the Chafetz Chaim's Tzipita LeYeshuah ("Tzipita
 L'Yeshuah -- Torat Emet"; its English is now in).
+
+**The Zohar (added 2026-10-07):** the license of their vocalized Zohar ("Zohar Menukad", online
+file f_01148), which is the file Sefaria calls "Vocalized Zohar, Israel 2013", and of their
+Hebrew translation of the Zohar ("זוהר בתרגום עברי"); who vocalized and annotated the one and
+translated the other. Also confirm the license of their texts that Sefaria labels "Public
+Domain" (Zohar Chadash, Tikkunei Zohar - Vocalized, Sefer HaBahir, Midrash Tanchuma): their own
+terms page appears to say CC BY-NC-SA 2.5, which is enough for private testing but not for a
+public launch.
+
+### The Sulam edition of the Zohar
+
+**What to ask:** permission to use the Aramaic text of Rabbi Yehuda Ashlag's Sulam edition
+(Sefaria: "Sulam Edition, Jerusalem 1945"). **Who:** whoever now holds its rights, still to be
+identified.
 
 ### On Your Way (tora.ws)
 

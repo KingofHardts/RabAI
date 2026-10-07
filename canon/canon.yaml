@@ -6537,6 +6537,42 @@ works:
           - version: "Eliyahu Munk, HaChut Hameshulash"
             license: "CC-BY"
 
+  - id: joseph-ibn-yahya-on-ketuvim
+    title: "Rabbi Yosef ibn Yahya on Esther and Daniel"
+    hebrew: יוסף אבן יחיא
+    author: "Yosef ben David ibn Yahya"
+    dates: "1494-1539 (some give 1534)"
+    region: "Florence, Bologna and Imola, Italy"
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      under: [["Tanakh", "Rishonim on Tanakh", "Joseph ibn Yahya"]]
+    editions:
+      - name: "Hebrew text (first printing, Bologna 1538)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Perush Chamesh Megillot u-Ketuvim. Joseph ibn Yahya. Bologna: 1538"
+            license: "Public Domain"
+            printed: 1538
+    notes: >-
+      Library question 5. The 1538 printing covers the five megillot, Tehillim, Mishlei, Iyov,
+      Daniel, Ezra and Chronicles; Sefaria has only Esther and Daniel. We found no Orthodox
+      authority who condemned the commentary: the Chida lists it in Shem HaGedolim as printed in
+      Mikraot Gedolot, and it was reprinted in the Amsterdam Mikraot Gedolot "Kehillot Moshe"
+      (1724) (both to confirm). What we did find: auction catalogues say Church censors cut
+      passages from copies of the 1538 printing (to confirm), and on Daniel 8:14 he calculates
+      that the redemption would come around the year 5700 (1939-1940), a date that passed; the
+      Gemara discourages such calculations (Sanhedrin 97b).
+      The "controversial" label may come from his son Gedaliah's chronicle Shalshelet
+      HaKabbalah, which historians call unreliable (to confirm). The board decides whether a
+      caution is needed.
+
   - id: ralbag-on-tanakh
     title: "Ralbag on Tanakh"
     hebrew: רלב״ג
@@ -11854,6 +11890,11 @@ works:
     streams: [shared]
     minhag: ashkenazi
     status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Carries Rashi's name, but it was put together in his school, by his students and later
+      hands, so not every ruling in it is Rashi's own (to confirm).
     sefaria:
       re: "^Issur VeHeter LeRashi$"
       root: "Halakhah"
@@ -17800,6 +17841,67 @@ works:
     notes: >-
       Debated (library question 8): traditionally attributed to Rabbi Nechunya ben HaKanah.
       Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+
+  - id: zohar
+    title: "Sefer HaZohar"
+    hebrew: ספר הזהר
+    author: "Attributed to Rabbi Shimon bar Yochai"
+    era: tannaim
+    category: kabbalah
+    kind: text
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Zohar$"
+      root: "Kabbalah"
+    editions:
+      - name: "Aramaic text, vocalized (Torat Emet's Zohar Menukad)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          On Sefaria as "Vocalized Zohar, Israel 2013" (14.9 MB; every section of the Zohar and
+          the three volumes of addenda). Its Idra Zuta matches Torat Emet's "Zohar Menukad" word
+          for word (9,099 of 9,099 words), so the file appears to be Torat Emet's vocalized
+          Zohar. Sefaria lists its license as unknown, so it is not listed under sefaria_versions
+          and cannot enter the testing library yet. Torat Emet's terms page appears to put the
+          texts it distributes (other than those marked Wikisource) under CC BY-NC-SA 2.5 (to
+          confirm). Who vocalized it is not known (to confirm). It is a modern edition, not a
+          copy of an old printing: vowels, punctuation, about 1,100 "other reading" notes (נ"א)
+          and about 15,000 Bible and cross-references in parentheses. When Sefaria shows an open
+          license on the file, or Torat Emet confirms one in writing and Sefaria updates the
+          file, add the version "Vocalized Zohar, Israel 2013" with that license.
+      - name: "Aramaic text of the Sulam edition (Rabbi Yehuda Ashlag, Jerusalem, 1945-1955)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          On Sefaria as "Sulam Edition, Jerusalem 1945" (8.4 MB), license unknown. Rabbi Ashlag
+          edited the text: at Zohar I 15a, for example, he prints "מרזא" in the text where the
+          vocalized text reads "מרישא" with "מרזא" as another reading. So it is his edition, not
+          a copy of an old printing, and the age rule does not apply. Sefaria's Hebrew title for
+          the file gives the year 5745 (1985), perhaps a later printing (to confirm). Needs
+          written permission from whoever now holds the Sulam edition's rights (to confirm who).
+      - name: "Aramaic text as printed (Mantua 1558-1560, or Vilna 1882), from a typing still to be found"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The old printings are public domain by age, but no typing of one is on Sefaria. Two
+          leads to check: Hebrew Wikisource's Zohar pages, arranged by the Mantua page numbers
+          (CC-BY-SA; which printing they were typed from is not stated in what we could see),
+          and the Zohar text on hebrew.grimoar.cz, whose address suggests the Vilna printing
+          (source and license to confirm). Either would have to reach Sefaria, or the build would
+          need a new import path, before the testing library could use it.
+    notes: >-
+      Library question 2. The main Zohar on Sefaria is the title "Zohar", arranged by parasha
+      (with the Idra Rabba, Idra Zuta and Sifra DiTzniuta as sections, and the Ra'aya Mehemna and
+      the other inserted tracts inside the parashiyot). None of its Hebrew files has an open
+      license today. The only open English, Soncino's (1931-1934), is in excluded.yaml
+      (soncino-zohar). Kabbalah waits on library questions 1 to 3.
 
   - id: zohar-chadash
     title: "Zohar Chadash"

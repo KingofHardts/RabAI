@@ -640,6 +640,18 @@ library, with a caution that most authorities reject its claim about the Zohar's
    licensed Hebrew of it (the Sulam edition and the others are marked "unknown"). The only
    open English is Soncino's 1933 translation (Public Domain, partial). If the board wants
    the Zohar, it needs a license or another source.
+
+   **What the search found (2026-10-07):** none of the three Hebrew Zohar files on Sefaria can be
+   used yet, and none is a copy of an old printing, so age doesn't make any of them public
+   domain. The most complete, "Vocalized Zohar, Israel 2013", turns out to be Torat Emet's
+   vocalized Zohar word for word, and Torat Emet appears to share its texts under a license we
+   could use for private testing (to confirm). So the quickest route is a written answer from
+   Torat Emet, then a license label from Sefaria. Other routes: a typing of the Mantua or Vilna
+   printing (Hebrew Wikisource has the Zohar page by page, which printing it copies is still to
+   check), or permission for Rabbi Ashlag's Sulam edition. Soncino's English is left out for
+   now: two of its five volumes were co-translated by a Christian missionary, and Sefaria keeps
+   all five in one file. The canon lists the Zohar with these three routes (`zohar`), and the
+   requests are in `docs/permissions-plan.md`.
 3. ***Mitpachat Sefarim*** is Rabbi Yaakov Emden's attack on the Sabbatean movement, and in
    it he disputes how old parts of the Zohar are. Should RabAI have it, and if so how should it
    present that view?
@@ -657,6 +669,14 @@ answer on it alone. The board reviews the list and each caution's wording.
    commentaries (17 titles, Public Domain)? With a note when his view is a minority one?
 5. **Rabbi Yosef ibn Yahya** (Bologna, 1538): his writings are described as controversial,
    but we couldn't check the details here. Is his commentary suitable?
+
+   **What the search found (2026-10-07):** no Orthodox authority who condemned the commentary.
+   The Chida lists it as printed in Mikraot Gedolot, and it was reprinted in the Amsterdam
+   Mikraot Gedolot of 1724 (both to confirm). Church censors cut passages from copies of the
+   first printing, and on Daniel 8:14 he calculates a date for the redemption (around 1940).
+   The "controversial" label may come from his son's chronicle, *Shalshelet HaKabbalah*. The
+   canon now lists his commentary on Esther and Daniel as proposed, without a caution; the
+   board decides whether it needs one.
 6. ***Teshuvot Min HaShamayim***, answers a Tosafist recorded receiving in dreams: how should
    RabAI present them?
 7. **The Radziner Rebbe's tekhelet** (*Ein HaTekhelet*, *Ptil Tekhelet*): his identification
