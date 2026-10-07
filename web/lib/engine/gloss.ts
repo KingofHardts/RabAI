@@ -24,13 +24,72 @@ export interface GlossRow {
   expanded?: string;
 }
 
+/**
+ * Another way to read part of the passage, as one of the sources RabAI was given reads it. Kept
+ * only when the source was among those given and the quoted words are really in it.
+ */
+export interface Reading {
+  /** The words of the passage the other reading is about. */
+  phrase: string;
+  /** The other reading, in RabAI's words. */
+  reading: string;
+  /** The source that reads it so. */
+  ref: string;
+  /** That source's own words that show it, copied exactly. */
+  quote: string;
+}
+
+/** A source RabAI was given to translate from: shown as "Based on ..." beside the translation. */
+export interface TranslationBasis {
+  ref: string;
+  /** What it is, for the person: "The library's English (William Davidson Edition)", "Jastrow". */
+  label: string;
+}
+
 export interface Translation {
   ref: string;
   /** RabAI's translation of the whole passage. Null when the library already has English. */
   general: string | null;
-  /** Word by word, in the library's own words. Null when RabAI's list didn't match the text. */
-  words: GlossRow[] | null;
+  /**
+   * Word by word, in the library's own words. Null when RabAI's list didn't match the text;
+   * missing when it hasn't been asked for yet.
+   */
+  words?: GlossRow[] | null;
+  /** Other ways to read parts of the passage, each from a source in the library. */
+  readings?: Reading[];
+  /** The library's sources the translation was made from. */
+  basis?: TranslationBasis[];
   model?: string;
+}
+
+/** The plain letters, digits and spaces of a text, for checking that a quote is really in it. */
+export function plainForCheck(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0591-\u05C7]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/[ךםןףץ]/g, (ch) => ({ ך: "כ", ם: "מ", ן: "נ", ף: "פ", ץ: "צ" })[ch] ?? ch)
+    .trim();
+}
+
+/**
+ * The readings worth showing: each names a source RabAI was given and quotes at least two of its
+ * words that really appear in it. Anything else is dropped, the way the answer engine drops a
+ * citation it can't check.
+ */
+export function checkReadings(readings: Reading[], sources: Array<{ ref: string; he: string; en: string }>, max = 4): Reading[] {
+  const texts = new Map(sources.map((s) => [s.ref, ` ${plainForCheck(`${s.he} ${s.en}`)} `]));
+  const out: Reading[] = [];
+  for (const r of readings) {
+    const text = texts.get(r.ref);
+    const quote = plainForCheck(r.quote);
+    if (!text || quote.split(" ").length < 2 || !text.includes(` ${quote} `)) continue;
+    if (out.some((o) => o.ref === r.ref && o.phrase === r.phrase)) continue;
+    out.push(r);
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 /** What the model wrote for one word or expression. */
@@ -40,26 +99,46 @@ export interface GlossItem {
   expanded?: string;
 }
 
-/** The model's reply: GENERAL: ... then WORDS: one "word | English | full form" per line. */
-export function readGlossReply(text: string): { general: string | null; items: GlossItem[] } {
-  const wordsAt = text.search(/^\s*WORDS:\s*$/m);
-  const generalAt = text.search(/^\s*GENERAL:/m);
-  let general: string | null = null;
-  if (generalAt >= 0) {
-    const end = wordsAt > generalAt ? wordsAt : text.length;
-    general = text.slice(generalAt, end).replace(/^\s*GENERAL:\s*/, "").trim().slice(0, 8000) || null;
-  }
+const SECTION = /^\s*(GENERAL|WORDS|READINGS):[ \t]*/gm;
+
+/** The reply's sections: the text after each "GENERAL:", "WORDS:" or "READINGS:" line. */
+function sections(text: string): Partial<Record<"GENERAL" | "WORDS" | "READINGS", string>> {
+  const marks = [...text.matchAll(SECTION)];
+  const out: Partial<Record<"GENERAL" | "WORDS" | "READINGS", string>> = {};
+  marks.forEach((m, i) => {
+    const name = m[1] as "GENERAL" | "WORDS" | "READINGS";
+    const end = i + 1 < marks.length ? marks[i + 1].index : text.length;
+    if (out[name] === undefined) out[name] = text.slice(m.index + m[0].length, end);
+  });
+  return out;
+}
+
+const listLines = (block: string | undefined) =>
+  (block ?? "")
+    .split("\n")
+    .map((raw) => raw.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim())
+    .filter((line) => line.includes("|"));
+
+/**
+ * The model's reply: "GENERAL:" then the translation; "WORDS:" then one "word | English | full
+ * form" per line; "READINGS:" then one "phrase | other reading | source ref | its words" per line.
+ */
+export function readGlossReply(text: string): { general: string | null; items: GlossItem[]; readings: Reading[] } {
+  const parts = sections(text);
+  const general = parts.GENERAL?.trim().slice(0, 8000) || null;
   const items: GlossItem[] = [];
-  if (wordsAt >= 0) {
-    for (const raw of text.slice(wordsAt).split("\n").slice(1)) {
-      const line = raw.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim();
-      if (!line.includes("|")) continue;
-      const [he, en, expanded] = line.split("|").map((s) => s.trim());
-      if (!he || !lettersOf(he) || !en) continue;
-      items.push({ he, en: en.slice(0, 200), ...(expanded && lettersOf(expanded) ? { expanded: expanded.slice(0, 120) } : {}) });
-    }
+  for (const line of listLines(parts.WORDS)) {
+    const [he, en, expanded] = line.split("|").map((s) => s.trim());
+    if (!he || !lettersOf(he) || !en) continue;
+    items.push({ he, en: en.slice(0, 200), ...(expanded && lettersOf(expanded) ? { expanded: expanded.slice(0, 120) } : {}) });
   }
-  return { general, items };
+  const readings: Reading[] = [];
+  for (const line of listLines(parts.READINGS)) {
+    const [phrase, reading, ref, ...quote] = line.split("|").map((s) => s.trim());
+    if (!phrase || !reading || !ref || !quote.length) continue;
+    readings.push({ phrase: phrase.slice(0, 200), reading: reading.slice(0, 400), ref: ref.slice(0, 160), quote: quote.join(" | ").slice(0, 300) });
+  }
+  return { general, items, readings };
 }
 
 /** A word's letters with ו and י taken out after the first letter, so a full or short spelling still matches. */
@@ -193,5 +272,21 @@ export function readKeptTranslation(raw: unknown): Translation | null {
     }
   }
   if (!general && !words) return null;
-  return { ref: t.ref, general, words, ...(typeof t.model === "string" ? { model: t.model } : {}) };
+  const readings = Array.isArray(t.readings)
+    ? t.readings.filter(
+        (r): r is Reading =>
+          !!r && typeof r === "object" && ["phrase", "reading", "ref", "quote"].every((k) => typeof (r as Record<string, unknown>)[k] === "string"),
+      )
+    : [];
+  const basis = Array.isArray(t.basis)
+    ? t.basis.filter((b): b is TranslationBasis => !!b && typeof b === "object" && typeof b.ref === "string" && typeof b.label === "string")
+    : [];
+  return {
+    ref: t.ref,
+    general,
+    ...(Array.isArray(t.words) || t.words === null ? { words } : {}),
+    ...(readings.length ? { readings } : {}),
+    ...(basis.length ? { basis } : {}),
+    ...(typeof t.model === "string" ? { model: t.model } : {}),
+  };
 }

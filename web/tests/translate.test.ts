@@ -25,7 +25,7 @@ not a word line
     { he: "הרואה", en: "one who sees" },
     { he: "מקום", en: "a place" },
   ]);
-  assert.deepEqual(readGlossReply("WORDS:\nאמר | said"), { general: null, items: [{ he: "אמר", en: "said" }] });
+  assert.deepEqual(readGlossReply("WORDS:\nאמר | said"), { general: null, items: [{ he: "אמר", en: "said" }], readings: [] });
 });
 
 test("the model's words are laid on the library's own words", () => {
@@ -80,17 +80,23 @@ test("a kept translation is checked before it is shown", () => {
   assert.equal(readKeptTranslation("nope"), null);
 });
 
-test("the request carries the core premises, the passage and its context", () => {
+test("the request carries the core premises, the passage and its sources", () => {
   const req = translateRequest(
-    { ref: "Rashi on Berakhot 2a:1:1", he: "מאימתי קורין", en: "", context: [{ ref: "Berakhot 2a:1", he: "מאימתי קורין את שמע", en: "From when" }] },
-    { general: true, part: "מאימתי קורין" },
+    {
+      ref: "Rashi on Berakhot 2a:1:1",
+      he: "מאימתי קורין",
+      en: "",
+      sources: [{ ref: "Berakhot 2a:1", role: "explains", he: "מאימתי קורין את שמע", en: "From when", label: "Berakhot, with the library's English" }],
+    },
+    { general: true, readings: true, part: "מאימתי קורין" },
     "test-model",
   );
   const system = JSON.stringify(req.system);
   assert.ok(system.includes("Translating a passage"));
   assert.ok(system.length > 10_000, "the core premises come first");
   const user = JSON.stringify(req.messages);
-  assert.ok(user.includes("Rashi on Berakhot 2a:1:1") && user.includes("For context only, Berakhot 2a:1"));
+  assert.ok(user.includes("Rashi on Berakhot 2a:1:1") && user.includes("The line this passage explains") && user.includes("[Berakhot 2a:1]"));
+  assert.ok(user.includes("READINGS:"));
   assert.ok(user.includes("GENERAL:") && user.includes("word-by-word translation of the whole passage"));
 });
 
@@ -102,13 +108,13 @@ test("a short passage takes one request; the general translation is skipped when
       return reply("GENERAL:\nFrom when do we recite.\nWORDS:\nמאימתי | from when\nקורין | do we recite");
     },
   };
-  const both = await translatePassage({ ref: "R 1", he: "מאימתי קורין", en: "", context: [] }, client);
+  const both = await translatePassage({ ref: "R 1", he: "מאימתי קורין", en: "", sources: [] }, client);
   assert.equal(sent.length, 1);
   assert.equal(both.general, "From when do we recite.");
   assert.equal(both.words?.length, 2);
   assert.equal(both.model, "test-model");
 
-  const wordsOnly = await translatePassage({ ref: "R 2", he: "מאימתי קורין", en: "From when", context: [] }, client);
+  const wordsOnly = await translatePassage({ ref: "R 2", he: "מאימתי קורין", en: "From when", sources: [] }, client);
   assert.equal(wordsOnly.general, null);
   assert.ok(!JSON.stringify(sent[1].messages).includes("GENERAL:"));
 });
@@ -131,7 +137,7 @@ test("a long passage is translated in parts at the same time, and put back in or
       return reply(`WORDS:\n${part.split(" ").map((w) => `${w} | g-${w}`).join("\n")}`);
     },
   };
-  const out = await translatePassage({ ref: "Tosafot on X", he, en: "", context: [] }, client);
+  const out = await translatePassage({ ref: "Tosafot on X", he, en: "", sources: [] }, client);
   assert.equal(general, 1);
   assert.equal(out.general, "The whole passage.");
   assert.equal(out.words?.length, 150);
@@ -151,12 +157,12 @@ test("a failed part leaves its words without English; too many holes hides the l
       return reply(`WORDS:\n${part.split(" ").map((w) => `${w} | word`).join("\n")}`);
     },
   };
-  const out = await translatePassage({ ref: "T", he: words.join(" "), en: "", context: [] }, failing);
+  const out = await translatePassage({ ref: "T", he: words.join(" "), en: "", sources: [] }, failing);
   assert.equal(out.general, "Text.");
   assert.ok(out.words, "two of three parts is enough");
   assert.ok(out.words.some((r) => r.en === null));
 
   const silent: ModelClient = { create: async () => reply("I can't.") };
-  await assert.rejects(translatePassage({ ref: "T", he: "אמר רבא", en: "", context: [] }, silent));
-  await assert.rejects(translatePassage({ ref: "T", he: "אמר רבא", en: "Rava said", context: [] }, silent));
+  await assert.rejects(translatePassage({ ref: "T", he: "אמר רבא", en: "", sources: [] }, silent));
+  await assert.rejects(translatePassage({ ref: "T", he: "אמר רבא", en: "Rava said", sources: [] }, silent));
 });

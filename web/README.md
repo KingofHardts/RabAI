@@ -47,7 +47,11 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   and is kept on the device. When the library has no English for a line, a Rashi or a Tosafot,
   "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under
   each of the library's words, with the tapped word outlined. Both are labeled as RabAI's, not
-  from the library and not yet reviewed; they run only when tapped and are kept on the device
+  from the library and not yet reviewed. They are made from the library's own sources (the line
+  a comment explains with its Orthodox English, the other commentaries on that line, and the
+  dictionaries), and "Other readings" lists another way a given source reads a phrase, with its
+  words quoted and checked like a citation. Each translation is kept in RabAI's translation
+  library, so a passage is translated once for everyone (see below), and on the device
   (`/api/translate`). The person can mark lines in four colors. The shape follows the
   printed page, but lines break where the screen breaks them. A link like `/?daf=Berakhot 2a`
   opens a page directly. (`/api/daf?ref=` and `/api/daf/outline`; the layout method is ported
@@ -191,6 +195,44 @@ On your own computer (needs `pip install pyyaml pymongo`):
 `python3 tools/library_plan.py && python3 tools/library_build.py` writes
 `library/rabai-library.db` (gitignored), and `RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db`
 in `web/.env.local` uses it.
+
+## RabAI's translation library
+
+Every translation RabAI makes is kept in its own database, `rabai-translations`, in the same
+Turso group as the testing library. A passage is translated once and then served to everyone
+from there, without calling the model. Rebuilding the testing library never touches it. Each
+row records the exact text it translated (a check value of its words), so a translation is
+never shown beside a text that has changed since; what it was made from; which model made it;
+and a review status, "unreviewed" until the rabbinic board reviews it. Without it, the app
+still translates when asked and keeps the result on the device.
+
+It can also be filled ahead of time, at half the price of translating live, with the
+"RabAI's translation library" workflow (Actions, then Run workflow):
+
+1. **Once:** add a GitHub secret `ANTHROPIC_API_KEY` (a key from your own Anthropic account,
+   with a monthly spend limit set there). Then run the workflow with mode **setup**. It creates
+   the database and, with `VERCEL_TOKEN`, connects the app (`TRANSLATIONS_DATABASE_URL`,
+   `TRANSLATIONS_AUTH_TOKEN`) and redeploys. Setup spends nothing.
+2. **estimate** counts the passages without English in the books you name and prices them.
+   It spends nothing.
+3. **fill** translates up to `limit` passages that aren't in the library yet, and never more
+   than `max_dollars` by the estimate. It waits for the batch (usually under an hour) and keeps
+   the results; if the batch is still running when it stops, run **collect** later. Each run's
+   summary shows what it really cost, and later estimates use that measured cost.
+
+Choose books by title (`Rashi on Berakhot`), by pattern (`Tosafot on %`), or by canon work id.
+Estimated costs with the default model, for the general translation only (word by word roughly
+doubles it; the faster model is about half):
+
+| Books | Hebrew words without English | Estimate |
+|---|---|---|
+| Rashi on Berakhot | 45,000 | about $8 |
+| Tosafot on Berakhot | 34,000 | about $6 |
+| Rashi on the whole Bavli | 2.2 million | about $400 |
+| Tosafot on the whole Bavli | 2.3 million | about $420 |
+| Everything in the library without English | 44 million | about $8,000 |
+
+These are estimates from counting the requests; a small fill first gives the real number.
 
 ## Checks
 

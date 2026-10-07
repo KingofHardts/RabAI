@@ -1,0 +1,122 @@
+name: RabAI's translation library
+
+# Sets up and fills RabAI's translation library (web/lib/library/translations.ts), the shared store
+# of RabAI's own translations. Run it by hand: Actions, "RabAI's translation library", Run workflow.
+#
+#   setup     creates the database (once) and connects the app to it. Spends nothing.
+#   estimate  counts the passages without English in the books chosen and prices them. Spends nothing.
+#   fill      translates up to "limit" passages that aren't in the library yet, never more than
+#             "max_dollars" by the estimate, with the Message Batches API (half price). Spends money.
+#   collect   keeps the results of earlier batches that weren't collected yet.
+#
+# Every translation it makes is labeled in the app as RabAI's own, not yet reviewed by the rabbinic
+# board. The inputs reach the scripts through environment variables, never pasted into a command.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "setup, estimate (free), fill (spends money), or collect"
+        type: choice
+        options: [estimate, fill, collect, setup]
+        default: estimate
+      books:
+        description: 'Book titles, comma separated (for example "Rashi on Berakhot")'
+        type: string
+        default: "Rashi on Berakhot"
+      like:
+        description: 'Or title patterns, comma separated (for example "Tosafot on %")'
+        type: string
+        default: ""
+      works:
+        description: "Or canon work ids, comma separated"
+        type: string
+        default: ""
+      words:
+        description: "Also make the word by word"
+        type: boolean
+        default: false
+      model:
+        description: "Model"
+        type: choice
+        options: [claude-opus-5-5, claude-sonnet-5-5]
+        default: claude-opus-5-5
+      limit:
+        description: "Most passages to send in this run (fill)"
+        type: string
+        default: "50"
+      max_dollars:
+        description: "Never spend more than this many dollars, by the estimate (fill)"
+        type: string
+        default: "10"
+      wait_minutes:
+        description: "How long to wait for the batch to finish before stopping (fill, collect)"
+        type: string
+        default: "300"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: translations
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up the translation library and connect the app
+        if: ${{ inputs.mode == 'setup' }}
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: python3 tools/translations_setup.py
+
+      - name: Connect to the libraries for this run
+        if: ${{ inputs.mode != 'setup' }}
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+        run: python3 tools/translations_setup.py --env
+
+      - uses: actions/setup-node@v4
+        if: ${{ inputs.mode != 'setup' }}
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        if: ${{ inputs.mode != 'setup' }}
+        working-directory: web
+        run: npm ci
+
+      - name: ${{ inputs.mode }}
+        if: ${{ inputs.mode != 'setup' }}
+        working-directory: web
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODE: ${{ inputs.mode }}
+          BOOKS: ${{ inputs.books }}
+          LIKE: ${{ inputs.like }}
+          WORKS: ${{ inputs.works }}
+          WORDS: ${{ inputs.words }}
+          MODEL: ${{ inputs.model }}
+          LIMIT: ${{ inputs.limit }}
+          MAX_DOLLARS: ${{ inputs.max_dollars }}
+          WAIT_MINUTES: ${{ inputs.wait_minutes }}
+        run: |
+          args=("$MODE" --model "$MODEL" --limit "$LIMIT" --max-dollars "$MAX_DOLLARS" --wait-minutes "$WAIT_MINUTES")
+          if [ -n "$BOOKS" ]; then args+=(--books "$BOOKS"); fi
+          if [ -n "$LIKE" ]; then args+=(--like "$LIKE"); fi
+          if [ -n "$WORKS" ]; then args+=(--works "$WORKS"); fi
+          if [ "$WORDS" = "true" ]; then args+=(--words); fi
+          npx tsx scripts/translate-library.ts "${args[@]}"

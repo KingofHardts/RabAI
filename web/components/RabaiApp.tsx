@@ -715,13 +715,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const translate = async (ref: string, context: string[], openWords: boolean) => {
     if (openWords) setWordByWord((prev) => ({ ...prev, [ref]: true }));
     const have = translations[ref];
-    if (have?.loading || have?.result) return;
-    setTranslations((prev) => ({ ...prev, [ref]: { loading: true } }));
+    // Ask only for what isn't here yet: the word-by-word list is made separately, when asked for.
+    if (have?.loading || (have?.result && (!openWords || have.result.words !== undefined))) return;
+    setTranslations((prev) => ({ ...prev, [ref]: { result: prev[ref]?.result, loading: true } }));
     try {
       const res = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ref, context }),
+        body: JSON.stringify({ ref, context, words: openWords }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((json as { error?: string }).error ?? TRANSLATE_FAILED);
@@ -730,7 +731,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       setTranslations((prev) => ({ ...prev, [ref]: { result } }));
       keepTranslation(result);
     } catch (err) {
-      setTranslations((prev) => ({ ...prev, [ref]: { error: err instanceof Error ? err.message : TRANSLATE_FAILED } }));
+      setTranslations((prev) => ({
+        ...prev,
+        [ref]: { result: prev[ref]?.result, error: err instanceof Error ? err.message : TRANSLATE_FAILED },
+      }));
     }
   };
 
@@ -1934,11 +1938,43 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </p>
                   {tr.result.general && !picked.en && <p className="daf-panel-en">{tr.result.general}</p>}
                   {showWords &&
-                    (tr.result.words ? (
+                    (tr.result.words === undefined ? (
+                      tr.loading && (
+                        <p className="muted">
+                          Translating word by word<span className="dots" />
+                        </p>
+                      )
+                    ) : tr.result.words ? (
                       <Interlinear rows={tr.result.words} active={dafPick.index} />
                     ) : (
                       <p className="muted">RabAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
                     ))}
+                  {tr.result.readings && tr.result.readings.length > 0 && (
+                    <div className="tr-readings">
+                      <p className="label-sm">Other readings</p>
+                      <ul>
+                        {tr.result.readings.map((r, i) => (
+                          <li key={i}>
+                            <span className="he" lang="he">
+                              {r.phrase}
+                            </span>
+                            : {r.reading}{" "}
+                            <button type="button" className="link tr-source" onClick={() => goToSource(r.ref)}>
+                              {r.ref}
+                            </button>{" "}
+                            <span className="he tr-quote" lang="he">
+                              “{r.quote}”
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {tr.result.basis && tr.result.basis.length > 0 && (
+                    <p className="tr-basis">
+                      Made from: {[...new Set(tr.result.basis.map((b) => b.label))].join("; ")}.
+                    </p>
+                  )}
                 </div>
               )}
               {(picked.en || tr?.result) && (

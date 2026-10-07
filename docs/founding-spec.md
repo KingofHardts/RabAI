@@ -146,6 +146,16 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   reviewed by the rabbinic board." The Hebrew in a word-by-word list is always the library's own
   text; RabAI only adds the English. See open question 16.
 
+  Josh (2026-10-07, later the same day): RabAI keeps its translations in its own translation
+  library, so a passage is translated once and shared with everyone, and the library can be
+  filled ahead of time, at lower cost, for texts with no Orthodox English. A translation is made
+  only from the library's Orthodox sources: the line a comment explains with its Orthodox
+  English, the other commentaries on that line, and the dictionaries. Where a given source reads
+  a phrase another way, RabAI lists that reading, quoting the source's own words, and the quote
+  is checked like a citation. Every kept translation records what it was made from and carries
+  a review status, "unreviewed" until the board reviews it. Filling the library ahead of time
+  costs money and is run only by the maintainer, with a spending limit.
+
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
   still enters only with their written permission.
@@ -290,6 +300,9 @@ These need a decision before launch. Each one changes behavior.
     no English in the library, a person can ask RabAI for a translation, and for any passage, a
     word-by-word translation under the text. RabAI is told to follow the text's own meaning (the
     Gemara as Rashi explains it) and add nothing else, and the app labels it "not from the
-    library, and not yet reviewed by the rabbinic board". Should the board review a sample
-    before launch, keep the label, or turn the feature off until an Orthodox translation of
-    those texts can be licensed?
+    library, and not yet reviewed by the rabbinic board". Translations are now kept and shared
+    in RabAI's translation library, each with a review status the board can set, and the
+    library can be filled ahead of time for whole books. Should the board review a sample
+    before launch, review book by book before a book's translations are shown publicly, keep
+    the label, or turn the feature off until an Orthodox translation of those texts can be
+    licensed?

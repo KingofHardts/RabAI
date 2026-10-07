@@ -181,8 +181,8 @@ def database_token(token: str, org: str, name: str, access: str, expiration: str
     return jwt
 
 
-def group_token(token: str, org: str, group: str, access: str) -> str:
-    query = urllib.parse.urlencode({"expiration": "never", "authorization": access})
+def group_token(token: str, org: str, group: str, access: str, expiration: str = "never") -> str:
+    query = urllib.parse.urlencode({"expiration": expiration, "authorization": access})
     jwt = call("POST", f"{TURSO_API}/organizations/{org}/groups/{group}/auth/tokens?{query}", token)["jwt"]
     mask(jwt)
     return jwt
@@ -256,19 +256,23 @@ def vercel_scope(token: str) -> str:
     raise SystemExit(f"The Vercel token can't see the project {VERCEL_PROJECT}.")
 
 
-def update_vercel(token: str, url: str, read_token: str) -> None:
+def set_vercel_env(token: str, values: dict) -> str:
+    """Set (or replace) these settings on the Vercel project. Returns the scope for later calls."""
     scope = vercel_scope(token)
     joiner = "&" if scope else "?"
-    env = [
-        {"key": "TURSO_DATABASE_URL", "value": url, "type": "encrypted", "target": ["production", "preview"]},
-        {"key": "TURSO_AUTH_TOKEN", "value": read_token, "type": "encrypted", "target": ["production", "preview"]},
-    ]
+    env = [{"key": k, "value": v, "type": "encrypted", "target": ["production", "preview"]} for k, v in values.items()]
     call("POST", f"{VERCEL_API}/v10/projects/{VERCEL_PROJECT}/env{scope}{joiner}upsert=true", token, env)
-    summary("- Vercel settings updated: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN (values not shown).")
+    summary(f"- Vercel settings updated: {', '.join(values)} (values not shown).")
+    return scope
+
+
+def redeploy(token: str, scope: str) -> None:
+    """Start a new production deploy of main, so the app picks up its new settings."""
     repo_id = os.environ.get("GITHUB_REPOSITORY_ID")
     if not repo_id:
         summary("- Redeploy the app in Vercel so it picks up the new settings.")
         return
+    joiner = "&" if scope else "?"
     deploy = {
         "name": VERCEL_PROJECT,
         "project": VERCEL_PROJECT,
@@ -280,6 +284,11 @@ def update_vercel(token: str, url: str, read_token: str) -> None:
         summary(f"- A new production deploy started ({out.get('id', 'id not reported')}).")
     except ApiError as e:
         summary(f"- Couldn't start a deploy ({e.status}). Redeploy the app in Vercel: Deployments, then Redeploy.")
+
+
+def update_vercel(token: str, url: str, read_token: str) -> None:
+    scope = set_vercel_env(token, {"TURSO_DATABASE_URL": url, "TURSO_AUTH_TOKEN": read_token})
+    redeploy(token, scope)
 
 
 # ---------------------------------------------------------------------------------------------

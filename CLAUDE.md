@@ -61,10 +61,21 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   not yet reviewed by the rabbinic board (founding spec, open question 15).
 - "Translate this" and "Word by word" on the page view (`/api/translate`,
   `web/lib/engine/translate.ts`, `web/lib/engine/gloss.ts`) are RabAI's own translation: run
-  them only when the person taps, keep them on the device, and always label them as not from the
-  library and not yet reviewed by the rabbinic board (founding spec, open question 16). The
-  Hebrew in a word-by-word list always comes from the library's text; the model's list only
-  attaches English to it.
+  them only when the person taps (or in a batch the maintainer runs), and always label them as
+  not from the library and not yet reviewed by the rabbinic board (founding spec, open question
+  16). The Hebrew in a word-by-word list always comes from the library's text; the model's list
+  only attaches English to it.
+- A translation is made only from the library's own sources (`translate-sources.ts`: the line a
+  comment explains with its Orthodox English, other commentaries on that same line, the
+  dictionaries). An "other reading" is shown only when its source was given and its quoted words
+  are in that source (`checkReadings` in `gloss.ts`, the same idea as `citations.ts`).
+- RabAI's translation library (`web/lib/library/translations.ts`, database `rabai-translations`)
+  keeps each translation tied to the exact text it translated (`textCheck`); never show one
+  beside a text whose check differs. Never set a translation's `review` to anything but
+  `unreviewed` yourself; only record a review the maintainer reports from the board. Never
+  delete the database. Batch fills (`web/scripts/translate-library.ts`, workflow
+  `.github/workflows/translations.yml`) spend money: only the maintainer runs them, always with
+  a spending limit.
 - When the library has a layout for an amud that places every word (table `daf_layout`, made by
   `tools/daf_layout.py` from Sefaria's Vilna scans; see `tools/daflayout/README.md`), the page
   is drawn line for line as printed (`web/components/DafPrinted.tsx`, `readPrinted` in
@@ -104,13 +115,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   The live address is https://rab-ai-ecru.vercel.app.
 - **Settings in Vercel:** `ANTHROPIC_API_KEY` and `RABAI_ACCESS_CODE` are required. The
   optional ones are listed in `web/README.md`, including `TURSO_DATABASE_URL` and
-  `TURSO_AUTH_TOKEN` for the testing library. Never print, log, or commit their values, and
-  never ask anyone to paste a key or code into a chat.
+  `TURSO_AUTH_TOKEN` for the testing library, and `TRANSLATIONS_DATABASE_URL` and
+  `TRANSLATIONS_AUTH_TOKEN` for RabAI's translation library. Never print, log, or commit their
+  values, and never ask anyone to paste a key or code into a chat.
 - **The testing library's hosting:** the "Build the testing library" workflow
   (`.github/workflows/library-build.yml`, run by hand) builds it and uploads it to Turso with
   `tools/library_upload.py`, using the repo secrets `TURSO_API_TOKEN` and, optionally,
   `VERCEL_TOKEN` and `TURSO_ORG`. The repo is public, so its Actions logs are public: mask any
   token made during a run (`::add-mask::`) and never echo one.
+- **RabAI's translation library:** the "RabAI's translation library" workflow
+  (`.github/workflows/translations.yml`, run by hand) creates the database and connects the app
+  (`tools/translations_setup.py`), estimates costs, and fills it in batches. Filling needs the
+  repo secret `ANTHROPIC_API_KEY` as well as the Turso and Vercel ones.
 - **Checking a deploy:** Vercel reports each deploy on its commit
   (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
   Build and runtime logs need access to the maintainer's personal Vercel account; the

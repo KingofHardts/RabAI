@@ -214,6 +214,15 @@ export interface TestingStore {
    * Gemara page. Empty when the library has none.
    */
   vowels(refs: string[]): Promise<Map<string, string>>;
+  /**
+   * For the job that fills RabAI's translation library: the books named, the books of these canon
+   * works, and the books whose titles match these patterns ("Rashi on %").
+   */
+  booksFor(select: { titles?: string[]; works?: string[]; like?: string[] }): Promise<string[]>;
+  /** Passages of these books with Hebrew and no English, in reading order, after `afterSeq` (Passage.order). */
+  untranslated(titles: string[], afterSeq: number, limit: number): Promise<Passage[]>;
+  /** How many passages of these books have Hebrew and no English, and about how many words they hold. */
+  untranslatedCount(titles: string[]): Promise<{ passages: number; words: number }>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string; categories: string[]; order: number }>>;
   /** The short list of book names the lookup planner may use. */
@@ -715,6 +724,56 @@ export function createTestingStore(db: Db): TestingStore {
       } catch {
         return null;
       }
+    },
+
+    async booksFor({ titles = [], works = [], like = [] }) {
+      const where: string[] = [];
+      const args: InValue[] = [];
+      if (titles.length) {
+        where.push(`t.title IN (${titles.map(() => "?").join(",")})`);
+        args.push(...titles);
+      }
+      if (works.length) {
+        where.push(`t.work IN (${works.map(() => "?").join(",")})`);
+        args.push(...works);
+      }
+      for (const pattern of like) {
+        where.push("t.title LIKE ?");
+        args.push(pattern);
+      }
+      if (!where.length) return [];
+      const rows = await db.all(
+        `SELECT t.title FROM titles t WHERE (${where.join(" OR ")}) AND t.categories NOT LIKE '%"Dictionary"%' ORDER BY t.id`,
+        args,
+      );
+      return rows.map((r) => String(r.title));
+    },
+
+    async untranslated(titles, afterSeq, limit) {
+      if (!titles.length || limit <= 0) return [];
+      const rows = await db.all(
+        `SELECT p.ref FROM passages p
+           JOIN titles t ON t.id = p.title_id
+           JOIN editions e ON e.id = p.edition_id
+         WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0 AND p.seq > ?
+           AND NOT EXISTS (SELECT 1 FROM passages q JOIN editions f ON f.id = q.edition_id WHERE q.ref = p.ref AND f.language = 'en')
+         ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`,
+        [...titles, afterSeq],
+      );
+      return groupRows(await byExactRefs(rows.map((r) => String(r.ref))), { full: true }).filter((p) => p.he.trim() && !p.en.trim());
+    },
+
+    async untranslatedCount(titles) {
+      if (!titles.length) return { passages: 0, words: 0 };
+      const rows = await db.all(
+        `SELECT COUNT(*) AS n, SUM(LENGTH(p.text) - LENGTH(REPLACE(p.text, ' ', '')) + 1) AS words FROM passages p
+           JOIN titles t ON t.id = p.title_id
+           JOIN editions e ON e.id = p.edition_id
+         WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0
+           AND NOT EXISTS (SELECT 1 FROM passages q JOIN editions f ON f.id = q.edition_id WHERE q.ref = p.ref AND f.language = 'en')`,
+        titles,
+      );
+      return { passages: Number(rows[0]?.n ?? 0), words: Number(rows[0]?.words ?? 0) };
     },
 
     async books() {
