@@ -17,11 +17,11 @@ import type { DafPageProps } from "./DafPage";
 const MIN_PAGE = 320;
 const MAX_FIT = 980;
 /**
- * The printed letters' height over the font size to set them at. Our fonts run wider than the Vilna
- * type, so this sizes each line by width more than by height: most lines then need only a small
- * stretch to fill the printed line (measured on Berakhot 2a-2b).
+ * The printed letters' height over the font size to set them at: the height of an ordinary letter in
+ * each part's typeface (Romm Vilna for the Gemara, Mekorot for Rashi and Tosafot; see daf-fonts.ts),
+ * so the letters come out as tall as on the printed page.
  */
-const LETTER_EM: Record<DafPart, number> = { main: 0.6, rashi: 0.64, tosafot: 0.64 };
+const LETTER_EM: Record<DafPart, number> = { main: 0.543, rashi: 0.726, tosafot: 0.726 };
 const HAS_LETTERS = /[א-ת]/;
 /** A word set in a wider space than its letters need is stretched at most this much (then it sits at its right). */
 const MAX_STRETCH = 1.35;

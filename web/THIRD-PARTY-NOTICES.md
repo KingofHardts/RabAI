@@ -28,3 +28,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Fonts on the Gemara page
+
+The printed-page view uses two typefaces under the SIL Open Font License 1.1. The font files and
+their full license texts are in `app/fonts/`.
+
+- **Romm Vilna** (`RommVilna-Regular.ttf`, `RommVilna-Heading.otf`, `RommVilna-Title.otf`):
+  Copyright (c) 2025, Ross Ilan Elovitz, with Reserved Font Name "Romm Vilna". Obtained from the
+  Open Siddur Project's font collection, https://github.com/aharonium/fonts (commit
+  `2b5e366ffaa89d42159092fcccd6d027b50a9ef9`). License: `app/fonts/RommVilna-OFL.txt`.
+- **Mekorot** (`Mekorot-Regular.ttf`, `Mekorot-Bold.ttf`): Copyright 2021 The Mekorot Project
+  Authors, https://github.com/googlefonts/mekorot (commit
+  `4e51edad1a265838154e2cae46c28c6a11145c95`). License: `app/fonts/Mekorot-OFL.txt`.
+
+The files are served unchanged.

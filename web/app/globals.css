@@ -355,10 +355,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .daf-layer { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; }
 .daf-layer .sp { pointer-events: none; }
 .daf-text { text-align: justify; text-align-last: right; overflow-wrap: anywhere; }
-.daf-text.main { font-family: var(--font-he); font-weight: 500; }
-.daf-text.rashi, .daf-text.tosafot { font-family: "Noto Rashi Hebrew", var(--font-he); }
-.daf-text .open { font-weight: 700; }
-.daf-text.rashi .open, .daf-text.tosafot .open { font-family: var(--font-he); }
+/* The Vilna page's own typefaces (app/daf-fonts.ts): Romm Vilna for the Gemara and the opening words,
+   Mekorot's Rashi script for the commentaries. Never let the browser fake a bold or slant. */
+.daf-text { font-synthesis: none; }
+.daf-text.main { font-family: var(--font-vilna), var(--font-he); font-weight: 400; }
+.daf-text.rashi, .daf-text.tosafot { font-family: var(--font-rashi), "Noto Rashi Hebrew", var(--font-he); font-weight: 400; }
+.daf-text.main .open { font-family: var(--font-vilna-title), var(--font-vilna), var(--font-he); }
+/* A commentary's opening words are in square type, as tall as its Rashi-script letters (Mekorot's
+   letters are 0.726 of its size, Romm Vilna's 0.543). */
+.daf-text.rashi .open, .daf-text.tosafot .open { font-family: var(--font-vilna), var(--font-he); font-size: 1.337em; }
 .daf-text .dw { pointer-events: auto; cursor: pointer; border-radius: 3px; }
 .daf-text .dw:hover { background: var(--tint); }
 .daf-text .dw.on { background: var(--accent); color: var(--accent-ink); }
