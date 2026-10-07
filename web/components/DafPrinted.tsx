@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { pieceWords, splitOpening, wordKey, type DafData, type DafPart, type DafPiece, type DafPrinted as Printed } from "@/lib/library/daf";
+import { pieceWords, splitOpening, withoutPoints, wordKey, type DafData, type DafPart, type DafPiece, type DafPrinted as Printed } from "@/lib/library/daf";
 import type { DafPageProps } from "./DafPage";
 
 /*
@@ -26,7 +26,7 @@ const HAS_LETTERS = /[א-ת]/;
 /** A word set in a wider space than its letters need is stretched at most this much (then it sits at its right). */
 const MAX_STRETCH = 1.35;
 
-export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord }: DafPageProps & { data: DafData & { printed: Printed } }) {
+export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord, vowels }: DafPageProps & { data: DafData & { printed: Printed } }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState(0);
@@ -61,9 +61,9 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
   const height = Math.round((ay1 - ay0) * k);
 
   const pieces = useMemo(() => {
-    const m = new Map<string, { words: string[]; opening: number; part: DafPart }>();
+    const m = new Map<string, { words: string[]; opening: number; part: DafPart; vowels?: string[] }>();
     const add = (p: DafPiece, part: DafPart) =>
-      m.set(p.ref, { words: pieceWords(p.he), opening: part === "main" ? 0 : pieceWords(splitOpening(p.he).opening).length, part });
+      m.set(p.ref, { words: pieceWords(p.he), opening: part === "main" ? 0 : pieceWords(splitOpening(p.he).opening).length, part, vowels: p.vowels });
     for (const p of data.main) add(p, "main");
     for (const p of data.rashi) add(p, "rashi");
     for (const p of data.tosafot) add(p, "tosafot");
@@ -108,14 +108,14 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
     // A page wider than the screen starts at its right edge, where Hebrew begins.
     const wrap = wrapRef.current;
     if (wrap && wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = wrap.scrollWidth;
-  }, [printed, width, space, fontsSeen]);
+  }, [printed, width, space, fontsSeen, vowels]);
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     if (typeof window !== "undefined" && window.getSelection()?.toString().trim()) return;
     const w = (e.target as HTMLElement).closest<HTMLElement>("[data-i]");
     const seg = w?.closest<HTMLElement>("[data-ref]");
     if (!w || !seg) return;
-    onWord(seg.dataset.ref!, Number(w.dataset.i), w.textContent ?? "", seg.dataset.part as DafPart);
+    onWord(seg.dataset.ref!, Number(w.dataset.i), withoutPoints(w.textContent ?? ""), seg.dataset.part as DafPart);
   };
 
   return (
@@ -168,6 +168,8 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
             const out = [];
             for (let i = from; i < to; i++) {
               const w = p.words[i];
+              // With the vowels on, the word gains its points and nothing else, in the same box.
+              const shown = (vowels && p.vowels?.[i]) || w;
               const bold = i < p.opening || (p.part === "main" && /^(מתני|גמ)['׳]/.test(w));
               const big = p.part === "main" && ref === firstMain && i === 0 && data.daf === 2 && data.amud === "a";
               const on = activeWord?.ref === ref && activeWord.index === i;
@@ -178,14 +180,14 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
                 const cls = letters
                   ? `dw dplaced${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}${est ? " est" : ""}`
                   : `dplaced${bold ? " open" : ""}`;
-                out.push(...placed(words++, w, cls, i, letters ? { "data-i": i, title } : {}));
+                out.push(...placed(words++, shown, cls, i, letters ? { "data-i": i, title } : {}));
                 continue;
               }
               if (words++ > 0) out.push(" ");
               out.push(
                 HAS_LETTERS.test(w) ? (
                   <span key={i} data-i={i} className={`dw${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}${est ? " est" : ""}`} title={title}>
-                    {w}
+                    {shown}
                   </span>
                 ) : (
                   <span key={i} className={bold ? "open" : undefined}>

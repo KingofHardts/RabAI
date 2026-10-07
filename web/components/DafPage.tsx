@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { computeSpacers, correctSpacers, mainColumn, sideColumn, splitOpening, type DafData, type DafPiece, type DafSpacers } from "@/lib/library/daf";
+import { computeSpacers, correctSpacers, mainColumn, sideColumn, splitOpening, withoutPoints, type DafData, type DafPiece, type DafSpacers } from "@/lib/library/daf";
 
 /*
  * One amud of the Bavli set the way it is printed: the Gemara in the middle, Rashi on the inner
@@ -27,6 +27,8 @@ export interface DafPageProps {
   /** The person's own marks: a color name for each line or comment they marked. */
   marks: Readonly<Record<string, string>>;
   onWord: (ref: string, index: number, word: string, part: Part) => void;
+  /** Show the Gemara's vowels, where the library has them (they never move a word). */
+  vowels: boolean;
 }
 
 /** Sizes at a 600-pixel page; everything scales with the page's width. */
@@ -40,7 +42,7 @@ function wordsOf(text: string): string[] {
 
 const HAS_LETTERS = /[א-ת]/;
 
-export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord }: DafPageProps) {
+export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord, vowels }: DafPageProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const measureRefs = { main: useRef<HTMLDivElement>(null), rashi: useRef<HTMLDivElement>(null), tosafot: useRef<HTMLDivElement>(null) };
   const layerRefs = { main: useRef<HTMLDivElement>(null), rashi: useRef<HTMLDivElement>(null), tosafot: useRef<HTMLDivElement>(null) };
@@ -107,7 +109,7 @@ export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWor
       }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, width, space, fontsSeen]);
+  }, [data, width, space, fontsSeen, vowels]);
 
   // 2. With the spacers in place, check where each text really ended and move the spacers if two
   // texts share a place. Then the page is as tall as its longest layer.
@@ -142,7 +144,7 @@ export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWor
     const w = (e.target as HTMLElement).closest<HTMLElement>("[data-i]");
     const seg = w?.closest<HTMLElement>("[data-ref]");
     if (!w || !seg) return;
-    onWord(seg.dataset.ref!, Number(w.dataset.i), w.textContent ?? "", seg.dataset.part as Part);
+    onWord(seg.dataset.ref!, Number(w.dataset.i), withoutPoints(w.textContent ?? ""), seg.dataset.part as Part);
   };
 
   const renderPiece = (p: DafPiece, part: Part, n: number, interactive: boolean): ReactNode => {
@@ -169,7 +171,7 @@ export default function DafPage({ data, zoom, selectedRef, linkedRefs, activeWor
               {i > 0 && " "}
               {tappable ? (
                 <span data-i={i} className={`dw${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}`}>
-                  {w}
+                  {(vowels && p.vowels?.[i]) || w}
                 </span>
               ) : (
                 <span className={bold ? "open" : undefined}>{w}</span>

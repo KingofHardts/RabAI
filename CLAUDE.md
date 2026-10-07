@@ -71,6 +71,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   The layouts are made by the "Make the printed-page layouts" workflow
   (`.github/workflows/daf-layout.yml`, run by hand), and `tools/library_upload.py` carries
   them over when the library is rebuilt.
+- The page's vowels switch reads the library's `vowels` table, filled from editions marked
+  `vowels_only` in the canon (a vocalized copy of another edition). Never search or quote a
+  vowels-only edition; `vowelWords` in `daf.ts` only adds points to the library's own words.
 - Saved chats and recent reading (`web/lib/saved-chats.ts`) live only in the person's browser.
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.

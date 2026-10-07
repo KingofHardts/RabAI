@@ -126,6 +126,7 @@ def main() -> int:
                     "category": ed["category"],
                     "streams": ed["streams"],
                     "approved": ed["approved"],
+                    "vowels_only": ed.get("vowels_only", False),
                     "title": book["title"],
                     "categories": book["cats"],
                     "files": files,

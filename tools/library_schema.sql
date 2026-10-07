@@ -24,6 +24,10 @@ CREATE TABLE links (a TEXT NOT NULL, b TEXT NOT NULL, kind TEXT);
 -- Dictionary headwords, without vowels, each pointing at its entry ("Jastrow, אָב II").
 CREATE TABLE lexicon (word TEXT NOT NULL, passage_id INTEGER NOT NULL);
 
+-- Vocalized copies of an edition's passages (canon: vowels_only), by ref. Read only to show vowels on
+-- the edition's own words (the Gemara page's vowels switch); never searched or quoted.
+CREATE TABLE vowels (ref TEXT PRIMARY KEY, version_id INTEGER NOT NULL, text TEXT NOT NULL);
+
 -- Where each printed line of an amud of the Bavli sits on the Vilna page, and the library words it
 -- holds (tools/daf_layout.py; read by testing.ts dafLayout). data is JSON; complete is 1 when every
 -- word of the amud was placed. Not built from Sefaria: tools/library_upload.py copies these rows from

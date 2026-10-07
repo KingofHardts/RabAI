@@ -88,6 +88,11 @@ export interface DafPiece {
   en: string;
   /** For Rashi and Tosafot: the Gemara line the comment explains. */
   on?: string;
+  /**
+   * For the Gemara, when the library has its vocalized copy: each of the passage's words
+   * (pieceWords(he)) with its vowels, or "" where the copy doesn't have that word. See vowelWords.
+   */
+  vowels?: string[];
 }
 
 export interface DafData {
@@ -152,6 +157,52 @@ export const PRINTED_LAYOUT_VERSION = 1;
 /** The words of a passage as the page shows them. */
 export function pieceWords(he: string): string[] {
   return he.split(/\s+/).filter(Boolean);
+}
+
+const FINAL_TO_REGULAR: Record<string, string> = { ך: "כ", ם: "מ", ן: "נ", ף: "פ", ץ: "צ" };
+const isLetter = (ch: string) => ch >= "א" && ch <= "ת";
+/** Vowel points, dagesh and shin/sin dots: marks that sit on a letter and take no width of their own. */
+const isPoint = (ch: string) => ch >= "\u0591" && ch <= "\u05C7" && !"\u05BE\u05C0\u05C3\u05C6".includes(ch);
+const lettersOf = (w: string) => [...w].filter(isLetter).map((ch) => FINAL_TO_REGULAR[ch] ?? ch).join("");
+
+/** A word as the library spells it: the vowels shown with it taken off. */
+export const withoutPoints = (w: string) => [...w].filter((ch) => !isPoint(ch)).join("");
+
+/**
+ * The passage's own words with the vowels of its vocalized copy laid on them, word by word: each
+ * word keeps exactly its letters and punctuation, and gains the points that follow each of its
+ * letters in the matching word of the copy. A word the copy doesn't have with the same letters gets
+ * "" (shown without vowels). Undefined when nothing matched.
+ */
+export function vowelWords(he: string, vocalized: string): string[] | undefined {
+  const words = pieceWords(he);
+  const copy = pieceWords(vocalized).filter((t) => [...t].some(isLetter));
+  const out: string[] = [];
+  let at = 0;
+  let any = false;
+  for (const w of words) {
+    const want = lettersOf(w);
+    let found = -1;
+    if (want) for (let j = at; j < Math.min(copy.length, at + 4); j++) if (lettersOf(copy[j]) === want) { found = j; break; }
+    if (found < 0) {
+      out.push("");
+      continue;
+    }
+    const chars = [...copy[found]];
+    let k = 0;
+    let built = "";
+    for (const ch of w) {
+      built += ch;
+      if (!isLetter(ch)) continue;
+      const base = FINAL_TO_REGULAR[ch] ?? ch;
+      while (k < chars.length && !(isLetter(chars[k]) && (FINAL_TO_REGULAR[chars[k]] ?? chars[k]) === base)) k++;
+      for (k++; k < chars.length && isPoint(chars[k]); k++) built += chars[k];
+    }
+    out.push(built);
+    at = found + 1;
+    any = true;
+  }
+  return any ? out : undefined;
 }
 
 /**

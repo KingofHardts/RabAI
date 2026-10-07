@@ -12,6 +12,7 @@ import {
   prevAmud,
   printedRefs,
   readPrinted,
+  vowelWords,
   type DafData,
   type DafPart,
   type DafPiece,
@@ -94,11 +95,26 @@ export async function GET(request: Request) {
   const main = found.main.map((p) => piece(p, false));
   const rashi = found.rashi.map((p) => piece(p, true));
   const tosafot = found.tosafot.map((p) => piece(p, true));
+  // The Gemara's vowels, for the page's vowels switch, laid on the library's own words.
+  const vowelsFor = async (pieces: DafPiece[]) => {
+    try {
+      const copies = await store.vowels(pieces.map((p) => p.ref));
+      for (const p of pieces) {
+        const v = copies.get(p.ref);
+        const words = v ? vowelWords(p.he, plainText(v)) : undefined;
+        if (words) p.vowels = words;
+      }
+    } catch (err) {
+      console.error("[rabai] vowels failed:", err instanceof Error ? err.message : err);
+    }
+  };
+  await vowelsFor(main);
   const printed = await printedLayout(store, section, [
     ...main.map((p) => ({ ...p, part: "main" as const })),
     ...rashi.map((p) => ({ ...p, part: "rashi" as const })),
     ...tosafot.map((p) => ({ ...p, part: "tosafot" as const })),
   ]);
+  if (printed) await vowelsFor(printed.extra.filter((p) => p.part === "main"));
   const data: DafData = {
     section,
     tractate: at.tractate,

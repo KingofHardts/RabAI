@@ -19,6 +19,7 @@ import {
   splitOpening,
   TOP_LINES,
   type DafMeasure,
+  vowelWords,
 } from "../lib/library/daf";
 
 test("page numbers read as printed", () => {
@@ -179,4 +180,15 @@ test("a line's word places are used only when they fit the line", () => {
     assert.ok(p);
     assert.equal(p.lines[0].words, undefined);
   }
+});
+
+test("vowels are laid on the library's own words, letter by letter", () => {
+  const v = vowelWords("מאימתי קורין את שמע בערבין. משעה", "מֵאֵימָתַי קוֹרִין – אֶת שְׁמַע בָּעֲרָבִין? מִשָּׁעָה");
+  assert.deepEqual(v, ["מֵאֵימָתַי", "קוֹרִין", "אֶת", "שְׁמַע", "בָּעֲרָבִין.", "מִשָּׁעָה"]);
+  // Each word keeps exactly its own letters and punctuation: only points are added.
+  for (const [i, w] of "מאימתי קורין את שמע בערבין. משעה".split(" ").entries())
+    assert.equal(v![i].replace(/[\u0591-\u05C7]/g, ""), w);
+  // A word the vocalized copy spells differently gets no vowels; the rest still line up.
+  assert.deepEqual(vowelWords("אמר רבי יוחנן", "אָמַר רַ׳ יוֹחָנָן"), ["אָמַר", "", "יוֹחָנָן"]);
+  assert.equal(vowelWords("אמר", "שָׁלוֹם"), undefined);
 });

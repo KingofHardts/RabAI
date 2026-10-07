@@ -434,6 +434,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [dafError, setDafError] = useState<string | null>(null);
   const [dafPick, setDafPick] = useState<{ ref: string; index: number; word: string; part: "main" | "rashi" | "tosafot" } | null>(null);
   const [dafZoom, setDafZoom] = useState(1);
+  const [dafVowels, setDafVowels] = useState(false);
   const dafZoomChosen = useRef(false);
   const [dafQuestion, setDafQuestion] = useState("");
   const [outlines, setOutlines] = useState<Record<string, { lines: OutlineLine[]; model?: string }>>({});
@@ -454,6 +455,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setStudyMode(readStored("rabai_study", ["on", "off"] as const, "off") === "on");
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
+    setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setMyWords(readSavedWords());
     setSpeechOk(canSpeak());
     try {
@@ -1695,6 +1697,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </div>
             <button
               type="button"
+              className={`chip-btn${dafVowels ? " primary" : ""}`}
+              aria-pressed={dafVowels}
+              disabled={!daf?.main.some((p) => p.vowels)}
+              title={daf && !daf.main.some((p) => p.vowels) ? "The library has no vowels for this tractate yet." : undefined}
+              onClick={() => {
+                setDafVowels((v) => {
+                  store("rabai_daf_vowels", v ? "off" : "on");
+                  return !v;
+                });
+              }}
+            >
+              <span lang="he">נִקּוּד</span>
+              <span className="wide"> Vowels</span>
+            </button>
+            <button
+              type="button"
               className={`chip-btn${showOutline ? " primary" : ""}`}
               aria-pressed={showOutline}
               disabled={!daf || outlineState?.loading}
@@ -1728,6 +1746,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 {(() => {
                   const props = {
                     zoom: dafZoom,
+                    vowels: dafVowels,
                     selectedRef: dafPick?.ref ?? null,
                     linkedRefs: linked,
                     activeWord: dafPick ? { ref: dafPick.ref, index: dafPick.index } : null,

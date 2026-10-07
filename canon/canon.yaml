@@ -531,6 +531,18 @@ works:
             license: "CC-BY-NC"
           - version: "Wikisource Talmud Bavli"
             license: "CC-BY-SA"
+      - name: Vilna Shas, Hebrew/Aramaic, vocalized (William Davidson Edition)
+        language: he
+        orthodox: true
+        status: draft
+        license: verify
+        vowels_only: true
+        notes: >-
+          Vowels only. The same text with nikud, used to show vowels on the Vilna Shas words when a
+          reader turns them on (the Gemara page's vowels switch). Never searched or quoted.
+        sefaria_versions:
+          - version: "William Davidson Edition - Vocalized Aramaic"
+            license: "CC-BY-NC"
       - name: The William Davidson Talmud (Koren Noé, Rabbi Adin Even-Israel Steinsaltz)
         language: en
         publisher: Koren

@@ -208,6 +208,11 @@ export interface TestingStore {
    * the library has no layout for it. Checked by readPrinted in daf.ts before it is shown.
    */
   dafLayout(section: string): Promise<unknown | null>;
+  /**
+   * The vocalized copies of these passages, by ref (canon: vowels_only), for showing vowels on the
+   * Gemara page. Empty when the library has none.
+   */
+  vowels(refs: string[]): Promise<Map<string, string>>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string }>>;
   /** The short list of book names the lookup planner may use. */
@@ -662,6 +667,22 @@ export function createTestingStore(db: Db): TestingStore {
       const rows: Row[] = [];
       for (let i = 0; i < wanted.length; i += 100) rows.push(...(await byExactRefs(wanted.slice(i, i + 100))));
       return groupRows(rows, { full: true });
+    },
+
+    async vowels(refs) {
+      const wanted = [...new Set(refs)].slice(0, 400);
+      const out = new Map<string, string>();
+      for (let i = 0; i < wanted.length; i += 100) {
+        const chunk = wanted.slice(i, i + 100);
+        let rows: Array<Record<string, unknown>>;
+        try {
+          rows = await db.all(`SELECT ref, text FROM vowels WHERE ref IN (${chunk.map(() => "?").join(", ")})`, chunk);
+        } catch {
+          return out; // a library built before the vowels existed has no such table
+        }
+        for (const r of rows) if (typeof r.ref === "string" && typeof r.text === "string") out.set(r.ref, r.text);
+      }
+      return out;
     },
 
     async dafLayout(section) {

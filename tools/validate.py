@@ -24,6 +24,9 @@ Two refinements (founding spec, "Testing library"):
 - A dictionary edition may be marked `word_tool_only: true` (orthodox: review): RabAI may use
   it for what words mean, never for history or belief. Only dictionaries (sefaria_lexicon) may
   carry it.
+- An edition may be marked `vowels_only: true`: a vocalized copy of another edition of the same
+  work, in the same language. RabAI uses it only to show the vowels on that edition's words (the
+  Gemara page's vowels switch), never as a text of its own: it is not searched or quoted.
 """
 
 import json
@@ -188,6 +191,13 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     fail(f"{ewhere}: word_tool_only is either true or left out")
                 elif not isinstance(lexicon, dict) or work.get("kind") != "reference":
                     fail(f"{ewhere}: only a dictionary (kind: reference, with sefaria_lexicon) may be a word tool")
+            if "vowels_only" in edition:
+                others = [e for e in work.get("editions") or [] if e is not edition and not e.get("vowels_only")
+                          and e.get("language") == edition.get("language")]
+                if edition["vowels_only"] is not True:
+                    fail(f"{ewhere}: vowels_only is either true or left out")
+                elif not others or not versions:
+                    fail(f"{ewhere}: a vowels_only edition needs sefaria_versions and another edition of the work in its language")
             if edition.get("status") == "approved":
                 if edition.get("orthodox") is not True:
                     fail(f"{ewhere}: only editions marked orthodox: true can be approved")
@@ -335,6 +345,7 @@ def testing(canon_ids: dict, barred: set) -> list:
                         "sefaria_versions": versions,
                         "sefaria_lexicon": lexicon,
                         "word_tool_only": word_tool,
+                        "vowels_only": edition.get("vowels_only") is True,
                         "approved": work.get("status") == "approved" and edition.get("status") == "approved",
                         "category": work.get("category"),
                         "streams": work.get("streams"),

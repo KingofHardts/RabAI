@@ -156,6 +156,12 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   it), the word is put on the likeliest line and marked on the page with a dotted underline and a
   note saying so. Where the print abbreviates (הקב״ה for "הקדוש ברוך הוא"), the library's full
   words are set small in the abbreviation's place.
+
+  Vowels on the page (Josh asked, 2026-10-07): a reader can turn on nekudot. They come from a
+  vocalized copy of the same Gemara text (Sefaria's William Davidson Edition, vocalized), marked
+  `vowels_only` in the canon: it is kept in its own table, never searched or quoted, and its
+  points are laid on the library's own words letter by letter, so each word keeps its letters and
+  its place on the page. A word the copy spells differently is shown without vowels.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.

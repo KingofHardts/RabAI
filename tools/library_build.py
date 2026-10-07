@@ -349,6 +349,12 @@ def main() -> int:
                     continue
                 merged[ref] = (text, version_ids[vkey])
                 order.append(ref)
+        if item.get("vowels_only"):
+            # Only the vowels for another edition's words: kept apart from the passages, so it is
+            # never searched or quoted.
+            con.executemany("INSERT OR IGNORE INTO vowels (ref, version_id, text) VALUES (?, ?, ?)",
+                            [(ref, merged[ref][1], merged[ref][0]) for ref in order])
+            continue
         for ref in order:
             text, vid = merged[ref]
             seq += 1
