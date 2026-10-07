@@ -293,8 +293,9 @@ These need a decision before launch. Each one changes behavior.
     lens (see "What the assistant is"); the board refines the boundaries. Test questions
     T48-T55 cover it.
 15. **RabAI's outline of the Gemara.** On the printed-page view, a person can ask RabAI to
-    color each line of the amud by what it does: Mishnah, question, answer, statement, proof,
-    challenge, resolution, or story, with a short note. This is RabAI's own reading of the
+    color each phrase of the amud by what it does: Mishnah, question, answer, statement, proof,
+    challenge, resolution, or story, with a short note, and step through the phrases one by
+    one beside the library's English for each. This is RabAI's own reading of the
     sugya, not a source, and the app labels it "not yet reviewed by the rabbinic board". It
     runs only when the person asks. Should the board review a sample of outlines before
     launch, keep the label, or turn the feature off until outlines are reviewed page by page?

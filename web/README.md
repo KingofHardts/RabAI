@@ -59,9 +59,14 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   line a soft tint; a mark is a highlighter stroke along the bottom of the words. On a phone the
   page opens fitted to the screen: pinch to zoom, or double-tap a spot to zoom into it (and again
   to see the whole page). "The Gemara alone, larger" (under View) sets just the Gemara in one
-  column; its Rashi and Tosafot stay in the card. "Show the flow" colors each line by what it does (question, answer,
+  column; its Rashi and Tosafot stay in the card. "Show the flow" colors each phrase by what it does (question, answer,
   proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
-  and is kept on the device. When the library has no English for a line, a Rashi or a Tosafot,
+  and is kept on the device. RabAI names each phrase by the numbers of the library's own words,
+  never by retyping them, and gives a phrase English only when it is an exact stretch of the
+  library's English for the line. The legend's colors are filters (show only the questions, say),
+  and "Step through" goes phrase by phrase in a bar below the page: the phrase is ringed on the
+  page, with its kind, RabAI's note, and the library's English for it (or for the whole line).
+  When the library has no English for a line, a Rashi or a Tosafot,
   "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under
   each of the library's words, with the tapped word outlined. Both are labeled as RabAI's, not
   from the library and not yet reviewed. They are made from the library's own sources (the line
@@ -184,6 +189,7 @@ Optional settings:
 | `RABAI_LIBRARY` | automatic | `testing` when a library database is set, `development` otherwise. `approved` uses only board-approved, license-cleared editions (empty until the board approves). |
 | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |
 | `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
+| `RABAI_OUTLINE_FIXTURE` | none | On your computer only: a file holding a saved outline reply, used in place of the model for "Show the flow" (`{section}` in the name stands for the page, as in `/tmp/outline-{section}.txt`). The reply is checked exactly like a real one. Ignored on Vercel and in a production build. |
 
 Answers can take 20 to 60 seconds at `high`. The ask route allows up to 120 seconds, which
 needs Vercel's Fluid compute; `vercel.json` turns it on.

@@ -751,8 +751,9 @@ and **opens on the Meaning tab with the word at the top**:
   say?" and the question box. The answer appears in this tab.
 - The line's Hebrew and the four mark colors sit in a small "This line" section at the bottom of
   every tab, so marking needs no hunting.
-- When the outline ("the flow") is on, the line's kind and note appear as one colored line under
-  the word, with its label "RabAI's outline, not yet reviewed".
+- When the outline ("the flow") is on, the kind and note of the phrase holding the word appear as
+  one colored line under the word, with its label "RabAI's outline, not yet reviewed by the
+  rabbinic board".
 
 **On a phone,** the same panel is the short bottom sheet from 3.5, opening on Meaning.
 
@@ -771,6 +772,34 @@ and **opens on the Meaning tab with the word at the top**:
 - **Marks and the flow must not look alike.** The flow colors fill behind the text. The person's
   own marks become a colored bar in the page margin beside the line (and a colored underline in
   the line view), so both can be on at once.
+
+**The flow, phrase by phrase** (built 2026-10-07, the way Mercava colors a sugya):
+
+- **Each phrase is colored, not each line.** RabAI splits every line of the Gemara into the
+  steps of the argument (a question, its answer, a verse brought as proof, a challenge, its
+  resolution) and gives each its kind and a short note. It names a phrase only by the numbers
+  of the library's own words, never by retyping them; the app checks that the phrases are in
+  order, don't overlap and hold most of the line, and otherwise colors the line as one phrase
+  of the line's own kind.
+- **The color fills behind the phrase's words and the spaces between them; the space before a
+  phrase stays plain,** so two phrases side by side read as two. The phrases add only spans
+  around words, so no word moves, on the flowing page or the line-for-line printed page.
+- **The legend is the filter.** "What the colors mean" lists the kinds the page uses, with how
+  many phrases each has. Choosing one shows only that kind's color (the others go plain, and
+  their chips become outlines); choosing it again, or "All", brings every color back. Each is a
+  toggle button (`aria-pressed`). On a phone the chips scroll sideways on one row.
+- **"Step through"** opens a bar below the page (not over it, so on a phone it never covers the
+  phrase it is about) that goes phrase by phrase: Next and Back (the left arrow is Next, as
+  Hebrew runs, the right arrow Back; Home and End go to the first and last; Escape closes it).
+  The current phrase is ringed on the page and scrolled into view. The bar shows the phrase's
+  Hebrew, its kind in its color, RabAI's note in tan with "RabAI's outline, not yet reviewed by
+  the rabbinic board", and the library's English for the phrase. That English is the library's
+  own: RabAI only points at the stretch of the line's English that translates the phrase, and
+  the app shows it only when those words are really there, letter for letter (the same idea as
+  checking a citation). Otherwise the bar shows the whole line's English, labeled as such. With
+  a kind chosen, Next and Back go through that kind's phrases only. Tapping a word of the Gemara
+  while stepping moves the bar to its phrase.
+- **The word card** shows the kind and note of the tapped word's phrase, with the same label.
 
 ### 3.7 Phones, all together
 
@@ -829,7 +858,7 @@ scale is most of what makes a screen look calm.
 | Neutral gray tag | Not yet approved (testing library) | The testing label, kept on every passage |
 | Amber | A warning | "Not connected", errors that need attention |
 | Soft red | Safety | Crisis lines |
-| The flow's pastels | The outline's kinds | Only on the page, only when "Show the flow" is on |
+| The flow's pastels | The outline's kinds | Behind each phrase on the page, in the legend and the step-through bar, only when "Show the flow" is on |
 | The person's four mark colors | The person's own marks | Margin bars and underlines |
 | Category tones | The person's chat categories | Dots in the chats list |
 
