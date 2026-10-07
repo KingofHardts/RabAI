@@ -156,7 +156,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-06)
+## Where things stand (2026-10-07)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -173,8 +173,19 @@ Moving RabAI off Senior Stylist:
   Sessions call the Vercel API with `curl` and never see the token.
 
 Open items:
-- The testing library on Turso was rebuilt 2026-10-06 (run #2, commit `11bf8c9`): 1,117,614
-  passages, 1,222 books, 92 editions, now including Pirkei Avot and Rashi on Rosh Hashanah.
+- The testing library is being rebuilt 2026-10-07 from the expanded canon (714 works; 766
+  editions in the testing plan; about 2,471 MB of Sefaria files). A local test build of the
+  earlier 737-edition plan measured 4,025 MB, so the new one should be about 4.1 GB, inside
+  Turso's 5 GB free plan. The last finished rebuild was 2026-10-06 (92 editions).
+- Recanati on the Torah is held out (`orthodox: review`): a modern Hebrew translation of the
+  Zohar passages is mixed into its text (`docs/transcription-check.md`).
+- License requests for the texts still left out are listed by organization in
+  `docs/permissions-plan.md`; none are sent yet.
+- Learner profiles phase 1 (on the device) is built. Phase 2 (accounts) waits on the
+  maintainer's choices in `docs/learner-profiles.md`.
+- Translating inside a Claude Code session works end to end (40 Rashi comments imported on
+  2026-10-07). It uses the session's plan, not the API, but takes a lot of it (about 540,000
+  tokens for 728 Hebrew words), so it suits chosen books, not all of Shas.
 - Still missing from the testing library because Sefaria lists no license: Esther Rabbah, and
   the Hebrew of the Ramban on Shemot (his English is there).
 - Waiting on the maintainer's yes or no: an outside check that compares a claim against the

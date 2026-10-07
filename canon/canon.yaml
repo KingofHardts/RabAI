@@ -329,6 +329,9 @@ works:
             note: "Some titles carry another license (None); those files are skipped."
           - version: "On Your Way"
             license: "Public Domain"
+          - version: "Chamesh Megillot, Warsaw 1875"
+            license: "Public Domain"
+            note: "Sforno on Song of Songs, from the Warsaw 1875 printing of the Five Megillot."
       - name: Sforno, translated by Rabbi Raphael Pelcovitz
         language: en
         publisher: ArtScroll/Mesorah
@@ -739,6 +742,13 @@ works:
             license: "CC-BY-SA"
           - version: "Sifrei Devarim, Hebrew"
             license: "Public Domain"
+          - version: "Venice 1545"
+            license: "Public Domain"
+            printed: 1545
+            note: >-
+              Sifra, typed by Hebrew Wikisource volunteers from the Venice 1545 printing (the
+              first printing), as the version's title says. Sefaria lists no license; the
+              printing is public domain by age, and Wikisource's own layer is CC-BY-SA.
       - name: Kleinman Edition Midrash Rabbah
         language: en
         publisher: ArtScroll/Mesorah
@@ -837,6 +847,13 @@ works:
             license: "Public Domain"
           - version: "Hidushe ha-Ritba al Nidah; Wien 1868."
             license: "Public Domain"
+          - version: "Vilna, 1884"
+            license: "Public Domain"
+            printed: 1884
+            note: >-
+              The Ritva and Hilkhot HaRamban on Nedarim, from the National Library of Israel's
+              scan of the Vilna 1884 printing (named in the version's title and source).
+              Sefaria lists no license; the printing is public domain by age.
     notes: Mostly untranslated. Split into one entry per Rishon if the board wants to approve them separately.
 
   # ---------------------------------------------------------------------------
@@ -934,6 +951,20 @@ works:
         sefaria_versions:
           - version: "Mishneh Torah, trans. by Eliyahu Touger. Jerusalem, Moznaim Pub. c1986-c2007"
             license: "CC-BY-NC"
+      - name: "Mishneh Torah (Sefer HaMadda), translated by Rabbi Simon Glazer"
+        language: en
+        publisher: "Maimonides Publishing Co., New York (1927)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Covers the introduction and the Book of Knowledge only. Rabbi Simon Glazer
+          (1876-1938), born in Kovno, served Orthodox congregations in the United States and
+          Canada, was president of the Council of Orthodox Rabbis of the United States and
+          Canada, and helped found the Agudath HaRabbanim (to confirm).
+        sefaria_versions:
+          - version: "Mishnah Torah, Yod ha-hazakah, trans. by Simon Glazer, 1927"
+            license: "Public Domain"
 
   - id: tur
     title: Arba'ah Turim
@@ -982,7 +1013,7 @@ works:
     minhag: both
     status: draft
     sefaria:
-      re: "^Shulchan Arukh, (Orach Chayim|Yoreh De'ah|Even HaEzer|Choshen Mishpat)$"
+      re: "^Shulchan Arukh, (Orach Chayim|Yoreh De'ah|Even HaEzer|Choshen Mishpat|Introduction)$"
     editions:
       - name: Hebrew text, standard
         language: he
@@ -1006,6 +1037,27 @@ works:
             license: "Public Domain"
           - version: "Shulhan Arukh, Hoshen ha-Mishpat, Lemberg, 1898"
             license: "Public Domain"
+          - version: "Venice, 1565"
+            license: "Public Domain"
+            printed: 1565
+            note: >-
+              Rabbi Yosef Karo's own introduction, typed by Hebrew Wikisource volunteers from
+              the first printing (Venice 1565), as the version's title says. Sefaria lists no
+              license; public domain by age.
+      - name: "The laws of salting meat, summarized by Rabbi Ari Enkin"
+        language: en
+        publisher: "Torah Musings"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          A short English summary of the laws of salting meat in Yoreh De'ah, not a full
+          translation. Rabbi Ari Enkin received semicha from Yeshiva Gedola of Montreal and
+          yadin-yadin ordination, was a congregational rabbi in Canada, and teaches halacha in
+          Israeli yeshivot; he was the halacha editor of Torah Musings (to confirm).
+        sefaria_versions:
+          - version: "Laws of Salting Meat -- Rabbi Ari Enkin"
+            license: "CC-BY-NC"
     notes: >-
       Tag every retrieved passage as Mechaber or Rema. The Mechaber is the baseline for
       Sephardi practice. The Rema records Ashkenazi practice.
@@ -1196,6 +1248,19 @@ works:
         sefaria_versions:
           - version: "Duties of the Heart, trans. by Rabbi Moses Hyamson, New York, 1925"
             license: "Public Domain"
+      - name: "Duties of the Heart, translated by Rabbi Yosef Sebag"
+        language: en
+        publisher: "dafyomireview.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Yosef Sebag studied in yeshivas under Rabbi Dov Schwartzman, Rabbi Nachman
+          Bulman and Rabbi Nissan Kaplan, and worked from Rabbi Moses Hyamson's translation
+          (to confirm).
+        sefaria_versions:
+          - version: "Duties of the Heart, trans. Rabbi Yosef Sebag"
+            license: "CC-BY"
 
   - id: maharal
     title: Works of the Maharal (Gur Aryeh, Netzach Yisrael, Derech Chaim, Tiferet Yisrael, Be'er HaGolah, Ohr Chadash, the Drashot)
@@ -1283,6 +1348,18 @@ works:
         license: verify
         sefaria_versions:
           - version: "Sefaria Edition 2019, Translated by Rabbi Francis Nataf"
+            license: "CC-BY"
+      - name: "Mesillat Yesharim (Path of the Just), translated by Rabbi Yosef Sebag"
+        language: en
+        publisher: "dafyomireview.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Yosef Sebag studied in yeshivas under Rabbi Dov Schwartzman, Rabbi Nachman
+          Bulman and Rabbi Nissan Kaplan (to confirm).
+        sefaria_versions:
+          - version: "Path of the Just. Trans. Rabbi Yosef Sebag"
             license: "CC-BY"
       - name: "Hebrew text, digital editions on Sefaria"
         language: he
@@ -1476,6 +1553,19 @@ works:
         orthodox: true
         status: draft
         license: needs_agreement
+      - name: "Olat Re'iyah, translated by Rabbi Mike Feuer"
+        language: en
+        publisher: "Rabbi Mike Feuer (2019)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Mike Feuer received semicha from Yeshivat Sulam Yaakov and teaches Chassidut,
+          Rav Kook and halacha in Jerusalem (to confirm). Sefaria's Hebrew of Olat Re'iyah has
+          no license listed, so only this English is in the testing library for it.
+        sefaria_versions:
+          - version: "Trans. Rabbi Mike Feuer, 2019"
+            license: "CC-BY"
     notes: Ben Zion Bokser's translations are excluded. See excluded.yaml.
 
   - id: rav-soloveitchik
@@ -2063,6 +2153,19 @@ works:
         sefaria_versions:
           - version: "Torat Emet 357"
             license: "Public Domain"
+      - name: "The Authorised Daily Prayer Book, translated by Rabbi Simeon Singer"
+        language: en
+        publisher: "1915 printing, as transcribed by sacred-texts.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Singer's Siddur, the standard prayer book of the United Synagogue in Britain for
+          generations. Rabbi Simeon Singer (1846-1906) was minister of the New West End
+          Synagogue in London.
+        sefaria_versions:
+          - version: "The Standard Prayer Book, tr. by Simeon Singer, [1915]"
+            license: "Public Domain"
 
   - id: rabbi-sacks-covenant-conversation
     title: Covenant & Conversation and other works of Rabbi Jonathan Sacks
@@ -2075,7 +2178,7 @@ works:
     streams: [modern_orthodox]
     status: proposed
     sefaria:
-      re: "^Covenant and Conversation"
+      re: "^(Covenant and Conversation|(Essays in Ethics|Lessons in Leadership|Studies in Spirituality|I Believe|Judaism's Life Changing Ideas); A Weekly Reading of the Jewish Bible$|Ceremony and Celebration; Introduction to the Holidays$|The Jonathan Sacks Haggadah; Essays$)"
     editions:
       - name: Covenant & Conversation essays
         language: en
@@ -2085,6 +2188,32 @@ works:
         license: verify
         sefaria_versions:
           - version: "Maggid Books and the Orthodox Union, 2009-2019"
+            license: "CC-BY-NC"
+      - name: "The weekly Torah essay collections, holiday essays and Haggadah essays"
+        language: en
+        publisher: "The Rabbi Sacks Legacy; OU Press; Maggid; Koren"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Essays in Ethics, Lessons in Leadership, Studies in Spirituality, I Believe and
+          Judaism's Life-Changing Ideas (each "a weekly reading of the Jewish Bible", gathered
+          from his weekly Covenant & Conversation essays), Ceremony and Celebration (his
+          introductions to the festivals) and the essays from his Haggadah.
+        sefaria_versions:
+          - version: "Maggid Books and The Orthodox Union, 2016"
+            license: "CC-BY-NC"
+          - version: "Maggid Books and the Orthodox Union, 2015"
+            license: "CC-BY-NC"
+          - version: "Maggid Books and OU Press, 2021"
+            license: "CC-BY-NC"
+          - version: "OU Press, The Rabbi Sacks Legacy, Maggid Books, 2022"
+            license: "CC-BY-NC"
+          - version: "The Rabbi Sacks Legacy, OU Press and Maggid Books, 2020"
+            license: "CC-BY-NC"
+          - version: "Maggid Books, 2017"
+            license: "CC-BY-NC"
+          - version: "Koren Publishers, Jerusalem, 2013"
             license: "CC-BY-NC"
     notes: >-
       Widely read English Torah thought. The board may want to approve specific works
@@ -2288,6 +2417,14 @@ works:
         sefaria_versions:
           - version: "Vilna Edition"
             license: "Public Domain"
+          - version: "Vilna Edition - new"
+            license: "Public Domain"
+            printed: 1886
+            note: >-
+              The Maharsha's Chidushei Agadot on Rosh Hashanah, a second scan of the Vilna Shas
+              (1880-1886) from the National Library of Israel. Sefaria lists no license here,
+              though it lists the same Vilna Edition as public domain for the other tractates;
+              public domain by age.
           - version: "Chiddushei Rabbi Akiva Eiger, Warsaw 1892"
             license: "Public Domain"
           - version: "Penei Yehoshua, Warsaw 1861"
@@ -2611,6 +2748,18 @@ works:
         license: verify
         sefaria_versions:
           - version: "Daat"
+            license: "Public Domain"
+      - name: "En Jacob, translated by Rabbi S. H. Glick"
+        language: en
+        publisher: "New York (1916-1921)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Samuel Hirsch Glick (c. 1884-1929) was a congregational rabbi in Chicago
+          (Tiferet Zion) and supervised kosher slaughtering there (to confirm).
+        sefaria_versions:
+          - version: "S.H. Glick. En Jacob: Agada of the Babylonian Talmud. New York, 1916-1921"
             license: "Public Domain"
     notes: The aggadah of the Talmud, gathered in one work.
 
@@ -4506,6 +4655,40 @@ works:
         sefaria_versions:
           - version: "Senlake edition 2019 based on Ben Yehoyada, Jerusalem, 1897"
             license: "Public Domain / CC0"
+
+  - id: benayahu-on-shas
+    title: "Benayahu on the Talmud (the Ben Ish Chai)"
+    hebrew: בניהו
+    author: "Yosef Hayyim (the Ben Ish Chai)"
+    dates: "written c. 1860-1900"
+    region: "Baghdad, Iraq"
+    era: acharonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared, sephardi]
+    status: proposed
+    sefaria:
+      under: [["Talmud", "Bavli", "Acharonim on Talmud", "Benayahu"]]
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Senlake edition 2019 based on Benayahu, Jerusalem, 1905"
+            license: "Public Domain"
+            printed: 1905
+            note: >-
+              A 2019 retyping by Senlake of the Jerusalem 1905 printing; the version's title
+              names the printing, and its source is the National Library of Israel's copy of
+              it. Sefaria lists no license here, but lists Senlake's retyping of Ben Yehoyada
+              (the companion work, Jerusalem 1897) as public domain and CC0. Public domain by
+              age; reviewers may want to confirm that Senlake added nothing of its own beyond
+              typing.
+    notes: >-
+      The Ben Ish Chai's commentary on the aggadah of the Talmud, the companion to Ben
+      Yehoyada. Sefaria has 12 tractates of it.
 
   - id: chidushei-chatam-sofer-on-shas
     title: "Chidushei Chatam Sofer on the Talmud"
@@ -7763,8 +7946,19 @@ works:
         status: proposed
         license: verify
         notes: >-
-          The Hebrew text from S. H. Glick's edition (1916-1921). Glick's English
-          translation is left out until the board knows the translator.
+          The Hebrew text from S. H. Glick's edition (1916-1921).
+        sefaria_versions:
+          - version: "En Jacob, translated by SH Glick, 1916"
+            license: "Public Domain"
+      - name: "En Jacob, translated by Rabbi S. H. Glick"
+        language: en
+        publisher: "New York (1916-1921)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Samuel Hirsch Glick (c. 1884-1929) was a congregational rabbi in Chicago
+          (Tiferet Zion) and supervised kosher slaughtering there (to confirm). His translation and footnotes, without the classic commentaries.
         sefaria_versions:
           - version: "En Jacob, translated by SH Glick, 1916"
             license: "Public Domain"
@@ -7899,6 +8093,70 @@ works:
           - version: "OYW"
             license: "Public Domain"
 
+  - id: midrash-mishlei
+    title: "Midrash Mishlei"
+    hebrew: מדרש משלי
+    dates: "written c. 800-1000"
+    era: geonim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Midrash Mishlei$"
+      root: "Midrash"
+    editions:
+      - name: "Hebrew text (Solomon Buber's edition)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Solomon Buber's edition (Vilna, 1893), as typed by Hebrew Wikisource volunteers.
+          The maintainer said Buber's midrash editions are fine for the testing library.
+        sefaria_versions:
+          - version: "מדרש משלי - שלמה באבער"
+            license: "Public Domain"
+            printed: 1893
+            note: >-
+              The version's title names Buber's edition, and its source is Hebrew Wikisource's
+              text of Buber's Midrash Mishlei, which appeared in Vilna in 1893, based on three
+              manuscripts and the Constantinople printing (to confirm). Sefaria lists no
+              license; public domain by age, and Wikisource's own layer is CC-BY-SA.
+    notes: >-
+      Sefaria's only Hebrew of this midrash is Buber's edition. Its other Hebrew version, from
+      the Bar-Ilan Responsa Project, is not openly licensed.
+
+  - id: buber-notes-on-midrash-mishlei
+    title: "Solomon Buber's notes on Midrash Mishlei"
+    hebrew: הערות בובר על מדרש משלי
+    author: "Solomon Buber"
+    dates: "printed 1893"
+    region: "Lemberg, Galicia"
+    era: acharonim
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Buber footnotes on Midrash Mishlei$"
+      root: "Midrash"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "מדרש משלי - בובר"
+            license: "Public Domain"
+            printed: 1893
+            note: >-
+              Buber's footnotes from his Vilna 1893 edition, as typed by Hebrew Wikisource
+              volunteers. Sefaria lists no license; public domain by age.
+    notes: >-
+      Library question 10 asks whether Buber's notes should be used as well as his texts.
+
   - id: pesikta-rabbati
     title: "Pesikta Rabbati"
     hebrew: פסיקתא רבתי
@@ -7943,6 +8201,21 @@ works:
         license: verify
         sefaria_versions:
           - version: "Pirke DeRabbi Eliezer, Sefaria Vocalized Edition"
+            license: "Public Domain"
+      - name: "Pirke de Rabbi Eliezer, translated by Rabbi Gerald Friedlander"
+        language: en
+        publisher: "Kegan Paul, London (1916)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The translation without Rabbi Friedlander's footnotes. Rabbi Gerald Friedlander
+          (1871-1923) studied at Jews' College and was minister of the Western Synagogue in
+          London; he was known for defending Orthodox teaching against Liberal Judaism (to
+          confirm). Sefaria also has his annotated edition; its notes draw on academic
+          scholarship of the time, so it is left out until the board looks at it.
+        sefaria_versions:
+          - version: "Pirke de Rabbi Eliezer, trans. Rabbi Gerald Friedlander, London, 1916"
             license: "Public Domain"
 
   - id: beur-haradal-on-pirkei-derabbi-eliezer
@@ -9772,9 +10045,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (43 comments quote opening words, 65.1% of them found in the
+          same halakhah); every one of its words also appears elsewhere in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9799,9 +10073,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 88.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.05% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9826,9 +10101,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (4 comments quote opening words, 0.0% of them found in the
+          same halakhah); 0.04% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9851,9 +10127,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (4 comments quote opening words, 50.0% of them found in the
+          same halakhah); every one of its words also appears elsewhere in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9878,10 +10155,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Sefaria lists this
-          printing as public domain although it is less than 95 years old; that is enough
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 91.9% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.15% of its words appear nowhere else in Sefaria.
+          Sefaria lists it as public domain although it is less than 95 years old; that is enough
           for private testing, but worth confirming before any public use.
         sefaria_versions:
           - version: "Friedberg Edition"
@@ -9907,10 +10185,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Some titles carry
-          another license (unknown); those files are skipped.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 76.9% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.08% of its words appear nowhere else in Sefaria.
+          Sefaria lists 2 of its 81 titles with an unknown license; those are left out.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9935,9 +10214,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 94.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.1% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9962,9 +10242,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 67.3% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.65% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -9989,9 +10270,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 88.9% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.1% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10017,9 +10299,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and its comments are essays, not
+          keyed to the Rambam's opening words, so the check against the Mishneh Torah does not
+          apply; 0.37% of its words appear nowhere else in Sefaria (Torat Emet and Warsaw 1881
+          texts: about 0.1%).
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10044,11 +10328,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Sefaria lists this
-          printing as public domain although it is less than 95 years old; that is enough
-          for private testing, but worth confirming before any public use.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and its comments are numbered essays,
+          not keyed to the Rambam's opening words, so the check against the Mishneh Torah does not
+          apply; 0.31% of its words appear nowhere else in Sefaria (Torat Emet and Warsaw 1881
+          texts: about 0.1%).
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10074,9 +10358,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (13 comments quote opening words, 69.2% of them found in the
+          same halakhah); 0.07% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10101,9 +10386,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (28 comments quote opening words, 60.7% of them found in the
+          same halakhah); 0.12% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10129,9 +10415,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 83.6% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and every one of its words also appears elsewhere in
+          Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10156,9 +10444,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 75.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.14% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10183,9 +10472,12 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 81.1% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.4% of its words appear nowhere else in Sefaria. It
+          carries about 2,150 editor's footnotes giving Talmud page numbers; the library build
+          already leaves footnotes out.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10211,9 +10503,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 76.3% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.07% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10238,9 +10531,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 83.9% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.21% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10266,12 +10560,13 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. The author died in 1953.
-          Sefaria lists this printing as public domain although it is less than 95 years
-          old; that is enough for private testing, but worth confirming before any public
-          use.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 84.6% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.14% of its words appear nowhere else in Sefaria. About
+          13% of its paragraphs are repeated under neighbouring halakhot (a comment on several
+          halakhot is attached to each), and the author's addenda are inserted in place under
+          labels such as "השמטות ומלואים".
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10297,11 +10592,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Sefaria lists this
-          printing as public domain although it is less than 95 years old; that is enough
-          for private testing, but worth confirming before any public use.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 75.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.39% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10326,9 +10620,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 80.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.14% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10358,6 +10653,19 @@ works:
           skipped.
         sefaria_versions:
           - version: "ToratEmet"
+            license: "Public Domain"
+      - name: "English, from Rabbi Simon Glazer's Mishneh Torah"
+        language: en
+        publisher: "Maimonides Publishing Co., New York (1927)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The Ra'avad's glosses on the Book of Knowledge, as Rabbi Simon Glazer translated
+          them with his Mishneh Torah. Rabbi Glazer (1876-1938) served Orthodox congregations
+          in the United States and Canada and helped found the Agudath HaRabbanim (to confirm).
+        sefaria_versions:
+          - version: "Mishnah Torah, Yod ha-hazakah, trans. by Simon Glazer, 1927"
             license: "Public Domain"
 
   - id: kessef-mishneh-on-mishneh-torah
@@ -10408,9 +10716,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and its comments are arranged by the
+          count of mitzvot, not by the Rambam's opening words, so the check against the Mishneh
+          Torah does not apply; 0.15% of its words appear nowhere else in Sefaria (Torat Emet and
+          Warsaw 1881 texts: about 0.1%).
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10435,9 +10745,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 78.3% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.11% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10489,9 +10800,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 97.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.33% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10517,9 +10829,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 96.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.09% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10545,9 +10858,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 71.6% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.55% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10573,9 +10887,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 84.7% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.18% of its words appear nowhere else in Sefaria. 23
+          stray typesetting codes (@04, @50) are left in the text.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10628,9 +10944,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 76.5% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.08% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10656,9 +10973,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 82.5% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.19% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10684,10 +11002,13 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Some titles carry
-          another license (unknown); those files are skipped.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 89.7% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.11% of its words appear nowhere else in Sefaria. It
+          has some editor's corrections in square brackets beside the printed word in round
+          brackets (about 7 per 10,000 words). Sefaria lists 1 of its 54 titles with an unknown
+          license; those are left out.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10713,9 +11034,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 71.9% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.12% of its words appear nowhere else in Sefaria. Its
+          source references in small type (for example "(דף נ"ט)") come from a modern editor.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10767,9 +11090,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 88.6% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.09% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10795,9 +11119,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 86.8% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.2% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10822,9 +11147,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 83.3% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and every one of its words also appears elsewhere in
+          Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10850,9 +11177,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (3 comments quote opening words, 66.7% of them found in the
+          same halakhah); 0.18% of its words appear nowhere else in Sefaria. It has several
+          editor's corrections in square brackets beside the printed word in round brackets.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10877,9 +11206,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 76.1% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.22% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10905,9 +11235,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 69.2% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.27% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10933,9 +11264,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 81.3% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.15% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10961,9 +11293,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and its comments are arranged by
+          topic ("shoresh"), not by the Rambam's opening words, so the check against the Mishneh
+          Torah does not apply; 0.21% of its words appear nowhere else in Sefaria (Torat Emet and
+          Warsaw 1881 texts: about 0.1%).
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -10988,9 +11322,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 85.6% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.2% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11043,9 +11378,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 90.7% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.07% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11068,9 +11404,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, and it is too short to check reliably
+          against the Mishneh Torah (25 comments quote opening words, 80.0% of them found in the
+          same halakhah); 0.17% of its words appear nowhere else in Sefaria. It has several
+          editor's corrections in square brackets beside the printed word in round brackets.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11095,10 +11433,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Some titles carry
-          another license (unknown); those files are skipped.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 85.2% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.05% of its words appear nowhere else in Sefaria.
+          Sefaria lists 1 of its 71 titles with an unknown license; those are left out.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11123,10 +11462,13 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Some titles carry
-          another license (unknown); those files are skipped.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 84.2% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.09% of its words appear nowhere else in Sefaria. Its
+          text has many bracketed words that an editor restored (about 10 bracketed corrections
+          per 10,000 words). Sefaria lists 1 of its 2 titles with an unknown license; those are
+          left out.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11152,11 +11494,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows. Sefaria lists this
-          printing as public domain although it is less than 95 years old; that is enough
-          for private testing, but worth confirming before any public use.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 86.0% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.07% of its words appear nowhere else in Sefaria.
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -11182,9 +11523,12 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Most titles come from the Friedberg Edition, a digital edition of the Mishneh
-          Torah and its commentaries prepared for the Friedberg Jewish Manuscript Society;
-          reviewers may want to confirm which printings it follows.
+          Friedberg Edition (Friedberg Jewish Manuscript Society): Sefaria names no printing for
+          it and has no second copy to compare word by word, so it was checked against the Mishneh
+          Torah: 87.4% of its comments open with words found in the same halakhah (Torat Emet and
+          Warsaw 1881 texts: 67-92%), and 0.17% of its words appear nowhere else in Sefaria. It
+          has some editor's corrections in square brackets beside the printed word in round
+          brackets (about 6 per 10,000 words).
         sefaria_versions:
           - version: "Friedberg Edition"
             license: "Public Domain"
@@ -13225,10 +13569,21 @@ works:
         license: verify
         notes: >-
           The Hebrew of the responsa as printed in Rabbi Moshe David Tendler's bilingual
-          selection. His English translation is left out until the board confirms the
-          translator.
+          selection.
         sefaria_versions:
           - version: "Iggerot Moshe, New York, 1985"
+            license: "CC-BY"
+      - name: "Care of the Critically Ill, translated by Rabbi Moshe David Tendler"
+        language: en
+        publisher: "Ktav (1996)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Moshe David Tendler was a rosh yeshiva at Yeshiva University's rabbinical
+          school (RIETS) and Rav Moshe Feinstein's son-in-law.
+        sefaria_versions:
+          - version: "Responsa of Rav Moshe Feinstein, trans. by Moshe David Tendler; Vol. 1: Care of the Critically Ill, Hoboken, NJ: Ktav, 1996."
             license: "CC-BY"
     notes: >-
       A small selection from Igrot Moshe; the full work is the igrot-moshe entry above.
@@ -14639,7 +14994,8 @@ works:
             license: "Public Domain"
     notes: >-
       Joseph Gorfinkle's 1912 edition (Hebrew and English), which Sefaria also hosts, is
-      left out until the board knows the editor (library question 12).
+      excluded: he studied at Hebrew Union College and led a Reform congregation. See
+      excluded.yaml.
 
   - id: haemunot-vehadeot
     title: "HaEmunot VeHaDeot (Rav Saadia Gaon)"
@@ -14869,6 +15225,19 @@ works:
         sefaria_versions:
           - version: "Chovat Halevavot, Warsaw 1875"
             license: "Public Domain"
+      - name: "English, from Rabbi Yosef Sebag's Duties of the Heart"
+        language: en
+        publisher: "dafyomireview.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The passages of this commentary that Rabbi Yosef Sebag translated alongside his
+          Duties of the Heart. Rabbi Sebag studied in yeshivas under Rabbi Dov Schwartzman,
+          Rabbi Nachman Bulman and Rabbi Nissan Kaplan (to confirm).
+        sefaria_versions:
+          - version: "Duties of the Heart, trans. Rabbi Yosef Sebag"
+            license: "CC-BY"
 
   - id: marpeh-lanefesh-on-duties-of-the-heart
     title: "Marpeh LaNefesh (on Chovot HaLevavot)"
@@ -14891,6 +15260,19 @@ works:
         sefaria_versions:
           - version: "Chovat Halevavot, Warsaw 1875"
             license: "Public Domain"
+      - name: "English, from Rabbi Yosef Sebag's Duties of the Heart"
+        language: en
+        publisher: "dafyomireview.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The passages of this commentary that Rabbi Yosef Sebag translated alongside his
+          Duties of the Heart. Rabbi Sebag studied in yeshivas under Rabbi Dov Schwartzman,
+          Rabbi Nachman Bulman and Rabbi Nissan Kaplan (to confirm).
+        sefaria_versions:
+          - version: "Duties of the Heart, trans. Rabbi Yosef Sebag"
+            license: "CC-BY"
 
   - id: beit-elohim
     title: "Beit Elohim (the Mabit)"
@@ -15454,7 +15836,7 @@ works:
     streams: [shared, litvish]
     status: proposed
     sefaria:
-      re: "^(Ahavat Yisrael|Davar BeItto|Kuntres Chovat HaShemirah|Kuntres Sefat Tamim|Ma'amar Torat HaBayit)$"
+      re: "^(Ahavat Yisrael|Davar BeItto|Kuntres Chovat HaShemirah|Kuntres Sefat Tamim|Ma'amar Torat HaBayit|Ma'amar Tzipita LeYeshuah)$"
       root: "Musar"
     editions:
       - name: "Hebrew text"
@@ -15477,6 +15859,20 @@ works:
           - version: "Piotrkow, 1928"
             license: "Public Domain"
             printed: 1928
+      - name: "Anticipating Redemption (Ma'amar Tzipita LeYeshuah), translated by Rabbis Amiram and Yehudah Markel"
+        language: en
+        publisher: "Neirot (2023)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into
+          English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
+          Sefaria's Hebrew of Tzipita LeYeshuah (Torat Emet) has no license listed, so only this
+          English is in the testing library for it.
+        sefaria_versions:
+          - version: "Anticipating Redemption, trans. by Rabbi Amiram Markel and Rabbi Yehudah S. Markel, 2023"
+            license: "CC-BY"
 
   - id: cheshbon-hanefesh
     title: "Cheshbon HaNefesh"
@@ -15956,10 +16352,22 @@ works:
         sefaria_versions:
           - version: "Warsaw, 1913"
             license: "Public Domain"
+      - name: "The Way of the Baal Shem Tov, adapted by Rabbis Amiram and Yehudah Markel"
+        language: en
+        publisher: "Neirot"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into
+          English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
+          An adaptation rather than a line-by-line translation, as its title says.
+        sefaria_versions:
+          - version: "The Way of The Baal Shem Tov. Adapted into English by Rabbi Amiram Markel and Yehudah Shimon Markel, 2020"
+            license: "CC-BY"
     notes: >-
       Debated (library question 8): teachings of the Baal Shem Tov and the Maggid of Mezritch
-      gathered by students, and long discussed by other authorities. Rabbis Amiram and
-      Yehudah Markel's English is left out until the board confirms the translators.
+      gathered by students, and long discussed by other authorities.
 
   - id: chayei-moharan
     title: "Chayei Moharan"
@@ -16063,6 +16471,111 @@ works:
           - version: "Rabbi Nachman's Wisdom, trans. Aryeh Kaplan, Jerusalem. Breslov Research Institute, 1973"
             license: "CC-BY-NC"
 
+  - id: likutei-halakhot
+    title: "Likutei Halakhot (Rebbe Natan of Breslov)"
+    hebrew: ליקוטי הלכות
+    author: "Nathan Sternhartz (Rebbe Natan of Breslov)"
+    dates: "written c. 1814-1844"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^Likutei Halakhot$"
+      root: "Chasidut"
+    editions:
+      - name: "Hebrew text, Breslov Research Institute edition"
+        language: he
+        publisher: "Breslov Research Institute (2019)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Only the beginning of the work so far: Rebbe Natan's introduction and the opening of
+          Orach Chaim, with vowels. Sefaria's other Hebrew (from Or HaGanuz) has no license
+          listed.
+        sefaria_versions:
+          - version: "Likutey Halakhot, Breslov Research Institute. Jerusalem-New York, 2019"
+            license: "CC-BY-NC"
+      - name: "Likutey Halakhot, translated by Moshe Mykoff with Dov Grant"
+        language: en
+        publisher: "Breslov Research Institute (2019)"
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Likutey Halakhot, Breslov Research Institute. Translated and elucidated by Moshe Mykoff with Dov Grant Jerusalem-New York, 2019"
+            license: "CC-BY-NC"
+
+  - id: likutei-tefilot
+    title: "Likutei Tefilot (Rebbe Natan of Breslov)"
+    hebrew: ליקוטי תפילות
+    author: "Nathan Sternhartz (Rebbe Natan of Breslov)"
+    dates: "written c. 1810-1820"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^Likutei Tefilot$"
+      root: "Chasidut"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Sefaria's Hebrew (Maleh Vigadish, 2021) has no license listed, so only the English is
+          in the testing library.
+      - name: "The Fiftieth Gate, the Breslov Research Institute's translation"
+        language: en
+        publisher: "Breslov Research Institute (1992-2016)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Translated, as far as we know, by Rabbi Avraham Greenbaum (to confirm).
+        sefaria_versions:
+          - version: "The Fiftieth Gate. Breslov Research Institute, Jerusalem, c1992-c2016"
+            license: "CC-BY-NC"
+
+  - id: likkutei-etzot
+    title: "Likkutei Etzot (Rebbe Nachman's advice, gathered by Rebbe Natan)"
+    hebrew: ליקוטי עצות
+    author: "Nachman of Breslov; gathered by Nathan Sternhartz"
+    dates: "printed 1816"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^Likkutei Etzot$"
+      root: "Chasidut"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Sefaria's Hebrew (from rabenubook.com) has no license listed, so only the English is
+          in the testing library.
+      - name: "Advice, the Breslov Research Institute's translation"
+        language: en
+        publisher: "Breslov Research Institute (2015)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Translated, as far as we know, by Rabbi Avraham Greenbaum (to confirm).
+        sefaria_versions:
+          - version: "Advice. Breslov Research Inst., 2015"
+            license: "CC-BY-NC"
+
   - id: derekh-mitzvotekha
     title: "Derekh Mitzvotekha (the Tzemach Tzedek)"
     hebrew: דרך מצותיך
@@ -16085,6 +16598,41 @@ works:
         sefaria_versions:
           - version: "Kehot Publication Society"
             license: "CC-BY-NC"
+
+  - id: shaar-hayichud-mitteler-rebbe
+    title: "Sha'ar HaYichud (the Mitteler Rebbe)"
+    hebrew: נר מצוה ותורה אור; שער היחוד
+    author: "Dov Ber Schneuri (the Mitteler Rebbe, second Lubavitcher Rebbe)"
+    dates: "printed 1820"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish, chabad]
+    status: proposed
+    sefaria:
+      re: "^The Gate of Unity$"
+      root: "Chasidut"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Sefaria's Hebrew (Neirot, 2023) has no license listed, so only the English is in the
+          testing library.
+      - name: "The Gate of Unity, translated by Rabbi Amiram Markel"
+        language: en
+        publisher: "Neirot (2023)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into
+          English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
+        sefaria_versions:
+          - version: "Translated by Rabbi Amiram Markel, 2023"
+            license: "CC-BY"
 
   - id: likkutei-torah
     title: "Likkutei Torah (the Alter Rebbe)"
@@ -16364,6 +16912,19 @@ works:
         sefaria_versions:
           - version: "Sefer Baal Shem Tov. Lodz, 1938"
             license: "Public Domain"
+      - name: "Baal Shem Tov: mystical teachings on the weekly Torah portion, by Rabbi Eliezer Shore"
+        language: en
+        publisher: "Rabbi Eliezer Shore (2012)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Eliezer Shore teaches Chassidic thought in Jerusalem, including at Yeshivat Bat
+          Ayin, and wrote his doctorate at Bar-Ilan University on Rebbe Nachman of Breslov (to
+          confirm).
+        sefaria_versions:
+          - version: "Baal Shem Tov; mystical teachings on the weekly Torah portion; by Rabbi Eliezer Shore. 2012"
+            license: "CC-BY-NC"
 
   - id: bat-ayin
     title: "Bat Ayin"
@@ -17384,8 +17945,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          A digital transcription from hebrew.grimoar.cz, a site that transcribes
-          traditional printings; reviewers may want to compare it with a printed edition.
+          A digital transcription from hebrew.grimoar.cz. All 32 gates are present and the chapter
+          counts match the table of contents printed in the Koretz 1780 edition (288 chapters
+          against the 287 that index counts), but no second full copy exists to compare word by
+          word; the Bible and Zohar references in parentheses and a few bracketed corrections were
+          added by a modern editor.
         sefaria_versions:
           - version: "Pardes Rimonim"
             license: "Public Domain"
@@ -17413,8 +17977,9 @@ works:
         status: proposed
         license: verify
         notes: >-
-          One version is a digital transcription ("grimoar"); the other is the Fürth 1701
-          printing.
+          The main text is a digital transcription (hebrew.grimoar.cz) with all seven parts. It
+          could not be compared word by word: Sefaria's only other copy, the Fürth 1701 printing,
+          holds just the title page and approbations, which the transcription lacks.
         sefaria_versions:
           - version: "Or Neerav -- grimoar"
             license: "Public Domain"
@@ -17440,7 +18005,9 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Kalach Pitchei Chochmah is a digital transcription from hebrew.grimoar.cz.
+          Kalach Pitchei Chochmah is a digital transcription from hebrew.grimoar.cz with all 138
+          openings. No other Hebrew copy exists on Sefaria to compare it with, and its topic
+          headings (with ranges such as [א-ד]) were added by a modern editor.
         sefaria_versions:
           - version: "Kalach Pitchei Chokhmah -- grimoar"
             license: "Public Domain"
@@ -17448,6 +18015,19 @@ works:
             license: "CC-BY-SA"
           - version: "Assarah Perakim -- Torat Emet"
             license: "Public Domain"
+      - name: "138 Openings of Wisdom (Kalach Pitchei Chochmah), translated by Rabbi Avraham Greenbaum"
+        language: en
+        publisher: "The Azamra Institute (2005)"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Avraham Greenbaum, ordained in Jerusalem in 1988, teaches Chassidut and
+          Kabbalah through the Azamra Institute and has translated many works of Rebbe Nachman
+          of Breslov (to confirm).
+        sefaria_versions:
+          - version: "138 Openings of Wisdom, translated by Rabbi Avraham Greenbaum. The Azamra Institute, 2005"
+            license: "CC-BY-NC"
 
   - id: kitvei-arizal
     title: "The Arizal's teachings as written by Rabbi Chaim Vital (Etz Chaim, Pri Etz Chaim, the Shemonah She'arim and Sha'arei Kedushah)"
@@ -17468,8 +18048,11 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Several titles are digital transcriptions from hebrew.grimoar.cz; others are
-          Jerusalem printings of 1863-1909.
+          Eight titles are digital transcriptions from hebrew.grimoar.cz; three are Jerusalem
+          printings of 1863-1909. Where the same text appears in both (Rabbi Shmuel Vital's
+          introduction), the transcription agrees with the 1872 printing in about 97% of words
+          once the printing's abbreviations are written out; one section of Sha'ar Ma'amarei Razal
+          and one passage of Sha'ar HaKavanot appear twice.
         sefaria_versions:
           - version: "Pri Etz Chaim"
             license: "Public Domain"
@@ -17493,10 +18076,20 @@ works:
             license: "Public Domain"
           - version: "Shaarei Kedusha"
             license: "Public Domain"
+      - name: "Sha'arei Kedushah (Gates of Holiness), translated by Rabbi Amiram Markel"
+        language: en
+        publisher: "TrueKabbalah.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into
+          English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
+        sefaria_versions:
+          - version: "Gates of Holiness, translated by Rabbi Amiram Markel, 2013"
+            license: "CC-BY"
     notes: >-
-      Rabbi Amiram Markel's English for Sha'arei Kedushah is left out until the board
-      confirms the translator. Kabbalah waits on library questions 1 to 3 (how RabAI treats
-      Kabbalah).
+      Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
 
   - id: beur-eser-sefirot
     title: "Be'ur Eser Sefirot (Rabbi Azriel of Gerona)"
@@ -17519,8 +18112,9 @@ works:
         status: proposed
         license: verify
         notes: >-
-          A digital transcription from hebrew.grimoar.cz, a site that transcribes
-          traditional printings; reviewers may want to compare it with a printed edition.
+          A short digital transcription from hebrew.grimoar.cz (twelve sections). No other copy
+          exists on Sefaria to compare it with, and a modern editor added a few corrections in
+          square brackets beside the original words in round brackets.
         sefaria_versions:
           - version: "Be'ur Eser S'firot - grimoar"
             license: "Public Domain"
@@ -17546,8 +18140,10 @@ works:
         status: proposed
         license: verify
         notes: >-
-          A digital transcription from hebrew.grimoar.cz, a site that transcribes
-          traditional printings; reviewers may want to compare it with a printed edition.
+          A digital transcription from hebrew.grimoar.cz with the introduction, all seven
+          "springs" (ma'ayanot) and Breichat Avraham. No other copy exists on Sefaria to compare
+          it with, and a modern editor added a few corrections in square brackets beside the
+          original words in round brackets.
         sefaria_versions:
           - version: "Chesed le-Avraham -- grimoar"
             license: "Public Domain"
@@ -17692,12 +18288,14 @@ works:
     editions:
       - name: "Hebrew text"
         language: he
-        orthodox: true
+        orthodox: review
         status: proposed
         license: verify
         notes: >-
-          A digital transcription from hebrew.grimoar.cz, a site that transcribes
-          traditional printings; reviewers may want to compare it with a printed edition.
+          A digital transcription (hebrew.grimoar.cz) into which a modern editor inserted Hebrew
+          translations of the Zohar passages Recanati quotes, in angle brackets: about 22% of its
+          words (4,321 insertions in 44 of the 54 portions) are not Recanati's. Held for review
+          until a copy without these insertions is found, or they can be removed.
         sefaria_versions:
           - version: "Recanati on the Torah"
             license: "Public Domain"
@@ -17747,14 +18345,24 @@ works:
         status: proposed
         license: verify
         notes: >-
-          A digital transcription from hebrew.grimoar.cz, a site that transcribes
-          traditional printings; reviewers may want to compare it with a printed edition.
+          A digital transcription from hebrew.grimoar.cz with the introduction and all ten gates
+          (the third and fourth combined, as in the printings). No other copy exists on Sefaria to
+          compare it with, and its Bible references in parentheses were added by a modern editor.
         sefaria_versions:
           - version: "Shaarei Orah, grimoar"
             license: "Public Domain"
-    notes: >-
-      Rabbis Amiram and Yehudah Markel's English is left out until the board confirms the
-      translators.
+      - name: "Gates of Light, translated by Rabbis Amiram and Yehudah Markel"
+        language: en
+        publisher: "Neirot"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into
+          English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
+        sefaria_versions:
+          - version: "Gates of Light, trans. by Rabbi Amiram Markel and Rabbi Yehudah S. Markel, 2023"
+            license: "CC-BY"
 
   - id: shomer-emunim-ergas
     title: "Shomer Emunim (Rabbi Yosef Ergas)"

@@ -315,3 +315,69 @@ excluded:
       - "Tales of Rabbi Nachman -- Wikisource"
       - "Tikkun HaKlali - Wikisource "
       - "Ben Ish Chai  by Yosef Chayim, translated by Wikisource"
+
+  # The entries below come from the license pass of 2026-10-07 (library question 12: English
+  # translators the board doesn't know). Each was checked against public sources, and each
+  # reason gives the evidence found. Version names are exactly as Sefaria lists them.
+
+  - id: greenspan-translations
+    title: Translations by Rabbi Mark B. Greenspan (Haggadah commentaries, Abudarham, Nachal Eshkol and others)
+    reason: >-
+      The translator is a Conservative rabbi; he led the Oceanside Jewish Center, a
+      Conservative congregation, from 1997 to 2024.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Rabbi Mark Greenspan"
+      - "Rabbi Mark B Greenspan"
+      - "Rabbi Mark Greenspan, 2021"
+      - "Rabbi Mark Greenspan, 2022"
+      - "Rabbi Mark Greenspan, 2023"
+      - "Midrash BeChiddush, translated by Rabbi Mark B. Greenspan, Oceanside, N.Y. 2024"
+      - "Peirush Hafla'ah on Pesach Haggadah, translated and interpreted by Rabbi Mark B. Greenspan, Oceanside, NY, 2010"
+      - "Zevach Pesach, translated by Rabbi Mark B. Greenspan, Oceanside, N.Y. 2019"
+
+  - id: alpert-translations
+    title: Translations by Rabbi Robert Alpert (Bartenura on the Mishnah, the Rambam on the Mishnah)
+    reason: >-
+      Not Orthodox: Sefaria itself names him a Conservative rabbi in one version title, and he
+      teaches at the Academy for Jewish Religion, a non-Orthodox seminary.
+    board_may_reconsider: false
+    notes: >-
+      One more version, "Bartenura on Mishnah, trans. by Rabbi Robert Alpert, 2020" with a
+      non-breaking space after "Rabbi", is barred by the first name below, since names are
+      compared without spaces or punctuation.
+    sefaria_versions:
+      - "Bartenura on Mishnah, trans. by Rabbi Robert Alpert, 2020"
+      - "Bartenura on Mishnah, trans. by Rabbi Robert Alpert, 2022"
+      - "Bartenura on Mishnah, trans. by Rabbi Robert Alpert (Conservative), 2020"
+      - "Translation by Rabbi Robert Alpert, 2023"
+
+  - id: gorfinkle-translations
+    title: Joseph I. Gorfinkle's editions (the Eight Chapters, 1912; Pirkei Avot, 1913)
+    reason: >-
+      The editor studied at Hebrew Union College (Reform) and was rabbi of Sinai Temple in
+      Mount Vernon, New York. Public domain, which makes it easy to import by mistake.
+    board_may_reconsider: true
+    notes: >-
+      Sefaria uses the Eight Chapters version name for both his Hebrew text and his English,
+      so this bars both. The canon's Eight Chapters uses the Wikisource Hebrew instead.
+    sefaria_versions:
+      - "The Eight Chapters of Maimonides on Ethics, by Joseph I Gorfinkle"
+      - "The Saying of the Jewish Fathers: Gorfinkle 1913"
+
+  - id: sefer-hayirah-kerber
+    title: Sefer HaYirah, translated by Rabbi Justin S. Kerber (2007)
+    reason: >-
+      As far as we know the translator is rabbi of B'nai Sholom in Quincy, Illinois, a Reform
+      congregation.
+    board_may_reconsider: true
+    notes: To confirm that this is the same Rabbi Justin Kerber.
+    sefaria_versions:
+      - "Sefer ha-Yirah, trans. Rabbi Justin S. Kerber, 2007"
+
+  - id: tzav-vezeruz-glazer
+    title: Tzav VeZeruz (the Piaseczno Rebbe), translated by Aubrey Glazer (2025)
+    reason: The translator received his rabbinic ordination from the Jewish Theological Seminary (Conservative).
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Tzav veZiruz translation by Aubrey Glazer, 2025"

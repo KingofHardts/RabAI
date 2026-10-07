@@ -23,9 +23,9 @@ After this comparison, the suggested additions were added to `canon/canon.yaml`,
 - The canon went from 89 works to **707**: 618 new works, and 14 existing works widened (the
   easy fixes in section 5, plus the Chayei Adam, Mishnah Berurah and Or Yisrael files).
 - The private testing library's plan went from 95 editions to **739**, and from about 811 MB
-  to about 2,449 MB of Sefaria files. The rebuilt library should be roughly 3.5 to 4.5 GB.
-  The maintainer checks the hosting plan's storage and the build's time limit before
-  rebuilding.
+  to about 2,449 MB of Sefaria files. A test build of that plan measured **4,025 MB**
+  (2,966,744 passages in 737 editions), which fits the hosting plan's 5 GB. The build's time
+  limit was raised to 5.5 hours.
 - **Kabbalah** is a new category with 30 works, all waiting on questions 1 to 3 below.
 - Debated works and authors (questions 4, 6, 7 and 8) are in with a neutral note naming the
   question. Rabbi Yosef ibn Yahya (question 5), the scholars' editions (question 9), works whose
@@ -33,6 +33,34 @@ After this comparison, the suggested additions were added to `canon/canon.yaml`,
   (question 12) stay out.
 - The non-Orthodox and machine translations in questions 11 and 13 are now listed by name in
   `canon/excluded.yaml`.
+
+**The license pass (also 2026-10-07).** A second pass went back over what stayed out and
+brought in what an open license or the age rule allows. The canon is now **714** works and the
+testing plan **767** editions, about **2,473 MB** of Sefaria files (24 MB more; still well
+under the hosting limit). Added, all **proposed**: Hebrew that names an old printing (the
+Sifra, Venice 1545; the Ritva and Hilkhot HaRamban on Nedarim, Vilna 1884; the Maharsha on
+Rosh Hashanah; the Shulchan Arukh's introduction, Venice 1565; Sforno on Song of Songs; the
+Ben Ish Chai's Benayahu, Jerusalem 1905; Buber's Midrash Mishlei, Vilna 1893, with his notes
+under question 10); English by translators found to be Orthodox rabbis (Rabbis Yosef Sebag,
+Amiram and Yehudah Markel, Moshe Tendler, Gerald Friedlander, Simon Glazer, S. H. Glick,
+Eliezer Shore, Avraham Greenbaum, Simeon Singer, Ari Enkin and Mike Feuer, each marked "to
+confirm"); the Breslov Research Institute's open English of Likutei Halakhot, Likutei Tefilot
+and Likkutei Etzot; and Rabbi Sacks's weekly Torah essay collections. Translators found to be
+Conservative or Reform rabbis (Mark Greenspan, Robert Alpert, Joseph Gorfinkle, Justin Kerber,
+Aubrey Glazer) are now in `canon/excluded.yaml`. The rest of question 17 needs someone's word;
+the requests are listed by organization in `docs/permissions-plan.md`. Questions 9 and 12 still
+have open items: Mandelbaum's Pesikta DeRav Kahana is the only one on Sefaria (Buber's 1868
+edition would need a digital text), and some translators could not be identified either way.
+
+**The transcription check (also 2026-10-07).** The eight Kabbalah works transcribed by
+hebrew.grimoar.cz and the 46 Mishneh Torah commentaries from the Friedberg Edition were checked
+for accuracy (`docs/transcription-check.md`). No second full copy of any of them exists to compare
+word by word, so the checks used partial overlaps, each book's structure, where comments sit, and
+typo rates, measured the same way on texts whose source is known. All but one look like careful
+copies, and each now has a note saying what was found. **Recanati on the Torah** is marked
+`orthodox: review` and left out of the testing library: about 22% of its words are a modern
+Hebrew translation of the Zohar passages it quotes, mixed into Recanati's own words, and they are
+not marked cleanly enough to remove by machine.
 
 A note in `canon/canon.yaml` that says "library question N" means question N in section 3
 below. The tables in sections 1, 2 and 4 describe the library before this change.
