@@ -1815,12 +1815,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             tapLine(p.ref);
           }}
         >
-          <span className="num">
-            <span>{isCommentary ? (author ?? p.label) : p.label}</span>
-            <span className="he" lang="he">
-              {p.labelHe}
+          {isCommentary ? (
+            <span className="num">
+              <span>{author ?? p.label}</span>
+              <span className="he" lang="he">
+                {p.labelHe}
+              </span>
             </span>
-          </span>
+          ) : (
+            // The verse or line number sits in the margin; the book is named in the bar above.
+            <span className="vnum" title={p.label}>
+              {p.label.split(":").pop()}
+            </span>
+          )}
           <span className="he" lang="he">
             {p.tokens.length
               ? p.tokens.map((t, i) => (
