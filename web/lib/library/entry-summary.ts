@@ -60,22 +60,34 @@ export function firstSense(entry: { text: string; headword: string; lang: "he" |
 
   if (entry.headword && t.startsWith(entry.headword)) t = t.slice(entry.headword.length);
   t = t.replace(/^\s*[IVX]+\b/, "").trim();
-  // The etymology and grammar notes in parentheses come first.
-  for (let n = 0; n < 6; n++) {
+  // The first numbered sense, "1))", starts the meaning. Jastrow sometimes puts it inside the
+  // etymology's parentheses ("(b. h.; √אך to rub, 1)) to gnaw"), so look for it before those go.
+  const deep = /(?:^|[\s,;(])1\)\)\s/.exec(t.slice(0, 600));
+  if (deep) t = t.slice(deep.index + deep[0].length);
+  // Otherwise the etymology and grammar notes in parentheses come first.
+  for (let n = 0; n < 6 && !deep; n++) {
     t = t.replace(/^[\s,;]+/, "");
     const rest = dropGroup(t, "(", ")");
     if (rest === null) break;
     t = rest;
   }
-  // Start at the first numbered sense, "1))" (or "1)" near the start), when there is one.
-  const sense = /(?:^|\s)1\)\)\s/.exec(t.slice(0, 600)) ?? /(?:^|\s)1\)\s/.exec(t.slice(0, 160));
+  // Or a "1)" near the start.
+  const sense = deep ? null : /(?:^|\s)1\)\s/.exec(t.slice(0, 160));
   if (sense) t = t.slice(sense.index + sense[0].length);
-  else {
+  else if (!deep) {
     // Otherwise leave out a bracketed root meaning in front, when something follows it.
     const rest = dropGroup(t.replace(/^[\s,;]+/, ""), "[", "]");
     if (rest && rest.trim().length > 3) t = rest;
   }
-  t = t.replace(/^[\s,;:—-]+/, "").trim();
+  t = t.replace(/^[\s,;:—)\]-]+/, "").trim();
   t = t.slice(0, sourcesStart(t)).trim();
+  // An entry that only points to another one ("Y. Keth. IV, 29ᵇ, v. וָתַר") has no meaning of its
+  // own before its sources: show where it points ("v." is Jastrow's "see").
+  if (t.length < 4 || /^[A-Z][a-z]{0,4}\.$/.test(t)) {
+    const see = /\bv\.\s+([^\s,;.]+(?:\s+[IVX]+\b)?)/.exec(entry.text);
+    if (see) return `see ${see[1]}`;
+    t = "";
+  }
+  if (/^v\.\s/.test(t)) t = `see ${t.slice(3)}`;
   return clip(t || entry.text.replace(/\s+/g, " ").trim());
 }

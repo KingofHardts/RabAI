@@ -29,6 +29,8 @@ import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
 import ContentsGrid from "./ContentsGrid";
+import DafColumn from "./DafColumn";
+import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import type { CatalogBook } from "@/lib/library/catalog";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
@@ -514,6 +516,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [dafPick, setDafPick] = useState<{ ref: string; index: number; word: string; part: "main" | "rashi" | "tosafot"; printedAs?: string } | null>(null);
   const [dafZoom, setDafZoom] = useState(1);
   const [dafVowels, setDafVowels] = useState(false);
+  /** The Gemara alone in one column, instead of the whole printed page. */
+  const [dafColumn, setDafColumn] = useState(false);
+  /** A one-time note on a phone: pinch or double-tap to zoom the page. */
+  const [dafZoomHint, setDafZoomHint] = useState(false);
+  const dafMainRef = useRef<HTMLDivElement>(null);
   const dafZoomChosen = useRef(false);
   const [dafQuestion, setDafQuestion] = useState("");
   const [dafMenu, setDafMenu] = useState<"view" | "contents" | null>(null);
@@ -548,6 +555,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     }
     setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
+    setDafColumn(readStored("rabai_daf_column", ["on", "off"] as const, "off") === "on");
+    setDafZoomHint(readStored("rabai_daf_zoom_hint", ["seen", "new"] as const, "new") === "new");
     setMyWords(readSavedWords());
     setTranslations(Object.fromEntries(Object.entries(readKeptTranslations()).map(([ref, result]) => [ref, { result }])));
     setSpeechOk(canSpeak());
@@ -645,11 +654,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   }, [reader]);
 
   // ---- the Gemara page ----
+  usePinchZoom(dafMainRef, {
+    zoom: dafZoom,
+    min: 1,
+    max: 4,
+    enabled: !!daf && !dafColumn,
+    onZoom: (z) => {
+      dafZoomChosen.current = true;
+      setDafZoom(z);
+      if (dafZoomHint) {
+        setDafZoomHint(false);
+        store("rabai_daf_zoom_hint", "seen");
+      }
+    },
+  });
   const openDaf = useCallback(async (ref: string) => {
     const at = parseAmud(ref);
     if (!at) return;
-    // On a phone the page starts larger, so the Gemara can be read; it scrolls sideways.
-    if (window.innerWidth < 640 && !dafZoomChosen.current) setDafZoom(1.5);
     const section = `${at.tractate} ${at.daf}${at.amud}`;
     setDafRef(section);
     setDaf((d) => (d && d.section === section ? d : null));
@@ -2147,15 +2168,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <div className="view-row">
                 <span>Page size</span>
                 <div className="seg" role="group" aria-label="Page size">
-                  <button type="button" aria-label="Smaller page" disabled={dafZoom <= 1} onClick={() => {
+                  <button type="button" aria-label="Smaller page" disabled={dafZoom <= 1 || dafColumn} onClick={() => {
                       dafZoomChosen.current = true;
-                      setDafZoom((z) => Math.max(1, z - 0.5));
+                      setDafZoom((z) => Math.max(1, Math.ceil(z * 2 - 1.01) / 2));
                     }}>
                     −
                   </button>
-                  <button type="button" aria-label="Bigger page" disabled={dafZoom >= 3} onClick={() => {
+                  <button type="button" aria-label="Bigger page" disabled={dafZoom >= 4 || dafColumn} onClick={() => {
                       dafZoomChosen.current = true;
-                      setDafZoom((z) => Math.min(3, z + 0.5));
+                      setDafZoom((z) => Math.min(4, Math.floor(z * 2 + 1.01) / 2));
                     }}>
                     +
                   </button>
@@ -2179,6 +2200,20 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </span>
               </label>
               {daf && !daf.main.some((p) => p.vowels) && <p className="fine-left">The library has no vowels for this tractate yet.</p>}
+              <label className="rb-check">
+                <input
+                  type="checkbox"
+                  checked={dafColumn}
+                  onChange={() =>
+                    setDafColumn((v) => {
+                      store("rabai_daf_column", v ? "off" : "on");
+                      return !v;
+                    })
+                  }
+                />
+                The Gemara alone, larger
+              </label>
+              {dafColumn && <p className="fine-left">Rashi and Tosafot are in the card when you tap a word.</p>}
               <label className="rb-check narrow-only">
                 <input type="checkbox" checked={showOutline} disabled={!daf || outlineState?.loading} onChange={() => void showFlow()} />
                 Show the flow (RabAI’s outline)
@@ -2205,6 +2240,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <span className="tag-gray">Testing library</span> Not yet approved by the rabbinic board.
           </p>
         )}
+        {daf && !wide && !dafColumn && dafZoomHint && (
+          <p className="reader-hint daf-hint">
+            Pinch to zoom, or double-tap a spot. The Gemara alone, larger, is under View.{" "}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setDafZoomHint(false);
+                store("rabai_daf_zoom_hint", "seen");
+              }}
+            >
+              Got it
+            </button>
+          </p>
+        )}
         {outlineState?.error && <p className="daf-alert">{outlineState.error}</p>}
         {showOutline && outline && (
           <div className="daf-legend" aria-label="What the colors mean">
@@ -2217,7 +2267,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </div>
         )}
         <div className={`daf-body${picked ? " with-panel" : ""}`}>
-          <div className="daf-main">
+          <div className="daf-main" ref={dafMainRef}>
             {dafLoading ? (
               <p className="reader-state">
                 Opening the page<span className="dots" />
@@ -2246,6 +2296,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     },
                   };
                   const printed = daf.printed;
+                  if (dafColumn) return <DafColumn data={daf} {...props} />;
                   return printed ? <DafPrinted data={{ ...daf, printed }} {...props} /> : <DafPage data={daf} {...props} />;
                 })()}
                 {daf.printed && daf.printed.estimated.length > 0 && (

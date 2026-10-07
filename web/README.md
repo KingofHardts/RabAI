@@ -55,7 +55,11 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   word can be tapped: the same card opens in a side panel (a sheet on a phone), with the word
   and its meanings first, then the line's translation, the Rashi and Tosafot on that line
   (lightly shaded on the page) or the line a comment explains, and questions to ask RabAI; the
-  line's Hebrew and its four mark colors sit at the bottom. "Show the flow" colors each line by what it does (question, answer,
+  line's Hebrew and its four mark colors sit at the bottom. The tapped word is solid blue and its
+  line a soft tint; a mark is a highlighter stroke along the bottom of the words. On a phone the
+  page opens fitted to the screen: pinch to zoom, or double-tap a spot to zoom into it (and again
+  to see the whole page). "The Gemara alone, larger" (under View) sets just the Gemara in one
+  column; its Rashi and Tosafot stay in the card. "Show the flow" colors each line by what it does (question, answer,
   proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
   and is kept on the device. When the library has no English for a line, a Rashi or a Tosafot,
   "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under
