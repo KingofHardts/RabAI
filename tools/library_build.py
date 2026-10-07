@@ -72,6 +72,26 @@ def clean(text: str) -> str:
     return "\n".join(line.strip() for line in text.split("\n")).strip()
 
 
+ANGLE_SPAN_RE = re.compile(r"<[^<>]*>")
+EMPTY_STOP_RE = re.compile(r"([.:;,])(\s*[.:;,])+")
+
+
+def strip_angle(text: str) -> str | None:
+    """Remove an editor's additions set in angle brackets (canon: strip_brackets: angle).
+
+    Only innermost, well-formed spans are removed. If any bracket is left over, the passage can't be
+    separated cleanly and None is returned, so it is left out rather than quoted with the editor's words.
+    """
+    out = ANGLE_SPAN_RE.sub("", text)
+    if "<" in out or ">" in out:
+        return None
+    out = EMPTY_STOP_RE.sub(r"\1", out)
+    out = SPACE_RE.sub(" ", out)
+    out = re.sub(r" +([.:;,])", r"\1", out)
+    out = "\n".join(line.strip() for line in out.split("\n")).strip()
+    return out or None
+
+
 def plain(text: str) -> str:
     """What the search index sees: no vowels or cantillation, maqaf and sof pasuq as spaces."""
     text = HEBREW_SPACERS_RE.sub(" ", text)
@@ -289,6 +309,15 @@ def git_commit() -> str:
         return "unknown"
 
 
+def work_row(item: dict) -> tuple:
+    """A works row: the work's standing and, for a debated work, its caution (canon)."""
+    kinds = item.get("caution_kinds")
+    return (
+        item["work"], item["work_title"], item["category"], json.dumps(item["streams"]),
+        item.get("standing") or "established", item.get("caution"), json.dumps(kinds) if kinds else None,
+    )
+
+
 def main() -> int:
     out_path = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else DEFAULT_OUT
     plan = json.loads(PLAN.read_text())
@@ -312,11 +341,12 @@ def main() -> int:
     con.executescript(SCHEMA_SQL)
 
     work_rows, edition_ids, title_ids, version_ids = {}, {}, {}, {}
+    stripped_out: dict = {}
     all_refs: set = set()
     seq = 0
     total = 0
     for item in plan:
-        work_rows[item["work"]] = (item["work"], item["work_title"], item["category"], json.dumps(item["streams"]))
+        work_rows[item["work"]] = work_row(item)
         ekey = (item["work"], item["edition"])
         if ekey not in edition_ids:
             cur = con.execute(
@@ -345,6 +375,11 @@ def main() -> int:
                 if ref in merged:
                     continue
                 text = clean(raw)
+                if text and item.get("strip_brackets") == "angle":
+                    text = strip_angle(text)
+                    if text is None:
+                        stripped_out[item["work"]] = stripped_out.get(item["work"], 0) + 1
+                        continue
                 if not text:
                     continue
                 merged[ref] = (text, version_ids[vkey])
@@ -375,7 +410,7 @@ def main() -> int:
         for item in lexicon_items:
             name = item["lexicon"]
             title, he_title = lexicon_title(name)
-            work_rows[item["work"]] = (item["work"], item["work_title"], item["category"], json.dumps(item["streams"]))
+            work_rows[item["work"]] = work_row(item)
             cur = con.execute(
                 "INSERT INTO editions (work, name, language, approved, word_tool) VALUES (?, ?, ?, ?, ?)",
                 (item["work"], item["edition"], item["language"], int(bool(item["approved"])), int(bool(item.get("word_tool_only")))),
@@ -412,7 +447,12 @@ def main() -> int:
             total += count
             print(f"  {title}: {count} entries", file=sys.stderr)
 
-    con.executemany("INSERT INTO works VALUES (?, ?, ?, ?)", list(work_rows.values()))
+    con.executemany(
+        "INSERT INTO works (id, title, category, streams, standing, caution, caution_kinds) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        list(work_rows.values()),
+    )
+    for work, count in sorted(stripped_out.items()):
+        print(f"  {work}: left out {count} passages whose editor's additions couldn't be separated", file=sys.stderr)
     con.commit()
     print(f"Passages: {total} in {len(title_ids)} titles, {len(edition_ids)} editions", file=sys.stderr)
     if UNKNOWN_ADDRESS_TYPES:

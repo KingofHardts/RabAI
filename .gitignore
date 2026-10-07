@@ -5,3 +5,7 @@ __pycache__/
 .env.*
 # Licensed source texts are never committed. They live in the library store.
 /library/
+# Made by tools, not part of the project: helpers' working copies, and the agent notes `next dev` writes.
+/.claude/worktrees/
+/web/AGENTS.md
+/web/CLAUDE.md

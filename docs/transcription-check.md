@@ -7,6 +7,13 @@ computer and are not in the repo. The recommended notes were then written into `
 for each edition, and Recanati on the Torah was marked `orthodox: review`. Nothing is approved; the
 board decides.
 
+**Later the same day:** every angle-bracket addition in Recanati turned out to be a translation
+set right after the Aramaic it translates, so the library build now removes them
+(`strip_brackets: angle` in the canon). Only well-formed brackets are removed, and the 30 of its
+1,909 passages where a bracket is nested or never closed are left out, so the editor's words are
+never quoted as Recanati's. The 23 places that still say "תרגום" are Recanati's own references to
+the Targum. Recanati is back in the testing library (`orthodox: true`, proposed).
+
 ## The short version (for the maintainer)
 
 **Kabbalah works transcribed by hebrew.grimoar.cz.** For seven of the eight works the transcriptions

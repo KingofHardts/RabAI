@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
-import { ask, buildQuestion, effortFor, engineConfig, planRequest, type ModelClient } from "../lib/engine/answer";
+import { ask, buildQuestion, effortFor, engineConfig, planRequest, testingContext, type ModelClient } from "../lib/engine/answer";
 import { mapAnswer, cleanText } from "../lib/engine/citations";
 import { checkSafety } from "../lib/engine/safety";
 import { CORE_PREMISES } from "../lib/engine/core-premises.generated";
@@ -238,4 +238,27 @@ test("what the person told RabAI travels in the settings, after the cached instr
   const off = planRequest({ question: "What is the Shema?", profile: { ...profile, remember: false } }, lib, config);
   assert.ok(!(off.params.system as Array<{ text: string }>)[2].text.includes("About the person"));
   assert.match(CORE_PREMISES, /What you know about the person/);
+});
+
+test("a debated source reaches RabAI with its caution; Kabbalah is framed as the kabbalists' teaching", () => {
+  const base = {
+    ref: "Sefer HaBahir 1", work: "sefer-habahir", section: "Sefer HaBahir", sectionHe: "ספר הבהיר", order: 1,
+    label: "1", labelHe: "ספר הבהיר", he: "אמר רבי נחוניא בן הקנה", en: "",
+  };
+  const debated = testingContext({
+    ...base,
+    source: {
+      library: "testing", canonId: "sefer-habahir", workTitle: "Sefer HaBahir", book: "Sefer HaBahir", licenses: ["Public Domain"],
+      category: "kabbalah", standing: "debated", caution: "Traditionally attributed; its authorship is discussed.", cautionKinds: ["uncertain_author"],
+    },
+  });
+  assert.match(debated, /what the kabbalists teach/);
+  assert.match(debated, /Caution, a debated source: Traditionally attributed; its authorship is discussed\./);
+  assert.match(debated, /never rest a halachic answer on it alone/);
+
+  const plain = testingContext({
+    ...base,
+    source: { library: "testing", canonId: "x", workTitle: "X", book: "X", licenses: ["Public Domain"], category: "halacha" },
+  });
+  assert.doesNotMatch(plain, /Caution|kabbalists/);
 });

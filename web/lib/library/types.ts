@@ -66,4 +66,15 @@ export interface PassageSource {
   dictionary?: boolean;
   /** A dictionary RabAI may use only for what words mean, never for history or belief. */
   wordToolOnly?: boolean;
+  /** The canon category of the work, e.g. "kabbalah". */
+  category?: string;
+  /**
+   * A debated work (canon standing: debated): kept so people can ask about it, but presented with
+   * its caution and never relied on alone for halacha.
+   */
+  standing?: "debated";
+  /** Why it is debated, in plain English, for the person and for RabAI. */
+  caution?: string;
+  /** From canon/vocabulary.yaml: uncertain_author, unusual_source, disputed_claims, criticized_views. */
+  cautionKinds?: string[];
 }

@@ -51,7 +51,7 @@ async function fixture() {
   const client = createClient({ url: ":memory:" });
   await client.executeMultiple(schema);
   await client.executeMultiple(`
-    INSERT INTO works VALUES ('torah', 'The Torah', 'tanakh', '[]'), ('rashi', 'Rashi on the Torah', 'commentary', '[]'),
+    INSERT INTO works (id, title, category, streams) VALUES ('torah', 'The Torah', 'tanakh', '[]'), ('rashi', 'Rashi on the Torah', 'commentary', '[]'),
       ('bavli', 'Babylonian Talmud', 'talmud', '[]'), ('yerushalmi', 'Talmud Yerushalmi', 'talmud', '[]'),
       ('jastrow', 'A Dictionary of the Targumim', 'reference', '[]');
     INSERT INTO titles VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]'),
@@ -81,6 +81,48 @@ async function fixture() {
 }
 
 const storePromise = fixture();
+
+/** A one-line library with one work, in the current schema or in the schema before works had a standing. */
+async function oneWorkStore(opts: { oldSchema?: boolean; debated?: boolean }) {
+  const client = createClient({ url: ":memory:" });
+  const sql = opts.oldSchema
+    ? schema.replace(/CREATE TABLE works \([\s\S]*?\);/, "CREATE TABLE works (id TEXT PRIMARY KEY, title TEXT, category TEXT, streams TEXT);")
+    : schema;
+  await client.executeMultiple(sql);
+  const work = opts.debated
+    ? `INSERT INTO works (id, title, category, streams, standing, caution, caution_kinds) VALUES
+         ('bahir', 'Sefer HaBahir', 'kabbalah', '[]', 'debated', 'Traditionally attributed; authorship discussed.', '["uncertain_author"]');`
+    : `INSERT INTO works (id, title, category, streams) VALUES ('bahir', 'Sefer HaBahir', 'kabbalah', '[]');`;
+  await client.executeMultiple(`
+    ${work}
+    INSERT INTO titles VALUES (1, 'Sefer HaBahir', 'ספר הבהיר', 'bahir', '[]', 1, '[]');
+    INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'bahir', 'Test Bahir', 'he', 0, 0);
+    INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');
+    INSERT INTO passages VALUES (1, 'Sefer HaBahir 1', 1, 1, 1, 1, 'אמר רבי נחוניא בן הקנה');
+  `);
+  return createTestingStore(dbFrom(client));
+}
+
+test("a debated work's passages carry its caution, and its category", async () => {
+  const [p] = await (await oneWorkStore({ debated: true })).lookup(["Sefer HaBahir 1"]);
+  assert.equal(p.source?.category, "kabbalah");
+  assert.equal(p.source?.standing, "debated");
+  assert.equal(p.source?.caution, "Traditionally attributed; authorship discussed.");
+  assert.deepEqual(p.source?.cautionKinds, ["uncertain_author"]);
+});
+
+test("an established work carries no caution", async () => {
+  const [p] = await (await oneWorkStore({})).lookup(["Sefer HaBahir 1"]);
+  assert.equal(p.source?.standing, undefined);
+  assert.equal(p.source?.caution, undefined);
+});
+
+test("a library built before works had a standing still reads, as established", async () => {
+  const [p] = await (await oneWorkStore({ oldSchema: true })).lookup(["Sefer HaBahir 1"]);
+  assert.equal(p.ref, "Sefer HaBahir 1");
+  assert.equal(p.source?.category, "kabbalah");
+  assert.equal(p.source?.standing, undefined);
+});
 
 test("refs: sections and ranges", () => {
   assert.equal(sectionOf("Genesis 1:3"), "Genesis 1");

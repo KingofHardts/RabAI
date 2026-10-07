@@ -16,6 +16,8 @@ jobs:
       - run: python3 tools/validate.py
       - name: Test the printed-page layout tool
         run: python3 -m unittest discover -s tools/daflayout/tests
+      - name: Test the library build's text cleaning
+        run: python3 -m unittest discover -s tools/tests
 
   web:
     runs-on: ubuntu-latest

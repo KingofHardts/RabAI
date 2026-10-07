@@ -78,16 +78,43 @@ interface Row {
   license: string;
   word_tool: boolean;
   dictionary: boolean;
+  /** The canon category of the work, e.g. "kabbalah". */
+  category: string;
+  /** "debated" when the canon marks the work debated (canon/vocabulary.yaml, standing). */
+  standing: "established" | "debated";
+  caution: string | null;
+  caution_kinds: string[];
 }
 
-const ROW_SELECT = `
-  SELECT p.id, p.ref, p.text, p.seq, t.title, t.he_title, t.work, w.title AS work_title,
+/**
+ * The columns for each passage row. A library built before works carried their standing has no
+ * standing columns; it reads as established until it is rebuilt.
+ */
+function rowSelect(hasStanding: boolean): string {
+  const standing = hasStanding
+    ? "w.standing, w.caution, w.caution_kinds"
+    : "'established' AS standing, NULL AS caution, NULL AS caution_kinds";
+  return `
+  SELECT p.id, p.ref, p.text, p.seq, t.title, t.he_title, t.work, w.title AS work_title, w.category,
+         ${standing},
          e.name AS edition, e.language, e.word_tool, t.categories, v.name AS version, v.license
   FROM passages p
   JOIN titles t ON t.id = p.title_id
   JOIN works w ON w.id = t.work
   JOIN editions e ON e.id = p.edition_id
   JOIN versions v ON v.id = p.version_id`;
+}
+
+/** The caution kinds stored as JSON; anything unreadable is left out. */
+function cautionKinds(raw: unknown): string[] {
+  if (typeof raw !== "string" || !raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function toRow(r: Record<string, unknown>): Row {
   return {
@@ -105,6 +132,10 @@ function toRow(r: Record<string, unknown>): Row {
     license: String(r.license),
     word_tool: Number(r.word_tool ?? 0) === 1,
     dictionary: String(r.categories ?? "").includes('"Dictionary"'),
+    category: String(r.category ?? ""),
+    standing: r.standing === "debated" ? "debated" : "established",
+    caution: r.caution == null || r.caution === "" ? null : String(r.caution),
+    caution_kinds: cautionKinds(r.caution_kinds),
   };
 }
 
@@ -159,6 +190,10 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
         licenses: [...new Set([he?.license, en?.license].filter((x): x is string => Boolean(x)))],
         ...(base.dictionary ? { dictionary: true } : {}),
         ...(he?.word_tool || en?.word_tool ? { wordToolOnly: true } : {}),
+        ...(base.category ? { category: base.category } : {}),
+        ...(base.standing === "debated" && base.caution
+          ? { standing: "debated" as const, caution: base.caution, cautionKinds: base.caution_kinds }
+          : {}),
       };
       return {
         ref,
@@ -451,9 +486,19 @@ export function parseRef(ref: string): { start: string; end: string | null } {
 
 export function createTestingStore(db: Db): TestingStore {
   let catalogCache: string | null = null;
+  let selectCache: Promise<string> | null = null;
+
+  /** The row columns, checked once against the library's works table. */
+  function select(): Promise<string> {
+    selectCache ??= db
+      .all("SELECT name FROM pragma_table_info('works')")
+      .then((cols) => rowSelect(cols.some((c) => c.name === "standing")))
+      .catch(() => rowSelect(false));
+    return selectCache;
+  }
 
   async function rowsWhere(where: string, args: InValue[], limit: number): Promise<Row[]> {
-    const rows = await db.all(`${ROW_SELECT} WHERE ${where} ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`, args);
+    const rows = await db.all(`${await select()} WHERE ${where} ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`, args);
     return rows.map(toRow);
   }
 

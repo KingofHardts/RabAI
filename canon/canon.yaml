@@ -6548,6 +6548,11 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [criticized_views]
+    caution: >-
+      The Ralbag's commentary is printed in Mikraot Gedolot and widely learned, but later
+      authorities sharply criticized some of his philosophical views.
     sefaria:
       under: [["Tanakh", "Rishonim on Tanakh", "Ralbag"]]
     editions:
@@ -6578,6 +6583,11 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [criticized_views]
+    caution: >-
+      By the Ralbag, whose commentary is printed in Mikraot Gedolot; later authorities sharply
+      criticized some of his philosophical views.
     sefaria:
       under: [["Tanakh", "Rishonim on Tanakh", "Ralbag Beur HaMilot"]]
     editions:
@@ -12894,6 +12904,12 @@ works:
     streams: [chassidish]
     minhag: both
     status: proposed
+    standing: debated
+    caution_kinds: [disputed_claims]
+    caution: >-
+      The Radziner Rebbe identified the tekhelet dye with a dye made from the cuttlefish. Many
+      authorities did not accept this, while some communities wear his tekhelet (to confirm
+      which).
     sefaria:
       re: "^(Ein HaTekhelet|Ptil Tekhelet|Treasures Hidden in the Sand)$"
       root: "Halakhah"
@@ -13912,6 +13928,12 @@ works:
     streams: [shared]
     minhag: both
     status: proposed
+    standing: debated
+    caution_kinds: [unusual_source]
+    caution: >-
+      Answers that the Tosafist Rabbi Yaakov of Marvege recorded receiving in dreams. The Gemara
+      teaches that halacha is not decided by a voice from heaven (Bava Metzia 59b), so they are
+      read as what he recorded, not as rulings.
     sefaria:
       re: "^Teshuvot Min HaShamayim$"
       root: "Responsa"
@@ -15696,6 +15718,10 @@ works:
     kind: mussar
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Sometimes attributed to Rabbeinu Tam, but many consider its author unknown.
     sefaria:
       re: "^Sefer HaYashar$"
       root: "Musar"
@@ -16340,6 +16366,12 @@ works:
     kind: chassidus
     streams: [chassidish]
     status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Teachings of the Baal Shem Tov and the Maggid of Mezritch as written down by students, so
+      how exactly it records their words is uncertain, and some of its practices were questioned
+      by other authorities. Chassidic communities hold it in high regard.
     sefaria:
       re: "^Tzava'at HaRivash$"
       root: "Chasidut"
@@ -17669,6 +17701,10 @@ works:
     kind: commentary
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Attributed to the Ramban; whether he wrote it is uncertain (to confirm).
     sefaria:
       re: "^Ramban on Sefer Yetzirah$"
       root: "Kabbalah"
@@ -17741,6 +17777,12 @@ works:
     kind: text
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Traditionally attributed to Rabbi Nechunya ben HaKanah and quoted by the Ramban and the
+      kabbalists; it first circulated in the twelfth century, and its authorship is discussed
+      (to confirm).
     sefaria:
       re: "^Sefer HaBahir$"
       root: "Kabbalah"
@@ -18229,6 +18271,12 @@ works:
     kind: philosophy
     streams: [shared]
     status: proposed
+    standing: debated
+    caution_kinds: [disputed_claims]
+    caution: >-
+      Rabbi Yaakov Emden's attack on the Sabbatean movement, in which he argues that some
+      passages of the Zohar were added later. Most later authorities and the kabbalists reject
+      that claim and hold the Zohar to be the teaching of Rabbi Shimon bar Yochai.
     sefaria:
       re: "^Mitpachat Sefarim$"
       root: "Kabbalah"
@@ -18288,14 +18336,16 @@ works:
     editions:
       - name: "Hebrew text"
         language: he
-        orthodox: review
+        orthodox: true
         status: proposed
         license: verify
+        strip_brackets: angle
         notes: >-
           A digital transcription (hebrew.grimoar.cz) into which a modern editor inserted Hebrew
           translations of the Zohar passages Recanati quotes, in angle brackets: about 22% of its
-          words (4,321 insertions in 44 of the 54 portions) are not Recanati's. Held for review
-          until a copy without these insertions is found, or they can be removed.
+          words. The library build removes them (strip_brackets), and leaves out the 30 of its
+          1,909 passages where they can't be separated cleanly (docs/transcription-check.md).
+          Reviewers may want to compare it with a printed edition.
         sefaria_versions:
           - version: "Recanati on the Torah"
             license: "Public Domain"

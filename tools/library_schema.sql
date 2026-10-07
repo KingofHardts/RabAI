@@ -2,7 +2,10 @@
 -- Keep both in step with this file.
 
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-CREATE TABLE works (id TEXT PRIMARY KEY, title TEXT, category TEXT, streams TEXT);
+-- standing: 'established' or 'debated' (canon). A debated work carries a caution (plain English, shown
+-- to the person and given to RabAI) and caution_kinds (JSON list from canon/vocabulary.yaml).
+CREATE TABLE works (id TEXT PRIMARY KEY, title TEXT, category TEXT, streams TEXT,
+                    standing TEXT NOT NULL DEFAULT 'established', caution TEXT, caution_kinds TEXT);
 -- word_tool: a dictionary RabAI may use only for what words mean (canon: word_tool_only).
 CREATE TABLE editions (id INTEGER PRIMARY KEY, work TEXT, name TEXT, language TEXT, approved INTEGER, word_tool INTEGER DEFAULT 0);
 CREATE TABLE titles (id INTEGER PRIMARY KEY, title TEXT UNIQUE, he_title TEXT, work TEXT, categories TEXT, depth INTEGER, section_names TEXT);

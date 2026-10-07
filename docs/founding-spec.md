@@ -69,8 +69,17 @@ The library is a whitelist ([`canon/canon.yaml`](../canon/canon.yaml)). Every wo
 
 - author, era and region
 - category: Mikra and meforshim, Torah SheBaal Peh, halacha, hashkafah and mussar, or
-  Kabbalah. The Kabbalah works are proposed only. They wait on the board's decision about how
-  RabAI treats Kabbalah (questions 1 to 3 in [`library-comparison.md`](library-comparison.md)).
+  Kabbalah. The Kabbalah works are proposed only. **Josh's direction (2026-10-07), pending the
+  board:** Kabbalah is part of the Torah; RabAI teaches it as "the kabbalists teach…" and goes
+  deeper from credible sources when asked (core premises, "Kabbalah"; questions 1 to 3 in
+  [`library-comparison.md`](library-comparison.md)).
+- standing: established (the default) or **debated**. **Decided (Josh, 2026-10-07), pending the
+  board's review of the list and wording:** the library has two tiers. The established books are
+  the credible, accepted ones. The debated books (an uncertain author, an unusual source such as
+  answers received in dreams, a disputed claim, or views later authorities sharply criticized)
+  stay in, so people can learn about them, but each carries a plain-English `caution`. RabAI
+  tells the person the caution when it uses one, says what can and cannot be verified, and never
+  rests a halachic answer on it alone; the app shows the caution beside the text.
 - stream: shared, Litvish, Chassidish, Sephardi, Religious Zionist, Modern Orthodox, or Torah
   im Derech Eretz
 - minhag, for halacha works: Ashkenazi, Sephardi, or both

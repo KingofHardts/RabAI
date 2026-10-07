@@ -27,6 +27,14 @@ Two refinements (founding spec, "Testing library"):
 - An edition may be marked `vowels_only: true`: a vocalized copy of another edition of the same
   work, in the same language. RabAI uses it only to show the vowels on that edition's words (the
   Gemara page's vowels switch), never as a text of its own: it is not searched or quoted.
+- A work may be marked `standing: debated` (maintainer's decision, 2026-10-07): it stays in the
+  library, but carries a `caution` (plain English, shown to the person and given to RabAI) and
+  `caution_kinds` from the vocabulary. RabAI presents it with that caution and never rests a
+  halachic answer on it alone.
+- An edition may be marked `strip_brackets: angle`: an editor's additions set in angle brackets
+  (<...>) are removed from its text when the library is built, and any passage where they can't
+  be separated cleanly is left out. Used where a digital copy mixed a modern editor's words into
+  the author's text.
 """
 
 import json
@@ -127,6 +135,20 @@ def check_canon(vocab: dict, canon: dict) -> dict:
         if work.get("category") == "halacha":
             check_value(where, "minhag", work.get("minhag"), vocab["minhag"])
 
+        if "standing" in work:
+            check_value(where, "standing", work.get("standing"), vocab["standing"])
+        if work.get("standing") == "debated":
+            if not isinstance(work.get("caution"), str) or len(work["caution"].strip()) < 20:
+                fail(f"{where}: a debated work needs a caution saying, in plain English, why")
+            kinds = work.get("caution_kinds")
+            if not isinstance(kinds, list) or not kinds:
+                fail(f"{where}: a debated work needs caution_kinds")
+            else:
+                for kind in kinds:
+                    check_value(where, "caution_kind", kind, vocab["caution_kind"])
+        elif "caution" in work or "caution_kinds" in work:
+            fail(f"{where}: caution and caution_kinds belong only to a work with standing: debated")
+
         check_approval(where, work)
 
         sefaria = work.get("sefaria")
@@ -191,6 +213,8 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     fail(f"{ewhere}: word_tool_only is either true or left out")
                 elif not isinstance(lexicon, dict) or work.get("kind") != "reference":
                     fail(f"{ewhere}: only a dictionary (kind: reference, with sefaria_lexicon) may be a word tool")
+            if "strip_brackets" in edition and edition["strip_brackets"] != "angle":
+                fail(f"{ewhere}: strip_brackets may only be 'angle'")
             if "vowels_only" in edition:
                 others = [e for e in work.get("editions") or [] if e is not edition and not e.get("vowels_only")
                           and e.get("language") == edition.get("language")]
@@ -312,6 +336,7 @@ def whitelist(canon_ids: dict) -> list:
                         "category": work.get("category"),
                         "streams": work.get("streams"),
                         "minhag": work.get("minhag"),
+                        **standing_fields(work, edition),
                     }
                 )
     return entries
@@ -349,9 +374,21 @@ def testing(canon_ids: dict, barred: set) -> list:
                         "approved": work.get("status") == "approved" and edition.get("status") == "approved",
                         "category": work.get("category"),
                         "streams": work.get("streams"),
+                        **standing_fields(work, edition),
                     }
                 )
     return entries
+
+
+def standing_fields(work: dict, edition: dict) -> dict:
+    """What the library carries about a work's standing and an edition's cleaning."""
+    fields: dict = {"standing": work.get("standing") or "established"}
+    if work.get("standing") == "debated":
+        fields["caution"] = " ".join(str(work.get("caution") or "").split())
+        fields["caution_kinds"] = list(work.get("caution_kinds") or [])
+    if edition.get("strip_brackets"):
+        fields["strip_brackets"] = edition["strip_brackets"]
+    return fields
 
 
 def main() -> int:

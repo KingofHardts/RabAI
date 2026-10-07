@@ -197,7 +197,7 @@ export function documentText(passage: Passage): string {
   return [passage.he, passage.en].filter((t) => t.trim()).join("\n\n");
 }
 
-function testingContext(passage: Passage): string {
+export function testingContext(passage: Passage): string {
   const s = passage.source!;
   const parts = [
     `Work: ${s.workTitle} (${s.book}).`,
@@ -209,6 +209,10 @@ function testingContext(passage: Passage): string {
     s.dictionary ? "This is a dictionary entry." : "",
     s.wordToolOnly
       ? "Its author was not Orthodox: use it only for what words mean, never for history or belief."
+      : "",
+    s.category === "kabbalah" ? "This is a work of Kabbalah: present it as what the kabbalists teach." : "",
+    s.standing === "debated" && s.caution
+      ? `Caution, a debated source: ${s.caution} Tell the person this caution when you use it, and never rest a halachic answer on it alone.`
       : "",
   ];
   return parts.filter(Boolean).join(" ");

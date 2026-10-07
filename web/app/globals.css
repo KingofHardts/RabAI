@@ -717,3 +717,24 @@ p.muted { margin: 0; }
   .daf-text .dw:not(.on):hover { background: var(--tint); }
   .wc-step:hover { border-color: var(--accent); }
 }
+
+/* A debated work's caution (canon standing: debated): amber, the app's color for "read with care". */
+.caution-banner {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font: 14px/1.5 var(--font-ui);
+}
+.caution-banner .caution-fine { opacity: .85; }
+.caution-tag {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font: 600 11px/1.6 var(--font-ui);
+  white-space: nowrap;
+}

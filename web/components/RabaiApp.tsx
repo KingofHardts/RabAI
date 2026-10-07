@@ -5,6 +5,7 @@ import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
 import { TESTING_LABEL } from "@/lib/library/testing-config";
+import { CautionBanner, CautionTag } from "./CautionNote";
 import type { Token } from "@/lib/library/language";
 import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
@@ -1857,6 +1858,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           {isCommentary ? (
             <span className="num">
               <span>{author ?? p.label}</span>
+              <CautionTag source={p.source} />
               <span className="he" lang="he">
                 {p.labelHe}
               </span>
@@ -3147,7 +3149,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ) : readerError ? (
                 <p className="reader-state">{readerError}</p>
               ) : reader ? (
-                reader.lines.map((line) => {
+                <>
+                <CautionBanner source={reader.lines[0]?.source} />
+                {reader.lines.map((line) => {
                   // Comments fold into a count, except those the person chose to show, the one a
                   // source pointed at, and the one open in the card.
                   const shown = line.commentaries.filter(
@@ -3170,7 +3174,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       {shown.length > 0 && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
                     </div>
                   );
-                })
+                })}
+                </>
               ) : null}
             </div>
             {renderReaderCard()}

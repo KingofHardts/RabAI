@@ -623,6 +623,12 @@ or "(to confirm)".
 
 ### Kabbalah
 
+**Josh's direction (2026-10-07), for the board to confirm:** teach Kabbalah as another part of
+the Torah, as "the kabbalists teach…", going deeper from credible sources when asked (draft in
+the core premises, "Kabbalah"). Find a Zohar text that fits the Orthodox tradition and can be
+used (question 2; under way). Keep *Mitpachat Sefarim* (question 3) as a debated book: in the
+library, with a caution that most authorities reject its claim about the Zohar's age.
+
 1. **How should RabAI treat Kabbalah?** Mercava has a whole Kabbalah shelf (Sefer Yetzirah,
    Sefer HaBahir, Tikkunei Zohar, Heikhalot Rabbati, Gikatilla, Rabbi Yosef Karo's *Maggid
    Meisharim*, the Ramchal, Rabbi Chaim Vital's *Sha'ar HaGilgulim* and more). Our canon has
@@ -639,6 +645,12 @@ or "(to confirm)".
    present that view?
 
 ### Debated authors and works
+
+**Josh's direction (2026-10-07), for the board to confirm:** keep the debated books and the
+books whose author is uncertain (questions 4 to 8), marked `standing: debated` in the canon with
+a plain-English caution each. RabAI says the caution when it uses one, explains what is and isn't
+verifiable and whether it is in line with the Orthodox mainstream, and never rests a halachic
+answer on it alone. The board reviews the list and each caution's wording.
 
 4. **The Ralbag** (Rabbi Levi ben Gershom): his Tanach commentary is printed in Mikraot
    Gedolot, but later authorities sharply criticized some of his philosophy. Add his

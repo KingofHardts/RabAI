@@ -54,6 +54,20 @@ status:
   proposed: Suggested addition. Waiting for board review.
   excluded: The board or this spec keeps it out.
 
+# How firmly the tradition stands behind a work (maintainer's decision, 2026-10-07, pending the
+# board). Left out means established. A debated work stays in the library so people can ask about
+# it, but RabAI presents it with its caution and never rests a halachic answer on it alone.
+standing:
+  established: Credible and accepted in the Orthodox tradition (the default)
+  debated: Kept, but presented with a caution and not held as high in halacha
+
+# Why a debated work carries a caution (a debated work names at least one).
+caution_kind:
+  uncertain_author: Who wrote it is uncertain, or it is attributed
+  unusual_source: It comes from an unusual source, such as answers received in dreams
+  disputed_claims: A claim in it is disputed by many authorities
+  criticized_views: Later authorities sharply criticized some of its views
+
 license:
   cleared: Permission confirmed in writing, or verified public domain or open license
   verify: Not checked yet

@@ -827,7 +827,7 @@ scale is most of what makes a screen look calm.
 | Teal (Jastrow), violet (Radak) | Which dictionary said this | Edge and label of each entry, as now |
 | Tan (`#8A4B08` on `#FBF1E4`) | **RabAI's own words, not from the library** | RabAI's translations and word-by-word, the outline's label |
 | Neutral gray tag | Not yet approved (testing library) | The testing label, kept on every passage |
-| Amber | A warning | "Not connected", errors that need attention |
+| Amber | A warning | "Not connected", errors that need attention; a debated book's caution ("Read with care") |
 | Soft red | Safety | Crisis lines |
 | The flow's pastels | The outline's kinds | Only on the page, only when "Show the flow" is on |
 | The person's four mark colors | The person's own marks | Margin bars and underlines |

@@ -22,6 +22,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Licensed texts are never committed.** The top-level `/library/` folder is gitignored.
 - **Do not invent sources.** Citations in this repo are suggestions for reviewers to confirm,
   and must say so until a reviewer has.
+- **Two tiers.** A work marked `standing: debated` in the canon (uncertain author, unusual source,
+  disputed claim, criticized views) stays in the library with a plain-English `caution`. The build
+  carries it to every passage, RabAI is told it with the passage, and the app shows it beside the
+  text. Never drop a caution, and never let RabAI rest a halachic answer on a debated book alone.
+- An edition marked `strip_brackets: angle` has an editor's additions removed when the library is
+  built; a passage where they can't be separated cleanly is left out, never quoted with them.
 - Run `python3 tools/validate.py` before every commit. CI runs it too.
 - Keep the docs in step with the data: a new tag value goes in `canon/vocabulary.yaml`, and a
   new decision goes in `docs/founding-spec.md`.
