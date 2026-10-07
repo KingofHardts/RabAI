@@ -122,10 +122,24 @@ def _too_long(signum, frame):
     raise PageTooLong(f"stopped after {PAGE_LIMIT} seconds")
 
 
+def heading_of(g, ink, res, choices, amud):
+    """The page's heading (tools/daflayout/furniture.py), found above the lines matched to text."""
+    import numpy as np
+    from daflayout.furniture import find_heading
+    from daflayout.scan import components
+    tops = [L["core"][1] for part in PARTS for L in res[part]]
+    xhs = [L["xh"] for L in res["main"] if L["xh"]]
+    if not choices or not tops or not xhs:
+        return []
+    top = min(tops)
+    lab, comps = components(ink[: top + 5])
+    return find_heading(comps, top, float(np.median(xhs)), choices, lambda blobs: _reader.read_blobs(g, lab, blobs), amud)
+
+
 def page_task(job):
     from daflayout.match import layout
     from daflayout.scan import find_lines, load
-    section, scan, prev, cur, nxt, dup = job
+    section, scan, prev, cur, nxt, dup, choices = job
     signal.signal(signal.SIGALRM, _too_long)
     signal.alarm(PAGE_LIMIT)
     try:
@@ -134,7 +148,12 @@ def page_task(job):
         lab, lines = find_lines(g, ink)
         _reader.read(g, lab, lines)
         res = layout(lines, prev, cur, nxt, dup)
-        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "seconds": round(time.time() - t, 1)}
+        try:
+            heading = heading_of(g, ink, res, choices, section[-1])
+        except Exception:  # the heading is extra; a page never fails over it
+            heading = []
+        return {"section": section, "size": [int(g.shape[1]), int(g.shape[0])], "parts": res, "heading": heading,
+                "seconds": round(time.time() - t, 1)}
     except Exception as e:  # one bad page never stops a tractate
         return {"section": section, "error": f"{type(e).__name__}: {e}", "trace": traceback.format_exc()[-800:]}
     finally:
@@ -280,6 +299,7 @@ def reconcile(tractate, results, text, twin):
             "refs": refs,
             "checks": [fingerprint(words_of(he[ref])) for ref in refs],
             "lines": lines,
+            "heading": r.get("heading", []),
             "estimated": guesses,
             "missing": missing,
             "trimmed": r["trimmed"],
@@ -296,8 +316,41 @@ def section_of(ref, tractate):
     return f"{tractate} {m.group(1)}" if m else ""
 
 
+def chapters_of(tractate):
+    """The tractate's Hebrew name and its chapters, [(number, Hebrew name, first amud, last amud)], from
+    Sefaria's index of it (amudim counted 2a = 4, 2b = 5, ...). None when the index can't be had."""
+    try:
+        import sefaria_lib
+        record = sefaria_lib.schema(tractate)
+    except Exception:
+        return None
+    if not record:
+        return None
+    out = []
+    for node in record.get("alts", {}).get("Chapters", {}).get("nodes", []):
+        m = re.search(r" (\d+)([ab])(?::[\d]+)?(?:-(?:(\d+)([ab]))?(?::?\d+)?)?$", node.get("wholeRef", ""))
+        if not m or not node.get("heTitle") or not node.get("numeric_equivalent"):
+            continue
+        first = 2 * int(m.group(1)) + (m.group(2) == "b")
+        last = 2 * int(m.group(3)) + (m.group(4) == "b") if m.group(3) else first
+        out.append((int(node["numeric_equivalent"]), node["heTitle"], first, last))
+    return record.get("heTitle"), out
+
+
+def heading_choices(chapters, amud):
+    """The headings an amud can have (furniture.expected), from chapters_of."""
+    from daflayout.furniture import expected
+    if not chapters or not chapters[0]:
+        return []
+    he, chs = chapters
+    daf, side = amud_key(amud)
+    k = 2 * daf + (side == "b")
+    return expected(he, [(n, name) for n, name, a, b in chs if a <= k <= b], daf, side)
+
+
 def run_tractate(tractate, db, pool, cache, pages=None):
     text = tractate_text(db, tractate)
+    chapters = chapters_of(tractate)
     scans = scans_for(tractate)
     order = sorted((a for a in text if a in scans and text[a]["main"]), key=amud_key)
     if pages:
@@ -317,7 +370,7 @@ def run_tractate(tractate, db, pool, cache, pages=None):
         path = fetch_scan(scans[a], cache)
         near = {part: {w for w in dup[part] if section_of(w[0], tractate) in {f"{tractate} {x}" for x in keys[max(0, k - 1):k + 2]}}
                 for part in dup}
-        jobs.append((f"{tractate} {a}", str(path), prev, text[a], nxt, near))
+        jobs.append((f"{tractate} {a}", str(path), prev, text[a], nxt, near, heading_choices(chapters, a)))
     results = []
     for res in pool.imap(page_task, jobs, chunksize=1):
         res["scan"] = scans[res["section"].rsplit(" ", 1)[1]]

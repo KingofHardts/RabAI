@@ -155,7 +155,9 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   up to six words no line read clearly, or its line reads too little like the words matched to
   it), the word is put on the likeliest line and marked on the page with a dotted underline and a
   note saying so. Where the print abbreviates (הקב״ה for "הקדוש ברוך הוא"), the library's full
-  words are set small in the abbreviation's place.
+  words are set small in the abbreviation's place. The page's heading (chapter, tractate, and the
+  daf's or page's number) is drawn where the scan prints it; its words are the chapter names from
+  Sefaria's index of the tractate, and the scan only gives their places.
 
   Vowels on the page (Josh asked, 2026-10-07): a reader can turn on nekudot. They come from a
   vocalized copy of the same Gemara text (Sefaria's William Davidson Edition, vocalized), marked

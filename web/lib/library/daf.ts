@@ -139,10 +139,22 @@ export interface DafPrintedLine {
   words?: Array<[number, number]>;
 }
 
+/**
+ * A word of the page's heading (the line above the text naming the chapter and the tractate, with
+ * the daf's or the page's number), where the scan prints it.
+ */
+export interface DafHeadingWord {
+  text: string;
+  /** The word's letters on the scan: left, top, right, bottom. */
+  box: [number, number, number, number];
+}
+
 export interface DafPrinted {
   /** The part of the scan the lines fill: left, top, right, bottom. */
   area: [number, number, number, number];
   lines: DafPrintedLine[];
+  /** The heading, right to left; empty when the layout has none. */
+  heading: DafHeadingWord[];
   /**
    * Words whose line is an estimate, as "ref#word": the reading of the scan didn't settle it (a word
    * it couldn't read, or one two lines both read), so it was put beside its neighbor in the text.
@@ -273,14 +285,34 @@ export function readPrinted(record: unknown, pieces: Map<string, DafPiece & { pa
     if (!Number.isInteger(k) || k < 0 || k >= refs.length || !(0 <= a && a < b && b <= counts[k])) return null;
     for (let w = a; w < b; w++) estimated.push(wordKey(refs[k] as string, w));
   }
+  const heading = readHeading(r.heading);
+  const boxes = [...out.map((l) => l.box), ...heading.map((w) => w.box)];
   const pad = 6;
   const area: [number, number, number, number] = [
-    Math.min(...out.map((l) => l.box[0])) - pad,
-    Math.min(...out.map((l) => l.box[1])) - pad,
-    Math.max(...out.map((l) => l.box[2])) + pad,
-    Math.max(...out.map((l) => l.box[3])) + pad,
+    Math.min(...boxes.map((b) => b[0])) - pad,
+    Math.min(...boxes.map((b) => b[1])) - pad,
+    Math.max(...boxes.map((b) => b[2])) + pad,
+    Math.max(...boxes.map((b) => b[3])) + pad,
   ];
-  return { area, lines: out, estimated };
+  return { area, lines: out, estimated, heading };
+}
+
+const HEADING_WORD = /^(?:[\u05D0-\u05EA]{1,12}|[0-9]{1,4})$/;
+
+/**
+ * The page's heading from a layout: [text, left, top, right, bottom] for each word. A heading that
+ * isn't well formed is left off (the page is drawn without it); the lines don't depend on it.
+ */
+export function readHeading(raw: unknown): DafHeadingWord[] {
+  if (!Array.isArray(raw) || raw.length > 16) return [];
+  const out: DafHeadingWord[] = [];
+  for (const w of raw) {
+    if (!Array.isArray(w) || w.length !== 5 || typeof w[0] !== "string" || !HEADING_WORD.test(w[0]) || !w.slice(1).every(isNum)) return [];
+    const [x0, y0, x1, y1] = w.slice(1) as number[];
+    if (x1 <= x0 || y1 <= y0) return [];
+    out.push({ text: w[0], box: [x0, y0, x1, y1] });
+  }
+  return out;
 }
 
 /**

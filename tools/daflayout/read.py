@@ -83,6 +83,15 @@ class Reader:
                 memo[key] = out
         return lines
 
+    def read_blobs(self, g, lab, blobs, pad=6):
+        """Some blobs alone (a printed word of the page's heading), read with the Hebrew model."""
+        x0, y0 = max(0, min(c[0] for c in blobs) - pad), max(0, min(c[1] for c in blobs) - pad)
+        x1, y1 = min(lab.shape[1], max(c[2] for c in blobs) + pad), min(lab.shape[0], max(c[3] for c in blobs) + pad)
+        keep = np.isin(lab[y0:y1, x0:x1], [c[5] for c in blobs])
+        api = self.apis["heb"]
+        api.SetImage(Image.fromarray(np.where(keep, g[y0:y1, x0:x1], 255).astype(np.uint8)))
+        return api.GetUTF8Text().strip()
+
     def close(self):
         for api in self.apis.values():
             api.End()

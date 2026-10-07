@@ -23,6 +23,8 @@ const MAX_FIT = 980;
  */
 const LETTER_EM: Record<DafPart, number> = { main: 0.543, rashi: 0.726, tosafot: 0.726 };
 const HAS_LETTERS = /[א-ת]/;
+/** The same for the heading's typeface (Romm Vilna Heading): its letters, and its figures. */
+const HEADING_EM = { letters: 0.541, figures: 0.51 };
 /** A word set in a wider space than its letters need is stretched at most this much (then it sits at its right). */
 const MAX_STRETCH = 1.35;
 
@@ -81,6 +83,9 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
     if (!page || !space) return;
     const fits = [...page.querySelectorAll<HTMLElement>(".daf-pfit")];
     const words = [...page.querySelectorAll<HTMLElement>(".dwi")];
+    const heads = [...page.querySelectorAll<HTMLElement>(".dhead-fit")];
+    for (const h of heads) h.style.transform = "none";
+    const naturalHeads = heads.map((h) => h.offsetWidth);
     for (const f of fits) {
       f.style.wordSpacing = "0px";
       f.style.transform = "none";
@@ -104,6 +109,11 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
       // they stay readable in that place.
       const down = scale < 0.75 ? Math.max(0.55, Math.sqrt(scale)) : 1;
       if (Math.abs(scale - 1) > 0.01) w.style.transform = down < 1 ? `scale(${scale}, ${down})` : `scaleX(${scale})`;
+    });
+    // Each heading word fills its printed width exactly.
+    heads.forEach((h, i) => {
+      const target = Number(h.dataset.w);
+      if (naturalHeads[i] && target && Math.abs(naturalHeads[i] - target) > 0.5) h.style.transform = `scaleX(${target / naturalHeads[i]})`;
     });
     // A page wider than the screen starts at its right edge, where Hebrew begins.
     const wrap = wrapRef.current;
@@ -129,6 +139,22 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
         onClick={onClick}
         aria-label={`${data.labelHe}: the Gemara with Rashi and Tosafot, line for line as printed`}
       >
+        {printed.heading.map((w, n) => {
+          const [x0, y0, x1, y1] = w.box;
+          const h = (y1 - y0) * k;
+          const figures = /^[0-9]+$/.test(w.text);
+          return (
+            <div
+              key={`h${n}`}
+              className="daf-head"
+              style={{ left: (x0 - ax0) * k, top: (y0 - ay0) * k, width: (x1 - x0) * k, height: h, lineHeight: `${h}px`, fontSize: h / (figures ? HEADING_EM.figures : HEADING_EM.letters) }}
+            >
+              <span className="dhead-fit" data-w={(x1 - x0) * k}>
+                {w.text}
+              </span>
+            </div>
+          );
+        })}
         {printed.lines.map((line, n) => {
           const [x0, y0, x1, y1] = line.box;
           const h = (y1 - y0) * k;

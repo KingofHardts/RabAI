@@ -179,6 +179,60 @@ class StrayLetters(unittest.TestCase):
         self.assertFalse(stray_tall_letters(a, b))
 
 
+try:
+    from daflayout import furniture
+except ImportError:  # rapidfuzz isn't installed
+    furniture = None
+
+
+@unittest.skipIf(furniture is None, "needs rapidfuzz")
+class Heading(unittest.TestCase):
+    def test_daf_numbers_in_letters(self):
+        for n, he in [(2, "ב"), (10, "י"), (15, "טו"), (16, "טז"), (27, "כז"), (115, "קטו"), (176, "קעו")]:
+            self.assertEqual(furniture.hebrew_number(n), he)
+
+    def test_what_the_heading_says(self):
+        (words, number), = furniture.expected("ברכות", [(4, "תפלת השחר")], 27, "a")
+        self.assertEqual(words, [["תפלת"], ["השחר"], ["פרק"], ["רביעי"], ["ברכות"]])
+        self.assertEqual(number, "כז")
+        (words, number), = furniture.expected("בבא בתרא", [(6, "המוכר פירות")], 92, "b")
+        self.assertEqual(words[3], ["ששי", "שישי"])
+        self.assertEqual(number, "184")
+
+    def test_printed_words_line_up_with_the_words_expected(self):
+        words = [["תפלת"], ["השחר"], ["פרק"], ["רביעי"], ["ברכות"]]
+        # two words printed close together, one read badly, one broken in two
+        _, steps = furniture.line_up(["תפלת השחר", "פרק", "רב ע", "ברב", "ות"], words)
+        self.assertEqual([s[0] for s in steps], ["split", "one", "one", "joined"])
+
+    @staticmethod
+    def blob(x0, x1, y0=100, y1=128, label=0):
+        return (x0, y0, x1, y1, 200, label)
+
+    def test_the_heading_is_found_where_it_is_printed(self):
+        # Berakhot 27a: four words, then the daf's number far to the left; the text starts at 190.
+        printed = {"תפלת": (1108, 1199), "השחר": (1007, 1099), "פרק": (890, 953), "רביעי": (787, 870),
+                   "ברכות": (634, 735), "כז": (404, 436)}
+        comps, said = [], {}
+        for i, (word, (x0, x1)) in enumerate(printed.items()):
+            a = self.blob(x0, (x0 + x1) // 2 - 3, label=2 * i + 1)
+            b = self.blob((x0 + x1) // 2, x1, label=2 * i + 2)
+            comps += [a, b]
+            said[frozenset([a[5], b[5]])] = word
+        comps.append((900, 150, 910, 160, 50, 99))  # a speck in the margin's heading, lower down
+        read = lambda blobs: said.get(frozenset(c[5] for c in blobs), "")  # noqa: E731
+        choices = furniture.expected("ברכות", [(4, "תפלת השחר")], 27, "a")
+        out = furniture.find_heading(comps, 190, 14, choices, read, "a")
+        self.assertEqual([w[0] for w in out], ["תפלת", "השחר", "פרק", "רביעי", "ברכות", "כז"])
+        self.assertEqual(out[0][1:], [1108, 100, 1199, 128])
+        self.assertEqual(out[-1][1:], [404, 100, 436, 128])
+
+    def test_a_heading_that_reads_unlike_any_expected_is_left_out(self):
+        comps = [self.blob(1000 - 60 * i, 1040 - 60 * i, label=i + 1) for i in range(8)]
+        choices = furniture.expected("ברכות", [(4, "תפלת השחר")], 27, "a")
+        self.assertEqual(furniture.find_heading(comps, 190, 14, choices, lambda blobs: "שלום", "a"), [])
+
+
 def line(spans, agree=1.0, xs=None):
     return {"box": [0, 0, 100, 10], "xh": 8, "spans": spans, "agree": agree, "xs": xs}
 

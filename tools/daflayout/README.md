@@ -28,21 +28,26 @@ For each amud of the Bavli:
    spreads its words evenly across the printed line.
 6. Places each word once across the whole tractate, because a comment can start on one amud and end
    on the next (`reconcile` in `daf_layout.py`).
+7. Finds the page's heading, the line above the text that names the chapter and the tractate, with
+   the daf's number in Hebrew letters (amud a) or the page's number in figures (amud b)
+   (`furniture.py`). The words are known: the chapter names come from Sefaria's index of the
+   tractate (`alts`, "Chapters"). The scan only says where each one is printed: the heading's large
+   letters are grouped into words, read with Tesseract, and lined up with the words expected. A
+   heading that doesn't line up is left out rather than guessed.
 
 What is kept, per amud, is each line's box on the page, its letters' height, the library words it
 holds (passage ref and word numbers) and, when found, where each of them is printed on the line, plus
-a check of each passage's words. The scans themselves are
+a check of each passage's words and the heading's words with their places. The scans themselves are
 never committed, stored, or shown. The app shows the printed layout only for an amud where every
 word of its Gemara, Rashi and Tosafot was placed ("placed_all"); otherwise it falls back to its
 flowing layout. An amud is "complete" when, in addition, no word was placed by estimate.
 
-Two kinds of uncertain words are placed but marked "estimated" (the app underlines them with dots
+Three kinds of uncertain words are placed but marked "estimated" (the app underlines them with dots
 and says so):
 
 - a word two lines both claimed, kept on the line that read it better;
 - a run of at most six words no line claimed, put on the line of the word before it, or of the word
-  after it when that line is less full.
-
+  after it when that line is less full;
 - every word on a line that reads too little like the words matched to it.
 
 Such an amud is "placed_all" but not "complete". Longer unplaced runs leave the amud on the flowing

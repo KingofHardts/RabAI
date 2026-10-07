@@ -159,6 +159,19 @@ test("a stored layout is used only when it fits the text exactly", () => {
   missing.delete("Rashi on Berakhot 2a:1:1");
   assert.equal(readPrinted(good, missing, "Berakhot 2a"), null);
   assert.equal(readPrinted("nonsense", pieces, "Berakhot 2a"), null);
+
+  // The heading comes along when it is well formed, and widens the page to hold it; a bad one is
+  // left off without losing the page.
+  assert.deepEqual(p.heading, []);
+  const headed = readPrinted({ ...good, heading: [["4", 760, 150, 780, 170], ["ברכות", 300, 150, 400, 180]] }, pieces, "Berakhot 2a");
+  assert.deepEqual(headed?.heading, [
+    { text: "4", box: [760, 150, 780, 170] },
+    { text: "ברכות", box: [300, 150, 400, 180] },
+  ]);
+  assert.deepEqual(headed?.area, [94, 144, 806, 276]);
+  for (const bad of [[["<b>", 1, 2, 3, 4]], [["ברכות", 400, 150, 300, 180]], [["ברכות", 1, 2]], "ברכות"]) {
+    assert.deepEqual(readPrinted({ ...good, heading: bad }, pieces, "Berakhot 2a")?.heading, []);
+  }
 });
 
 test("a line's word places are used only when they fit the line", () => {
