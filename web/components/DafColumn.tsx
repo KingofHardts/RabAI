@@ -3,6 +3,7 @@
 import type { MouseEvent } from "react";
 import { pieceWords, withoutPoints } from "@/lib/library/daf";
 import type { DafPageProps } from "./DafPage";
+import { phraseNumbers, wrapPhrases } from "./flow-phrases";
 
 /*
  * The Gemara of one amud alone, in one column at a readable size: for a phone, where the whole
@@ -12,7 +13,7 @@ import type { DafPageProps } from "./DafPage";
 
 const HAS_LETTERS = /[א-ת]/;
 
-export default function DafColumn({ data, selectedRef, linkedRefs, activeWord, kinds, marks, onWord, vowels }: DafPageProps) {
+export default function DafColumn({ data, selectedRef, linkedRefs, activeWord, flow, marks, onWord, vowels }: DafPageProps) {
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     if (typeof window !== "undefined" && window.getSelection()?.toString().trim()) return;
     const w = (e.target as HTMLElement).closest<HTMLElement>("[data-i]");
@@ -27,32 +28,32 @@ export default function DafColumn({ data, selectedRef, linkedRefs, activeWord, k
         const words = pieceWords(p.he);
         const cls = [
           "dseg",
-          kinds[p.ref] ? `k-${kinds[p.ref]}` : "",
           marks[p.ref] ? `mark-${marks[p.ref]}` : "",
           selectedRef === p.ref ? "sel" : "",
           linkedRefs.has(p.ref) ? "linked" : "",
         ]
           .filter(Boolean)
           .join(" ");
+        const phraseOf = phraseNumbers(flow, p.ref, words.length);
+        const entries = words.map((w, i) => {
+          const on = activeWord?.ref === p.ref && activeWord.index === i;
+          const bold = /^(מתני|גמ)['׳]/.test(w);
+          return {
+            n: phraseOf[i],
+            before: i > 0 ? " " : null,
+            word: HAS_LETTERS.test(w) ? (
+              <span data-i={i} className={`dw${bold ? " open" : ""}${on ? " on" : ""}`}>
+                {(vowels && p.vowels?.[i]) || w}
+              </span>
+            ) : (
+              <span>{w}</span>
+            ),
+          };
+        });
         return (
           <p key={p.ref} className="dcol-line">
             <span className={cls} data-ref={p.ref} data-part="main">
-              {words.map((w, i) => {
-                const on = activeWord?.ref === p.ref && activeWord.index === i;
-                const bold = /^(מתני|גמ)['׳]/.test(w);
-                return (
-                  <span key={i}>
-                    {i > 0 && " "}
-                    {HAS_LETTERS.test(w) ? (
-                      <span data-i={i} className={`dw${bold ? " open" : ""}${on ? " on" : ""}`}>
-                        {(vowels && p.vowels?.[i]) || w}
-                      </span>
-                    ) : (
-                      <span>{w}</span>
-                    )}
-                  </span>
-                );
-              })}
+              {wrapPhrases(entries, flow, p.ref, p.ref)}
             </span>
           </p>
         );

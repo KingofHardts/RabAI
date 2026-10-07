@@ -64,7 +64,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   library. Its layout is ported from daf-renderer (MIT); keep `web/THIRD-PARTY-NOTICES.md`.
   "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabAI's outline of the
   argument: run it only when the person asks, keep it on the device, and always label it as
-  not yet reviewed by the rabbinic board (founding spec, open question 15).
+  not yet reviewed by the rabbinic board (founding spec, open question 15). It colors phrases,
+  which the model names only by the library's word numbers, and a phrase's English is shown only
+  when it is an exact stretch of the library's English for the line (`outline-phrases.ts`).
 - "Translate this" and "Word by word" on the page view (`/api/translate`,
   `web/lib/engine/translate.ts`, `web/lib/engine/gloss.ts`) are RabAI's own translation: run
   them only when the person taps (or in a batch the maintainer runs), and always label them as

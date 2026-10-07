@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { pieceWords, splitOpening, withoutPoints, wordKey, type DafData, type DafPart, type DafPiece, type DafPrinted as Printed } from "@/lib/library/daf";
 import type { DafPageProps } from "./DafPage";
+import { phraseNumbers, wrapPhrases, type WordEntry } from "./flow-phrases";
 
 /*
  * One amud of the Bavli exactly as the Vilna page prints it: every line where it sits on the page,
@@ -29,7 +30,7 @@ const ESTIMATE_NOTE = "Placed by estimate: the scan didn't show for certain whic
 /** A word set in a wider space than its letters need is stretched at most this much (then it sits at its right). */
 const MAX_STRETCH = 1.35;
 
-export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, activeWord, kinds, marks, onWord, vowels }: DafPageProps & { data: DafData & { printed: Printed } }) {
+export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, activeWord, flow, marks, onWord, vowels }: DafPageProps & { data: DafData & { printed: Printed } }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const [space, setSpace] = useState(0);
@@ -75,6 +76,10 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
   }, [data, printed]);
   const firstMain = data.main[0]?.ref;
   const estimated = useMemo(() => new Set(printed.estimated), [printed]);
+  // Where RabAI's phrases break the words into runs. When it changes, the words are drawn inside new
+  // spans and must be fitted to their printed widths again (the filter and the current phrase only
+  // change colors, not this).
+  const phraseShape = flow ? Object.entries(flow.phrases).map(([ref, ps]) => `${ref}:${ps.map((p) => `${p.from}-${p.to}`).join(",")}`).join(";") : "";
 
   // Fit each line's words to the printed line's width: spread them when they are narrower, squeeze
   // them when wider. A line whose word places are known instead fits each word to its printed width.
@@ -116,9 +121,12 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
       const target = Number(h.dataset.w);
       if (naturalHeads[i] && target && Math.abs(naturalHeads[i] - target) > 0.5) h.style.transform = `scaleX(${target / naturalHeads[i]})`;
     });
-    // A page wider than the screen starts at its right edge, where Hebrew begins.
+  }, [printed, width, space, fontsSeen, vowels, phraseShape]);
+
+  // A page wider than the screen starts at its right edge, where Hebrew begins.
+  useLayoutEffect(() => {
     const wrap = wrapRef.current;
-    if (wrap && wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = wrap.scrollWidth;
+    if (space && wrap && wrap.scrollWidth > wrap.clientWidth) wrap.scrollLeft = wrap.scrollWidth;
   }, [printed, width, space, fontsSeen, vowels]);
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -194,6 +202,7 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
           // In a line with word places, each word is a box as wide as the printed word, after a gap as
           // wide as the printed space (the space before the line's first word is from the line's right).
           let edge = x1;
+          // A word in its printed place: the printed gap before it, and the word in a box as wide as it prints.
           const placed = (w: number, inner: ReactNode, cls: string | undefined, key: number, extra: Record<string, unknown>, n = 1) => {
             const [l, r] = [places![w + n - 1][0], places![w][1]];
             const gap = Math.max(0, edge - r) * k;
@@ -203,30 +212,36 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
             const size = t
               ? { marginTop: (t[0] - y0) * k, height: (t[1] - t[0]) * k, lineHeight: `${(t[1] - t[0]) * k}px`, fontSize: ((t[1] - t[0]) * k) / LETTER_EM.main }
               : {};
-            return [
-              <span key={`g${key}`} className="dgap" style={{ width: gap }}>
-                {" "}
-              </span>,
-              <span key={key} className={t ? `${cls} tall` : cls} style={{ width: (r - l) * k, ...size }} {...extra}>
-                <span className="dwi" data-w={(r - l) * k}>
-                  {inner}
+            return {
+              before: (
+                <span key={`g${key}`} className="dgap" style={{ width: gap }}>
+                  {" "}
                 </span>
-              </span>,
-            ];
+              ),
+              word: (
+                <span key={key} className={t ? `${cls} tall` : cls} style={{ width: (r - l) * k, ...size }} {...extra}>
+                  <span className="dwi" data-w={(r - l) * k}>
+                    {inner}
+                  </span>
+                </span>
+              ),
+            };
           };
           const segs = line.spans.map(([ref, from, to], s) => {
             const p = pieces.get(ref);
             if (!p) return null;
             const cls = [
               "dseg",
-              p.part === "main" && kinds[ref] ? `k-${kinds[ref]}` : "",
               marks[ref] ? `mark-${marks[ref]}` : "",
               selectedRef === ref ? "sel" : "",
               linkedRefs.has(ref) ? "linked" : "",
             ]
               .filter(Boolean)
               .join(" ");
-            const out = [];
+            // RabAI's phrases color only the Gemara; they add spans around words and never move one.
+            const lineFlow = p.part === "main" ? flow : null;
+            const phraseOf = phraseNumbers(lineFlow, ref, p.words.length);
+            const out: WordEntry[] = [];
             for (let i = from; i < to; i++) {
               const w = p.words[i];
               // With the vowels on, the word gains its points and nothing else, in the same box.
@@ -249,7 +264,7 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
                 const sf = short.get(words);
                 if (sf && letters) {
                   // The print's short form for these words (ק״ש for "קריאת שמע"), in their place, with
-                  // the punctuation the library sets around them.
+                  // the punctuation the library sets around them. It goes with its first word's phrase.
                   const [n, form] = sf;
                   const group = p.words.slice(i, i + n);
                   const span = Array.from({ length: n }, (_, d) => i + d);
@@ -260,19 +275,21 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
                   const lead = group[0].match(/^[^\u05D0-\u05EA]*/)?.[0] ?? "";
                   const trail = group[n - 1].match(/[^\u05D0-\u05EA\u0591-\u05C7]*$/)?.[0] ?? "";
                   const note = `${form}: printed short for ${withoutPoints(full)}`;
-                  out.push(
+                  out.push({
+                    n: phraseOf[i],
                     ...placed(words, `${lead}${form}${trail}`, gcls, i, { "data-i": i, "data-short": form, "data-full": full, title: estAny ? `${note}. ${ESTIMATE_NOTE}` : note }, n),
-                  );
+                  });
                   skip = n - 1;
                   words++;
                   continue;
                 }
-                out.push(...placed(words++, shown, cls, i, letters ? { "data-i": i, title } : {}));
+                out.push({ n: phraseOf[i], ...placed(words++, shown, cls, i, letters ? { "data-i": i, title } : {}) });
                 continue;
               }
-              if (words++ > 0) out.push(" ");
-              out.push(
-                HAS_LETTERS.test(w) ? (
+              out.push({
+                n: phraseOf[i],
+                before: words++ > 0 ? " " : null,
+                word: HAS_LETTERS.test(w) ? (
                   <span key={i} data-i={i} className={`dw${bold ? " open" : ""}${big ? " big" : ""}${on ? " on" : ""}${est ? " est" : ""}`} title={title}>
                     {shown}
                   </span>
@@ -281,11 +298,11 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
                     {w}
                   </span>
                 ),
-              );
+              });
             }
             return (
               <span key={s} className={cls} data-ref={ref} data-part={p.part}>
-                {out}
+                {wrapPhrases(out, lineFlow, ref, `${n}.${s}.`)}
               </span>
             );
           });
