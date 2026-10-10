@@ -75,6 +75,9 @@ export interface PassageSource {
   standing?: "debated";
   /** Why it is debated, in plain English, for the person and for RabAI. */
   caution?: string;
-  /** From canon/vocabulary.yaml: uncertain_author, unusual_source, disputed_claims, criticized_views. */
+  /**
+   * From canon/vocabulary.yaml: uncertain_author, unusual_source, disputed_claims, criticized_views,
+   * or rejected_views (Orthodox authorities rejected its main claims; it is kept so they can be explained).
+   */
   cautionKinds?: string[];
 }

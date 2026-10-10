@@ -79,7 +79,12 @@ The library is a whitelist ([`canon/canon.yaml`](../canon/canon.yaml)). Every wo
   answers received in dreams, a disputed claim, or views later authorities sharply criticized)
   stay in, so people can learn about them, but each carries a plain-English `caution`. RabAI
   tells the person the caution when it uses one, says what can and cannot be verified, and never
-  rests a halachic answer on it alone; the app shows the caution beside the text.
+  rests a halachic answer on it alone; the app shows the caution beside the text. **Josh
+  (2026-10-10):** a debated book may also be one whose main claims Orthodox authorities rejected
+  (caution kind `rejected_views`; the first is Rabbi Yichya Qafih's *Milchamot HaShem*, against
+  the Zohar). RabAI may discuss it with all the caution the community gives it: its claims only
+  as the author's, never in RabAI's own voice, together with the answer Orthodox authorities
+  gave, from the sources it was given.
 - stream: shared, Litvish, Chassidish, Sephardi, Religious Zionist, Modern Orthodox, or Torah
   im Derech Eretz
 - minhag, for halacha works: Ashkenazi, Sephardi, or both
@@ -128,6 +133,16 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   (`sefaria_versions` in `canon.yaml`), and `excluded.yaml` names the versions that are barred.
   `tools/library_plan.py` reads Sefaria's public export and keeps a file only when its own
   license is open, its language and version name match, and it is not barred.
+
+  Written permissions (Josh, 2026-10-10): where a rights holder gives written permission for a
+  text whose Sefaria file carries no open license, the permission is recorded once in
+  [`canon/permissions.yaml`](../canon/permissions.yaml) (who gave it, how, when, and the sites
+  their files come from), and each version it covers names it (`permission: <id>`). The plan tool
+  then accepts such a file only when its Sefaria source is one of the holder's own sites, or the
+  permission names that version and says why it is the holder's text. Torat Emet was the first:
+  Josh reported its permission on 2026-10-10. A permission lets a text into the testing library;
+  it is not a board approval, and an edition is not `license: cleared` for the public until the
+  permission's own words are on file.
   `tools/library_build.py` turns those files into one database with a search index and
   Sefaria's cross-references (only where both ends are in the library). The database is hosted
   privately (Turso) and read only by the locked app. It is never published, never committed, and

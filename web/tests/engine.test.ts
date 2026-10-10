@@ -262,3 +262,22 @@ test("a debated source reaches RabAI with its caution; Kabbalah is framed as the
   });
   assert.doesNotMatch(plain, /Caution|kabbalists/);
 });
+
+test("a rejected book reaches RabAI as the author's claims, with the answer Orthodox authorities gave", () => {
+  const context = testingContext({
+    ref: "The Wars of God 1:2", work: "milchamot-hashem-qafih", section: "The Wars of God 1", sectionHe: "מלחמות השם א",
+    order: 1, label: "1:2", labelHe: "א:ב", he: "יתבונן המשכיל", en: "",
+    source: {
+      library: "testing", canonId: "milchamot-hashem-qafih", workTitle: "Milchamot HaShem (Rabbi Yichya Qafih)",
+      book: "The Wars of God", licenses: ["CC-BY-SA"], category: "kabbalah", standing: "debated",
+      caution: "Rabbi Yichya Qafih's attack on the Zohar.", cautionKinds: ["rejected_views"],
+    },
+  });
+  assert.match(context, /Caution, a rejected source: Rabbi Yichya Qafih's attack on the Zohar\./);
+  assert.match(context, /only as this author's claims, never in your own voice or as what the Torah teaches/);
+  assert.match(context, /explain the answer Orthodox authorities gave/);
+  assert.match(context, /say so instead of supplying one/);
+  // Never framed as a kabbalist's teaching, even if its category were Kabbalah.
+  assert.doesNotMatch(context, /what the kabbalists teach|Caution, a debated source/);
+  assert.match(CORE_PREMISES, /Some of these books were rejected/);
+});

@@ -7,7 +7,10 @@ edition's listed versions, in order. Each file's own license and language are re
 file and checked again: a file is used only if its license allows private, non-commercial
 testing, its language matches the edition, and its version is not excluded. A version the
 canon marks public domain by age (`printed: <year>`) is accepted when Sefaria lists its license
-as unknown, and recorded as "Public Domain (printed <year>)".
+as unknown, and recorded as "Public Domain (printed <year>)". A version that names a written
+permission (`permission: <id>`, canon/permissions.yaml) is accepted when its file's Sefaria
+source is one of the holder's sites (or the permission names the version under `also`), and
+recorded as "Permission (<holder>, <date>)".
 
 Dictionaries (`sefaria_lexicon`) come from Sefaria's dictionary data instead of its text
 files; the build reads them (tools/sefaria_lib.py, lexicon_entries).
@@ -21,6 +24,7 @@ import concurrent.futures as cf
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sefaria_lib as S  # noqa: E402
@@ -28,6 +32,12 @@ import validate as V  # noqa: E402
 
 PLAN = S.ROOT / "library" / "plan.json"
 HEADERS_CACHE = S.CACHE / "headers.json"
+
+
+def from_site(source, sites) -> bool:
+    """Whether a file's Sefaria source address is on one of these sites (or their subdomains)."""
+    host = urlparse(str(source or "")).hostname or ""
+    return any(host == site or host.endswith("." + site) for site in sites)
 
 
 def testing_editions():
@@ -43,6 +53,7 @@ def main() -> int:
     only = set(sys.argv[sys.argv.index("--only") + 1].split(",")) if "--only" in sys.argv else None
     refresh = "--refresh" in sys.argv
     editions, barred = testing_editions()
+    permissions = V.load_permissions()
     if only:
         editions = [e for e in editions if e["work"] in only]
 
@@ -94,10 +105,23 @@ def main() -> int:
             reason = None
             license = head.get("license")
             by_age = listed.get("printed") and S.norm_license(license) in ("", "unknown", "none")
-            if by_age:
+            granted = permissions.get(listed.get("permission"))
+            if S.license_open(license):
+                pass
+            elif by_age:
                 license = f"Public Domain (printed {listed['printed']})"
-            elif not S.license_open(license):
+            elif granted and (
+                from_site(head.get("versionSource"), granted["sites"])
+                or S.key(head.get("versionTitle")) in {S.key(a["version"]) for a in granted.get("also", [])}
+            ):
+                # The rights holder's written permission (canon/permissions.yaml), for a file from their own site.
+                license = f"Permission ({granted['holder']}, {granted['received']})"
+            else:
                 reason = f"license {head.get('license')!r}"
+                if granted:
+                    reason += f" (the {granted['holder']} permission covers files from {', '.join(granted['sites'])} only)"
+            if reason:
+                pass
             elif (head.get("actualLanguage") or head.get("language")) not in S.ACTUAL_LANGUAGES[ed["language"]]:
                 reason = f"language {head.get('actualLanguage')!r}"
             elif S.key(head.get("versionTitle")) != S.key(listed["version"]):

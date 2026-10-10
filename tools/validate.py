@@ -31,6 +31,11 @@ Two refinements (founding spec, "Testing library"):
   library, but carries a `caution` (plain English, shown to the person and given to RabAI) and
   `caution_kinds` from the vocabulary. RabAI presents it with that caution and never rests a
   halachic answer on it alone.
+- A version may rest on a rights holder's written permission: `permission: <id>` names an entry
+  in canon/permissions.yaml (who gave it, how, when, and the sites their files come from). The
+  version's license is then the one Sefaria shows on its other titles, or "Permission" if Sefaria
+  shows none. The plan tool accepts a file with no open license only when its Sefaria source is
+  one of the holder's sites. Only the maintainer records a permission, as he received it.
 - An edition may be marked `strip_brackets: angle`: an editor's additions set in angle brackets
   (<...>) are removed from its text when the library is built, and any passage where they can't
   be separated cleanly is left out. Used where a digital copy mixed a modern editor's words into
@@ -57,7 +62,11 @@ SEFARIA_KEYS = {"re", "not", "root", "cat", "under"}
 TESTING_LICENSES = {"publicdomain", "pd", "cc0", "ccby", "ccbysa", "ccbync", "ccbyncsa"}
 # A printing this many years old or more is in the public domain in the US.
 PUBLIC_DOMAIN_YEARS = 96
-VERSION_KEYS = {"version", "license", "note", "printed"}
+VERSION_KEYS = {"version", "license", "note", "printed", "permission"}
+PERMISSION_KEYS = {"id", "holder", "sites", "received", "how", "scope"}
+# Optional: Sefaria versions of the holder's texts that Sefaria credits to another source.
+PERMISSION_ALSO_KEYS = {"version", "why"}
+SITE_RE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
 LEXICON_KEYS = {"name", "license", "printed"}
 
 
@@ -74,6 +83,51 @@ def licenses_open(value) -> bool:
     """A recorded license; several may be joined with '/' when titles differ."""
     parts = [p for p in str(value or "").split("/") if p.strip()]
     return bool(parts) and all(norm_license(p) in TESTING_LICENSES for p in parts)
+
+
+_permissions: dict | None = None
+
+
+def load_permissions() -> dict:
+    """canon/permissions.yaml, checked, by id. Read once."""
+    global _permissions
+    if _permissions is not None:
+        return _permissions
+    _permissions = {}
+    for index, item in enumerate((load("canon/permissions.yaml") or {}).get("permissions") or []):
+        pid = item.get("id") if isinstance(item, dict) else None
+        where = f"permissions.yaml #{index + 1}" + (f" ({pid})" if pid else "")
+        if not isinstance(item, dict) or not pid or not ID_RE.match(str(pid)):
+            fail(f"{where}: needs an id like 'torat-emet'")
+            continue
+        if set(item) - PERMISSION_KEYS - {"also"} or not all(item.get(k) for k in PERMISSION_KEYS):
+            fail(f"{where}: needs {sorted(PERMISSION_KEYS)} (and may have 'also')")
+            continue
+        also = item.get("also", [])
+        if not isinstance(also, list) or not all(
+            isinstance(a, dict) and set(a) == PERMISSION_ALSO_KEYS and a["version"] and len(str(a["why"]).strip()) >= 40
+            for a in also
+        ):
+            fail(f"{where}: each 'also' item needs 'version' and 'why' (why it is the holder's text)")
+            continue
+        sites = item["sites"]
+        if not isinstance(sites, list) or not all(isinstance(s, str) and SITE_RE.match(s) for s in sites):
+            fail(f"{where}: sites must be a list of host names, like 'toratemetfreeware.com'")
+            continue
+        if not isinstance(item["received"], date):
+            fail(f"{where}: received must be a date, like 2026-10-10")
+            continue
+        if pid in _permissions:
+            fail(f"{where}: id '{pid}' is used twice")
+        _permissions[pid] = item
+    return _permissions
+
+
+def version_usable(v: dict) -> bool:
+    """A listed version the testing library may use: an open license, or written permission."""
+    if norm_license(v.get("license")) == "permission":
+        return v.get("permission") in load_permissions()
+    return licenses_open(v.get("license"))
 
 
 def version_key(name) -> str:
@@ -187,8 +241,11 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                 seen_versions = set()
                 for v in versions:
                     if not isinstance(v, dict) or not v.get("version") or set(v) - VERSION_KEYS:
-                        fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have 'note', 'printed')")
+                        fail(f"{ewhere}: each sefaria_versions item needs 'version' and 'license' (and may have "
+                             f"'note', 'printed', 'permission')")
                         continue
+                    if "permission" in v and v["permission"] not in load_permissions():
+                        fail(f"{ewhere}: version '{v['version']}': permission '{v['permission']}' is not in canon/permissions.yaml")
                     pd_listed = "publicdomain" in [norm_license(x) for x in str(v.get("license") or "").split("/")]
                     if "printed" in v and not (printed_ok(v["printed"]) and pd_listed):
                         fail(f"{ewhere}: version '{v['version']}': 'printed' must be a year at least "
@@ -196,8 +253,9 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     if version_key(v["version"]) in seen_versions:
                         fail(f"{ewhere}: version '{v['version']}' is listed twice")
                     seen_versions.add(version_key(v["version"]))
-                    if not licenses_open(v.get("license")):
-                        fail(f"{ewhere}: version '{v['version']}' has license '{v.get('license')}', which does not allow testing; leave it out")
+                    if not version_usable(v):
+                        fail(f"{ewhere}: version '{v['version']}' has license '{v.get('license')}', which does not allow testing; "
+                             f"leave it out (license 'Permission' needs a 'permission' from canon/permissions.yaml)")
             lexicon = edition.get("sefaria_lexicon")
             if lexicon is not None:
                 if versions is not None:
@@ -357,7 +415,7 @@ def testing(canon_ids: dict, barred: set) -> list:
                 and edition.get("status") != "excluded"
                 and (versions or lexicon)
                 and all(version_key(v.get("version")) not in barred for v in versions)
-                and all(licenses_open(v.get("license")) for v in versions)
+                and all(version_usable(v) for v in versions)
                 and (lexicon is None or licenses_open(lexicon.get("license")))
             ):
                 entries.append(
@@ -397,6 +455,7 @@ def main() -> int:
     barred = check_excluded(load("canon/excluded.yaml"), canon_ids)
     questions = check_questions(vocab, load("evals/questions.yaml"), canon_ids)
     partners = check_partners(vocab, load("canon/partners.yaml"))
+    permissions = load_permissions()
     allowed = whitelist(canon_ids)
     test_list = testing(canon_ids, barred)
 
@@ -418,6 +477,7 @@ def main() -> int:
     print("  by sensitivity:    " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(q.get('sensitivity') for q in questions).items())))
     print(f"Partners: {len(partners)}")
     print("  by status:         " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(p.get('status') for p in partners).items())))
+    print(f"Written permissions: {len(permissions)} ({', '.join(sorted(permissions)) or 'none'})")
     print(f"Retrieval whitelist: {len(allowed)} editions")
     if not allowed:
         print("  (empty until the board approves works and editions and their licenses are cleared)")

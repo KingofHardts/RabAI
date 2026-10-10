@@ -26,6 +26,13 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   disputed claim, criticized views) stays in the library with a plain-English `caution`. The build
   carries it to every passage, RabAI is told it with the passage, and the app shows it beside the
   text. Never drop a caution, and never let RabAI rest a halachic answer on a debated book alone.
+  A debated book whose main claims Orthodox authorities rejected (caution kind `rejected_views`,
+  such as Milchamot HaShem) is presented only as its author's claims, together with the answer
+  Orthodox authorities gave, and never framed as a kabbalist's teaching.
+- **Written permissions** from rights holders are recorded once in `canon/permissions.yaml` and
+  named on each version they cover (`permission: <id>`). The build applies one only to files from
+  the holder's own sites, or versions it names under `also` with the reason. Record only a
+  permission the maintainer reports, and never treat one as a board approval.
 - An edition marked `strip_brackets: angle` has an editor's additions removed when the library is
   built; a passage where they can't be separated cleanly is left out, never quoted with them.
 - Run `python3 tools/validate.py` before every commit. CI runs it too.
@@ -155,6 +162,11 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   (`.github/workflows/translations.yml`, run by hand) creates the database and connects the app
   (`tools/translations_setup.py`), estimates costs, and fills it in batches. Filling needs the
   repo secret `ANTHROPIC_API_KEY` as well as the Turso and Vercel ones.
+- **Is it working?** The "Is RabAI working?" workflow (`.github/workflows/health.yml`, run by
+  hand) checks every piece from GitHub: Turso's plan, usage and databases, the Vercel deploys and
+  settings (names only), and the live app, by request and in a real browser on a phone and a
+  computer (`tools/health_check.py`, `tools/health_browser.cjs`). It prints no secrets and no
+  answer text. This session can't reach the live app; run the workflow instead.
 - **Checking a deploy:** Vercel reports each deploy on its commit
   (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
   Build and runtime logs need access to the maintainer's personal Vercel account; the
@@ -172,7 +184,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-07)
+## Where things stand (2026-10-10)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -190,13 +202,25 @@ Moving RabAI off Senior Stylist:
 
 Open items:
 - The testing library on Turso was rebuilt 2026-10-07 (run #4, commit `8aa2fd7`): 3,006,539
-  passages, 5,445 books, 765 editions, 4,064 MB, inside Turso's 5 GB free plan, with the
-  debated books' cautions. Rebuild to add Rabbi Yosef ibn Yahya (canon `2a29b12`). It has no
-  printed-page layouts yet: the "Make the printed-page layouts" workflow has never been run.
+  passages, 5,445 books, 765 editions, 4,064 MB, with the debated books' cautions. Rebuild to add
+  Torat Emet's texts (35 files, about 34 MB of Sefaria's JSON, by its permission), Milchamot
+  HaShem and Rabbi Yosef ibn Yahya. It has no printed-page layouts yet: the "Make the
+  printed-page layouts" workflow has never been run.
+- **Turso is over its free plan (2026-10-10), so its writes are blocked.** Storage counts every
+  database used in the month, deleted ones included: 8.1 GB of 5 GB. Until the maintainer moves
+  to the Developer plan (or the month resets), new translations aren't kept, the people database
+  can't be made, and a rebuild would fail. Each rebuild adds about the library's size to the
+  month's count, so batch canon changes into one rebuild.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
-- No Zohar text can be used yet: the routes (Torat Emet's license, a typing of an old printing,
-  or the Sulam's rights holder) are in the canon (`zohar`) and `docs/permissions-plan.md`.
+- Torat Emet gave written permission (reported by the maintainer, 2026-10-10;
+  `canon/permissions.yaml`). Its email's own words aren't on file yet; they decide whether it
+  covers a public launch. Its vocalized Zohar (Zohar Menukad) enters the library at the next
+  rebuild. Its Hebrew translation of the Zohar stays out (translator unknown), as does the Sulam's
+  Aramaic (rights holder unknown).
+- Milchamot HaShem (Rabbi Yichya Qafih) is in the canon as a debated book whose claims Orthodox
+  authorities rejected (maintainer's direction, 2026-10-10). The board should confirm the
+  history in its caution.
 - License requests for the texts still left out are listed by organization in
   `docs/permissions-plan.md`; none are sent yet.
 - Learner profiles: phase 1 (on the device) and phase 2 (accounts, "Was this helpful?") are
@@ -205,8 +229,10 @@ Open items:
 - Translating inside a Claude Code session works end to end (40 Rashi comments imported on
   2026-10-07). It uses the session's plan, not the API, but takes a lot of it (about 540,000
   tokens for 728 Hebrew words), so it suits chosen books, not all of Shas.
-- Still missing from the testing library because Sefaria lists no license: Esther Rabbah, and
-  the Hebrew of the Ramban on Shemot (his English is there).
+- Still missing because Sefaria lists no license on their files: 24 files, among them the Hebrew
+  of the Ramban on Shemot (`python3 tools/library_plan.py` lists them). The maintainer reported on
+  2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
+  what the build reads; its daily database backup shows a new label first.
 - Waiting on the maintainer's yes or no: an outside check that compares a claim against the
   library. Proposed design: automatic lookups only on trusted Orthodox sites; the open web
   only for a claim the person brings; outside content is never treated as a source.

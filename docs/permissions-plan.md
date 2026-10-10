@@ -113,7 +113,20 @@ example Hebrew Wikisource's.
 
 ### Torat Emet (toratemetfreeware.com)
 
-**What to ask:** written permission to use their digital texts, and for each title which
+**Answered (2026-10-10): yes.** The maintainer reported that Torat Emet sent him an email saying
+it's ok. The permission is recorded in [`canon/permissions.yaml`](../canon/permissions.yaml)
+(`torat-emet`) and named on every version of Torat Emet's text in the canon, so its files with no
+license on Sefaria now enter the testing library: Vayikra, Bamidbar, Devarim, Esther, Bereshit
+and Shemot Rabbah, the Mishneh Torah sections, the Maggid Mishneh, Lechem Mishneh, Kessef Mishneh
+and Ra'avad files listed above, Shemirat HaLashon and Tzipita LeYeshuah in Hebrew, the full Hebrew
+of Sefer HaChinuch, Siddur Ashkenaz, Bartenura on Mikvaot, Shulchan Aruch Choshen Mishpat, and the
+vocalized Zohar. Still to do: put the email's own words on file (forward it, or copy them here),
+which is what tells us whether the permission also covers a public launch, and ask which printing
+each title was typed from. Torat Emet's Hebrew translation of the Zohar stays out until its
+translator is known and the board has seen it. One Choshen Mishpat file that Sefaria credits to
+Wikimedia Commons, not to Torat Emet, stays out.
+
+**What we asked:** written permission to use their digital texts, and for each title which
 printing it was typed from. **Why:** Sefaria's labels for their files are inconsistent (above),
 and their Midrash Rabbah has added vowels, so it cannot be treated as a copy of an old printing.
 **Titles:** Vayikra, Bamidbar, Devarim and Esther Rabbah ("Midrash Rabbah -- TE"); the Chafetz

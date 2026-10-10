@@ -199,6 +199,8 @@ export function documentText(passage: Passage): string {
 
 export function testingContext(passage: Passage): string {
   const s = passage.source!;
+  // A debated work whose main claims Orthodox authorities rejected (caution kind rejected_views).
+  const rejected = s.standing === "debated" && Boolean(s.caution) && (s.cautionKinds ?? []).includes("rejected_views");
   const parts = [
     `Work: ${s.workTitle} (${s.book}).`,
     / on /.test(s.book) ? "This is a commentary." : "",
@@ -210,10 +212,14 @@ export function testingContext(passage: Passage): string {
     s.wordToolOnly
       ? "Its author was not Orthodox: use it only for what words mean, never for history or belief."
       : "",
-    s.category === "kabbalah" ? "This is a work of Kabbalah: present it as what the kabbalists teach." : "",
-    s.standing === "debated" && s.caution
-      ? `Caution, a debated source: ${s.caution} Tell the person this caution when you use it, and never rest a halachic answer on it alone.`
+    s.category === "kabbalah" && !rejected
+      ? "This is a work of Kabbalah: present it as what the kabbalists teach."
       : "",
+    rejected
+      ? `Caution, a rejected source: ${s.caution} Orthodox authorities rejected its main claims. When you use it, say so plainly: give its claims only as this author's claims, never in your own voice or as what the Torah teaches, and explain the answer Orthodox authorities gave, citing the documents you were given. If they don't contain that answer, say so instead of supplying one.`
+      : s.standing === "debated" && s.caution
+        ? `Caution, a debated source: ${s.caution} Tell the person this caution when you use it, and never rest a halachic answer on it alone.`
+        : "",
   ];
   return parts.filter(Boolean).join(" ");
 }

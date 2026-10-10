@@ -1,0 +1,37 @@
+# Written permissions from rights holders, for texts whose Sefaria files carry no open license.
+#
+# A version in canon.yaml names one with `permission: <id>`. Its `license` stays the one Sefaria
+# shows on its other titles, or is "Permission" when Sefaria shows none. The build accepts a file
+# with no open license only when the file's Sefaria source is one of the holder's `sites`, and
+# records its license as "Permission (<holder>, <received>)" (tools/library_plan.py).
+#
+# A permission here lets a text into the private testing library. It is not a board approval:
+# the board still decides what is Torah content, and an edition still needs `license: cleared`
+# (with the permission's own words on file) before it can be public.
+#
+# Only the maintainer records a permission, as he received it.
+
+permissions:
+
+  - id: torat-emet
+    holder: "Torat Emet"
+    sites: [toratemetfreeware.com, ateret4u.com]
+    received: 2026-10-10
+    how: >-
+      By email to the maintainer, who reported it in a working session on 2026-10-10 ("[Torat]
+      Emet sent me an email saying it's ok"). The email itself is not yet in this repo; forward
+      it or copy its words into docs/permissions-plan.md, so its exact terms are on file.
+    scope: >-
+      What we asked for (docs/permissions-plan.md, "Torat Emet"): written permission to use their
+      digital texts in RabAI, including their vocalized Zohar ("Zohar Menukad"). Whether it also
+      covers a public launch, and on what terms, is to be confirmed from the email's own words.
+      ateret4u.com appears to be Torat Emet's library online: Sefaria names its files as Torat
+      Emet's, and they use the same numbering (f_NNNNN) (to confirm).
+    also:
+      - version: "Vocalized Zohar, Israel 2013"
+        why: >-
+          Sefaria gives a National Library of Israel catalog record as this file's source, but
+          its text is Torat Emet's vocalized Zohar ("Zohar Menukad", online file f_01148): its
+          Idra Zuta matches Torat Emet's word for word (9,099 of 9,099 words), and it is the
+          file we asked Torat Emet about. Who vocalized it, and whether Torat Emet holds its
+          rights or distributes it by someone else's leave, is still to be confirmed.
