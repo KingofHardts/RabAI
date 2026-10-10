@@ -46,7 +46,7 @@ jobs:
         env:
           SAMPLES: ${{ inputs.samples }}
           MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
-        run: python3 tools/site_map.py aish --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS"
+        run: python3 tools/site_map.py aish --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS" --wordpress
       - name: Map Chabad.org
         if: ${{ !cancelled() && inputs.site != 'aish' }}
         env:

@@ -58,19 +58,28 @@ def fetch(url: str, timeout: int = 30) -> tuple[int, bytes, str, dict]:
                     pass
             return r.status, body, r.geturl(), dict(r.headers)
     except urllib.error.HTTPError as e:
-        return e.code, b"", url, dict(e.headers or {})
+        try:
+            body = e.read(20000)
+        except Exception:  # noqa: BLE001
+            body = b""
+        return e.code, body, url, dict(e.headers or {})
     except Exception as e:  # noqa: BLE001 - report and carry on
         print(f"  (could not fetch {url}: {type(e).__name__})")
         return 0, b"", url, {}
 
 
 def blocked_hint(status: int, headers: dict, body: bytes) -> str:
-    """Say when a response looks like a bot wall rather than the page."""
-    low = body[:4000].decode("utf-8", "replace").lower()
-    if headers.get("cf-mitigated") or "just a moment" in low or "cf-chl" in low:
-        return " (looks like a Cloudflare challenge, not the page)"
+    """Say when a response looks like a bot wall rather than the page, and which kind."""
+    low = body[:20000].decode("utf-8", "replace").lower()
+    mitigated = headers.get("cf-mitigated") or headers.get("Cf-Mitigated")
+    if mitigated or "just a moment" in low or "cf-chl" in low or "challenge-platform" in low:
+        return f" (a Cloudflare challenge page{', cf-mitigated: ' + mitigated if mitigated else ''})"
+    if "error code: 1020" in low or "error 1020" in low or "access denied" in low:
+        return " (a Cloudflare firewall rule blocked us: error 1020, access denied)"
+    if "attention required" in low or "sorry, you have been blocked" in low:
+        return " (Cloudflare blocked us: 'Sorry, you have been blocked')"
     if status in (403, 429, 503):
-        return " (the site refused or slowed us)"
+        return f" (the site refused or slowed us; ray {headers.get('cf-ray') or headers.get('CF-RAY') or '?'})"
     return ""
 
 
@@ -108,6 +117,7 @@ def walk_sitemaps(start: list[str], site: dict, max_maps: int) -> tuple[dict, Co
     rng = random.Random(0)
     queue, seen, per_map = list(start), set(), {}
     by1, by2, samples = Counter(), Counter(), defaultdict(list)
+    per_file: dict[str, list[str]] = {}
     while queue and len(seen) < max_maps:
         url = queue.pop(0)
         if url in seen:
@@ -143,9 +153,12 @@ def walk_sitemaps(start: list[str], site: dict, max_maps: int) -> tuple[dict, Co
                 if j < KEEP_PER_SECTION:
                     kept[j] = loc
         per_map[url] = f"{here} pages"
+        mine = [loc for loc in locs if urllib.parse.urlparse(loc).hostname in site["hosts"]]
+        if mine:
+            per_file[url] = [mine[0], mine[len(mine) // 2], mine[-1]]
     if queue:
         print(f"  (stopped after {len(seen)} sitemaps; {len(queue)} more were listed)")
-    return per_map, by1, by2, samples
+    return per_map, by1, by2, samples, per_file
 
 
 class Shape(HTMLParser):
@@ -283,6 +296,83 @@ def sample(url: str, rp) -> None:
     print(f"    visible text, characters (not shown): {shape.text_len:,}")
 
 
+EXTRA_PROBES = {
+    # Status codes only, to see whether the whole site or only some pages refuse us.
+    "chabad": [
+        "https://www.chabad.org/sitemap.xml",
+        "https://www.chabad.org/library/article_cdo/aid/1",
+        "https://www.chabad.org/parshah/default_cdo/jewish/Parshah.htm",
+        "https://www.chabad.org/dailystudy/default_cdo/jewish/Daily-Study.htm",
+    ],
+}
+
+
+def probe_wordpress(site: dict) -> None:
+    """A WordPress site's REST interface: its routes, how many posts it serves, and its categories.
+
+    Prints names, numbers and field names only; never a post's text.
+    """
+    base = site["home"].rstrip("/") + "/wp-json"
+    status, body, _, headers = fetch(base + "/")
+    print(f"\nWordPress interface {base}/: HTTP {status}{blocked_hint(status, headers, body)}")
+    if status == 200:
+        try:
+            info = json.loads(body)
+            routes = sorted(info.get("routes", {}))
+            print(f"  namespaces: {info.get('namespaces')}")
+            print(f"  wp/v2 routes ({len([r for r in routes if r.startswith('/wp/v2/')])}):")
+            for r in routes:
+                if r.startswith("/wp/v2/") and "(?P" not in r:
+                    print(f"    {r}")
+        except ValueError:
+            print("  (not JSON)")
+    status, body, _, headers = fetch(base + "/wp/v2/posts?per_page=3&_fields=id,date,modified,link,title,categories,tags,author,type,content")
+    total = headers.get("X-WP-Total") or headers.get("x-wp-total")
+    print(f"posts: HTTP {status}{blocked_hint(status, headers, body)}; total {total}; pages of 3: {headers.get('X-WP-TotalPages') or headers.get('x-wp-totalpages')}")
+    if status == 200:
+        try:
+            for post in json.loads(body):
+                content = (post.get("content") or {}).get("rendered") or ""
+                print(f"  post {post.get('id')}: {post.get('link')}; title: {(post.get('title') or {}).get('rendered', '')[:100]!r}; "
+                      f"author id {post.get('author')}; categories {post.get('categories')}; date {post.get('date')}; "
+                      f"content: {len(content):,} characters of HTML (not shown), <p> {content.count('<p')}, "
+                      f"<h2> {content.count('<h2')}, <blockquote> {content.count('<blockquote')}, <img> {content.count('<img')}, "
+                      f"<iframe> {content.count('<iframe')}")
+        except ValueError:
+            print("  (not JSON)")
+    page, cats = 1, []
+    while page <= 10:
+        status, body, _, headers = fetch(base + f"/wp/v2/categories?per_page=100&page={page}&_fields=id,name,slug,parent,count")
+        if status != 200:
+            print(f"categories page {page}: HTTP {status}{blocked_hint(status, headers, body)}")
+            break
+        try:
+            batch = json.loads(body)
+        except ValueError:
+            break
+        if not batch:
+            break
+        cats += batch
+        page += 1
+    if cats:
+        by_id = {c["id"]: c for c in cats}
+
+        def path(c):
+            parts, seen = [], set()
+            while c and c["id"] not in seen:
+                seen.add(c["id"])
+                parts.append(c["name"])
+                c = by_id.get(c.get("parent"))
+            return " > ".join(reversed(parts))
+
+        print(f"categories: {len(cats)} (path, slug, posts)")
+        for c in sorted(cats, key=path):
+            print(f"  {c['count']:6d}  {path(c)}  [{c['slug']}, id {c['id']}]")
+    for kind in ("parsha", "holiday", "authors", "author", "daily_quotes", "spirituality"):
+        status, body, _, headers = fetch(base + f"/wp/v2/{kind}?per_page=1&_fields=id,link,type")
+        print(f"route /wp/v2/{kind}: HTTP {status}; total {headers.get('X-WP-Total') or headers.get('x-wp-total')}")
+
+
 def main() -> int:
     name = sys.argv[1] if len(sys.argv) > 1 else ""
     if name not in SITES:
@@ -302,7 +392,7 @@ def main() -> int:
     rp, maps = read_robots(site)
     if not maps:
         maps = [urllib.parse.urljoin(site["home"], p) for p in ("/sitemap.xml", "/sitemap_index.xml")]
-    per_map, by1, by2, kept = walk_sitemaps(maps, site, max_maps)
+    per_map, by1, by2, kept, per_file = walk_sitemaps(maps, site, max_maps)
     print(f"\nsitemaps read: {len(per_map)}")
     for url, what in list(per_map.items())[:80]:
         print(f"  {url}: {what}")
@@ -314,10 +404,27 @@ def main() -> int:
         for section, count in counts.most_common(60):
             print(f"  {count:8,}  {section}")
     print("\nsample pages from the largest sections (structure only):")
-    for section, _ in by2.most_common(14):
+    for section, _ in by2.most_common(6):
         urls = kept[section]
         for url in urls[:samples_per]:
             sample(url, rp)
+    # One page from each kind of sitemap file, spread over the numbered ones (post-sitemap,
+    # post-sitemap17, ...), so a site whose articles sit at flat addresses is sampled too.
+    kinds: dict[str, list[str]] = defaultdict(list)
+    for url in per_file:
+        stem = urllib.parse.urlparse(url).path.rstrip("/").rsplit("/", 1)[-1]
+        kinds[stem.rstrip("0123456789.xmlgz").rstrip("-_") or stem].append(url)
+    print("\nsample pages from each kind of sitemap (structure only):")
+    for kind, files in sorted(kinds.items()):
+        picks = [files[0], files[len(files) // 2], files[-1]][: max(1, samples_per)] if len(files) > 2 else files[:1]
+        for f in dict.fromkeys(picks):
+            print(f"[{kind}] from {f}")
+            sample(per_file[f][1], rp)
+    if "--wordpress" in sys.argv:
+        probe_wordpress(site)
+    for url in EXTRA_PROBES.get(name, []):
+        status, body, final, headers = fetch(url)
+        print(f"probe {url}: HTTP {status}{blocked_hint(status, headers, body)}" + (f", moved to {final}" if final != url else ""))
     return 0
 
 
