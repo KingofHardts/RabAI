@@ -12,15 +12,21 @@ partners:
     kind: organization
     offers: Articles, divrei Torah, 48 Ways, kiruv material
     streams: [kiruv, litvish]
-    status: not_contacted
-    notes: Start here, through Josh's connection.
+    status: agreed
+    notes: >-
+      Written OK of use reported by the maintainer on 2026-10-10 (canon/permissions.yaml, aish).
+      Its content comes in edition by edition through the canon.
 
   - id: chabad-org
     name: Chabad.org
     kind: organization
     offers: Articles, Q&A, Chumash with Rashi, Rambam, Tanya
     streams: [chabad, chassidish]
-    status: not_contacted
+    status: agreed
+    notes: >-
+      Written OK of use reported by the maintainer on 2026-10-10 (canon/permissions.yaml,
+      chabad-org). Its content comes in edition by edition through the canon. Texts it hosts by
+      another publisher's permission may need that publisher's OK.
 
   - id: ou-torah
     name: OU Torah
@@ -50,6 +56,17 @@ partners:
     streams: [modern_orthodox]
     status: not_contacted
     notes: Mostly audio. Transcripts need each speaker's permission.
+
+  - id: torah-anytime
+    name: TorahAnytime
+    kind: organization
+    offers: Recorded shiurim (audio and video) from many speakers
+    streams: [shared]
+    status: not_contacted
+    notes: >-
+      The maintainer wants its shiurim (2026-10-10). Audio and video would play from TorahAnytime
+      itself; the library would keep only text (titles, speakers, and transcripts if we make
+      them). Transcripts may need each speaker's permission, as with YUTorah.
 
   - id: yeshiva-org-il
     name: Yeshiva.org.il

@@ -1,9 +1,14 @@
-# Written permissions from rights holders, for texts whose Sefaria files carry no open license.
+# Written permissions from rights holders.
 #
-# A version in canon.yaml names one with `permission: <id>`. Its `license` stays the one Sefaria
-# shows on its other titles, or is "Permission" when Sefaria shows none. The build accepts a file
-# with no open license only when the file's Sefaria source is one of the holder's `sites`, and
+# For a text on Sefaria whose files carry no open license, a version in canon.yaml names the
+# permission with `permission: <id>`. Its `license` stays the one Sefaria shows on its other
+# titles, or is "Permission" when Sefaria shows none. The build accepts such a file only when the
+# file's Sefaria source is one of the holder's `sites` (or a version listed under `also`), and
 # records its license as "Permission (<holder>, <received>)" (tools/library_plan.py).
+#
+# For a source's own site (Aish.com, Chabad.org), the permission is recorded here first. Its
+# content still comes in edition by edition, each listed in canon.yaml for the board, never the
+# whole site at once.
 #
 # A permission here lets a text into the private testing library. It is not a board approval:
 # the board still decides what is Torah content, and an edition still needs `license: cleared`
@@ -35,3 +40,31 @@ permissions:
           Idra Zuta matches Torat Emet's word for word (9,099 of 9,099 words), and it is the
           file we asked Torat Emet about. Who vocalized it, and whether Torat Emet holds its
           rights or distributes it by someone else's leave, is still to be confirmed.
+
+  - id: aish
+    holder: "Aish (Aish.com)"
+    sites: [aish.com]
+    received: 2026-10-10
+    how: >-
+      In writing, reported by the maintainer in a working session on 2026-10-10 ("I just got
+      written oks of use for both of them", Aish.com and Chabad.org). The wording is not yet in
+      this repo; copy it into docs/permissions-plan.md, so its exact terms are on file.
+    scope: >-
+      To confirm from the wording: which content (articles, divrei Torah, 48 Ways, videos),
+      whether it covers a public launch, and any terms (credit, links back). Articles by outside
+      authors may need those authors' own permission.
+
+  - id: chabad-org
+    holder: "Chabad.org"
+    sites: [chabad.org]
+    received: 2026-10-10
+    how: >-
+      In writing, reported by the maintainer in a working session on 2026-10-10 (with Aish.com's).
+      The wording is not yet in this repo; copy it into docs/permissions-plan.md, so its exact
+      terms are on file.
+    scope: >-
+      To confirm from the wording: which content (articles, Q&A, the Chumash with Rashi, the
+      daily Rambam, Tanya), whether it covers a public launch, and any terms. Some texts on
+      Chabad.org appear there by permission of their own publishers (for example, its Tanach
+      translation is the Judaica Press edition and its Mishneh Torah translation is Moznaim's, to
+      confirm); Chabad.org's OK may not cover those.

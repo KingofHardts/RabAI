@@ -184,7 +184,9 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
 
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
-  still enters only with their written permission.
+  still enters only with their written permission. Josh (2026-10-10): both gave written OKs of
+  use (`canon/permissions.yaml`). Their content still comes in edition by edition, each listed in
+  the canon for the board, not as whole sites.
 
   The printed page, line for line (Josh asked, 2026-10-07): so that a word found on a line of a
   printed Gemara is in the same place on RabAI's page, `tools/daf_layout.py` reads Sefaria's

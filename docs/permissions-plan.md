@@ -48,8 +48,9 @@ have to confirm who holds the rights.
 
 | Who to ask | Works |
 |---|---|
-| Aish | 48 Ways to Wisdom, plus articles and divrei Torah (letter drafted: [`outreach/aish.md`](outreach/aish.md)) |
-| Chabad.org | Articles, Q&A, and their translations (letter drafted: [`outreach/chabad-org.md`](outreach/chabad-org.md)) |
+| Aish | 48 Ways to Wisdom, plus articles and divrei Torah. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `aish`). Put its wording on file here. |
+| Chabad.org | Articles, Q&A, and their translations. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `chabad-org`). Put its wording on file here; texts it hosts by another publisher's permission (Judaica Press's Tanach, Moznaim's Mishneh Torah, to confirm) may need that publisher's OK. |
+| TorahAnytime | Recorded shiurim. Not yet asked. Audio and video would play from TorahAnytime; only text (titles, speakers, transcripts) would be stored. |
 | Koren / Maggid | The Talmud, A Reference Guide; Rav Soloveitchik volumes they publish; confirming the license of the Koren Yerushalmi files on Sefaria (Shekalim so far) |
 | OU Press and the Toras HoRav Foundation | Rav Soloveitchik's works; Rav Aryeh Kaplan's NCSY titles |
 | Moznaim | Rav Aryeh Kaplan's Handbook of Jewish Thought and other titles |

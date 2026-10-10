@@ -192,8 +192,9 @@ Moving RabAI off Senior Stylist:
   there with only this repo.
 - GitHub: decided (maintainer, 2026-10-06) to keep `SeniorStylist` as a collaborator, so
   Claude's sessions keep pushing as that account.
-- Chabad.org and Aish.com stay off the environment's allowed domains until they give written
-  permission. The list affects only Claude's working sessions, not what the live app can reach.
+- Chabad.org and Aish.com gave written permission (reported by the maintainer, 2026-10-10;
+  `canon/permissions.yaml`), so they may be added to the environment's allowed domains. The
+  list affects only Claude's working sessions, not what the live app can reach.
 - To confirm: `ANTHROPIC_API_KEY` in the `rab-ai` Vercel project should come from the
   maintainer's own Anthropic account, not Senior Stylist's.
 - Vercel: the Vercel connector holds one account (Senior Stylist's), so RabAI uses a personal
@@ -238,7 +239,9 @@ Open items:
   only for a claim the person brings; outside content is never treated as a source.
 - For the board: the core premises, including "Talking about anything" (open question 14 in
   the founding spec).
-- Letters to Aish and Chabad.org are drafted in `docs/outreach/` and not yet sent.
+- Aish.com and Chabad.org gave written OKs of use (reported 2026-10-10). Their wording isn't on
+  file yet; it decides what they cover and whether that includes a public launch. Their content
+  comes in edition by edition through the canon, never a whole site at once.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
