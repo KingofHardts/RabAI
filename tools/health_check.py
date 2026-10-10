@@ -341,6 +341,32 @@ def check_app(code: str | None) -> None:
     if status != 200:
         problem(f"A word's meaning answered HTTP {status}.")
 
+    # "Translate this" on a Rashi already kept in the translation library (no model call when kept).
+    status, raw = fetch("/api/translate", {"ref": "Rashi on Berakhot 2a:1:1", "context": [], "words": False}, timeout=180)
+    try:
+        tr = json.loads(raw)
+        parts = [k for k in ("general", "words", "readings") if tr.get(k)]
+        summary(f"- \"Translate this\": HTTP {status}" + (f", with {', '.join(parts)}." if parts else f": {plain(tr.get('error', ''))}"))
+        if status != 200:
+            problem(f"\"Translate this\" answered HTTP {status}: {plain(tr.get('error', ''))}")
+    except ValueError:
+        problem(f"\"Translate this\" answered HTTP {status} with something that isn't JSON.")
+
+    # "Show the flow": RabAI's colored outline of a page (a model call, up to a few minutes).
+    status, raw = fetch("/api/daf/outline", {"ref": "Berakhot 2a"}, timeout=330)
+    try:
+        out = json.loads(raw)
+        lines = out.get("lines") or []
+        phrases = sum(len(l.get("phrases") or []) for l in lines if isinstance(l, dict))
+        summary(f"- \"Show the flow\" on Berakhot 2a: HTTP {status}, {len(lines)} lines, {phrases} phrases, "
+                f"{seen.get('seconds', 0):.0f} seconds" + (f": {plain(out.get('error'))}" if out.get("error") else "."))
+        if status != 200:
+            problem(f"\"Show the flow\" answered HTTP {status}: {plain(out.get('error', ''))}")
+    except ValueError:
+        h = seen.get("headers", {})
+        problem(f"\"Show the flow\" answered HTTP {status} with something that isn't JSON "
+                f"(after {seen.get('seconds', 0):.0f} seconds, x-vercel-error = {h.get('x-vercel-error', 'none')}).")
+
     # The app asks for a live (streamed) answer: one JSON object per line.
     status, raw = fetch("/api/ask", {"question": QUESTION, "stream": True}, timeout=240)
     h = seen.get("headers", {})

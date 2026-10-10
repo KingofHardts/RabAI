@@ -16,9 +16,14 @@ function say(kind, text) {
 }
 
 async function unlock(page) {
-  await page.goto(`${APP}/unlock`, { waitUntil: "domcontentloaded", timeout: 60000 });
-  await page.fill("#access-code", CODE);
-  await page.click("form.unlock-form button[type=submit]");
+  await page.goto(`${APP}/unlock`, { waitUntil: "networkidle", timeout: 60000 });
+  const button = page.locator("form.unlock-form button[type=submit]");
+  // Typing before the page has finished loading can be undone when it does; type again if so.
+  for (let attempt = 0; attempt < 5 && !(await button.isEnabled()); attempt++) {
+    await page.fill("#access-code", CODE);
+    await page.waitForTimeout(1000);
+  }
+  await button.click();
   await page.waitForURL((u) => !u.pathname.startsWith("/unlock"), { timeout: 30000 });
   await page.waitForSelector("#ask-input", { timeout: 60000 });
 }
