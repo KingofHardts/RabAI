@@ -142,7 +142,9 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   permission names that version and says why it is the holder's text. Torat Emet was the first:
   Josh reported its permission on 2026-10-10. A permission lets a text into the testing library;
   it is not a board approval, and an edition is not `license: cleared` for the public until the
-  permission's own words are on file.
+  permission's own words are on file. A permission for private use only is marked
+  `public: false`: the validator then refuses `license: cleared` on any edition resting on it,
+  and the app never opens the testing library once it is public (`RABAI_PUBLIC=true`).
   `tools/library_build.py` turns those files into one database with a search index and
   Sefaria's cross-references (only where both ends are in the library). The database is hosted
   privately (Turso) and read only by the locked app. It is never published, never committed, and
@@ -185,7 +187,8 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   Josh (2026-10-06): mainstream Orthodox organizations such as Chabad.org and Aish.com are a
   reference point for what is good and true. That guides judgment calls; their own content
   still enters only with their written permission. Josh (2026-10-10): both gave written OKs of
-  use (`canon/permissions.yaml`). Their content still comes in edition by edition, each listed in
+  use, as did Torat Emet: complete access, for private use only, not public for now
+  (`canon/permissions.yaml`). Their content still comes in edition by edition, each listed in
   the canon for the board, not as whole sites.
 
   The printed page, line for line (Josh asked, 2026-10-07): so that a word found on a line of a

@@ -35,6 +35,16 @@ class PermissionsFileTest(unittest.TestCase):
         self.assertEqual(V.errors[before:], [])
         self.assertIn("torat-emet", permissions)
 
+    def test_private_only_permissions_are_found_on_an_edition(self):
+        for pid in ("torat-emet", "aish", "chabad-org"):
+            self.assertIs(V.load_permissions()[pid]["public"], False)
+        edition = {"sefaria_versions": [
+            {"version": "a", "license": "Public Domain"},
+            {"version": "b", "license": "Permission", "permission": "torat-emet"},
+        ]}
+        self.assertEqual(V.private_permissions(edition), ["torat-emet"])
+        self.assertEqual(V.private_permissions({"sefaria_versions": [{"version": "a", "license": "CC0"}]}), [])
+
     def test_a_version_needs_a_known_permission_to_rest_on_one(self):
         self.assertTrue(V.version_usable({"version": "x", "license": "Permission", "permission": "torat-emet"}))
         self.assertFalse(V.version_usable({"version": "x", "license": "Permission", "permission": "nobody"}))

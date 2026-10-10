@@ -63,7 +63,7 @@ TESTING_LICENSES = {"publicdomain", "pd", "cc0", "ccby", "ccbysa", "ccbync", "cc
 # A printing this many years old or more is in the public domain in the US.
 PUBLIC_DOMAIN_YEARS = 96
 VERSION_KEYS = {"version", "license", "note", "printed", "permission"}
-PERMISSION_KEYS = {"id", "holder", "sites", "received", "how", "scope"}
+PERMISSION_KEYS = {"id", "holder", "sites", "received", "how", "scope", "public"}
 # Optional: Sefaria versions of the holder's texts that Sefaria credits to another source.
 PERMISSION_ALSO_KEYS = {"version", "why"}
 SITE_RE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
@@ -100,8 +100,11 @@ def load_permissions() -> dict:
         if not isinstance(item, dict) or not pid or not ID_RE.match(str(pid)):
             fail(f"{where}: needs an id like 'torat-emet'")
             continue
-        if set(item) - PERMISSION_KEYS - {"also"} or not all(item.get(k) for k in PERMISSION_KEYS):
+        if set(item) - PERMISSION_KEYS - {"also"} or not all(item.get(k) for k in PERMISSION_KEYS - {"public"}):
             fail(f"{where}: needs {sorted(PERMISSION_KEYS)} (and may have 'also')")
+            continue
+        if not isinstance(item.get("public"), bool):
+            fail(f"{where}: public must be true (the holder allows public use) or false (private use only)")
             continue
         also = item.get("also", [])
         if not isinstance(also, list) or not all(
@@ -121,6 +124,13 @@ def load_permissions() -> dict:
             fail(f"{where}: id '{pid}' is used twice")
         _permissions[pid] = item
     return _permissions
+
+
+def private_permissions(edition: dict) -> list:
+    """The private-only permissions (public: false) that an edition's versions rest on."""
+    granted = load_permissions()
+    ids = {v.get("permission") for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)}
+    return sorted(i for i in ids if i in granted and granted[i].get("public") is False)
 
 
 def version_usable(v: dict) -> bool:
@@ -230,6 +240,9 @@ def check_canon(vocab: dict, canon: dict) -> dict:
             check_value(ewhere, "orthodox", edition.get("orthodox"), ORTHODOX_VALUES)
             check_value(ewhere, "status", edition.get("status"), vocab["status"])
             check_value(ewhere, "license", edition.get("license"), vocab["license"])
+            if edition.get("license") == "cleared" and private_permissions(edition):
+                fail(f"{ewhere}: cleared for the public, but it rests on a permission for private use only "
+                     f"({', '.join(private_permissions(edition))}, canon/permissions.yaml)")
             check_approval(ewhere, edition)
             versions = edition.get("sefaria_versions")
             if versions is not None:

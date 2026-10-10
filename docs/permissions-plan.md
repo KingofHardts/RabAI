@@ -48,8 +48,8 @@ have to confirm who holds the rights.
 
 | Who to ask | Works |
 |---|---|
-| Aish | 48 Ways to Wisdom, plus articles and divrei Torah. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `aish`). Put its wording on file here. |
-| Chabad.org | Articles, Q&A, and their translations. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `chabad-org`). Put its wording on file here; texts it hosts by another publisher's permission (Judaica Press's Tanach, Moznaim's Mishneh Torah, to confirm) may need that publisher's OK. |
+| Aish | 48 Ways to Wisdom, plus articles and divrei Torah. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `aish`): complete access, private use only, not public for now. Put its wording on file here. |
+| Chabad.org | Articles, Q&A, and their translations. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `chabad-org`): complete access, private use only, not public for now. Put its wording on file here; before any public use, texts it hosts by another publisher's permission (Judaica Press's Tanach, Moznaim's Mishneh Torah, to confirm) may need that publisher's OK. |
 | TorahAnytime | Recorded shiurim. Not yet asked. Audio and video would play from TorahAnytime; only text (titles, speakers, transcripts) would be stored. |
 | Koren / Maggid | The Talmud, A Reference Guide; Rav Soloveitchik volumes they publish; confirming the license of the Koren Yerushalmi files on Sefaria (Shekalim so far) |
 | OU Press and the Toras HoRav Foundation | Rav Soloveitchik's works; Rav Aryeh Kaplan's NCSY titles |
@@ -114,16 +114,16 @@ example Hebrew Wikisource's.
 
 ### Torat Emet (toratemetfreeware.com)
 
-**Answered (2026-10-10): yes.** The maintainer reported that Torat Emet sent him an email saying
-it's ok. The permission is recorded in [`canon/permissions.yaml`](../canon/permissions.yaml)
+**Answered (2026-10-10): yes, for private use.** The maintainer reported that Torat Emet gave
+complete access to its texts, but not for public use for now. That covers the private testing
+library; a public launch needs their further permission. The permission is recorded in [`canon/permissions.yaml`](../canon/permissions.yaml)
 (`torat-emet`) and named on every version of Torat Emet's text in the canon, so its files with no
 license on Sefaria now enter the testing library: Vayikra, Bamidbar, Devarim, Esther, Bereshit
 and Shemot Rabbah, the Mishneh Torah sections, the Maggid Mishneh, Lechem Mishneh, Kessef Mishneh
 and Ra'avad files listed above, Shemirat HaLashon and Tzipita LeYeshuah in Hebrew, the full Hebrew
 of Sefer HaChinuch, Siddur Ashkenaz, Bartenura on Mikvaot, Shulchan Aruch Choshen Mishpat, and the
-vocalized Zohar. Still to do: put the email's own words on file (forward it, or copy them here),
-which is what tells us whether the permission also covers a public launch, and ask which printing
-each title was typed from. Torat Emet's Hebrew translation of the Zohar stays out until its
+vocalized Zohar. Still to do: put the email's own words on file (copy them here), and ask which printing each
+title was typed from. Torat Emet's Hebrew translation of the Zohar stays out until its
 translator is known and the board has seen it. One Choshen Mishpat file that Sefaria credits to
 Wikimedia Commons, not to Torat Emet, stays out.
 

@@ -33,9 +33,10 @@ let cached: { url: string; client: Promise<Client> } | null = null;
  * serverless functions and needs no native code. A local file (a developer's own build of the
  * library) loads the full client only when it is used.
  */
-export function testingClient(env = process.env): Promise<Client> | null {
+export function testingClient(env: Record<string, string | undefined> = process.env): Promise<Client> | null {
   const url = testingDbUrl(env);
-  if (!url) return null;
+  // Never open the testing library on a public app (see libraryMode in ./index).
+  if (!url || env.RABAI_PUBLIC === "true") return null;
   if (cached?.url === url) return cached.client;
   const authToken = env.RABAI_LIBRARY_DB_TOKEN || env.TURSO_AUTH_TOKEN || undefined;
   const remote = /^(libsql|https?):\/\//.test(url);
@@ -886,9 +887,10 @@ export function createTestingStore(db: Db): TestingStore {
 let storeCache: { url: string; store: TestingStore } | null = null;
 
 /** The testing library, when its database is configured. */
-export function testingStore(env = process.env): TestingStore | null {
+export function testingStore(env: Record<string, string | undefined> = process.env): TestingStore | null {
   const url = testingDbUrl(env);
   const client = testingClient(env);
+  // testingClient refuses a public app, so so does this.
   if (!url || !client) return null;
   if (storeCache?.url === url) return storeCache.store;
   const store = createTestingStore(dbFrom(client));

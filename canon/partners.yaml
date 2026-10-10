@@ -14,8 +14,9 @@ partners:
     streams: [kiruv, litvish]
     status: agreed
     notes: >-
-      Written OK of use reported by the maintainer on 2026-10-10 (canon/permissions.yaml, aish).
-      Its content comes in edition by edition through the canon.
+      Written OK of use reported by the maintainer on 2026-10-10 (canon/permissions.yaml, aish):
+      complete access, private use only, not public for now. Its content comes in edition by
+      edition through the canon.
 
   - id: chabad-org
     name: Chabad.org
@@ -25,8 +26,9 @@ partners:
     status: agreed
     notes: >-
       Written OK of use reported by the maintainer on 2026-10-10 (canon/permissions.yaml,
-      chabad-org). Its content comes in edition by edition through the canon. Texts it hosts by
-      another publisher's permission may need that publisher's OK.
+      chabad-org): complete access, private use only, not public for now. Its content comes in
+      edition by edition through the canon. Texts it hosts by another publisher's permission may
+      need that publisher's OK before any public use.
 
   - id: ou-torah
     name: OU Torah

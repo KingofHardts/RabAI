@@ -12,7 +12,10 @@
 #
 # A permission here lets a text into the private testing library. It is not a board approval:
 # the board still decides what is Torah content, and an edition still needs `license: cleared`
-# (with the permission's own words on file) before it can be public.
+# (with the permission's own words on file) before it can be public. `public: false` means the
+# holder allows private use only: tools/validate.py then refuses `license: cleared` on any
+# edition that rests on it, and the app never opens the testing library once it is public
+# (web/lib/library/index.ts).
 #
 # Only the maintainer records a permission, as he received it.
 
@@ -26,10 +29,12 @@ permissions:
       By email to the maintainer, who reported it in a working session on 2026-10-10 ("[Torat]
       Emet sent me an email saying it's ok"). The email itself is not yet in this repo; forward
       it or copy its words into docs/permissions-plan.md, so its exact terms are on file.
+    public: false
     scope: >-
-      What we asked for (docs/permissions-plan.md, "Torat Emet"): written permission to use their
-      digital texts in RabAI, including their vocalized Zohar ("Zohar Menukad"). Whether it also
-      covers a public launch, and on what terms, is to be confirmed from the email's own words.
+      Complete access to their texts, for private use only: not to be used publicly for now (the
+      maintainer's account of their reply, 2026-10-10). That covers the private testing library;
+      a public launch needs their further permission. What we asked for is in
+      docs/permissions-plan.md ("Torat Emet"), including their vocalized Zohar ("Zohar Menukad").
       ateret4u.com appears to be Torat Emet's library online: Sefaria names its files as Torat
       Emet's, and they use the same numbering (f_NNNNN) (to confirm).
     also:
@@ -49,10 +54,12 @@ permissions:
       In writing, reported by the maintainer in a working session on 2026-10-10 ("I just got
       written oks of use for both of them", Aish.com and Chabad.org). The wording is not yet in
       this repo; copy it into docs/permissions-plan.md, so its exact terms are on file.
+    public: false
     scope: >-
-      To confirm from the wording: which content (articles, divrei Torah, 48 Ways, videos),
-      whether it covers a public launch, and any terms (credit, links back). Articles by outside
-      authors may need those authors' own permission.
+      Complete access to their content, for private use only: not to be used publicly for now
+      (the maintainer's account of their reply, 2026-10-10). That covers the private testing
+      library; a public launch needs their further permission. Articles by outside authors may
+      need those authors' own permission before any public use.
 
   - id: chabad-org
     holder: "Chabad.org"
@@ -62,9 +69,11 @@ permissions:
       In writing, reported by the maintainer in a working session on 2026-10-10 (with Aish.com's).
       The wording is not yet in this repo; copy it into docs/permissions-plan.md, so its exact
       terms are on file.
+    public: false
     scope: >-
-      To confirm from the wording: which content (articles, Q&A, the Chumash with Rashi, the
-      daily Rambam, Tanya), whether it covers a public launch, and any terms. Some texts on
-      Chabad.org appear there by permission of their own publishers (for example, its Tanach
-      translation is the Judaica Press edition and its Mishneh Torah translation is Moznaim's, to
-      confirm); Chabad.org's OK may not cover those.
+      Complete access to their content, for private use only: not to be used publicly for now
+      (the maintainer's account of their reply, 2026-10-10). That covers the private testing
+      library; a public launch needs their further permission. Some texts on Chabad.org appear
+      there by permission of their own publishers (for example, its Tanach translation is the
+      Judaica Press edition and its Mishneh Torah translation is Moznaim's, to confirm); before
+      any public use, those publishers' OK may be needed too.

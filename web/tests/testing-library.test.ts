@@ -17,6 +17,7 @@ import {
   plainForSearch,
   sectionOf,
   TESTING_LABEL,
+  testingStore,
   wordForms,
 } from "../lib/library/testing";
 
@@ -368,6 +369,15 @@ test("library mode: the testing library switches on when its database is set", (
   assert.equal(lib.works.length, 0, "no development texts mix into the testing library");
   assert.equal(lib.passages.length, 0);
   assert.match(TESTING_LABEL, /Not yet approved by the rabbinic board/);
+});
+
+test("a public app never opens the testing library, whatever else is set", () => {
+  const configured = { TURSO_DATABASE_URL: "libsql://x", TURSO_AUTH_TOKEN: "t", RABAI_PUBLIC: "true" };
+  assert.equal(libraryMode(configured), "approved");
+  assert.equal(libraryMode({ ...configured, RABAI_LIBRARY: "development" }), "approved");
+  assert.equal(testingStore(configured), null);
+  // Only the exact value opens the app, so only it closes the testing library.
+  assert.equal(libraryMode({ ...configured, RABAI_PUBLIC: "yes" }), "testing");
 });
 
 test("ask: the testing library feeds the answer, and citations still must point into what was sent", async () => {

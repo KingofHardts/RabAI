@@ -139,7 +139,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
   `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
   around it. Opening it to the public (`RABAI_PUBLIC=true`) is the maintainer's decision, made
-  only after the board approves a launch.
+  only after the board approves a launch. A public app uses only approved texts: `libraryMode`
+  and `testingClient` refuse the testing library when `RABAI_PUBLIC=true`, because it holds texts
+  allowed for private use only. Keep that guard.
 
 ## Where it runs
 
@@ -214,10 +216,10 @@ Open items:
   month's count, so batch canon changes into one rebuild.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
-- Torat Emet gave written permission (reported by the maintainer, 2026-10-10;
-  `canon/permissions.yaml`). Its email's own words aren't on file yet; they decide whether it
-  covers a public launch. Its vocalized Zohar (Zohar Menukad) enters the library at the next
-  rebuild. Its Hebrew translation of the Zohar stays out (translator unknown), as does the Sulam's
+- Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
+  2026-10-10; `canon/permissions.yaml`): complete access, for private use only, not public for
+  now (`public: false`). Their emails' own words aren't on file yet. Torat Emet's vocalized Zohar
+  (Zohar Menukad) enters the library at the next rebuild. Its Hebrew translation of the Zohar stays out (translator unknown), as does the Sulam's
   Aramaic (rights holder unknown).
 - Milchamot HaShem (Rabbi Yichya Qafih) is in the canon as a debated book whose claims Orthodox
   authorities rejected (maintainer's direction, 2026-10-10). The board should confirm the
@@ -239,9 +241,8 @@ Open items:
   only for a claim the person brings; outside content is never treated as a source.
 - For the board: the core premises, including "Talking about anything" (open question 14 in
   the founding spec).
-- Aish.com and Chabad.org gave written OKs of use (reported 2026-10-10). Their wording isn't on
-  file yet; it decides what they cover and whether that includes a public launch. Their content
-  comes in edition by edition through the canon, never a whole site at once.
+- Aish.com and Chabad.org content comes in edition by edition through the canon, never a whole
+  site at once. Keep the access code to a small circle while these permissions are private only.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.

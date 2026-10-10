@@ -7,6 +7,10 @@ export type { Passage, Work } from "./types";
 /**
  * Which texts the app may use.
  *
+ * Once the app is open to everyone (RABAI_PUBLIC=true), only "approved" texts are used, whatever
+ * else is configured: the testing library holds texts its rights holders allowed for private use
+ * only (canon/permissions.yaml), and is never public.
+ *
  * - "development": the team's typed texts, for building and testing only.
  * - "testing": the private testing library (tools/validate.py --testing, built into a database by
  *   tools/library_build.py): published Orthodox editions not yet approved by the board. Used
@@ -17,7 +21,7 @@ export type { Passage, Work } from "./types";
 export type LibraryMode = "development" | "testing" | "approved";
 
 export function libraryMode(env: Record<string, string | undefined> = process.env): LibraryMode {
-  if (env.RABAI_LIBRARY === "approved") return "approved";
+  if (env.RABAI_PUBLIC === "true" || env.RABAI_LIBRARY === "approved") return "approved";
   if (env.RABAI_LIBRARY === "development") return "development";
   return testingDbUrl(env) ? "testing" : "development";
 }
