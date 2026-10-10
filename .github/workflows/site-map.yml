@@ -1,0 +1,55 @@
+name: Map a source's website
+
+# Maps Aish.com or Chabad.org before any of it is copied: their sitemaps, how many pages each
+# section has, and how an article page is built (tools/site_map.py). Claude's working sessions
+# can't reach these sites, so this runs on GitHub. Run it by hand: Actions, "Map a source's
+# website", Run workflow.
+#
+# This repository's Actions logs are public. The tool prints only structure (addresses, counts,
+# page titles, author names, tag names), never an article's text.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: "Which site"
+        type: choice
+        options: [both, aish, chabad]
+        default: both
+      samples:
+        description: "Sample pages per section"
+        type: number
+        default: 2
+      max_sitemaps:
+        description: "Most sitemap files to read per site"
+        type: number
+        default: 400
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-map
+  cancel-in-progress: false
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Map Aish.com
+        if: ${{ inputs.site != 'chabad' }}
+        env:
+          SAMPLES: ${{ inputs.samples }}
+          MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
+        run: python3 tools/site_map.py aish --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS"
+      - name: Map Chabad.org
+        if: ${{ !cancelled() && inputs.site != 'aish' }}
+        env:
+          SAMPLES: ${{ inputs.samples }}
+          MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
+        run: python3 tools/site_map.py chabad --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS"
