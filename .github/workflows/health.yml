@@ -1,0 +1,36 @@
+name: Is RabAI working?
+
+# Checks every piece the app needs and writes what it found to the run's summary: Turso (plan,
+# monthly limits, blocks, the databases), Vercel (the latest deploy, which settings exist), the
+# settings used the way the app uses them (the databases answer, the Anthropic key works), and the
+# live app (the lock page, the access code, the library list, one real question).
+#
+# Run it by hand: Actions, "Is RabAI working?", Run workflow. It costs about as much as one question
+# in the app. This repository is public, so its Actions logs are too: every value the run reads is
+# masked before use, and the script prints no key, code, token or answer (tools/health_check.py).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check every piece
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: python3 tools/health_check.py

@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""Check that RabAI is working, piece by piece, without printing any secret.
+
+Runs in GitHub Actions (.github/workflows/health.yml), started by hand. It reports to the run's
+summary:
+
+1. Turso: the plan, whether reads or writes are blocked, this month's usage against the plan's
+   limits, and each RabAI database.
+2. Vercel: the latest production deploy, and which settings exist (names and kinds only).
+3. The settings, used the way the app uses them. Each value is masked in the log before it is
+   used, and none is ever printed:
+   - the library and translation databases each answer a small query;
+   - the Anthropic key answers a one-word request (a fraction of a cent).
+4. The live app: the lock page answers, the access code opens it, the library lists its books,
+   and one real question is answered (about the cost of one question in the app). Only whether
+   each step worked is printed, never the answer.
+
+This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
+token, a question's answer or anything about a person.
+
+Uses only the standard library and the helpers in tools/library_upload.py.
+"""
+
+import http.cookiejar
+import json
+import os
+import sys
+import urllib.error
+from datetime import datetime, timezone
+import urllib.request
+
+from library_upload import TURSO_API, VERCEL_API, VERCEL_PROJECT, ApiError, call, mask, summary, turso_org, vercel_scope
+
+APP = "https://rab-ai-ecru.vercel.app"
+DATABASES = ("rabai-library", "rabai-translations", "rabai-people")
+SETTINGS = (
+    "ANTHROPIC_API_KEY",
+    "RABAI_ACCESS_CODE",
+    "RABAI_PUBLIC",
+    "RABAI_MODEL",
+    "RABAI_LOOKUP_MODEL",
+    "TURSO_DATABASE_URL",
+    "TURSO_AUTH_TOKEN",
+    "TRANSLATIONS_DATABASE_URL",
+    "TRANSLATIONS_AUTH_TOKEN",
+    "PEOPLE_DATABASE_URL",
+    "PEOPLE_AUTH_TOKEN",
+    "RABAI_AUTH_SECRET",
+    "RESEND_API_KEY",
+    "RABAI_MAIL_FROM",
+)
+QUESTION = "What is the first word of the Torah, and what does it mean?"
+
+problems: list[str] = []
+
+
+def problem(text: str) -> None:
+    problems.append(text)
+    summary(f"- **Problem:** {text}")
+
+
+def plain(value) -> str:
+    """A short, safe rendering of a field from an API's answer (numbers, words, yes/no)."""
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, (int, float)):
+        return f"{value:,}"
+    text = str(value)
+    return text if len(text) <= 60 else text[:57] + "..."
+
+
+# ---------------------------------------------------------------------------------------------
+# 1. Turso
+
+
+def check_turso() -> None:
+    summary("## Turso (the databases)")
+    token = os.environ.get("TURSO_API_TOKEN", "").strip()
+    mask(token)
+    if not token:
+        problem("No TURSO_API_TOKEN secret, so Turso couldn't be checked.")
+        return
+    org = turso_org(token)
+    base = f"{TURSO_API}/organizations/{org}"
+
+    try:
+        info = call("GET", base, token).get("organization", {})
+        shown = {k: v for k, v in info.items() if isinstance(v, (bool, int, float, str)) and any(
+            w in k.lower() for w in ("block", "plan", "overage", "type", "timeline"))}
+        summary("- Organization: " + (", ".join(f"{k} = {plain(v)}" for k, v in sorted(shown.items())) or "no details"))
+        if info.get("blocked_reads") or info.get("blocked_writes"):
+            problem("Turso has **blocked** this account's "
+                    + " and ".join(w for w, k in (("reads", "blocked_reads"), ("writes", "blocked_writes")) if info.get(k))
+                    + ". This usually means the free plan's monthly allowance is used up.")
+    except ApiError as e:
+        summary(f"- Organization details: not available ({e.status}).")
+
+    quotas = {}
+    try:
+        sub = call("GET", f"{base}/subscription", token).get("subscription", {})
+        plan_name = sub.get("plan") or sub.get("name")
+        summary(f"- Plan: {plain(plan_name)}" + (f" (overages {plain(sub.get('overages'))})" if "overages" in sub else ""))
+        plans = call("GET", f"{base}/plans", token).get("plans", [])
+        for p in plans:
+            if plan_name and p.get("name") == plan_name:
+                quotas = p.get("quotas", {}) or {}
+        if quotas:
+            summary("- The plan's limits: " + ", ".join(f"{k} = {plain(v)}" for k, v in sorted(quotas.items())))
+    except ApiError as e:
+        summary(f"- Plan details: not available ({e.status}).")
+
+    try:
+        usage = call("GET", f"{base}/usage", token).get("organization", {})
+        totals = usage.get("usage", {}) or {}
+        summary("- Used this month: " + ", ".join(f"{k} = {plain(v)}" for k, v in sorted(totals.items())))
+        for key, quota_key in (("rows_read", "rowsRead"), ("rows_written", "rowsWritten"), ("storage_bytes", "storage")):
+            used, limit = totals.get(key), quotas.get(quota_key)
+            if isinstance(used, (int, float)) and isinstance(limit, (int, float)) and limit > 0:
+                share = used / limit
+                summary(f"  - {key}: {share:.0%} of the plan's limit")
+                if share >= 1:
+                    problem(f"Turso's monthly {key.replace('_', ' ')} is over the plan's limit ({plain(used)} of {plain(limit)}).")
+    except ApiError as e:
+        summary(f"- Usage: not available ({e.status}).")
+
+    try:
+        listed = call("GET", f"{base}/databases", token).get("databases", [])
+        names = {d.get("Name") or d.get("name"): d for d in listed}
+        for name in DATABASES:
+            d = names.get(name)
+            if not d:
+                summary(f"- Database `{name}`: not there.")
+                if name != "rabai-people":
+                    problem(f"The database `{name}` doesn't exist.")
+                continue
+            flags = {k: v for k, v in d.items() if isinstance(v, bool)}
+            summary(f"- Database `{name}`: " + (", ".join(f"{k} = {plain(v)}" for k, v in sorted(flags.items())) or "there"))
+            if d.get("block_reads") or d.get("block_writes"):
+                problem(f"The database `{name}` is blocked for reads or writes.")
+            if d.get("archived") or d.get("sleeping"):
+                summary(f"  - `{name}` is asleep or archived; the first request wakes it.")
+    except ApiError as e:
+        summary(f"- Databases: not listed ({e.status}).")
+
+
+# ---------------------------------------------------------------------------------------------
+# 2. Vercel
+
+
+def vercel_settings() -> tuple[dict, str, str]:
+    """The project's settings by name ({name: setting}), the project id and the API scope."""
+    token = os.environ.get("VERCEL_TOKEN", "").strip()
+    mask(token)
+    summary("## Vercel (the app)")
+    if not token:
+        problem("No VERCEL_TOKEN secret, so Vercel couldn't be checked.")
+        return {}, "", ""
+    scope = vercel_scope(token)
+    joiner = "&" if scope else "?"
+    project = call("GET", f"{VERCEL_API}/v9/projects/{VERCEL_PROJECT}{scope}", token)
+    project_id = project.get("id", "")
+
+    deploys = call("GET", f"{VERCEL_API}/v6/deployments{scope}{joiner}projectId={project_id}&target=production&limit=3", token)
+    for d in deploys.get("deployments", [])[:3]:
+        meta = d.get("meta", {}) or {}
+        sha = (meta.get("githubCommitSha") or "")[:7]
+        state = d.get("state") or d.get("readyState")
+        created = d.get("created")
+        when = datetime.fromtimestamp(created / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M UTC") if isinstance(created, (int, float)) else "?"
+        summary(f"- Production deploy: {plain(state)}, commit {sha or '?'}, made {when}")
+    latest = (deploys.get("deployments") or [{}])[0]
+    if (latest.get("state") or latest.get("readyState")) not in ("READY", None):
+        problem(f"The latest production deploy is {latest.get('state') or latest.get('readyState')}, not READY.")
+
+    envs = call("GET", f"{VERCEL_API}/v9/projects/{VERCEL_PROJECT}/env{scope}", token).get("envs", [])
+    by_name: dict = {}
+    for e in envs:
+        if "production" in (e.get("target") or []):
+            by_name[e.get("key")] = e
+    for name in SETTINGS:
+        e = by_name.get(name)
+        summary(f"- `{name}`: " + (f"set ({e.get('type')})" if e else "not set"))
+    for required in ("ANTHROPIC_API_KEY", "RABAI_ACCESS_CODE", "TURSO_DATABASE_URL", "TURSO_AUTH_TOKEN"):
+        if required not in by_name:
+            problem(f"`{required}` isn't set in Vercel for production.")
+    return by_name, project_id, scope
+
+
+def setting_value(by_name: dict, name: str, project_id: str, scope: str) -> str | None:
+    """A setting's value, masked at once. None when it isn't set or can't be read (a "sensitive" one)."""
+    e = by_name.get(name)
+    if not e:
+        return None
+    token = os.environ["VERCEL_TOKEN"].strip()
+    try:
+        out = call("GET", f"{VERCEL_API}/v1/projects/{project_id}/env/{e['id']}{scope}", token)
+    except ApiError:
+        return None
+    value = out.get("value")
+    if not isinstance(value, str) or not value:
+        return None
+    mask(value)
+    return value
+
+
+# ---------------------------------------------------------------------------------------------
+# 3. The settings, used as the app uses them
+
+
+def check_database(label: str, url: str | None, token: str | None) -> None:
+    if not url or not token:
+        summary(f"- {label}: its settings couldn't be read here (they may be marked sensitive), so it wasn't tested.")
+        return
+    host = url.split("://", 1)[-1].strip("/")
+    body = {"requests": [{"type": "execute", "stmt": {"sql": "SELECT count(*) FROM sqlite_master"}}, {"type": "close"}]}
+    try:
+        out = call("POST", f"https://{host}/v2/pipeline", token, body, attempts=2)
+        first = out["results"][0]
+        if first.get("type") == "ok":
+            summary(f"- {label}: answers with the app's own settings.")
+        else:
+            err = (first.get("error") or {}).get("message", "unknown error")
+            problem(f"{label} refused the app's query: {plain(err)}")
+    except ApiError as e:
+        problem(f"{label} refused the app's settings (HTTP {e.status}): {plain(str(e))}")
+    except Exception as e:  # noqa: BLE001 - report any failure in plain words
+        problem(f"{label} couldn't be reached: {plain(e)}")
+
+
+def check_anthropic(key: str | None, model: str) -> None:
+    if not key:
+        summary("- Anthropic key: couldn't be read here (it may be marked sensitive), so it wasn't tested directly.")
+        return
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=json.dumps({"model": model, "max_tokens": 1, "messages": [{"role": "user", "content": "Say OK."}]}).encode(),
+        method="POST",
+    )
+    req.add_header("x-api-key", key)
+    req.add_header("anthropic-version", "2023-06-01")
+    req.add_header("content-type", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            summary(f"- Anthropic key, model `{model}`: works (HTTP {resp.status}).")
+    except urllib.error.HTTPError as e:
+        try:
+            err = json.loads(e.read().decode("utf-8", "replace")).get("error", {})
+        except ValueError:
+            err = {}
+        problem(f"The Anthropic key was refused for `{model}` (HTTP {e.code}, {err.get('type', '?')}): {err.get('message', '')[:200]}")
+    except Exception as e:  # noqa: BLE001
+        problem(f"Anthropic couldn't be reached: {plain(e)}")
+
+
+# ---------------------------------------------------------------------------------------------
+# 4. The live app
+
+
+def check_app(code: str | None) -> None:
+    summary("## The live app")
+    jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+
+    def fetch(path: str, body=None, timeout=60):
+        data = None if body is None else json.dumps(body).encode()
+        req = urllib.request.Request(APP + path, data=data, method="POST" if body is not None else "GET")
+        if body is not None:
+            req.add_header("Content-Type", "application/json")
+        try:
+            with opener.open(req, timeout=timeout) as resp:
+                return resp.status, resp.read()
+        except urllib.error.HTTPError as e:
+            return e.code, e.read()
+
+    status, _ = fetch("/unlock")
+    summary(f"- The lock page: HTTP {status}.")
+    if status != 200:
+        problem(f"The lock page answered HTTP {status}.")
+        return
+    if not code:
+        summary("- The access code couldn't be read here (it may be marked sensitive), so the app wasn't opened.")
+        return
+    status, _ = fetch("/api/unlock", {"code": code})
+    summary(f"- The access code: HTTP {status}" + (" (accepted)." if status == 200 else "."))
+    if status != 200:
+        problem(f"The access code in Vercel didn't open the app (HTTP {status}).")
+        return
+
+    status, raw = fetch("/api/library")
+    try:
+        lib = json.loads(raw)
+        summary(f"- The library list: HTTP {status}, library = {plain(lib.get('libraryMode'))}, "
+                f"{len(lib.get('sections') or []):,} books.")
+        if lib.get("libraryMode") != "testing":
+            problem("The app isn't connected to the testing library.")
+        elif not lib.get("sections"):
+            problem("The app is connected to the testing library, but it listed no books (the database didn't answer).")
+    except ValueError:
+        problem(f"The library list answered HTTP {status} with something that isn't JSON.")
+
+    status, raw = fetch("/api/account")
+    summary(f"- The account check: HTTP {status}.")
+
+    status, raw = fetch("/api/ask", {"question": QUESTION}, timeout=240)
+    if status != 200:
+        problem(f"Asking a question answered HTTP {status}.")
+        return
+    events = [json.loads(line) for line in raw.decode("utf-8", "replace").splitlines() if line.strip().startswith("{")]
+    done = next((e for e in events if e.get("type") == "done"), None)
+    statuses = sum(1 for e in events if e.get("type") == "status")
+    pieces = sum(1 for e in events if e.get("type") == "text")
+    if not done:
+        problem(f"A question got no finished answer ({statuses} status lines, {pieces} pieces of text).")
+        return
+    r = done.get("result", {})
+    summary(f"- A question: status = {plain(r.get('status'))}, library = {plain(r.get('libraryMode'))}, "
+            f"{len(r.get('sources') or [])} sources cited, {len(r.get('retrieved') or [])} passages read, "
+            f"{statuses} status lines, {pieces} pieces of text.")
+    if r.get("status") == "error":
+        problem(f"Asking a question failed inside the app: {plain(r.get('notice'))}")
+
+
+def main() -> int:
+    summary("# Is RabAI working?")
+    try:
+        check_turso()
+    except Exception as e:  # noqa: BLE001
+        problem(f"Turso couldn't be checked: {plain(e)}")
+
+    by_name, project_id, scope = {}, "", ""
+    try:
+        by_name, project_id, scope = vercel_settings()
+    except Exception as e:  # noqa: BLE001
+        problem(f"Vercel couldn't be checked: {plain(e)}")
+
+    value = (lambda name: setting_value(by_name, name, project_id, scope)) if project_id else (lambda name: None)
+    summary("## The settings, used the way the app uses them")
+    check_database("The library (`TURSO_*`)", value("TURSO_DATABASE_URL"), value("TURSO_AUTH_TOKEN"))
+    if "TRANSLATIONS_DATABASE_URL" in by_name:
+        check_database("The translation library (`TRANSLATIONS_*`)", value("TRANSLATIONS_DATABASE_URL"), value("TRANSLATIONS_AUTH_TOKEN"))
+    key = value("ANTHROPIC_API_KEY")
+    check_anthropic(key, value("RABAI_MODEL") or "claude-opus-5-5")
+    check_anthropic(key, value("RABAI_LOOKUP_MODEL") or "claude-sonnet-5-5")
+
+    try:
+        check_app(value("RABAI_ACCESS_CODE"))
+    except Exception as e:  # noqa: BLE001
+        problem(f"The live app couldn't be checked: {plain(e)}")
+
+    summary("## Result")
+    if problems:
+        summary(f"{len(problems)} problem(s) found, listed above.")
+    else:
+        summary("Everything checked works.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
