@@ -25,6 +25,7 @@ import http.cookiejar
 import json
 import os
 import sys
+import time
 import urllib.error
 from datetime import datetime, timezone
 import urllib.request
@@ -139,6 +140,18 @@ def check_turso() -> None:
                 problem(f"The database `{name}` is blocked for reads or writes.")
             if d.get("archived") or d.get("sleeping"):
                 summary(f"  - `{name}` is asleep or archived; the first request wakes it.")
+            try:
+                used = call("GET", f"{base}/databases/{name}/usage", token).get("database", {})
+                total = used.get("total", {}) or {}
+                summary(f"  - `{name}` this month: " + ", ".join(f"{k} = {plain(v)}" for k, v in sorted(total.items())))
+                for inst in used.get("instances", []) or []:
+                    u = inst.get("usage", {}) or {}
+                    summary(f"    - a copy ({plain(inst.get('type') or inst.get('region') or 'instance')}): storage_bytes = {plain(u.get('storage_bytes'))}")
+            except ApiError as e:
+                summary(f"  - `{name}` usage: not available ({e.status}).")
+        groups = call("GET", f"{base}/groups", token).get("groups", [])
+        for g in groups:
+            summary(f"- Group `{g.get('name')}`: primary = {plain(g.get('primary'))}, locations = {', '.join(g.get('locations') or [])}")
     except ApiError as e:
         summary(f"- Databases: not listed ({e.status}).")
 
@@ -261,15 +274,25 @@ def check_app(code: str | None) -> None:
     jar = http.cookiejar.CookieJar()
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
+    seen: dict = {}
+
     def fetch(path: str, body=None, timeout=60):
         data = None if body is None else json.dumps(body).encode()
         req = urllib.request.Request(APP + path, data=data, method="POST" if body is not None else "GET")
         if body is not None:
             req.add_header("Content-Type", "application/json")
+        started = time.monotonic()
         try:
             with opener.open(req, timeout=timeout) as resp:
-                return resp.status, resp.read()
+                seen.update(headers={k.lower(): v for k, v in resp.headers.items()}, seconds=time.monotonic() - started)
+                try:
+                    return resp.status, resp.read()
+                except Exception as e:  # noqa: BLE001 - the stream was cut off
+                    seen.update(cut=f"{type(e).__name__}: {e}"[:200])
+                    partial = getattr(e, "partial", b"") or b""
+                    return resp.status, partial
         except urllib.error.HTTPError as e:
+            seen.update(headers={k.lower(): v for k, v in e.headers.items()}, seconds=time.monotonic() - started)
             return e.code, e.read()
 
     status, _ = fetch("/unlock")
@@ -310,6 +333,15 @@ def check_app(code: str | None) -> None:
     statuses = sum(1 for e in events if e.get("type") == "status")
     pieces = sum(1 for e in events if e.get("type") == "text")
     if not done:
+        h = seen.get("headers", {})
+        summary(f"  - Answer details: {len(raw):,} bytes in {seen.get('seconds', 0):.0f} seconds, "
+                f"content-type = {h.get('content-type', '?')}, content-encoding = {h.get('content-encoding', 'none')}, "
+                f"x-vercel-error = {h.get('x-vercel-error', 'none')}" + (f", cut off ({seen['cut']})" if seen.get("cut") else ""))
+        kinds = sorted({e.get("type", "?") for e in events})
+        if kinds:
+            summary(f"  - Kinds of lines received: {', '.join(kinds)}")
+        elif raw:
+            summary(f"  - It starts with: {raw[:80]!r}")
         problem(f"A question got no finished answer ({statuses} status lines, {pieces} pieces of text).")
         return
     r = done.get("result", {})
