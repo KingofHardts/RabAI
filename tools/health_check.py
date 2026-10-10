@@ -24,9 +24,11 @@ Uses only the standard library and the helpers in tools/library_upload.py.
 import http.cookiejar
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 from datetime import datetime, timezone
 import urllib.request
 
@@ -324,32 +326,70 @@ def check_app(code: str | None) -> None:
     status, raw = fetch("/api/account")
     summary(f"- The account check: HTTP {status}.")
 
-    status, raw = fetch("/api/ask", {"question": QUESTION}, timeout=240)
+    status, raw = fetch("/api/daf?ref=" + urllib.parse.quote("Berakhot 2a"))
+    try:
+        daf = json.loads(raw)
+        lines = len(daf.get("gemara") or daf.get("lines") or [])
+        summary(f"- The Gemara page (Berakhot 2a): HTTP {status}" + (f", {lines} lines of Gemara." if lines else "."))
+        if status != 200:
+            problem(f"The Gemara page answered HTTP {status}: {plain(daf.get('error', ''))}")
+    except ValueError:
+        problem(f"The Gemara page answered HTTP {status} with something that isn't JSON.")
+
+    status, raw = fetch("/api/word?w=" + urllib.parse.quote("בראשית"))
+    summary(f"- A word's meaning: HTTP {status}.")
+    if status != 200:
+        problem(f"A word's meaning answered HTTP {status}.")
+
+    # The app asks for a live (streamed) answer: one JSON object per line.
+    status, raw = fetch("/api/ask", {"question": QUESTION, "stream": True}, timeout=240)
+    h = seen.get("headers", {})
     if status != 200:
         problem(f"Asking a question answered HTTP {status}.")
         return
-    events = [json.loads(line) for line in raw.decode("utf-8", "replace").splitlines() if line.strip().startswith("{")]
-    done = next((e for e in events if e.get("type") == "done"), None)
-    statuses = sum(1 for e in events if e.get("type") == "status")
-    pieces = sum(1 for e in events if e.get("type") == "text")
+    events = []
+    for line in raw.decode("utf-8", "replace").splitlines():
+        try:
+            events.append(json.loads(line))
+        except ValueError:
+            continue
+    done = next((e for e in events if isinstance(e, dict) and e.get("type") == "done"), None)
+    statuses = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "status")
+    pieces = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "text")
     if not done:
-        h = seen.get("headers", {})
         summary(f"  - Answer details: {len(raw):,} bytes in {seen.get('seconds', 0):.0f} seconds, "
-                f"content-type = {h.get('content-type', '?')}, content-encoding = {h.get('content-encoding', 'none')}, "
-                f"x-vercel-error = {h.get('x-vercel-error', 'none')}" + (f", cut off ({seen['cut']})" if seen.get("cut") else ""))
-        kinds = sorted({e.get("type", "?") for e in events})
-        if kinds:
-            summary(f"  - Kinds of lines received: {', '.join(kinds)}")
-        elif raw:
-            summary(f"  - It starts with: {raw[:80]!r}")
-        problem(f"A question got no finished answer ({statuses} status lines, {pieces} pieces of text).")
+                f"content-type = {h.get('content-type', '?')}, x-vercel-error = {h.get('x-vercel-error', 'none')}"
+                + (f", cut off ({seen['cut']})" if seen.get("cut") else ""))
+        problem(f"A live answer never finished ({statuses} status lines, {pieces} pieces of text).")
         return
     r = done.get("result", {})
-    summary(f"- A question: status = {plain(r.get('status'))}, library = {plain(r.get('libraryMode'))}, "
-            f"{len(r.get('sources') or [])} sources cited, {len(r.get('retrieved') or [])} passages read, "
-            f"{statuses} status lines, {pieces} pieces of text.")
-    if r.get("status") == "error":
-        problem(f"Asking a question failed inside the app: {plain(r.get('notice'))}")
+    summary(f"- A live answer: status = {plain(r.get('status'))}, {len(r.get('sources') or [])} sources cited, "
+            f"{len(r.get('retrieved') or [])} passages read, {statuses} status lines, {pieces} pieces of text, "
+            f"{seen.get('seconds', 0):.0f} seconds.")
+    if r.get("status") not in ("answered",):
+        problem(f"A live answer ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+
+
+def check_browser(code: str | None) -> None:
+    """Open the app in a real browser (tools/health_browser.cjs), when Playwright is installed."""
+    pw = os.environ.get("PW_PATH")
+    if not pw or not code:
+        summary("- The browser test didn't run (no Playwright or no access code).")
+        return
+    env = {**os.environ, "RABAI_CODE": code, "APP": APP}
+    try:
+        out = subprocess.run(["node", "tools/health_browser.cjs"], env=env, capture_output=True, text=True, timeout=400)
+    except subprocess.TimeoutExpired:
+        problem("The browser test took too long.")
+        return
+    for line in (out.stdout or "").splitlines():
+        kind, _, text = line.partition(" ")
+        if kind == "PROBLEM":
+            problem(f"In the browser: {text}")
+        elif kind == "OK":
+            summary(f"- In the browser: {text}")
+    if out.returncode != 0:
+        problem(f"The browser test stopped with an error: {plain((out.stderr or '').strip().splitlines()[-1:] or '')}")
 
 
 def main() -> int:
@@ -374,10 +414,13 @@ def main() -> int:
     check_anthropic(key, value("RABAI_MODEL") or "claude-opus-5-5")
     check_anthropic(key, value("RABAI_LOOKUP_MODEL") or "claude-sonnet-5-5")
 
+    code = value("RABAI_ACCESS_CODE")
     try:
-        check_app(value("RABAI_ACCESS_CODE"))
+        check_app(code)
     except Exception as e:  # noqa: BLE001
         problem(f"The live app couldn't be checked: {plain(e)}")
+    summary("## The live app in a browser")
+    check_browser(code)
 
     summary("## Result")
     if problems:

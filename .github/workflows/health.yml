@@ -3,9 +3,10 @@ name: Is RabAI working?
 # Checks every piece the app needs and writes what it found to the run's summary: Turso (plan,
 # monthly limits, blocks, the databases), Vercel (the latest deploy, which settings exist), the
 # settings used the way the app uses them (the databases answer, the Anthropic key works), and the
-# live app (the lock page, the access code, the library list, one real question).
+# live app (the lock page, the access code, the library list, the Gemara page, a word, one real
+# question), and the app in a real browser on a phone-sized screen (page errors, one more question).
 #
-# Run it by hand: Actions, "Is RabAI working?", Run workflow. It costs about as much as one question
+# Run it by hand: Actions, "Is RabAI working?", Run workflow. It costs about as much as two questions
 # in the app. This repository is public, so its Actions logs are too: every value the run reads is
 # masked before use, and the script prints no key, code, token or answer (tools/health_check.py).
 
@@ -22,12 +23,20 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install a browser for the last step
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          echo "PW_PATH=$RUNNER_TEMP/pw/node_modules/playwright" >> "$GITHUB_ENV"
       - name: Check every piece
         env:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
