@@ -67,7 +67,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   around a site's protections (a Cloudflare check means asking the site to let RabAIBot through).
   Nothing it copies is printed in a log, committed, or kept as an artifact. Every reference in a
   collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that
-  database. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
+  database. A collection's paragraphs are read only together with their article's row (an inner
+  join in `rowSelect`), so none can reach RabAI looking like a book of the library; keep it so. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
   is a teacher's explanation, not a primary source and never a ruling (`articleContext`). The
   Learn tab lists them by section (`ArticleShelves.tsx`, `/api/articles`). Keep
   `collectionClients` refusing a public app, like `testingClient`.

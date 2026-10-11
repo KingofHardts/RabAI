@@ -241,13 +241,13 @@ def setting_value(by_name: dict, name: str, project_id: str, scope: str) -> str 
 # 3. The settings, used as the app uses them
 
 
-def check_database(label: str, url: str | None, token: str | None, count: str | None = None, full: bool = False) -> None:
+def check_database(label: str, url: str | None, token: str | None, count: str | None = None, full: bool = False) -> str | None:
     """Ask a database one small question with the app's own settings. `count` is an extra query
     whose single answer (names and numbers, never a database's text) is reported, in full when
-    `full` is set."""
+    `full` is set, and returned."""
     if not url or not token:
         summary(f"- {label}: its settings couldn't be read here (they may be marked sensitive), so it wasn't tested.")
-        return
+        return None
     host = url.split("://", 1)[-1].strip("/")
     stmts = [{"type": "execute", "stmt": {"sql": "SELECT count(*) FROM sqlite_master"}}]
     if count:
@@ -257,7 +257,7 @@ def check_database(label: str, url: str | None, token: str | None, count: str | 
         out = call("POST", f"https://{host}/v2/pipeline", token, body, attempts=2)
         first = out["results"][0]
         if first.get("type") == "ok":
-            extra = ""
+            extra, answer = "", None
             if count and len(out["results"]) > 1 and out["results"][1].get("type") == "ok":
                 try:
                     cell = out["results"][1]["response"]["result"]["rows"][0][0]
@@ -266,6 +266,7 @@ def check_database(label: str, url: str | None, token: str | None, count: str | 
                 except (KeyError, IndexError, TypeError):
                     extra = ""
             summary(f"- {label}: answers with the app's own settings{extra}.")
+            return None if answer is None else str(answer)
         else:
             err = (first.get("error") or {}).get("message", "unknown error")
             problem(f"{label} refused the app's query: {plain(err)}")
@@ -273,6 +274,7 @@ def check_database(label: str, url: str | None, token: str | None, count: str | 
         problem(f"{label} refused the app's settings (HTTP {e.status}): {plain(str(e))}")
     except Exception as e:  # noqa: BLE001 - report any failure in plain words
         problem(f"{label} couldn't be reached: {plain(e)}")
+    return None
 
 
 def check_anthropic(key: str | None, model: str) -> None:
@@ -514,7 +516,7 @@ def main() -> int:
     collection_urls = [u for u in re.split(r"[\s,]+", value("RABAI_COLLECTION_DB_URLS") or "") if u]
     for i, url in enumerate(collection_urls, 1):
         mask(url)
-        check_database(
+        answer = check_database(
             f"Website collection {i} (`RABAI_COLLECTION_DB_URLS`)",
             url,
             value("RABAI_COLLECTION_DB_TOKEN") or value("TURSO_AUTH_TOKEN"),
@@ -538,6 +540,10 @@ def main() -> int:
             ),
             full=True,
         )
+        lost = re.search(r"titles without an article: (\d+)", answer or "")
+        if lost and int(lost.group(1)):
+            problem(f"Website collection {i} has {lost.group(1)} titles that lost their article's details; RabAI would "
+                    "not know they are articles. The next run of the collection copy removes them.")
     if "RABAI_COLLECTION_DB_URLS" in by_name and not collection_urls:
         summary("- The website collections: their setting couldn't be read here, so they weren't tested.")
     key = value("ANTHROPIC_API_KEY")

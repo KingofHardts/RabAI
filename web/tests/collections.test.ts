@@ -97,6 +97,24 @@ test("the texts are searched apart from the articles, and the articles on their 
   assert.deepEqual(await store.articles(["candle"], 0), []);
 });
 
+test("a paragraph that has lost its article's details never reaches RabAI as a book", async () => {
+  const { db } = await aishCollection();
+  // A title and paragraph left behind without their article (two posts once shared one address).
+  await db.all(
+    "INSERT INTO titles VALUES (3, 'Aish.com, Left Behind', NULL, 'aish-shabbat', '[\"Aish.com\"]', 1, '[\"Paragraph\"]')",
+  );
+  await db.all(
+    "INSERT INTO passages VALUES (4, 'Aish.com, Left Behind 1', 3, 1, 1, 30004, 'A paragraph about candle lighting with no article')",
+  );
+  await db.all(
+    "INSERT INTO passages_fts (rowid, plain) VALUES (4, ?)", [plainForSearch("A paragraph about candle lighting with no article")],
+  );
+  const store = combineStores(await mainLibrary(), [{ db, store: createTestingStore(db) }]);
+  assert.deepEqual(await store.lookup(["Aish.com, Left Behind 1"]), []);
+  assert.ok(!(await store.articles(["candle lighting"], 8)).some((p) => p.ref.startsWith("Aish.com, Left Behind")));
+  for (const p of await store.articles(["candle lighting"], 8)) assert.ok(p.source?.article, `${p.ref} carries its article`);
+});
+
 test("a collection that can't be reached is left out, and the library keeps working", async () => {
   const broken: Db = {
     all: async () => {

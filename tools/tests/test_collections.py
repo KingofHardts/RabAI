@@ -269,6 +269,58 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual((counts[0]["changed"], counts[0]["from the page"]), (1, 1))
         self.assertEqual(sink.query("SELECT COUNT(*) FROM passages")[0][0], 1)
 
+    def test_two_posts_at_one_address_leave_one_article_and_no_leftovers(self):
+        twin = lambda pid, text, when: {**post(pid, "Same Place", [1], f"<p>{text}</p>", when), "link": "https://example.org/same/"}
+        site = FakeSite([twin(50, "The older copy.", "2024-01-01T10:00:00"), twin(51, "The newer copy.", "2024-02-01T10:00:00")])
+        sections = [section("ask", "Ask (English)", ["ask-the-rabbi"])]
+        sink, counts, _ = self.build(site, sections)
+        # The newer post takes the address over, keeping the article's title.
+        self.assertEqual(sink.query("SELECT site_id FROM articles"), [["51"]])
+        self.assertEqual(sink.query("SELECT text FROM passages"), [["The newer copy."]])
+        self.assertEqual(sink.query("SELECT title FROM titles"), [["Example.org, Same Place"]])
+        self.assertEqual(sink.query("SELECT COUNT(*) FROM titles WHERE id NOT IN (SELECT title_id FROM articles)"), [[0]])
+        # The older post is remembered, so the next run fetches nothing.
+        site.fetched.clear()
+        _, counts, _ = self.build(site, sections)
+        self.assertEqual(site.fetched, [])
+        self.assertEqual((counts[0]["unchanged"], counts[0]["same address as a newer post"]), (1, 1))
+
+    def test_an_older_post_that_appears_at_a_stored_address_is_skipped(self):
+        twin = lambda pid, text, when: {**post(pid, "Same Place", [1], f"<p>{text}</p>", when), "link": "https://example.org/same/"}
+        newer = twin(71, "The newer copy.", "2024-02-01T10:00:00")
+        site = FakeSite([newer])
+        sections = [section("ask", "Ask (English)", ["ask-the-rabbi"])]
+        self.build(site, sections)
+        site.posts = [twin(70, "The older copy.", "2024-01-01T10:00:00"), newer]
+        site.fetched.clear()
+        sink, counts, _ = self.build(site, sections)
+        self.assertEqual(site.fetched, [[70]])
+        self.assertEqual((counts[0]["same address as a newer post"], counts[0]["new"]), (1, 0))
+        self.assertEqual(sink.query("SELECT site_id FROM articles"), [["71"]])
+        self.assertEqual(sink.query("SELECT text FROM passages"), [["The newer copy."]])
+        self.assertEqual(sink.query("SELECT COUNT(*) FROM titles WHERE id NOT IN (SELECT title_id FROM articles)"), [[0]])
+        site.fetched.clear()
+        self.build(site, sections)
+        self.assertEqual(site.fetched, [])
+
+    def test_a_title_left_without_its_article_is_removed_with_its_paragraphs(self):
+        site = FakeSite([post(60, "Kept", [1], "<p>Candles bring peace.</p>", "2024-01-01T10:00:00")])
+        sections = [section("ask", "Ask (English)", ["ask-the-rabbi"])]
+        sink, _, _ = self.build(site, sections)
+        # Leave a title and a paragraph behind with no article row, as an earlier bug could.
+        sink.batch([
+            ("INSERT INTO titles (title, he_title, work, categories, depth, section_names) VALUES ('Example.org, Left', NULL, 'ask', '[]', 1, '[]')", []),
+            ("INSERT INTO passages (ref, title_id, edition_id, version_id, seq, text) SELECT 'Example.org, Left 1', t.id, 1, 1, 99, "
+             "'Left behind about candles.' FROM titles t WHERE t.title = 'Example.org, Left'", []),
+            ("INSERT INTO passages_fts (rowid, plain) SELECT id, 'left behind about candles' FROM passages WHERE ref = 'Example.org, Left 1'", []),
+        ])
+        sink, _, run = self.build(site, sections)
+        self.assertEqual(run["orphans"], 1)
+        self.assertEqual(sink.query("SELECT title FROM titles"), [["Example.org, Kept"]])
+        self.assertEqual(sink.query("SELECT ref FROM passages"), [["Example.org, Kept 1"]])
+        self.assertEqual(len(sink.query("SELECT rowid FROM passages_fts WHERE passages_fts MATCH ?", ['"left"'])), 0)
+        self.assertEqual(len(sink.query("SELECT rowid FROM passages_fts WHERE passages_fts MATCH ?", ['"candles"'])), 1)
+
     def test_an_article_in_two_sections_goes_to_the_first(self):
         site = FakeSite([post(20, "Both", [1, 3], "<p>Shared.</p>", "2024-01-01T10:00:00")])
         sections = [section("ask", "Ask (English)", ["ask-the-rabbi"]), section("hol", "Holidays (English)", ["holidays"])]

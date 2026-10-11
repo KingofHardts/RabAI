@@ -122,6 +122,8 @@ function rowSelect(hasStanding: boolean, hasArticles = false): string {
     ? "w.standing, w.caution, w.caution_kinds"
     : "'established' AS standing, NULL AS caution, NULL AS caution_kinds";
   // A website collection (tools/collection_schema.sql) keeps each article's address and author.
+  // Its passages are read only together with their article (an inner join): a paragraph that has
+  // lost its article's details would otherwise reach RabAI looking like a book of the library.
   const article = hasArticles
     ? "a.url AS article_url, a.site AS article_site, a.author AS article_author, a.published AS article_published, a.section AS article_section"
     : "NULL AS article_url, NULL AS article_site, NULL AS article_author, NULL AS article_published, NULL AS article_section";
@@ -133,7 +135,7 @@ function rowSelect(hasStanding: boolean, hasArticles = false): string {
   JOIN titles t ON t.id = p.title_id
   JOIN works w ON w.id = t.work
   JOIN editions e ON e.id = p.edition_id
-  JOIN versions v ON v.id = p.version_id${hasArticles ? "\n  LEFT JOIN articles a ON a.title_id = t.id" : ""}`;
+  JOIN versions v ON v.id = p.version_id${hasArticles ? "\n  JOIN articles a ON a.title_id = t.id" : ""}`;
 }
 
 /** The caution kinds stored as JSON; anything unreadable is left out. */

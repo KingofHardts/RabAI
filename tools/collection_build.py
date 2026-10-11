@@ -253,6 +253,9 @@ class Collection:
         self.titles: set[str] = set()
         self.no_text: dict[str, str] = {}  # post id -> its date, for posts that had no text to copy
         self.page_read: dict[str, str] = {}  # post id -> its date, for articles read from their own page
+        # post id -> {"modified", "url"}: a post skipped because a newer post has its address
+        self.same_address: dict[str, dict] = {}
+        self.by_url: dict[str, str] = {}  # an article's address -> the post id that holds it
 
     def load(self) -> None:
         for edition_id, url, site_id, modified, check, title in self.sink.query(
@@ -264,6 +267,8 @@ class Collection:
         self.titles = {r[0] for r in self.sink.query("SELECT title FROM titles")}
         self.no_text = json.loads(self.state("no_text") or "{}")
         self.page_read = json.loads(self.state("page_read") or "{}")
+        self.same_address = json.loads(self.state("same_address") or "{}")
+        self.by_url = {v["url"]: k for k, v in self.stored.items()}
 
     def work_and_edition(self, section: dict) -> int:
         kinds = section.get("caution_kinds")
@@ -302,13 +307,20 @@ class Collection:
         stmts.append(("DELETE FROM passages WHERE title_id = (SELECT id FROM titles WHERE title = ?)", [old["title"]]))
         return stmts
 
-    def put(self, *, url, site_id, name, work, edition_id, categories, author, published, modified, section, paras) -> str:
-        """Queue an article's rows. Returns 'new', 'changed' or 'same'."""
+    def put(self, *, url, site_id, name, work, edition_id, categories, author, published, modified, section, paras,
+            takes_over: str | None = None) -> str:
+        """Queue an article's rows. Returns 'new', 'changed' or 'same'.
+
+        `takes_over`: the post that held this address until now (an older post at the same address);
+        this post replaces it, keeping its title so saved references keep working."""
         key = str(site_id)
         check = L.checksum([name, url, author or "", section or "", *paras])
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        moved = bool(takes_over) and takes_over != key and takes_over in self.stored
+        if moved:
+            self.stored[key] = self.stored.pop(takes_over)
         old = self.stored.get(key)
-        if old and old["checksum"] == check and old["edition_id"] == edition_id:
+        if old and old["checksum"] == check and old["edition_id"] == edition_id and not moved:
             if old["modified"] != modified:  # changed on the site, but not in anything we copy
                 self._queue([("UPDATE articles SET modified = ?, fetched_on = ? WHERE title_id = (SELECT id FROM titles WHERE title = ?)",
                               [modified, now, old["title"]])])
@@ -341,14 +353,20 @@ class Collection:
             [title, edition_id, url, self.site, key, author, published, modified, section, now, check],
         ))
         self.stored[key] = {"edition_id": edition_id, "url": url, "modified": modified, "checksum": check, "title": title}
+        if old and old["url"] != url:
+            self.by_url.pop(old["url"], None)
+        self.by_url[url] = key
         self.unsaved.add(title)
         self.no_text.pop(key, None)
+        self.same_address.pop(key, None)
         self._queue(stmts)
         return "changed" if old else "new"
 
     def remove(self, key: str) -> None:
         """Queue removing an article the site no longer lists."""
         old = self.stored.pop(key)
+        if self.by_url.get(old["url"]) == key:
+            self.by_url.pop(old["url"])
         stmts = self._drop_rows(old)
         stmts += [
             ("DELETE FROM articles WHERE title_id = (SELECT id FROM titles WHERE title = ?)", [old["title"]]),
@@ -357,6 +375,18 @@ class Collection:
         ]
         self.titles.discard(old["title"])
         self._queue(stmts)
+
+    def drop_orphans(self) -> int:
+        """Remove any title that has lost its article, with its paragraphs: a paragraph without its
+        article's details must never stay in a collection. Returns how many were removed."""
+        rows = self.sink.query("SELECT title FROM titles WHERE id NOT IN (SELECT title_id FROM articles)")
+        for (title,) in rows:
+            stmts = self._drop_rows({"title": title})
+            stmts.append(("DELETE FROM titles WHERE title = ?", [title]))
+            self.titles.discard(title)
+            self._queue(stmts)
+        self.flush()
+        return len(rows)
 
     def _queue(self, stmts: list[tuple[str, list]]) -> None:
         self.pending += stmts
@@ -397,7 +427,7 @@ class Section:
         self.counts = {"listed": 0, "excluded": 0, "in an earlier section": 0, "unchanged": 0, "new": 0, "changed": 0,
                        "same": 0, "from the page": 0, "with the answer heading": 0, "characters left out": 0,
                        "page without the box": 0, "page without the article": 0, "page not allowed": 0, "page failed": 0,
-                       "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
+                       "same address as a newer post": 0, "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
 
 
 def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: bool) -> None:
@@ -413,6 +443,10 @@ def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: b
         if full or not old or old["edition_id"] != sec.edition_id or old["modified"] != modified or stale_page:
             if not full and not old and col.no_text.get(key) == modified:
                 sec.counts["no text"] += 1  # nothing to copy last time, and unchanged since
+                continue
+            twin = col.same_address.get(key)
+            if not full and not old and twin and twin.get("modified") == modified and col.by_url.get(twin.get("url")) in col.stored:
+                sec.counts["same address as a newer post"] += 1  # still held by the newer post
                 continue
             sec.to_fetch.append(key)
         else:
@@ -465,6 +499,11 @@ class Fetcher:
             i += len(chunk)
 
 
+def later_post(a: str, b: str) -> bool:
+    """Whether post `a` is newer than post `b` (WordPress numbers its posts in order)."""
+    return (int(a), a) > (int(b), b) if a.isdigit() and b.isdigit() else a > b
+
+
 def from_page(wp: WordPress, url: str, page: dict, given: list[str], counts: dict) -> tuple[list[str] | None, bool]:
     """An article read from its own page (a section with `site.page`): the paragraphs inside the
     page's article box, or None to keep what the interface gave. The second value says whether
@@ -509,6 +548,16 @@ def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher,
             returned.add(key)
             url = post.get("link") or ""
             modified = post.get("modified_gmt") or sec.listed.get(key) or ""
+            owner = col.by_url.get(url) if url else None
+            takes_over = None
+            if owner and owner != key and owner in col.stored:
+                # Two posts at one address: the newer post keeps it; the other is remembered and skipped.
+                if not later_post(key, owner):
+                    sec.counts["same address as a newer post"] += 1
+                    col.same_address[key] = {"modified": sec.listed.get(key, modified), "url": url}
+                    continue
+                takes_over = owner
+                col.same_address[owner] = {"modified": col.stored[owner]["modified"], "url": url}
             paras = L.paragraphs((post.get("content") or {}).get("rendered") or "") + footnotes(post.get("meta"))
             if sec.page and url:
                 read, settled = from_page(wp, url, sec.page, paras, sec.counts)
@@ -533,7 +582,7 @@ def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher,
                 url=url, site_id=key, name=name, work=sec.canon["work"], edition_id=sec.edition_id,
                 categories=[col.site] + [p for p in path.split(" > ") if p],
                 author=" and ".join(a for a in authors if a) or None,
-                published=post.get("date_gmt"), modified=modified, section=path, paras=paras,
+                published=post.get("date_gmt"), modified=modified, section=path, paras=paras, takes_over=takes_over,
             )
             sec.counts[result] += 1
         sec.counts["gone"] += len(set(chunk) - returned)  # unpublished between listing and fetching
@@ -592,6 +641,7 @@ def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, lim
     removed, kept_note = 0, None
     if all(c["site"]["from"] == "wordpress" for c in canon_sections):
         removed, kept_note = prune(col, sections, claimed, canon_editions, prune_all)
+    orphans = col.drop_orphans()
 
     # 3. Fetch what's new or changed.
     fetcher = Fetcher(wp, started + minutes * 60 if minutes else None)
@@ -601,7 +651,8 @@ def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, lim
         copy_section(col, wp, sec, fetcher, limit)
     col.set_state("no_text", json.dumps(col.no_text, sort_keys=True))
     col.set_state("page_read", json.dumps(col.page_read, sort_keys=True))
-    return {"sections": sections, "fetcher": fetcher, "removed": removed, "kept_note": kept_note}
+    col.set_state("same_address", json.dumps(col.same_address, sort_keys=True))
+    return {"sections": sections, "fetcher": fetcher, "removed": removed, "kept_note": kept_note, "orphans": orphans}
 
 
 def probe(wp: WordPress, canon_sections: list[dict]) -> None:
@@ -961,6 +1012,8 @@ def main() -> int:
         say(f"- {sec.canon['title']}: " + ", ".join(f"{v} {k}" for k, v in sec.counts.items() if v))
     if removed:
         say(f"- Removed {removed} articles the site no longer lists.")
+    if run["orphans"]:
+        say(f"- Removed {run['orphans']} titles that had lost their article's details, with their paragraphs.")
     if kept_note:
         say(f"- {kept_note}")
     if fetcher.failed:
