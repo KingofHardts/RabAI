@@ -36,6 +36,41 @@ class ParagraphsTest(unittest.TestCase):
         self.assertEqual(L.site_label("https://aish.com/"), "Aish.com")
 
 
+class PageShapeTest(unittest.TestCase):
+    PAGE = (
+        "<html><head><title>Why Light Candles</title><script>var secret = 'zzz';</script></head><body>"
+        "<nav class='menu'><p>Home</p></nav>"
+        "<main id='main'><article class='post'>"
+        "<div class='entry-content'><p>Why do we light candles on Friday night?</p>"
+        "<div class='rabbi-answer'><p>Alpha bravo charlie.</p><p>Delta echo foxtrot.</p><p>Golf hotel india.</p></div></div>"
+        "</article></main>"
+        "<section class='comments'><p>Juliet kilo.</p></section></body></html>"
+    )
+
+    def report(self, probe):
+        page = C.PageShape()
+        page.feed(self.PAGE)
+        return page.report(probe)
+
+    def test_it_finds_the_article_and_the_elements_around_it(self):
+        lines = self.report("Why do we light candles")
+        text = "\n".join(lines)
+        self.assertIn("found; the elements around it", text)
+        around = lines[lines.index(next(l for l in lines if "found;" in l)) + 1]
+        self.assertTrue(around.strip().startswith("div.entry-content"))
+        self.assertIn("4 paragraphs", around)
+        self.assertIn("div.rabbi-answer (depth 5): 3 paragraphs", text)
+        self.assertIn("section.comments", text)
+
+    def test_it_says_when_the_article_is_not_on_the_page(self):
+        self.assertIn("not found on the page", "\n".join(self.report("Words that are not there")))
+
+    def test_it_never_prints_the_pages_words(self):
+        text = "\n".join(self.report("Why do we light candles"))
+        for word in ("Alpha", "Delta", "Juliet", "Friday", "candles", "Home", "secret", "zzz"):
+            self.assertNotIn(word, text)
+
+
 CATEGORIES = [
     {"id": 1, "name": "Ask The Rabbi", "slug": "ask-the-rabbi", "parent": 0},
     {"id": 2, "name": "Shabbat", "slug": "shabbat-atr", "parent": 1},

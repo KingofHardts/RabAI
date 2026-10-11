@@ -33,6 +33,8 @@ Options:
   --prune       remove the articles the site no longer lists, even when that is many of them
   --connect     point the app at every collection database (done anyway when one is created)
   --probe       try the listing query's parts one at a time on two sections, printing status codes only
+  --inspect S   show where section S's posts keep their text, in the interface and on their pages
+                (names, lengths and counts only)
 """
 
 import json
@@ -43,6 +45,7 @@ import time
 import urllib.parse
 from datetime import datetime, timezone
 from html import unescape
+from html.parser import HTMLParser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -599,19 +602,135 @@ def shape(path: str, value, depth: int = 0) -> list[str]:
     return [f"{path}: {type(value).__name__}"]
 
 
+class PageShape(HTMLParser):
+    """A web page's named elements (a class or an id), each with how many paragraphs it holds and
+    how many characters of text. The text stays in memory only, to find where a known passage
+    sits; nothing but names and numbers ever leaves this class."""
+
+    QUIET = {"script", "style", "noscript", "svg", "template"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.text: list[str] = []
+        self.size = 0
+        self.stack: list[list] = []  # [tag, name, paragraphs, start]
+        self.named: list[tuple[str, int, int, int, int]] = []  # (name, depth, paragraphs, start, end)
+        self.quiet = 0
+        self.paragraphs = 0
+
+    def _add(self, chunk: str) -> None:
+        chunk = re.sub(r"\s+", " ", chunk)
+        if not chunk or (chunk == " " and (not self.text or self.text[-1].endswith(" "))):
+            return
+        if chunk.startswith(" ") and self.text and self.text[-1].endswith(" "):
+            chunk = chunk[1:]
+        self.text.append(chunk)
+        self.size += len(chunk)
+
+    def handle_starttag(self, tag, attrs):
+        if tag in L.VOID:
+            return
+        attrs = dict(attrs)
+        name = ""
+        if attrs.get("class"):
+            name = f"{tag}.{' '.join(attrs['class'].split())[:60]}"
+        elif attrs.get("id"):
+            name = f"{tag}#{attrs['id'][:40]}"
+        self.stack.append([tag, name, 0, self.size])
+        if tag in self.QUIET:
+            self.quiet += 1
+        if tag == "p" and not self.quiet:
+            self.paragraphs += 1
+            for frame in self.stack:
+                frame[2] += 1
+        if tag in L.BLOCKS:
+            self._add(" ")
+
+    def handle_endtag(self, tag):
+        if tag in L.VOID or tag not in (f[0] for f in self.stack):
+            return
+        while self.stack:
+            top, name, paras, start = self.stack.pop()
+            if top in self.QUIET:
+                self.quiet = max(0, self.quiet - 1)
+            if name:
+                self.named.append((name, len(self.stack), paras, start, self.size))
+            if top == tag:
+                break
+        if tag in L.BLOCKS:
+            self._add(" ")
+
+    def handle_data(self, data):
+        if not self.quiet:
+            self._add(data)
+
+    def report(self, probe: str) -> list[str]:
+        """Lines describing the page: its largest named elements, and the elements around the
+        place where `probe` (the start of the article as the site's interface gives it) appears."""
+        self.close()
+        while self.stack:
+            self.handle_endtag(self.stack[-1][0])
+        whole = "".join(self.text)
+        out = [f"page: {len(whole)} characters of text, {self.paragraphs} paragraphs (<p>)"]
+        at = whole.find(probe) if probe else -1
+        if at < 0:
+            out.append("the start of the article as the interface gives it: not found on the page")
+        else:
+            around = sorted((n for n in self.named if n[3] <= at < n[4]), key=lambda n: n[4] - n[3])
+            out.append("the start of the article as the interface gives it: found; the elements around it, smallest first:")
+            for name, depth, paras, start, end in around[:8]:
+                out.append(f"  {name} (depth {depth}): {paras} paragraphs, {end - start} characters")
+        biggest = sorted(self.named, key=lambda n: -n[2])[:8]
+        out.append("the named elements holding the most paragraphs:")
+        for name, depth, paras, start, end in biggest:
+            out.append(f"  {name} (depth {depth}): {paras} paragraphs, {end - start} characters")
+        hints = re.compile(r"answer|repl|question|qa\b|q-a|rabbi|comment|entry|post-content|article", re.I)
+        named = sorted({(n[0], n[2], n[4] - n[3]) for n in self.named if hints.search(n[0])}, key=lambda n: -n[2])[:12]
+        if named:
+            out.append("elements whose names suggest an article, a question, an answer or comments:")
+            out += [f"  {name}: {paras} paragraphs, {chars} characters" for name, paras, chars in named]
+        return out
+
+
 def inspect(wp: WordPress, canon_sections: list[dict], which: str) -> None:
-    """The shape of the three newest posts in one section, with every field the site sends (no
-    `_fields`), to see where an article's text is kept. Prints names, lengths and counts only."""
+    """Where one section's posts keep their text. The newest post's every field (no `_fields`),
+    then, for the three newest posts and the two oldest, what the site's interface gives as the
+    article beside what the post's own page shows. Prints names, lengths and counts only."""
     canon = next((c for c in canon_sections if which.lower() in f"{c.get('work', '')} {c['title']}".lower()), None)
     if not canon:
         raise SystemExit(f"No section of this site matches '{which}'.")
     include = wp.resolve(canon["site"]["include"])
-    params = {"categories": ",".join(map(str, sorted(include))), "per_page": "3"}
-    posts, _ = wp.get_json("/posts?" + urllib.parse.urlencode(params, safe=","), attempts=2)
-    print(f"- {canon['title']}: the {len(posts)} newest posts, with all their fields", flush=True)
-    for n, post in enumerate(posts, 1):
-        print(f"  Post {n}:", flush=True)
-        for line in shape("", post):
+    exclude = wp.resolve(canon["site"]["exclude"]) if canon["site"].get("exclude") else set()
+    cats = ",".join(map(str, sorted(include)))
+    posts, _ = wp.get_json("/posts?" + urllib.parse.urlencode({"categories": cats, "per_page": "1"}, safe=","), attempts=2)
+    print(f"- {canon['title']}: the newest post, with all its fields", flush=True)
+    for line in shape("", posts[0]) if posts else []:
+        print(f"    {line}", flush=True)
+    picked = []
+    for order, count in (("desc", 3), ("asc", 2)):
+        params = {"categories": cats, "per_page": "10", "orderby": "id", "order": order, "_fields": "id,link,date_gmt,content,categories"}
+        batch, _ = wp.get_json("/posts?" + urllib.parse.urlencode(params, safe=","), attempts=2)
+        picked += [(order, p) for p in batch if not exclude & set(p.get("categories") or [])][:count]
+    for order, post in picked:
+        rest = L.paragraphs((post.get("content") or {}).get("rendered") or "")
+        print(f"- Post {post['id']} ({'one of the newest' if order == 'desc' else 'one of the oldest'}, "
+              f"{str(post.get('date_gmt') or '')[:10]}): the interface gives {len(rest)} paragraphs, "
+              f"{sum(map(len, rest))} characters", flush=True)
+        link = str(post.get("link") or "")
+        if not link.startswith(wp.polite.home.rstrip("/")):
+            print("    its page is on another site; not fetched", flush=True)
+            continue
+        if not wp.polite.allowed(link):
+            print("    robots.txt asks robots to leave its page alone; not fetched", flush=True)
+            continue
+        status, body, headers = wp.polite.get(link, attempts=2)
+        if status != 200:
+            print(f"    its page answered HTTP {status} ({L.error_hint(body)})", flush=True)
+            continue
+        page = PageShape()
+        page.feed(body.decode("utf-8", "replace"))
+        probe = re.sub(r"\s+", " ", " ".join(rest))[:50].strip()
+        for line in page.report(probe):
             print(f"    {line}", flush=True)
 
 

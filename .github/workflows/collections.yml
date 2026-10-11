@@ -38,7 +38,7 @@ on:
         type: boolean
         default: false
       inspect:
-        description: "Only show where one section's newest posts keep their text: field names, lengths and counts, never words (a section's name, for example ask-the-rabbi)"
+        description: "Only show where one section's posts keep their text, in the site's interface and on their own pages: names, lengths and counts, never words (a section's name, for example ask-the-rabbi)"
         type: string
         default: ""
 
