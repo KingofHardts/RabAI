@@ -63,23 +63,39 @@ def amud_key(a):
     return (int(m.group(1)), m.group(2)) if m else (10**6, a)
 
 
+# Scans Sefaria filed under another spelling of the tractate's name (Nazir 2a-5b are "Nazit_2a.jpg").
+SCAN_ALIASES = {"Nazir": ["Nazit"]}
+
+
+def scan_amud(name: str, stem: str) -> str | None:
+    """The amud a scan's file name holds, for a tractate filed as `stem`: "Nazir_10a.jpg" -> "10a".
+    A few files use a space or lack ".jpg" ("Nazir 2a.jpg", "Nazir 4a"); they count too."""
+    m = re.fullmatch(re.escape(stem) + r"[_ ](\d+[ab])(?:\.jpg)?", name)
+    return m.group(1) if m else None
+
+
 def scans_for(tractate):
-    """The amudim Sefaria has a Vilna scan of, for one tractate."""
-    prefix = f"vilna-romm/{tractate.replace(' ', '_')}_"
-    found, token = {}, None
-    while True:
-        q = {"prefix": prefix, "fields": "items(name),nextPageToken", "maxResults": "1000"}
-        if token:
-            q["pageToken"] = token
-        with urllib.request.urlopen(f"{LISTING}?{urllib.parse.urlencode(q)}", timeout=60) as r:
-            out = json.loads(r.read().decode())
-        for item in out.get("items", []):
-            m = re.fullmatch(re.escape(prefix) + r"(\d+[ab])\.jpg", item["name"])
-            if m:
-                found[m.group(1)] = item["name"].split("/", 1)[1]
-        token = out.get("nextPageToken")
-        if not token:
-            return found
+    """The amudim Sefaria has a Vilna scan of, for one tractate. A file under the usual name
+    ("Nazir_10a.jpg") wins over one under an odd name for the same amud."""
+    found = {}
+    for stem in [tractate.replace(" ", "_"), *SCAN_ALIASES.get(tractate, [])]:
+        prefix, token, names = f"vilna-romm/{stem}", None, []
+        while True:
+            q = {"prefix": prefix, "fields": "items(name),nextPageToken", "maxResults": "1000"}
+            if token:
+                q["pageToken"] = token
+            with urllib.request.urlopen(f"{LISTING}?{urllib.parse.urlencode(q)}", timeout=60) as r:
+                out = json.loads(r.read().decode())
+            names += [item["name"].split("/", 1)[1] for item in out.get("items", [])]
+            token = out.get("nextPageToken")
+            if not token:
+                break
+        # The usual names first, so they win over odd ones.
+        for name in sorted(names, key=lambda n: (not re.fullmatch(re.escape(stem) + r"_\d+[ab]\.jpg", n), n)):
+            amud = scan_amud(name, stem)
+            if amud and amud not in found:
+                found[amud] = name
+    return found
 
 
 def fetch_scan(name, cache):

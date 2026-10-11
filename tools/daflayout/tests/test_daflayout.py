@@ -485,3 +485,34 @@ class Reconcile(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Scans(unittest.TestCase):
+    """Sefaria filed a few scans under odd names; the tool still finds them (no network here)."""
+
+    def test_odd_file_names_count_and_usual_names_win(self):
+        import io
+        import json
+        import urllib.parse
+        from unittest import mock
+
+        import daf_layout as D
+
+        self.assertEqual(D.scan_amud("Nazir_10a.jpg", "Nazir"), "10a")
+        self.assertEqual(D.scan_amud("Nazir 2a.jpg", "Nazir"), "2a")
+        self.assertEqual(D.scan_amud("Nazir 4a", "Nazir"), "4a")
+        self.assertIsNone(D.scan_amud("Nazirite_2a.jpg", "Nazir"))
+        self.assertIsNone(D.scan_amud("Nazir_2a.png", "Nazir"))
+        listings = {
+            "vilna-romm/Nazir": ["Nazir 2a.jpg", "Nazir 4a", "Nazir 6a.jpg", "Nazir_6a.jpg", "Nazir_7b.jpg"],
+            "vilna-romm/Nazit": ["Nazit_2a.jpg", "Nazit_3a.jpg"],
+        }
+
+        def fake_urlopen(url, timeout=None):
+            prefix = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["prefix"][0]
+            items = [{"name": f"vilna-romm/{n}"} for n in listings.get(prefix, [])]
+            return io.BytesIO(json.dumps({"items": items}).encode())
+
+        with mock.patch.object(D.urllib.request, "urlopen", fake_urlopen):
+            found = D.scans_for("Nazir")
+        self.assertEqual(found, {"2a": "Nazir 2a.jpg", "3a": "Nazit_3a.jpg", "4a": "Nazir 4a", "6a": "Nazir_6a.jpg", "7b": "Nazir_7b.jpg"})
