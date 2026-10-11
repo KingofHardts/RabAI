@@ -188,6 +188,7 @@ Optional settings:
 | `RABAI_MODEL` | `claude-opus-5-5` | The model. |
 | `RABAI_LIBRARY` | automatic | `testing` when a library database is set, `development` otherwise. `approved` uses only board-approved, license-cleared editions (empty until the board approves). |
 | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |
+| `RABAI_COLLECTION_DB_URLS` | none | The website collections' databases (Aish.com and the like), comma-separated. The collections workflow sets it. Read only beside the testing library, never on a public app. `RABAI_COLLECTION_DB_TOKEN` is their read token; without it the testing library's token is used (one Turso group-wide read-only token reads both). |
 | `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
 | `RABAI_OUTLINE_FIXTURE` | none | On your computer only: a file holding a saved outline reply, used in place of the model for "Show the flow" (`{section}` in the name stands for the page, as in `/tmp/outline-{section}.txt`). The reply is checked exactly like a real one. Ignored on Vercel and in a production build. |
 
@@ -229,6 +230,29 @@ On your own computer (needs `pip install pyyaml pymongo`):
 `python3 tools/library_plan.py && python3 tools/library_build.py` writes
 `library/rabai-library.db` (gitignored), and `RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db`
 in `web/.env.local` uses it.
+
+## Website collections
+
+Articles from organizations that gave written permission (Aish.com so far) are copied from their
+websites into their own private databases, one per organization: `rabai-collection-aish`, and so
+on. The canon lists which sections of a site are included (`canon/canon.yaml`, category
+`articles`). The app reads them beside the testing library: a reference that starts with a site's
+name ("Aish.com, Why We Light Candles 3") goes to that site's collection, and up to four articles
+are added after the texts for each question. In the reader, an article shows its author and a
+link to the original.
+
+To copy or update one: in GitHub, open Actions, then "Copy a website's sections (collections)",
+then Run workflow. Without "write" it is a trial into a throwaway file that prints only counts;
+with a limit (for example 40 per section) it also estimates the whole collection's size, so the
+Turso plan's storage can be checked first. With "write", it fills the Turso database and, the
+first time, sets `RABAI_COLLECTION_DB_URLS` in Vercel (with `VERCEL_TOKEN`) and redeploys. A
+long copy stops after the minutes allowed and continues on the next run; later runs fetch only
+new and changed articles. It uses the same `TURSO_API_TOKEN` and `VERCEL_TOKEN` secrets as the
+testing library.
+
+The copier asks one thing at a time and pauses between requests, keeps to the site's
+robots.txt, and names itself honestly (RabAIBot). If a site shows robots a check it can't pass
+(Chabad.org does), ask the site to let RabAIBot through; never work around it.
 
 ## RabAI's translation library
 
