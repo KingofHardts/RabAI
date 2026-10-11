@@ -126,14 +126,15 @@ test("a collection that can't be reached is left out, and the library keeps work
   assert.deepEqual(await store.articles(["candle"], 4), []);
 });
 
-test("RabAI is told an article is a teacher's explanation, by whom, and never settled halacha", async () => {
+test("RabAI is told an article is a teacher's explanation, by whom, that only the texts confirm it, and never settled halacha", async () => {
   const { store } = await aishCollection();
   const [p] = await store.lookup(["Aish.com, Lighting Candles 1"]);
   const context = testingContext(p);
   assert.equal(context, articleContext(p.source!));
   assert.match(context, /^Article: "Lighting Candles" on Aish\.com, by Rabbi A\. Writer \(2019\)\./);
   assert.match(context, /written permission for private study/);
-  assert.match(context, /not a primary source/);
+  assert.match(context, /not a source: it never proves a point/);
+  assert.match(context, /Check its point against the texts you were given/);
   assert.match(context, /never present its opinion as settled halacha/);
 });
 

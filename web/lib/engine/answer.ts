@@ -237,7 +237,7 @@ export function articleContext(s: NonNullable<Passage["source"]>): string {
   const parts = [
     `Article: "${name}" on ${a.site}${a.author ? `, by ${a.author}` : ""}${year ? ` (${year})` : ""}.`,
     `From the private testing library: an article from ${a.site}'s website, used by the site's written permission for private study, not yet reviewed by the rabbinic board.`,
-    "It is a teacher's explanation for today's readers, not a primary source. Use it to explain and to find where things are discussed; when it quotes or cites a text, rest your answer on that text if you were given it. Say who wrote it when you use it, and never present its opinion as settled halacha.",
+    "It is a teacher's explanation for today's readers from a trusted site, not a source: it never proves a point. Use it to explain and to find where things are discussed. Check its point against the texts you were given: if one says the same, say so and cite that text; if none does, say you couldn't confirm it from the texts. Say who wrote it when you use it, and never present its opinion as settled halacha.",
     s.standing === "debated" && s.caution
       ? `Caution: ${s.caution} Tell the person this caution when you use it.`
       : "",

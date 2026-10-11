@@ -6,6 +6,7 @@ import { mapAnswer, cleanText } from "../lib/engine/citations";
 import { checkSafety } from "../lib/engine/safety";
 import { CORE_PREMISES } from "../lib/engine/core-premises.generated";
 import { loadLibrary } from "../lib/library/index";
+import type { Passage } from "../lib/library/types";
 
 const lib = loadLibrary("development");
 const config = { model: "claude-opus-5-5", effort: "high" as const, maxTokens: 16000 };
@@ -198,6 +199,31 @@ test("mapAnswer ignores non-text blocks and keeps text-only answers", () => {
   const mapped = mapAnswer([{ type: "fallback" }, { type: "text", text: "Hello", citations: null }], [], []);
   assert.equal(mapped.blocks.length, 1);
   assert.equal(mapped.dropped, 0);
+});
+
+test("an article cited in an answer is marked, so the app shows it apart from the texts", () => {
+  const text = { ref: "Rambam, Hilchot Teshuvah 2:2", work: "rambam", section: "Rambam, Hilchot Teshuvah 2", he: "ומה היא התשובה", en: "What is repentance?", label: "Rambam" } as unknown as Passage;
+  const article = {
+    ref: "Aish.com, The Four Steps of Teshuvah 1",
+    work: "aish-ask-the-rabbi",
+    section: "Aish.com, The Four Steps of Teshuvah",
+    he: "",
+    en: "Teshuvah has four steps.",
+    label: "Aish.com",
+    source: { library: "testing", canonId: "aish", workTitle: "Aish.com", book: "Aish.com, The Four Steps of Teshuvah", licenses: [], article: { site: "Aish.com", url: "https://aish.com/x/", author: "Rabbi A" } },
+  } as unknown as Passage;
+  const mapped = mapAnswer(
+    [
+      { type: "text", text: "Aish.com explains the steps.", citations: [{ type: "char_location", cited_text: "Teshuvah has four steps.", document_index: 1 }] },
+      { type: "text", text: " The Rambam says the same.", citations: [{ type: "char_location", cited_text: "ומה היא התשובה", document_index: 0 }] },
+    ],
+    [text, article],
+    ["ומה היא התשובה What is repentance?", "Teshuvah has four steps."],
+  );
+  assert.equal(mapped.dropped, 0);
+  assert.deepEqual(mapped.blocks.map((b) => b.citations.map((c) => [c.ref, !!c.article])), [[["Aish.com, The Four Steps of Teshuvah 1", true]], [["Rambam, Hilchot Teshuvah 2:2", false]]]);
+  assert.deepEqual(mapped.sources.find((s) => s.article)?.article, { site: "Aish.com", title: "The Four Steps of Teshuvah", author: "Rabbi A" });
+  assert.equal(mapped.sources.find((s) => !s.article)?.ref, "Rambam, Hilchot Teshuvah 2:2");
 });
 
 test("a word question attaches every place the root appears and names them for RabAI", () => {

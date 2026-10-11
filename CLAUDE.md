@@ -69,7 +69,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that
   database. A collection's paragraphs are read only together with their article's row (an inner
   join in `rowSelect`), so none can reach RabAI looking like a book of the library; keep it so. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
-  is a teacher's explanation, not a primary source and never a ruling (`articleContext`). The
+  is a teacher's explanation, not a source and never a ruling, and that only the texts confirm a
+  point (`articleContext`). Under an answer the app shows the articles it used under their own
+  heading, apart from the texts (`TeacherNotes`); never show an article as one of the sources. The
   Learn tab lists them by section (`ArticleShelves.tsx`, `/api/articles`). Keep
   `collectionClients` refusing a public app, like `testingClient`.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a

@@ -25,6 +25,8 @@ export interface AnswerCitation {
   ref: string;
   /** The exact words quoted from the passage. */
   quote: string;
+  /** The passage is an article by today's teachers (a website collection), not one of the texts. */
+  article?: boolean;
 }
 
 export interface AnswerBlock {
@@ -36,6 +38,20 @@ export interface AnswerSource {
   ref: string;
   label: string;
   work: string;
+  /**
+   * An article by today's teachers (a website collection): an explanation, not a source. The app
+   * shows these under their own heading, apart from the texts.
+   */
+  article?: { site: string; title: string; author?: string };
+}
+
+/** Whether a passage is an article from a website collection, and how to name it. */
+function articleOf(passage: Passage): AnswerSource["article"] {
+  const a = passage.source?.article;
+  if (!a) return undefined;
+  const book = passage.source?.book ?? passage.ref;
+  const title = book.startsWith(`${a.site}, `) ? book.slice(a.site.length + 2) : book;
+  return { site: a.site, title, ...(a.author ? { author: a.author } : {}) };
 }
 
 export interface MappedAnswer {
@@ -80,10 +96,11 @@ export function mapAnswer(content: ResponseBlock[], documents: Passage[], docume
         dropped += 1;
         continue;
       }
-      if (!citations.some((x) => x.ref === passage.ref)) citations.push({ ref: passage.ref, quote: quote.trim() });
+      const article = articleOf(passage);
+      if (!citations.some((x) => x.ref === passage.ref)) citations.push({ ref: passage.ref, quote: quote.trim(), ...(article ? { article: true } : {}) });
       if (!seen.has(passage.ref)) {
         seen.add(passage.ref);
-        sources.push({ ref: passage.ref, label: passage.label, work: passage.work });
+        sources.push({ ref: passage.ref, label: passage.label, work: passage.work, ...(article ? { article } : {}) });
       }
     }
 

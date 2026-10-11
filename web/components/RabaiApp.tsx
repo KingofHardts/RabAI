@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AskResult, LineAction } from "@/lib/engine/answer";
-import type { AnswerBlock } from "@/lib/engine/citations";
+import type { AnswerBlock, AnswerSource } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
 import { TESTING_LABEL } from "@/lib/library/testing-config";
 import { CautionBanner, CautionTag } from "./CautionNote";
@@ -387,6 +387,8 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
     });
     const current = paragraphs[paragraphs.length - 1];
     for (const c of block.citations) {
+      // An article is shown under its own heading below the answer (TeacherNotes), apart from the texts.
+      if (c.article) continue;
       current.push(" ");
       current.push(
         <button key={`c${key++}`} type="button" className="cite" onClick={() => onOpen(c.ref)} title={`Open ${c.ref}`}>
@@ -403,6 +405,31 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
           <p key={i}>{p}</p>
         ))}
     </>
+  );
+}
+
+/**
+ * The articles an answer used, under their own heading: explanations by today's teachers from
+ * trusted Orthodox websites, never sources (core premises, "Articles by today's teachers").
+ */
+function TeacherNotes({ sources, onOpen }: { sources: AnswerSource[]; onOpen: (ref: string) => void }) {
+  const articles = sources.filter((s) => s.article);
+  if (!articles.length) return null;
+  return (
+    <div className="teachers">
+      <p className="label-sm">From today&apos;s teachers: explanations, not sources</p>
+      {articles.length === sources.length && (
+        <p className="note">None of the texts was cited for this answer. Check it against the texts, or ask your rav.</p>
+      )}
+      <div className="follow">
+        {articles.map((s) => (
+          <button key={s.ref} type="button" className="cite article" onClick={() => onOpen(s.ref)} title={`Open ${s.ref}`}>
+            {s.article!.site}: {s.article!.title}
+            {s.article!.author ? `, ${s.article!.author}` : ""}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2947,6 +2974,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       {m.result && <SafetyCard result={m.result} />}
                       {m.result && m.result.blocks.length > 0 && (
                         <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
+                      )}
+                      {m.result?.status === "answered" && (
+                        <TeacherNotes sources={m.result.sources ?? []} onOpen={(r) => void openReader(r)} />
                       )}
                       {m.result?.notice && <p className="note">{m.result.notice}</p>}
                       {m.result?.status === "no_key" && m.result.retrieved.length > 0 && (

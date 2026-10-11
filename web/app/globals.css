@@ -113,6 +113,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   background: var(--tint); border: 1px solid transparent; border-radius: 999px; vertical-align: 1px; line-height: 1.6;
 }
 .follow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+/* Articles by today's teachers: under their own heading, and never colored like a source. */
+.teachers { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line); }
+.teachers .label-sm { margin-top: 10px; }
+.teachers .note { margin: 0 0 8px; }
+.teachers .follow { margin-top: 6px; }
+.cite.article { background: var(--surface); border-color: var(--line); color: var(--ink); text-align: start; }
 /* The same secondary button as .btn, kept for the many places that use this name. */
 .chip-btn { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-family: var(--font-ui); font-size: 14.5px; font-weight: 500; min-height: 44px; text-align: start; }
 .label-sm { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 14px 0 6px; }

@@ -208,7 +208,11 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   answer with it and RabAI never takes a reader's words for the rabbi's. Each article keeps its
   address, author and dates, and the app shows who wrote it with a link to the original. RabAI uses an article as a teacher's
   explanation that points to the texts, never as a primary source and never as a ruling (the
-  core premises' "Articles by today's teachers", for the board). A collection is never public,
+  core premises' "Articles by today's teachers", for the board). The sites are trusted, but only
+  the texts confirm a point: RabAI checks an article's point against the texts it was given and
+  says whether they agree (Josh, 2026-10-11). Under each answer the app lists the articles it used
+  under their own heading ("From today's teachers: explanations, not sources"), apart from the
+  texts, and says so when no text was cited at all. A collection is never public,
   never committed and never kept as a build artifact, and the app never opens one once it is
   public.
 
