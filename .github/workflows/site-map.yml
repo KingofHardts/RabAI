@@ -1,9 +1,9 @@
 name: Map a source's website
 
-# Maps Aish.com or Chabad.org before any of it is copied: their sitemaps, how many pages each
-# section has, and how an article page is built (tools/site_map.py). Claude's working sessions
-# can't reach these sites, so this runs on GitHub. Run it by hand: Actions, "Map a source's
-# website", Run workflow.
+# Maps Aish.com, Chabad.org or TorahAnytime before any of it is copied: their sitemaps, how many
+# pages each section has, how an article page is built, and (with "feeds") their own feeds and
+# interfaces (tools/site_map.py). Claude's working sessions can't reach these sites, so this runs
+# on GitHub. Run it by hand: Actions, "Map a source's website", Run workflow.
 #
 # This repository's Actions logs are public. The tool prints only structure (addresses, counts,
 # page titles, author names, tag names), never an article's text.
@@ -14,8 +14,12 @@ on:
       site:
         description: "Which site"
         type: choice
-        options: [both, aish, chabad]
+        options: [both, aish, chabad, torahanytime]
         default: both
+      feeds:
+        description: "Also look for its feeds and interfaces"
+        type: boolean
+        default: false
       samples:
         description: "Sample pages per section"
         type: number
@@ -42,14 +46,23 @@ jobs:
         with:
           python-version: "3.12"
       - name: Map Aish.com
-        if: ${{ inputs.site != 'chabad' }}
+        if: ${{ inputs.site == 'both' || inputs.site == 'aish' }}
         env:
           SAMPLES: ${{ inputs.samples }}
           MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
-        run: python3 tools/site_map.py aish --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS" --wordpress
+          FEEDS: ${{ inputs.feeds && '--feeds' || '' }}
+        run: python3 tools/site_map.py aish --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS" --wordpress $FEEDS
       - name: Map Chabad.org
-        if: ${{ !cancelled() && inputs.site != 'aish' }}
+        if: ${{ !cancelled() && (inputs.site == 'both' || inputs.site == 'chabad') }}
         env:
           SAMPLES: ${{ inputs.samples }}
           MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
-        run: python3 tools/site_map.py chabad --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS"
+          FEEDS: ${{ inputs.feeds && '--feeds' || '' }}
+        run: python3 tools/site_map.py chabad --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS" $FEEDS
+      - name: Map TorahAnytime
+        if: ${{ !cancelled() && inputs.site == 'torahanytime' }}
+        env:
+          SAMPLES: ${{ inputs.samples }}
+          MAX_SITEMAPS: ${{ inputs.max_sitemaps }}
+          FEEDS: ${{ inputs.feeds && '--feeds' || '' }}
+        run: python3 tools/site_map.py torahanytime --samples "$SAMPLES" --max-sitemaps "$MAX_SITEMAPS" $FEEDS

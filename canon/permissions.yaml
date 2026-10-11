@@ -77,3 +77,19 @@ permissions:
       there by permission of their own publishers (for example, its Tanach translation is the
       Judaica Press edition and its Mishneh Torah translation is Moznaim's, to confirm); before
       any public use, those publishers' OK may be needed too.
+
+  - id: torah-anytime
+    holder: "TorahAnytime"
+    sites: [torahanytime.com]
+    received: 2026-10-11
+    how: >-
+      Reported by the maintainer in a working session on 2026-10-11 ("we did get Torah anytime
+      permission as well"). The wording is not yet in this repo; copy it into
+      docs/permissions-plan.md, so its exact terms are on file.
+    public: false
+    scope: >-
+      Its terms weren't given with the report, so this records private use only, like the other
+      sites' permissions, until their wording is on file. The library would keep only text about
+      each shiur (title, speaker, date, series, and a description or transcript where there is
+      one); the audio and video play from TorahAnytime itself. Transcripts may need each speaker's
+      permission before any public use.

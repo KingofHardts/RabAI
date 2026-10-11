@@ -64,11 +64,13 @@ partners:
     kind: organization
     offers: Recorded shiurim (audio and video) from many speakers
     streams: [shared]
-    status: not_contacted
+    status: agreed
     notes: >-
-      The maintainer wants its shiurim (2026-10-10). Audio and video would play from TorahAnytime
-      itself; the library would keep only text (titles, speakers, and transcripts if we make
-      them). Transcripts may need each speaker's permission, as with YUTorah.
+      Permission reported by the maintainer on 2026-10-11 (canon/permissions.yaml, torah-anytime),
+      recorded as private use only until its wording is on file. Audio and video play from
+      TorahAnytime itself; the library keeps only text (titles, speakers, and transcripts where
+      there are any). Transcripts may need each speaker's permission before any public use, as
+      with YUTorah.
 
   - id: yeshiva-org-il
     name: Yeshiva.org.il

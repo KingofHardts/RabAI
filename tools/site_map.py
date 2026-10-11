@@ -11,12 +11,18 @@ We have the site's written permission for private use (canon/permissions.yaml). 
 politely: one request at a time, a pause between requests (longer if the site asks for one), and
 nothing the site's robots.txt asks robots to leave alone.
 
-Usage: python3 tools/site_map.py aish|chabad [--samples N] [--max-sitemaps N]
+Usage: python3 tools/site_map.py aish|chabad|torahanytime [--samples N] [--max-sitemaps N] [--feeds]
+
+--feeds also looks for a site's own feeds (RSS) and interface addresses, and checks whether each
+answers a robot or shows it the site's bot check. For a site whose pages show every robot a check,
+it also counts how many of its article pages the Internet Archive has kept (counts only, nothing
+read from them).
 """
 
 import gzip
 import json
 import random
+import re
 import sys
 import time
 import urllib.error
@@ -30,6 +36,7 @@ from html.parser import HTMLParser
 SITES = {
     "aish": {"home": "https://aish.com/", "hosts": {"aish.com", "www.aish.com"}},
     "chabad": {"home": "https://www.chabad.org/", "hosts": {"www.chabad.org", "chabad.org"}},
+    "torahanytime": {"home": "https://www.torahanytime.com/", "hosts": {"www.torahanytime.com", "torahanytime.com"}},
 }
 USER_AGENT = "RabAIBot/1.0 (private Torah-learning tool, used with the site's written permission; +https://github.com/KingofHardts/RabAI)"
 ROBOT_NAME = "RabAIBot"
@@ -307,6 +314,126 @@ EXTRA_PROBES = {
 }
 
 
+FEED_TYPES = ("application/rss+xml", "application/atom+xml", "application/feed+json")
+# Addresses that look like a site's own interface, as they appear in its pages and scripts.
+API_RE = re.compile(r"""(https?://[A-Za-z0-9.-]*api[A-Za-z0-9.-]*\.[a-z]{2,}(?:/[A-Za-z0-9._~/-]*)?)|["'](/api/[A-Za-z0-9._~/-]+)""")
+
+
+def feed_links(body: bytes, base: str) -> list[str]:
+    """The feeds a page names in its head (<link rel="alternate" type="application/rss+xml">), and
+    the links whose address mentions rss or feed."""
+
+    class Feeds(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.found: list[str] = []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            href = a.get("href") or ""
+            if not href:
+                return
+            url = urllib.parse.urljoin(base, href)
+            if tag == "link" and (a.get("type") or "").lower() in FEED_TYPES:
+                self.found.append(url)
+            elif tag == "a" and re.search(r"(^|[/_.-])(rss|feeds?)([/_.-]|$)", urllib.parse.urlparse(url).path, re.I):
+                self.found.append(url)
+
+    parser = Feeds()
+    parser.feed(body.decode("utf-8", "replace"))
+    return list(dict.fromkeys(parser.found))
+
+
+def unarchive(url: str) -> str:
+    """An address as the site has it, from the Internet Archive's copy of it."""
+    m = re.match(r"https?://web\.archive\.org/web/[0-9a-z_]+/(https?://.+)$", url)
+    return m.group(1) if m else url
+
+
+def check_feed(url: str, rp) -> None:
+    """Whether a feed answers a robot, and how many items it lists (counts only)."""
+    if not rp.can_fetch(ROBOT_NAME, url):
+        print(f"  feed {url}: robots.txt asks robots to leave it alone")
+        return
+    status, body, final, headers = fetch(url)
+    kind = headers.get("Content-Type") or headers.get("content-type") or "?"
+    items = ""
+    if status == 200 and body:
+        try:
+            root = ET.fromstring(body)
+            n = sum(1 for e in root.iter() if e.tag.split("}")[-1] in ("item", "entry"))
+            full = sum(1 for e in root.iter() if e.tag.split("}")[-1] in ("encoded", "content"))
+            items = f"; {n} items, {full} with a full-text field"
+        except ET.ParseError:
+            items = "; not XML"
+    moved = f", moved to {final}" if final != url else ""
+    print(f"  feed {url}: HTTP {status}, {kind}{moved}{blocked_hint(status, headers, body)}{items}")
+
+
+def probe_feeds(name: str, site: dict, home_body: bytes, home_final: str, rp) -> None:
+    """A site's own feeds and interface addresses, and whether they answer a robot.
+
+    When the home page shows robots a check, the feeds are looked for in the Internet Archive's
+    copy of the home page instead (addresses only), and then asked for from the site itself.
+    """
+    print("\nfeeds and interfaces (addresses, status codes and counts only):")
+    feeds = feed_links(home_body, home_final) if home_body else []
+    blocked = not home_body or bool(blocked_hint(200, {}, home_body))
+    if blocked:
+        archived = "https://web.archive.org/web/2025/" + site["home"]
+        status, body, final, headers = fetch(archived, timeout=60)
+        print(f"  the Internet Archive's copy of the home page: HTTP {status}{blocked_hint(status, headers, body)}")
+        if status == 200:
+            feeds += [unarchive(u) for u in feed_links(body, final)]
+    feeds = [u for u in dict.fromkeys(feeds) if urllib.parse.urlparse(u).hostname in site["hosts"]]
+    print(f"  feeds named: {len(feeds)}")
+    for url in feeds[:12]:
+        check_feed(url, rp)
+    for url in FEED_GUESSES.get(name, []):
+        if url not in feeds:
+            check_feed(url, rp)
+    # Interface addresses named in the home page and its own scripts (never their contents).
+    apis: list[str] = []
+    if home_body and not blocked:
+        text = home_body.decode("utf-8", "replace")
+        scripts = re.findall(r"""<script[^>]+src=["']([^"']+)["']""", text)
+        bodies = [text]
+        for src in [urllib.parse.urljoin(home_final, s) for s in scripts][:6]:
+            if urllib.parse.urlparse(src).hostname in site["hosts"] and rp.can_fetch(ROBOT_NAME, src):
+                status, body, _, _ = fetch(src)
+                if status == 200:
+                    bodies.append(body.decode("utf-8", "replace"))
+        for b in bodies:
+            for full, rel in API_RE.findall(b):
+                apis.append(full or rel)
+    apis = list(dict.fromkeys(a.rstrip("/") for a in apis))
+    print(f"  interface addresses named in the home page and its scripts: {len(apis)}")
+    for a in apis[:30]:
+        print(f"    {a}")
+    if blocked:
+        archive_coverage(name)
+
+
+ARCHIVE_PREFIXES = {
+    "chabad": ["chabad.org/library/article_cdo/aid/", "chabad.org/parshah/article_cdo/aid/", "chabad.org/holidays/"],
+}
+FEED_GUESSES = {
+    # Addresses to try even if no page names them (status codes and item counts only).
+    "chabad": ["https://www.chabad.org/tools/rss/default.xml", "https://www.chabad.org/rss.xml", "https://www.chabad.org/feed"],
+    "torahanytime": ["https://www.torahanytime.com/feed", "https://www.torahanytime.com/rss"],
+}
+
+
+def archive_coverage(name: str) -> None:
+    """How many distinct pages under each prefix the Internet Archive has kept (counts only)."""
+    for prefix in ARCHIVE_PREFIXES.get(name, []):
+        q = urllib.parse.urlencode({"url": prefix, "matchType": "prefix", "collapse": "urlkey", "filter": "statuscode:200", "fl": "urlkey", "limit": "5000"})
+        status, body, _, headers = fetch(f"https://web.archive.org/cdx/search/cdx?{q}", timeout=120)
+        lines = [ln for ln in body.decode("utf-8", "replace").splitlines() if ln.strip()] if status == 200 else []
+        more = " (the first 5,000 looked at; there are more)" if len(lines) >= 5000 else ""
+        print(f"  the Internet Archive keeps {len(lines):,} distinct pages under {prefix}{more}; HTTP {status}")
+
+
 def probe_wordpress(site: dict) -> None:
     """A WordPress site's REST interface: its routes, how many posts it serves, and its categories.
 
@@ -470,6 +597,8 @@ def main() -> int:
             sample(per_file[f][1], rp)
     if "--wordpress" in sys.argv:
         probe_wordpress(site)
+    if "--feeds" in sys.argv:
+        probe_feeds(name, site, body, final, rp)
     for url in EXTRA_PROBES.get(name, []):
         status, body, final, headers = fetch(url)
         print(f"probe {url}: HTTP {status}{blocked_hint(status, headers, body)}" + (f", moved to {final}" if final != url else ""))
