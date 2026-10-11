@@ -572,6 +572,49 @@ def probe(wp: WordPress, canon_sections: list[dict]) -> None:
                   + (f" ({hint})" if hint else ""), flush=True)
 
 
+INSPECT_TAGS = ("p", "div", "br", "h2", "h3", "h4", "li", "blockquote", "section", "span")
+
+
+def shape(path: str, value, depth: int = 0) -> list[str]:
+    """Where a post keeps its text, without the text: each field's type and length, and for HTML
+    its block tags, the class names on them, and how many paragraphs the copier reads from it."""
+    if isinstance(value, dict):
+        if depth >= 3:
+            return [f"{path}: object with {len(value)} keys"]
+        out = [] if not path else [f"{path}: object, keys {', '.join(sorted(map(str, value))[:25])}"]
+        for key in sorted(value, key=str):
+            out += shape(f"{path}.{key}" if path else str(key), value[key], depth + 1)
+        return out
+    if isinstance(value, list):
+        inner = shape(f"{path}[0]", value[0], depth + 1) if value else []
+        return [f"{path}: list of {len(value)}"] + inner[:12]
+    if isinstance(value, str):
+        if "<" not in value:
+            return [f"{path}: text, {len(value)} characters"]
+        counts = {t: len(re.findall("<" + t + r"[\s>/]", value)) for t in INSPECT_TAGS}
+        tags = ", ".join(f"{t}={n}" for t, n in counts.items())
+        classes = sorted({c for c in re.findall(r'class="([^"]{1,60})"', value)})[:12]
+        return [f"{path}: HTML, {len(value)} characters; {tags}; paragraphs read: {len(L.paragraphs(value))}",
+                f"{path}: classes {classes}"]
+    return [f"{path}: {type(value).__name__}"]
+
+
+def inspect(wp: WordPress, canon_sections: list[dict], which: str) -> None:
+    """The shape of the three newest posts in one section, with every field the site sends (no
+    `_fields`), to see where an article's text is kept. Prints names, lengths and counts only."""
+    canon = next((c for c in canon_sections if which.lower() in f"{c.get('work', '')} {c['title']}".lower()), None)
+    if not canon:
+        raise SystemExit(f"No section of this site matches '{which}'.")
+    include = wp.resolve(canon["site"]["include"])
+    params = {"categories": ",".join(map(str, sorted(include))), "per_page": "3"}
+    posts, _ = wp.get_json("/posts?" + urllib.parse.urlencode(params, safe=","), attempts=2)
+    print(f"- {canon['title']}: the {len(posts)} newest posts, with all their fields", flush=True)
+    for n, post in enumerate(posts, 1):
+        print(f"  Post {n}:", flush=True)
+        for line in shape("", post):
+            print(f"    {line}", flush=True)
+
+
 # ---------------------------------------------------------------------------------------------
 # Turso
 
@@ -681,6 +724,9 @@ def main() -> int:
     wp = WordPress(polite, home)
     if "--probe" in args:
         probe(wp, canon_sections)
+        return 0
+    if "--inspect" in args:
+        inspect(wp, canon_sections, args[args.index("--inspect") + 1])
         return 0
     print(f"# {label}: {len(canon_sections)} sections in the canon; {len(col.stored)} articles already copied; "
           f"pause {polite.pause}s between requests", flush=True)

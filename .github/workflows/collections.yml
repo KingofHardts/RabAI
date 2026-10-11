@@ -37,6 +37,10 @@ on:
         description: "Only try the site's listing query in parts and print status codes (no copying)"
         type: boolean
         default: false
+      inspect:
+        description: "Only show where one section's newest posts keep their text: field names, lengths and counts, never words (a section's name, for example ask-the-rabbi)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -67,6 +71,7 @@ jobs:
           MINUTES: ${{ inputs.minutes }}
           FULL: ${{ inputs.full }}
           PROBE: ${{ inputs.probe }}
+          INSPECT: ${{ inputs.inspect }}
           TURSO_API_TOKEN: ${{ inputs.write && secrets.TURSO_API_TOKEN || '' }}
           TURSO_ORG: ${{ secrets.TURSO_ORG }}
           VERCEL_TOKEN: ${{ inputs.write && secrets.VERCEL_TOKEN || '' }}
@@ -78,4 +83,5 @@ jobs:
           if [ "$MINUTES" != "0" ]; then args+=(--minutes "$MINUTES"); fi
           if [ "$FULL" = "true" ]; then args+=(--full); fi
           if [ "$PROBE" = "true" ]; then args+=(--probe); fi
+          if [ -n "$INSPECT" ]; then args+=(--inspect "$INSPECT"); fi
           python3 tools/collection_build.py "${args[@]}"
