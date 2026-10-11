@@ -519,7 +519,9 @@ def main() -> int:
             url,
             value("RABAI_COLLECTION_DB_TOKEN") or value("TURSO_AUTH_TOKEN"),
             # Per section: how many articles, and how many are one paragraph or under 400 characters
-            # (a section of short teasers would show here). Only section names and numbers.
+            # (a section of short teasers would show here). Then titles and paragraphs that have lost
+            # their article's details (RabAI would not know they are articles): there should be none.
+            # Only section names and numbers.
             count=(
                 "SELECT (SELECT value FROM meta WHERE key = 'site') || ', ' || (SELECT COUNT(*) FROM articles)"
                 " || ' articles; by section: ' || (SELECT group_concat(line, '; ') FROM ("
@@ -529,6 +531,10 @@ def main() -> int:
                 "        FROM articles a JOIN editions e ON e.id = a.edition_id"
                 "        JOIN passages p ON p.title_id = a.title_id GROUP BY a.title_id) x"
                 "  JOIN works w ON w.id = x.work GROUP BY w.title ORDER BY w.title))"
+                " || '; titles without an article: ' || (SELECT COUNT(*) FROM titles"
+                "    WHERE id NOT IN (SELECT title_id FROM articles))"
+                " || ', their paragraphs: ' || (SELECT COUNT(*) FROM passages"
+                "    WHERE title_id NOT IN (SELECT title_id FROM articles))"
             ),
             full=True,
         )
