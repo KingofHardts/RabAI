@@ -199,8 +199,14 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   own interface, one request at a time with a pause, within its robots.txt and under an honest
   name (RabAIBot); it never gets around a site's protections. Each site's articles go into their
   own private database (`rabai-collection-<permission>`), read by the locked app beside the
-  testing library and labeled the same way. Each article keeps its address, author and dates, and
-  the app shows who wrote it with a link to the original. RabAI uses an article as a teacher's
+  testing library and labeled the same way. Where a section's interface gives only part of each
+  article (Aish.com's Ask the Rabbi gives each reader's question but keeps the rabbi's answer on
+  the article's page; found 2026-10-11), the copier also reads each article's own page, the same
+  way, and keeps only the paragraphs in the page's article box (`site.page` in the canon), never
+  its links, forms, comments or menus. The reader's question is labeled "Question:" and kept in
+  one passage with the start of the answer, so a search that finds the question brings the
+  answer with it and RabAI never takes a reader's words for the rabbi's. Each article keeps its
+  address, author and dates, and the app shows who wrote it with a link to the original. RabAI uses an article as a teacher's
   explanation that points to the texts, never as a primary source and never as a ruling (the
   core premises' "Articles by today's teachers", for the board). A collection is never public,
   never committed and never kept as a build artifact, and the app never opens one once it is

@@ -62,7 +62,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   hold articles copied from a site that gave written permission, section by section as the canon
   lists them (`site:` editions, category `articles`), by `tools/collection_build.py` and the
   "Copy a website's sections (collections)" workflow. The copier reads only through the site's
-  own interface, one request at a time with a pause, within robots.txt, as RabAIBot; never get
+  own interface (and, for a section marked `site.page`, each article's own page, keeping only its
+  article box), one request at a time with a pause, within robots.txt, as RabAIBot; never get
   around a site's protections (a Cloudflare check means asking the site to let RabAIBot through).
   Nothing it copies is printed in a log, committed, or kept as an artifact. Every reference in a
   collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that

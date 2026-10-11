@@ -16,6 +16,10 @@ the site than loading its pages, in two steps:
 2. Fetch only the articles that are new, or changed since the copy we have, a few at a time.
    When the site struggles (a server error), ask for fewer at once; an article that still fails
    on its own is skipped and tried again on the next run.
+A section whose interface gives only part of each article (`site.page`: Aish.com's Ask the Rabbi
+keeps each rabbi's answer outside it) also reads each article's own page, and keeps only the
+paragraphs inside the page's article box (site_lib.page_paragraphs); a reader's question is
+labeled "Question:" and kept with the start of the answer.
 Requests go one at a time with a pause, and only to addresses robots.txt allows. An article the
 site no longer lists in any section is removed from the copy, unless that is suspiciously many at
 once (then --prune).
@@ -248,6 +252,7 @@ class Collection:
         self.stored: dict[str, dict] = {}  # site's post id -> what the database holds for it
         self.titles: set[str] = set()
         self.no_text: dict[str, str] = {}  # post id -> its date, for posts that had no text to copy
+        self.page_read: dict[str, str] = {}  # post id -> its date, for articles read from their own page
 
     def load(self) -> None:
         for edition_id, url, site_id, modified, check, title in self.sink.query(
@@ -258,6 +263,7 @@ class Collection:
                                          "checksum": check, "title": title}
         self.titles = {r[0] for r in self.sink.query("SELECT title FROM titles")}
         self.no_text = json.loads(self.state("no_text") or "{}")
+        self.page_read = json.loads(self.state("page_read") or "{}")
 
     def work_and_edition(self, section: dict) -> int:
         kinds = section.get("caution_kinds")
@@ -384,11 +390,14 @@ class Section:
         site = canon["site"]
         self.include = wp.resolve(site["include"])
         self.exclude = wp.resolve(site["exclude"]) if site.get("exclude") else set()
+        self.page: dict | None = site.get("page")  # read each article from its own page (validate.py)
         self.listed: dict[str, str] = {}
         self.mine: list[str] = []  # listed and not taken by an earlier section
         self.to_fetch: list[str] = []
         self.counts = {"listed": 0, "excluded": 0, "in an earlier section": 0, "unchanged": 0, "new": 0, "changed": 0,
-                       "same": 0, "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
+                       "same": 0, "from the page": 0, "with the answer heading": 0, "characters left out": 0,
+                       "page without the box": 0, "page without the article": 0, "page not allowed": 0, "page failed": 0,
+                       "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
 
 
 def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: bool) -> None:
@@ -400,7 +409,8 @@ def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: b
             continue
         sec.mine.append(key)
         old = col.stored.get(key)
-        if full or not old or old["edition_id"] != sec.edition_id or old["modified"] != modified:
+        stale_page = bool(sec.page) and col.page_read.get(key) != modified  # not yet read from its page
+        if full or not old or old["edition_id"] != sec.edition_id or old["modified"] != modified or stale_page:
             if not full and not old and col.no_text.get(key) == modified:
                 sec.counts["no text"] += 1  # nothing to copy last time, and unchanged since
                 continue
@@ -455,11 +465,42 @@ class Fetcher:
             i += len(chunk)
 
 
+def from_page(wp: WordPress, url: str, page: dict, given: list[str], counts: dict) -> tuple[list[str] | None, bool]:
+    """An article read from its own page (a section with `site.page`): the paragraphs inside the
+    page's article box, or None to keep what the interface gave. The second value says whether
+    this article is settled: False when the page didn't answer, so the next run tries again.
+
+    The page must hold the start of what the interface gave, or it isn't the same article (a
+    changed layout, say), and the interface's text is kept."""
+    try:
+        status, body, _ = wp.polite.get(url, attempts=2)
+    except PermissionError:
+        counts["page not allowed"] += 1
+        return None, True
+    if status != 200:
+        counts["page failed"] += 1
+        return None, False
+    read = L.page_paragraphs(body.decode("utf-8", "replace"), page["box"], page.get("answer"))
+    if read is None or not read["paras"]:
+        counts["page without the box"] += 1
+        return None, True
+    start = re.sub(r"\s+", " ", " ".join(given))[:50].strip()
+    if start and start not in re.sub(r"\s+", " ", " ".join(read["paras"])):
+        counts["page without the article"] += 1
+        return None, True
+    counts["from the page"] += 1
+    counts["with the answer heading"] += int(read["answer_found"])
+    counts["characters left out"] += read["dropped"]
+    return read["paras"], True
+
+
 def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher, limit: int) -> None:
     """Fetch and write a section's new and changed articles."""
     ids = sec.to_fetch[:limit] if limit else sec.to_fetch
     asked = set(ids)
     done = 0
+    pages_failing = 0
+    page_read: list[tuple[str, str]] = []  # read from their page; marked once their rows are written
     for chunk, posts in fetcher.batches(ids):
         wp.author_names({a for post in posts for a in post.get("authors") or [] if isinstance(a, int)})
         returned = set()
@@ -469,6 +510,16 @@ def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher,
             url = post.get("link") or ""
             modified = post.get("modified_gmt") or sec.listed.get(key) or ""
             paras = L.paragraphs((post.get("content") or {}).get("rendered") or "") + footnotes(post.get("meta"))
+            if sec.page and url:
+                read, settled = from_page(wp, url, sec.page, paras, sec.counts)
+                paras = read or paras
+                pages_failing = 0 if settled else pages_failing + 1
+                if pages_failing >= GIVE_UP_AFTER:
+                    col.flush()
+                    col.set_state("page_read", json.dumps(col.page_read, sort_keys=True))
+                    raise SystemExit(f"The site's pages failed {pages_failing} times in a row; stopping. Run again later.")
+                if settled:
+                    page_read.append((key, modified))
             if not paras or not url:
                 sec.counts["no text"] += 1
                 col.no_text[key] = sec.listed.get(key, modified)
@@ -487,9 +538,15 @@ def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher,
             sec.counts[result] += 1
         sec.counts["gone"] += len(set(chunk) - returned)  # unpublished between listing and fetching
         done += len(chunk)
+        if page_read and done % 100 < len(chunk):
+            col.flush()
+            col.page_read.update(page_read)
+            page_read = []
+            col.set_state("page_read", json.dumps(col.page_read, sort_keys=True))
         if done % 200 < len(chunk):
             print(f"  {done} of {len(ids)} fetched", flush=True)
     col.flush()
+    col.page_read.update(page_read)
     failed = len([k for k in fetcher.failed if k in asked])
     sec.counts["failed"] = failed
     sec.counts["not reached"] = len(ids) - done - failed
@@ -543,6 +600,7 @@ def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, lim
             print(f"- Fetching {sec.canon['title']}: {len(sec.to_fetch[:limit] if limit else sec.to_fetch)} articles", flush=True)
         copy_section(col, wp, sec, fetcher, limit)
     col.set_state("no_text", json.dumps(col.no_text, sort_keys=True))
+    col.set_state("page_read", json.dumps(col.page_read, sort_keys=True))
     return {"sections": sections, "fetcher": fetcher, "removed": removed, "kept_note": kept_note}
 
 

@@ -97,8 +97,10 @@ class FakeSite:
     list_over: listing more than this many at once fails. broken: posts that always fail.
     """
 
-    def __init__(self, posts, struggle_over=None, list_over=None, broken=()):
+    def __init__(self, posts, struggle_over=None, list_over=None, broken=(), pages=None, disallowed=()):
         self.posts = posts
+        self.pages = pages or {}  # an article's own page by its address; None: the page fails
+        self.disallowed = set(disallowed)  # addresses robots.txt asks robots to leave alone
         self.struggle_over = struggle_over
         self.list_over = list_over
         self.broken = set(broken)
@@ -111,6 +113,11 @@ class FakeSite:
 
         u = urlparse(url)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        if url in self.disallowed:
+            raise PermissionError(f"robots.txt asks robots to leave {url} alone")
+        if url in self.pages:
+            page = self.pages[url]
+            return (500, b"", {}) if page is None else (200, page.encode(), {})
         if u.path.endswith("/categories"):
             return 200, json.dumps(CATEGORIES).encode(), {"X-WP-TotalPages": "1"}
         if u.path.endswith("/authors"):
@@ -136,13 +143,25 @@ class FakeSite:
         return 404, b"", {}
 
 
-def section(work, edition, include, exclude=None):
+def section(work, edition, include, exclude=None, page=None):
     return {
         "work": work, "title": work.title(), "edition": edition, "language": "en", "category": "articles",
         "streams": ["kiruv"], "approved": False, "standing": "established",
         "site": {"permission": "aish", "home": "https://example.org/", "from": "wordpress", "include": include,
-                 **({"exclude": exclude} if exclude else {})},
+                 **({"exclude": exclude} if exclude else {}), **({"page": page} if page else {})},
     }
+
+
+def ask_page(question, answer_paras, box="single_post_container_content"):
+    """A post's own page in Aish.com's layout: the question the interface gives, then the answer."""
+    return (
+        f"<html><body><nav class='menu'><p>Home</p></nav><div class='{box}'>"
+        f"<div class='artContent'><div id='wtr-content'><p>{question}</p></div></div>"
+        "<h3>The Aish Rabbi Replies</h3>" + "".join(f"<p>{p}</p>" for p in answer_paras) +
+        "<a class='ask-q-link bottom' href='/ask/'>Ask your own question</a><a class='cmt-link' href='#c'>Comments</a>"
+        "<div class='donation-form'><p>Support our work</p></div></div>"
+        "<div class='comments-area'><p>A reader's comment.</p></div></body></html>"
+    )
 
 
 class BuilderTest(unittest.TestCase):
@@ -194,6 +213,61 @@ class BuilderTest(unittest.TestCase):
         _, counts, _ = self.build(site, sections)
         self.assertEqual(site.fetched, [])
         self.assertEqual((counts[0]["unchanged"], counts[0]["no text"], counts[1]["unchanged"]), (1, 1, 1))
+
+    def test_a_section_with_page_reads_each_article_from_its_own_page(self):
+        page = {"box": "single_post_container_content", "answer": "The Aish Rabbi Replies"}
+        posts = [
+            post(30, "Two Candles", [1], "<p>Why two candles?</p>", "2024-01-01T10:00:00"),
+            post(31, "Old Layout", [1], "<p>A question and its answer together.</p>", "2024-01-02T10:00:00"),
+            post(32, "Busy Server", [1], "<p>Why wash twice?</p>", "2024-01-03T10:00:00"),
+            post(33, "Kept Out", [1], "<p>Why stand?</p>", "2024-01-04T10:00:00"),
+            post(34, "Moved Box", [1], "<p>Why salt?</p>", "2024-01-05T10:00:00"),
+        ]
+        pages = {
+            "https://example.org/30/": ask_page("Why two candles?", ["One for zachor.", "One for shamor."]),
+            "https://example.org/31/": "<html><body><div class='post'><p>No box here.</p></div></body></html>",
+            "https://example.org/32/": None,
+            "https://example.org/34/": ask_page("A different article.", ["Its answer."]),
+        }
+        site = FakeSite(posts, pages=pages, disallowed={"https://example.org/33/"})
+        sections = [section("ask", "Ask (English)", ["ask-the-rabbi"], page=page)]
+        sink, counts, _ = self.build(site, sections)
+        texts = [r[0] for r in sink.query(
+            "SELECT p.text FROM passages p JOIN titles t ON t.id = p.title_id WHERE t.title = ? ORDER BY p.seq",
+            ["Example.org, Two Candles"])]
+        self.assertEqual(texts, ["Question: Why two candles?\nThe Aish Rabbi Replies\nOne for zachor.", "One for shamor."])
+        self.assertFalse(sink.query("SELECT 1 FROM passages WHERE text LIKE '%Support our work%' OR text LIKE '%comment%' "
+                                    "OR text LIKE '%Ask your own%' OR text LIKE '%Home%'"))
+        c = counts[0]
+        self.assertEqual((c["new"], c["from the page"], c["with the answer heading"], c["page without the box"],
+                          c["page failed"], c["page not allowed"], c["page without the article"]), (5, 1, 1, 1, 1, 1, 1))
+        self.assertEqual(c["characters left out"], len("Ask your own question"))
+        # Where the page couldn't be used, the interface's text is kept.
+        for title, text in (("Old Layout", "A question and its answer together."), ("Busy Server", "Why wash twice?"),
+                            ("Kept Out", "Why stand?"), ("Moved Box", "Why salt?")):
+            self.assertEqual(sink.query("SELECT p.text FROM passages p JOIN titles t ON t.id = p.title_id WHERE t.title = ?",
+                                        [f"Example.org, {title}"])[0][0], text)
+
+        # The next run fetches only the article whose page didn't answer; once it does, it is settled.
+        site.fetched.clear()
+        pages["https://example.org/32/"] = ask_page("Why wash twice?", ["Once for the hands."])
+        sink, counts, _ = self.build(site, sections)
+        self.assertEqual(site.fetched, [[32]])
+        self.assertEqual((counts[0]["changed"], counts[0]["unchanged"]), (1, 4))
+        site.fetched.clear()
+        self.build(site, sections)
+        self.assertEqual(site.fetched, [])
+
+    def test_an_existing_section_is_read_again_once_it_reads_pages(self):
+        posts = [post(40, "Two Candles", [1], "<p>Why two candles?</p>", "2024-01-01T10:00:00")]
+        site = FakeSite(posts, pages={"https://example.org/40/": ask_page("Why two candles?", ["One for zachor."])})
+        self.build(site, [section("ask", "Ask (English)", ["ask-the-rabbi"])])
+        site.fetched.clear()
+        page = {"box": "single_post_container_content", "answer": "The Aish Rabbi Replies"}
+        sink, counts, _ = self.build(site, [section("ask", "Ask (English)", ["ask-the-rabbi"], page=page)])
+        self.assertEqual(site.fetched, [[40]])
+        self.assertEqual((counts[0]["changed"], counts[0]["from the page"]), (1, 1))
+        self.assertEqual(sink.query("SELECT COUNT(*) FROM passages")[0][0], 1)
 
     def test_an_article_in_two_sections_goes_to_the_first(self):
         site = FakeSite([post(20, "Both", [1, 3], "<p>Shared.</p>", "2024-01-01T10:00:00")])
@@ -290,6 +364,14 @@ class CanonSectionsTest(unittest.TestCase):
         self.assertTrue(V.site_problems({**good, "include": ["Not A Slug"]}))
         self.assertTrue(V.site_problems({**good, "from": "magic"}))
         self.assertEqual(V.private_permissions({"site": good}), ["aish"])
+        page = {"box": "single_post_container_content", "answer": "The Aish Rabbi Replies"}
+        self.assertEqual(V.site_problems({**good, "page": page}), [])
+        self.assertEqual(V.site_problems({**good, "page": {"box": "post-body"}}), [])
+        self.assertTrue(V.site_problems({**good, "page": {"answer": "The Aish Rabbi Replies"}}))  # no box
+        self.assertTrue(V.site_problems({**good, "page": {"box": "a b"}}))  # not one class
+        self.assertTrue(V.site_problems({**good, "page": {**page, "where": "x"}}))
+        self.assertTrue(V.site_problems({**good, "page": {**page, "answer": ""}}))
+        self.assertTrue(V.site_problems({**good, "from": "pages", "include": ["/x/"], "page": page}))
 
 
 if __name__ == "__main__":

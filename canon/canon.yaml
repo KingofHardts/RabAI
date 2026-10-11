@@ -19608,6 +19608,11 @@ works:
           from: wordpress
           include: [ask-the-rabbi]
           exclude: [arab-israeli-conflict, israel-today, multimedia-atr, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+          # The site's interface gives only each reader's question; the rabbi's answer is on the
+          # article's own page, after the heading "The Aish Rabbi Replies".
+          page:
+            box: single_post_container_content
+            answer: "The Aish Rabbi Replies"
 
   - id: aish-torah-portion
     title: "Aish.com: The weekly Torah portion"

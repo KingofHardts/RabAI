@@ -46,7 +46,11 @@ Two refinements (founding spec, "Testing library"):
   (canon/permissions.yaml), and `site.home` must be one of its sites. `site.from` says how the
   articles are read: `wordpress` (the site's WordPress interface; `include` and `exclude` are
   category slugs, each with its subcategories) or `pages` (its article pages, found through its
-  sitemaps; `include` and `exclude` are patterns an article's address is matched against).
+  sitemaps; `include` and `exclude` are patterns an article's address is matched against). A
+  WordPress section whose interface gives only part of each article (Aish.com's Ask the Rabbi
+  keeps each answer outside it) names `page`: each article is then read from its own page,
+  inside the element whose class is `page.box`, and `page.answer` (optional) is the words that
+  begin a rabbi's answer, so the reader's question before them is labeled as the question.
 """
 
 import json
@@ -76,9 +80,12 @@ PERMISSION_ALSO_KEYS = {"version", "why"}
 SITE_RE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
 LEXICON_KEYS = {"name", "license", "printed"}
 # A section of an organization's website (an edition's `site:`).
-SITE_KEYS = {"permission", "home", "from", "include", "exclude", "note"}
+SITE_KEYS = {"permission", "home", "from", "include", "exclude", "page", "note"}
 SITE_FROM = {"wordpress", "pages"}
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_%-]*$")
+# site.page: read each article from its own page, inside the element with this class.
+PAGE_KEYS = {"box", "answer"}
+CLASS_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
 
 
 def printed_ok(value) -> bool:
@@ -185,6 +192,15 @@ def site_problems(site) -> list:
                     re.compile(v)
                 except re.error as e:
                     out.append(f"site {field}: '{v}' is not a valid pattern ({e})")
+    page = site.get("page")
+    if page is not None:
+        if how != "wordpress":
+            out.append("site page is only for from: wordpress (pages are read from their pages already)")
+        if not isinstance(page, dict) or set(page) - PAGE_KEYS or not CLASS_RE.match(str(page.get("box") or "")):
+            out.append("site page must name a box (the class of the element holding the article on its own page) "
+                       "and may name an answer (the words that begin a rabbi's answer)")
+        elif "answer" in page and not (isinstance(page["answer"], str) and 0 < len(page["answer"].strip()) <= 80):
+            out.append("site page answer must be the few words that begin a rabbi's answer")
     return out
 
 

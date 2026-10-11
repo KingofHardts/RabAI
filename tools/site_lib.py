@@ -192,6 +192,13 @@ def paragraphs(html_text: str, max_chars: int = 2200) -> list[str]:
     parser = _Text()
     parser.feed(html_text or "")
     parser.close()
+    return group(parser.blocks, max_chars)
+
+
+def group(blocks: list[tuple[str, str]], max_chars: int = 2200) -> list[str]:
+    """Blocks of text, each tagged "h" (a heading), "li" (a list item) or "p", as reading
+    paragraphs: each heading with the paragraph after it, each list's items together, and a very
+    long paragraph split at a sentence end."""
     out: list[str] = []
     heading: list[str] = []
     items: list[str] = []
@@ -209,7 +216,7 @@ def paragraphs(html_text: str, max_chars: int = 2200) -> list[str]:
             push("\n".join(f"• {item}" for item in items))
             items = []
 
-    for kind, text in parser.blocks:
+    for kind, text in blocks:
         if kind != "li":
             end_list()
         if kind == "h":
@@ -222,6 +229,126 @@ def paragraphs(html_text: str, max_chars: int = 2200) -> list[str]:
     if heading:
         out.append("\n".join(heading))
     return [p for p in out if re.search(r"\w", p)]
+
+
+# On an article's own page: the blocks that hold its text, and the page furniture to leave out
+# even inside the article's box (sharing buttons, comments, donation forms, related articles).
+TEXT_BLOCKS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "blockquote", "pre", "dd", "dt", "td", "th"}
+FURNITURE = re.compile(
+    r"^(?:.*[-_])?(?:donat(?:e|ion)s?|share|sharing|social|related|newsletter|subscribe|signup|"
+    r"comments?|cmt|adverts?|ads?|sponsors?|promo)(?:[-_].*)?$",
+    re.I,
+)
+
+
+class _BoxText(HTMLParser):
+    """The text blocks inside one element of a page: the first whose class list holds `box`.
+
+    Only paragraphs, headings, list items and their like are read. Text outside them (a stray
+    link, a button's words, a form's labels) and everything in an element whose class marks it
+    as page furniture is left out; `dropped` counts its characters.
+    """
+
+    def __init__(self, box: str):
+        super().__init__(convert_charrefs=True)
+        self.box = box
+        self.found = False
+        self.done = False
+        self.box_depth: int | None = None
+        self.stack: list[tuple[str, bool, bool]] = []  # (tag, leaves its text out, a counted block)
+        self.skip = 0
+        self.kinds: list[str] = []
+        self.blocks: list[tuple[str, str]] = []
+        self.buf: list[str] = []
+        self.dropped = 0
+
+    def inside(self) -> bool:
+        return self.found and not self.done
+
+    def flush(self):
+        text = BIDI.sub("", "".join(self.buf))
+        lines = [SPACES.sub(" ", line).strip() for line in text.split("\n")]
+        text = "\n".join(line for line in lines if line)
+        if text:
+            self.blocks.append((self.kinds[-1] if self.kinds else "p", text))
+        self.buf = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in VOID:
+            if tag == "br" and self.inside() and not self.skip and self.kinds:
+                self.buf.append("\n")
+            return
+        classes = (dict(attrs).get("class") or "").split()
+        if not self.found and self.box in classes:
+            self.found, self.box_depth = True, len(self.stack)
+        leaves_out = self.inside() and (tag in SKIP or any(FURNITURE.match(c) for c in classes))
+        counted = self.inside() and not self.skip and not leaves_out and tag in TEXT_BLOCKS
+        self.stack.append((tag, leaves_out, counted))
+        if leaves_out:
+            self.skip += 1
+        if counted:
+            self.flush()
+            outer = self.kinds[-1] if self.kinds else None
+            self.kinds.append("h" if tag in HEADINGS else "li" if tag == "li" or outer == "li" else "p")
+
+    def handle_endtag(self, tag):
+        if tag in VOID or tag not in (t for t, _, _ in self.stack):
+            return
+        while self.stack:
+            top, leaves_out, counted = self.stack.pop()
+            if leaves_out:
+                self.skip = max(0, self.skip - 1)
+            if counted:
+                self.flush()
+                self.kinds.pop()
+            if self.box_depth is not None and len(self.stack) == self.box_depth and not self.done:
+                self.flush()
+                self.done = True
+            if top == tag:
+                break
+
+    def handle_data(self, data):
+        if not self.inside() or self.skip:
+            return
+        if self.kinds:
+            self.buf.append(data)
+        else:
+            self.dropped += len(data.strip())
+
+    def close(self):
+        super().close()
+        self.flush()
+
+
+def page_paragraphs(html_text: str, box: str, answer: str | None = None, max_chars: int = 2200) -> dict | None:
+    """An article as its own page shows it: the reading paragraphs of the first element whose
+    class list holds `box`, or None when the page has no such element.
+
+    `answer` is the words that begin a rabbi's answer to a reader's question ("The Aish Rabbi
+    Replies"). When a block begins with them, what comes before is the question: it is labeled
+    "Question:" and kept in one passage with the start of the answer, so a search that finds
+    the question finds the answer with it, and the question is never taken for the answer.
+    Returns {"paras": [...], "answer_found": bool, "dropped": characters left out}.
+    """
+    parser = _BoxText(box)
+    parser.feed(html_text or "")
+    parser.close()
+    if not parser.found:
+        return None
+    blocks = parser.blocks
+    want = re.sub(r"\W+", " ", answer or "").strip().lower()
+    at = next((i for i, (_, text) in enumerate(blocks) if want and re.sub(r"\W+", " ", text).strip().lower().startswith(want)), -1)
+    if at < 0:
+        return {"paras": group(blocks, max_chars), "answer_found": False, "dropped": parser.dropped}
+    kind, text = blocks[at]
+    if len(text) <= len(answer or "") + 3:
+        blocks[at] = ("h", text)  # the answer's heading, kept with its first paragraph
+    question = "\n".join(t for _, t in blocks[:at])
+    paras = group(blocks[at:], max_chars)
+    if question:
+        first = f"Question: {question}" + (f"\n{paras[0]}" if paras else "")
+        paras = split_long(first, max_chars) + paras[1:]
+    return {"paras": paras, "answer_found": True, "dropped": parser.dropped}
 
 
 def split_long(text: str, max_chars: int) -> list[str]:
