@@ -89,10 +89,11 @@ class FakeSite:
             size, offset = int(q["per_page"]), int(q.get("offset", 0))
             if self.list_over and size > self.list_over:
                 return 500, b"<html><title>Error</title></html>", {}
+            if "categories_exclude" in q:  # Aish.com's server fails this filter on a large section
+                return 500, b'{"code":"internal_server_error"}', {}
             want = {int(x) for x in q["categories"].split(",")}
-            drop = {int(x) for x in q.get("categories_exclude", "").split(",") if x}
-            found = sorted((p for p in self.posts if set(p["categories"]) & want and not set(p["categories"]) & drop), key=lambda p: p["id"])
-            page = [{"id": p["id"], "modified_gmt": p["modified_gmt"]} for p in found[offset : offset + size]]
+            found = sorted((p for p in self.posts if set(p["categories"]) & want), key=lambda p: p["id"])
+            page = [{"id": p["id"], "modified_gmt": p["modified_gmt"], "categories": p["categories"]} for p in found[offset : offset + size]]
             return 200, json.dumps(page).encode(), {"X-WP-Total": str(len(found))}
         return 404, b"", {}
 
@@ -137,7 +138,7 @@ class BuilderTest(unittest.TestCase):
         sections = [section("ask", "Ask (English)", ["ask-the-rabbi"], ["current"]), section("hol", "Holidays (English)", ["holidays"])]
         site = FakeSite(posts)
         sink, counts, _ = self.build(site, sections)
-        self.assertEqual((counts[0]["listed"], counts[0]["new"], counts[0]["no text"]), (2, 1, 1))
+        self.assertEqual((counts[0]["listed"], counts[0]["excluded"], counts[0]["new"], counts[0]["no text"]), (2, 1, 1, 1))
         self.assertEqual(counts[1]["new"], 1)
         self.assertNotIn(12, [i for ids in site.fetched for i in ids])  # an excluded section's post is never fetched
         refs = [r[0] for r in sink.query("SELECT ref FROM passages ORDER BY seq")]

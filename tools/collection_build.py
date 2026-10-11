@@ -172,17 +172,19 @@ class WordPress:
             for a in batch:
                 self.authors[a["id"]] = unescape(a.get("name") or "").strip()
 
-    def listing(self, include: set[int], exclude: set[int]) -> dict[str, str]:
-        """Every post in these categories: {post id: when it last changed (GMT)}, in id order.
+    def listing(self, include: set[int], exclude: set[int]) -> tuple[dict[str, str], int]:
+        """Every post in these categories but not the excluded ones: ({post id: when it last
+        changed (GMT)}, how many were excluded), in id order.
 
-        Only numbers and dates, so a hundred at a time is light for the site. Posts are counted
-        off by `offset`, so the page size can shrink if the site struggles without losing place.
+        Only numbers, dates and categories, so a hundred at a time is light for the site. The
+        excluded categories are dropped here rather than by the site: Aish.com's server fails that
+        filter on a large section. Posts are counted off by `offset`, so the page size can shrink
+        if the site struggles without losing place.
         """
         params = {"categories": ",".join(map(str, sorted(include))), "orderby": "id", "order": "asc",
-                  "_fields": "id,modified_gmt"}
-        if exclude:
-            params["categories_exclude"] = ",".join(map(str, sorted(exclude)))
+                  "_fields": "id,modified_gmt,categories"}
         found: dict[str, str] = {}
+        excluded = 0
         offset, size = 0, LIST_SIZE
         while True:
             params["offset"], params["per_page"] = str(offset), str(size)
@@ -195,11 +197,14 @@ class WordPress:
                     continue
                 raise
             for post in batch:
-                found[str(post["id"])] = str(post.get("modified_gmt") or "")
+                if exclude & set(post.get("categories") or []):
+                    excluded += 1
+                else:
+                    found[str(post["id"])] = str(post.get("modified_gmt") or "")
             offset += len(batch)
             total = L.header(headers, "X-WP-Total")
             if not batch or (total and total.isdigit() and offset >= int(total)) or (not total and len(batch) < size):
-                return found
+                return found, excluded
 
     def fetch(self, ids: list[str]) -> list[dict]:
         """These posts in full, by id."""
@@ -379,8 +384,8 @@ class Section:
         self.listed: dict[str, str] = {}
         self.mine: list[str] = []  # listed and not taken by an earlier section
         self.to_fetch: list[str] = []
-        self.counts = {"listed": 0, "in an earlier section": 0, "unchanged": 0, "new": 0, "changed": 0, "same": 0,
-                       "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
+        self.counts = {"listed": 0, "excluded": 0, "in an earlier section": 0, "unchanged": 0, "new": 0, "changed": 0,
+                       "same": 0, "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
 
 
 def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: bool) -> None:
@@ -518,7 +523,7 @@ def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, lim
             print(f"- {canon['title']}: reading a site's pages is not built yet; skipped")
             continue
         sec = Section(canon, edition_id, wp)
-        sec.listed = wp.listing(sec.include, sec.exclude)
+        sec.listed, sec.counts["excluded"] = wp.listing(sec.include, sec.exclude)
         plan_section(col, sec, claimed, full)
         sections.append(sec)
         print(f"- {canon['title']}: {sec.counts['listed']} listed, {len(sec.mine)} its own, {len(sec.to_fetch)} to fetch", flush=True)
