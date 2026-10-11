@@ -583,8 +583,12 @@ export function parseRef(ref: string): { start: string; end: string | null } {
   return { start: m[1] + startLoc, end: m[1] + merged.join(":") };
 }
 
+/** How long a server keeps the list of every book (it changes only when the library is rebuilt). */
+const BOOKS_KEPT_MS = 60 * 60 * 1000;
+
 export function createTestingStore(db: Db): TestingStore {
   let catalogCache: string | null = null;
+  let booksCache: { at: number; list: Promise<Awaited<ReturnType<TestingStore["books"]>>> } | null = null;
   let selectCache: Promise<string> | null = null;
 
   let articlesCache: Promise<boolean> | null = null;
@@ -1030,21 +1034,36 @@ export function createTestingStore(db: Db): TestingStore {
     },
 
     async books() {
-      const rows = await db.all(
-        `SELECT t.id, t.title, t.he_title, t.categories, w.title AS work_title,
-                (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
-         FROM titles t JOIN works w ON w.id = t.work ORDER BY t.id`,
-      );
-      return rows
-        .filter((r) => r.first_ref)
-        .map((r) => ({
-          title: String(r.title),
-          he: String(r.he_title ?? r.title),
-          firstRef: String(r.first_ref),
-          workTitle: String(r.work_title),
-          categories: parseCategories(r.categories),
-          order: Number(r.id),
-        }));
+      // Kept for an hour: listing every book's first passage is the slowest question the app asks
+      // a freshly uploaded library. A library built since titles.first_ref was added answers it
+      // from that column; an older one looks each book up.
+      if (booksCache && Date.now() - booksCache.at < BOOKS_KEPT_MS) return booksCache.list;
+      const list = (async () => {
+        const columns = await db.all("SELECT name FROM pragma_table_info('titles')");
+        const stored = columns.some((c) => c.name === "first_ref");
+        const lookup = "(SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1)";
+        const rows = await db.all(
+          `SELECT t.id, t.title, t.he_title, t.categories, w.title AS work_title,
+                  ${stored ? `COALESCE(t.first_ref, ${lookup})` : lookup} AS first_ref
+           FROM titles t JOIN works w ON w.id = t.work ORDER BY t.id`,
+        );
+        return rows
+          .filter((r) => r.first_ref)
+          .map((r) => ({
+            title: String(r.title),
+            he: String(r.he_title ?? r.title),
+            firstRef: String(r.first_ref),
+            workTitle: String(r.work_title),
+            categories: parseCategories(r.categories),
+            order: Number(r.id),
+          }));
+      })();
+      booksCache = { at: Date.now(), list };
+      // A failed listing isn't kept, so the next request tries again.
+      list.catch(() => {
+        if (booksCache?.list === list) booksCache = null;
+      });
+      return list;
     },
 
     async catalog() {

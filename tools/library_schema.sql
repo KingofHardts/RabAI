@@ -8,7 +8,9 @@ CREATE TABLE works (id TEXT PRIMARY KEY, title TEXT, category TEXT, streams TEXT
                     standing TEXT NOT NULL DEFAULT 'established', caution TEXT, caution_kinds TEXT);
 -- word_tool: a dictionary RabAI may use only for what words mean (canon: word_tool_only).
 CREATE TABLE editions (id INTEGER PRIMARY KEY, work TEXT, name TEXT, language TEXT, approved INTEGER, word_tool INTEGER DEFAULT 0);
-CREATE TABLE titles (id INTEGER PRIMARY KEY, title TEXT UNIQUE, he_title TEXT, work TEXT, categories TEXT, depth INTEGER, section_names TEXT);
+-- first_ref: the book's first passage, filled after loading, so the app can list every book without
+-- looking each one up.
+CREATE TABLE titles (id INTEGER PRIMARY KEY, title TEXT UNIQUE, he_title TEXT, work TEXT, categories TEXT, depth INTEGER, section_names TEXT, first_ref TEXT);
 CREATE TABLE versions (id INTEGER PRIMARY KEY, name TEXT, license TEXT, source TEXT, UNIQUE (name, license, source));
 CREATE TABLE passages (
   id INTEGER PRIMARY KEY,

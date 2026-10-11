@@ -55,7 +55,7 @@ async function fixture() {
     INSERT INTO works (id, title, category, streams) VALUES ('torah', 'The Torah', 'tanakh', '[]'), ('rashi', 'Rashi on the Torah', 'commentary', '[]'),
       ('bavli', 'Babylonian Talmud', 'talmud', '[]'), ('yerushalmi', 'Talmud Yerushalmi', 'talmud', '[]'),
       ('jastrow', 'A Dictionary of the Targumim', 'reference', '[]');
-    INSERT INTO titles VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]'),
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]'),
       (2, 'Rashi on Genesis', 'רש״י על בראשית', 'rashi', '[]', 3, '[]'),
       (3, 'Berakhot', 'ברכות', 'bavli', '[]', 2, '[]'),
       (4, 'Jerusalem Talmud Berakhot', 'ירושלמי ברכות', 'yerushalmi', '[]', 3, '[]'),
@@ -96,7 +96,7 @@ async function oneWorkStore(opts: { oldSchema?: boolean; debated?: boolean }) {
     : `INSERT INTO works (id, title, category, streams) VALUES ('bahir', 'Sefer HaBahir', 'kabbalah', '[]');`;
   await client.executeMultiple(`
     ${work}
-    INSERT INTO titles VALUES (1, 'Sefer HaBahir', 'ספר הבהיר', 'bahir', '[]', 1, '[]');
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Sefer HaBahir', 'ספר הבהיר', 'bahir', '[]', 1, '[]');
     INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'bahir', 'Test Bahir', 'he', 0, 0);
     INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');
     INSERT INTO passages VALUES (1, 'Sefer HaBahir 1', 1, 1, 1, 1, 'אמר רבי נחוניא בן הקנה');
@@ -236,6 +236,19 @@ test("books and the planner's catalog", async () => {
   assert.deepEqual(books.find((b) => b.title === "Genesis")?.categories, []);
   assert.deepEqual(books.map((b) => b.order), [...books.map((b) => b.order)].sort((a, b) => a - b));
   assert.match(await store.catalog(), /^Babylonian Talmud: Berakhot$/m);
+});
+
+test("a library that stores each book's first passage lists books from it, without a lookup per book", async () => {
+  const client = createClient({ url: ":memory:" });
+  await client.executeMultiple(schema);
+  await client.executeMultiple(`
+    INSERT INTO works (id, title, category, streams) VALUES ('torah', 'The Torah', 'tanakh', '[]');
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names, first_ref) VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]', 'Genesis 1:1');
+  `);
+  const store = createTestingStore(dbFrom(client));
+  const books = await store.books();
+  assert.deepEqual(books.map((b) => [b.title, b.firstRef]), [["Genesis", "Genesis 1:1"]], "read from titles.first_ref (this test library has no passages to look up)");
+  assert.equal(await store.books(), books, "the list is kept");
 });
 
 test("the planner's reply is read safely", () => {

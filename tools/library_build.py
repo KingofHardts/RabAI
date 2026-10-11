@@ -472,6 +472,8 @@ def main() -> int:
     links += len(seen)
     print(f"Dictionary links: {len(seen)}", file=sys.stderr)
     con.executescript(INDEX_SQL)
+    # Each book's first passage, so the app lists every book with one quick read.
+    con.execute("UPDATE titles SET first_ref = (SELECT p.ref FROM passages p WHERE p.title_id = titles.id ORDER BY p.seq LIMIT 1)")
 
     try:
         export_date = S.fetch(S.EXPORT + "last_export.txt").decode().strip()

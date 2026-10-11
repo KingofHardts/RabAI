@@ -15,6 +15,8 @@
  *   export RABAI_TRANSLATIONS_DB_URL=file:../library/rabai-translations-local.db
  *   npx tsx scripts/translate-here.ts send --books "Rashi on Berakhot" --limit 100 [--words] [--like ...] [--works ...]
  *
+ * --pages 2a-3b (or 2a,2b) keeps only those amudim of the books chosen, so a daf's Gemara, Rashi and
+ * Tosafot can be done together, in order.
  * --words also makes word-by-word lists for passages that have the library's English (the Gemara),
  * which get only that list. RABAI_LIBRARY_DB_URL may be the library on Turso (libsql://...) when the
  * session has its read-only token as a network secret (docs/session-translation.md).
@@ -59,6 +61,28 @@ const opt = (name: string) => {
 };
 const list = (name: string) => (opt(name) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const flag = (name: string) => args.includes(`--${name}`);
+
+/** The amud a ref is on ("Rashi on Kiddushin 2a:1:1" is on 2a). */
+const amudOf = (ref: string) => ref.split(":")[0].split(" ").pop() ?? "";
+
+/** The amudim of --pages: "2a-3b" is 2a, 2b, 3a, 3b; "2a,4b" is those two. Null for every page. */
+function amudim(spec: string | undefined): Set<string> | null {
+  if (!spec?.trim()) return null;
+  const out = new Set<string>();
+  const parse = (x: string) => {
+    const m = x.trim().match(/^(\d+)([ab])$/);
+    if (!m) throw new Error(`--pages: "${x}" isn't an amud like 2a or 13b.`);
+    return Number(m[1]) * 2 + (m[2] === "b" ? 1 : 0);
+  };
+  for (const part of spec.split(",")) {
+    const [from, to] = part.split("-");
+    const a = parse(from);
+    const b = to ? parse(to) : a;
+    if (b < a) throw new Error(`--pages: ${part} runs backwards.`);
+    for (let n = a; n <= b; n++) out.add(`${Math.floor(n / 2)}${n % 2 ? "b" : "a"}`);
+  }
+  return out;
+}
 
 const ANSWER_FORM = `# How to answer
 
@@ -118,7 +142,9 @@ async function main() {
     const limit = Math.max(1, Number(opt("limit") ?? 50));
     // Passages in a job that isn't collected yet are being translated already.
     const open = new Set((await library.jobs("submitted")).flatMap((j) => Object.values(j.manifest).flatMap((e) => e.passages.map((p) => p.ref))));
-    const chosen = (await pendingPassages(store, library, sel, limit + open.size)).filter((p) => !open.has(p.ref)).slice(0, limit);
+    const pages = amudim(opt("pages"));
+    const pending = await pendingPassages(store, library, sel, pages ? 1_000_000 : limit + open.size);
+    const chosen = pending.filter((p) => !open.has(p.ref) && (!pages || pages.has(amudOf(p.ref)))).slice(0, limit);
     if (!chosen.length) {
       console.log("Nothing to send: everything selected is translated or in a job already.");
       return;

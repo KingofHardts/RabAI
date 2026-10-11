@@ -20,7 +20,7 @@ async function mainLibrary() {
   await client.executeMultiple(librarySchema);
   await client.executeMultiple(`
     INSERT INTO works (id, title, category, streams) VALUES ('torah', 'The Torah', 'tanakh', '[]');
-    INSERT INTO titles VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]');
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Genesis', 'בראשית', 'torah', '[]', 2, '[]');
     INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'torah', 'Test Chumash', 'en', 0, 0);
     INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');
     INSERT INTO passages VALUES (1, 'Genesis 1:1', 1, 1, 1, 1, 'In the beginning God created the heavens and the earth, and light');
@@ -40,7 +40,7 @@ async function aishCollection(opts: { meta?: boolean } = {}) {
   await client.executeMultiple(`
     INSERT INTO works (id, title, category, streams) VALUES ('aish-shabbat', 'Aish.com: Shabbat', 'articles', '["kiruv"]');
     INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'aish-shabbat', 'Aish.com, Shabbat (English)', 'en', 0, 0);
-    INSERT INTO titles VALUES (1, 'Aish.com, Lighting Candles', NULL, 'aish-shabbat', '["Aish.com","Shabbat"]', 1, '["Paragraph"]'),
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Aish.com, Lighting Candles', NULL, 'aish-shabbat', '["Aish.com","Shabbat"]', 1, '["Paragraph"]'),
       (2, 'Aish.com, Lighting Candles (2)', NULL, 'aish-shabbat', '["Aish.com","Shabbat"]', 1, '["Paragraph"]');
     INSERT INTO versions VALUES (1, 'Aish.com', 'Permission (Aish.com, 2026-10-10)', 'https://aish.com/lighting/'),
       (2, 'Aish.com', 'Permission (Aish.com, 2026-10-10)', 'https://aish.com/lighting-2/');
@@ -101,7 +101,7 @@ test("a paragraph that has lost its article's details never reaches RabAI as a b
   const { db } = await aishCollection();
   // A title and paragraph left behind without their article (two posts once shared one address).
   await db.all(
-    "INSERT INTO titles VALUES (3, 'Aish.com, Left Behind', NULL, 'aish-shabbat', '[\"Aish.com\"]', 1, '[\"Paragraph\"]')",
+    "INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (3, 'Aish.com, Left Behind', NULL, 'aish-shabbat', '[\"Aish.com\"]', 1, '[\"Paragraph\"]')",
   );
   await db.all(
     "INSERT INTO passages VALUES (4, 'Aish.com, Left Behind 1', 3, 1, 1, 30004, 'A paragraph about candle lighting with no article')",
