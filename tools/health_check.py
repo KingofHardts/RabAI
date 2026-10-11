@@ -241,9 +241,10 @@ def setting_value(by_name: dict, name: str, project_id: str, scope: str) -> str 
 # 3. The settings, used as the app uses them
 
 
-def check_database(label: str, url: str | None, token: str | None, count: str | None = None) -> None:
+def check_database(label: str, url: str | None, token: str | None, count: str | None = None, full: bool = False) -> None:
     """Ask a database one small question with the app's own settings. `count` is an extra query
-    whose single answer (a name and a number, never a database's text) is reported."""
+    whose single answer (names and numbers, never a database's text) is reported, in full when
+    `full` is set."""
     if not url or not token:
         summary(f"- {label}: its settings couldn't be read here (they may be marked sensitive), so it wasn't tested.")
         return
@@ -260,7 +261,8 @@ def check_database(label: str, url: str | None, token: str | None, count: str | 
             if count and len(out["results"]) > 1 and out["results"][1].get("type") == "ok":
                 try:
                     cell = out["results"][1]["response"]["result"]["rows"][0][0]
-                    extra = f" ({plain(cell.get('value') if isinstance(cell, dict) else cell)})"
+                    answer = cell.get("value") if isinstance(cell, dict) else cell
+                    extra = f" ({answer if full else plain(answer)})"
                 except (KeyError, IndexError, TypeError):
                     extra = ""
             summary(f"- {label}: answers with the app's own settings{extra}.")
@@ -505,6 +507,7 @@ def main() -> int:
         # The printed-page layouts: how many amudim the app can show line for line.
         count="SELECT COUNT(*) || ' printed-page layouts, ' || COALESCE(SUM(json_extract(data, '$.placed_all')), 0)"
         " || ' shown as printed, ' || COALESCE(SUM(complete), 0) || ' with no word estimated' FROM daf_layout",
+        full=True,
     )
     if "TRANSLATIONS_DATABASE_URL" in by_name:
         check_database("The translation library (`TRANSLATIONS_*`)", value("TRANSLATIONS_DATABASE_URL"), value("TRANSLATIONS_AUTH_TOKEN"))
@@ -515,7 +518,19 @@ def main() -> int:
             f"Website collection {i} (`RABAI_COLLECTION_DB_URLS`)",
             url,
             value("RABAI_COLLECTION_DB_TOKEN") or value("TURSO_AUTH_TOKEN"),
-            count="SELECT (SELECT value FROM meta WHERE key = 'site') || ', ' || (SELECT COUNT(*) FROM articles) || ' articles'",
+            # Per section: how many articles, and how many are one paragraph or under 400 characters
+            # (a section of short teasers would show here). Only section names and numbers.
+            count=(
+                "SELECT (SELECT value FROM meta WHERE key = 'site') || ', ' || (SELECT COUNT(*) FROM articles)"
+                " || ' articles; by section: ' || (SELECT group_concat(line, '; ') FROM ("
+                "  SELECT w.title || ' ' || COUNT(*) || ' (' || SUM(x.n = 1) || ' one paragraph, '"
+                "    || SUM(x.chars < 400) || ' under 400 characters)' AS line"
+                "  FROM (SELECT e.work AS work, COUNT(p.id) AS n, SUM(length(p.text)) AS chars"
+                "        FROM articles a JOIN editions e ON e.id = a.edition_id"
+                "        JOIN passages p ON p.title_id = a.title_id GROUP BY a.title_id) x"
+                "  JOIN works w ON w.id = x.work GROUP BY w.title ORDER BY w.title))"
+            ),
+            full=True,
         )
     if "RABAI_COLLECTION_DB_URLS" in by_name and not collection_urls:
         summary("- The website collections: their setting couldn't be read here, so they weren't tested.")
