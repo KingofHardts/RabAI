@@ -143,3 +143,23 @@ test("the articles are listed by section, with counts, newest first", async () =
   // The library alone has no articles.
   assert.deepEqual(await (await mainLibrary()).articleShelves(), []);
 });
+
+test("articles are found by their titles first, then by their text", async () => {
+  const store = combineStores(await mainLibrary(), [await aishCollection()]);
+  // Every word must be in the title, in any letter case; newest first.
+  const byTitle = await store.articleSearch("LIGHTING candles", 10);
+  assert.deepEqual(byTitle.map((a) => a.name), ["Lighting Candles", "Lighting Candles (2)"]);
+  assert.equal(byTitle[0].shelf, "Shabbat");
+  // Words only the text holds find their article.
+  assert.deepEqual((await store.articleSearch("havdalah", 10)).map((a) => a.name), ["Lighting Candles (2)"]);
+  assert.deepEqual((await store.articleSearch("peace home", 10)).map((a) => a.firstRef), ["Aish.com, Lighting Candles 1"]);
+  // The site's own name, at the front of every title, doesn't count.
+  assert.deepEqual(await store.articleSearch("aish", 10), []);
+  // Search symbols and too-short words are harmless.
+  assert.deepEqual(await store.articleSearch('"candles" OR *', 10), []);
+  assert.deepEqual(await store.articleSearch("%", 10), []);
+  assert.deepEqual(await store.articleSearch("50%_off", 10), []);
+  assert.deepEqual((await store.articleSearch("candles", 1)).length, 1);
+  // The library alone has no articles to search.
+  assert.deepEqual(await (await mainLibrary()).articleSearch("light", 10), []);
+});

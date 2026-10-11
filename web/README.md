@@ -241,7 +241,8 @@ name ("Aish.com, Why We Light Candles 3") goes to that site's collection, and up
 are added after the texts for each question. In the reader, an article shows its author and a
 link to the original. The Learn tab has an "Articles" row (shown only when a collection is
 connected) that lists each section with its count, then its articles, newest first, fifty at a
-time (`/api/articles`).
+time, and searches them: articles whose title holds every word come first, then those whose text
+does (`/api/articles?work=` and `?q=`).
 
 To copy or update one: in GitHub, open Actions, then "Copy a website's sections (collections)",
 then Run workflow. Without "write" it is a trial into a throwaway file that prints only counts;

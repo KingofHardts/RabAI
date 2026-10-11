@@ -323,6 +323,40 @@ export interface TestingStore {
   articleShelves(): Promise<ArticleShelf[]>;
   /** One section's articles (by its canon work id), newest first. */
   articleList(work: string, offset: number, limit: number): Promise<ArticleListing[]>;
+  /** Articles whose title holds every word of the search, then those whose text does. */
+  articleSearch(text: string, limit: number): Promise<ArticleListing[]>;
+}
+
+/** The columns an article's place in a list needs (a collection's articles table). */
+const LISTING_SELECT = `SELECT t.id AS title_id, t.title, a.site, a.author, a.published, w.title AS shelf,
+  (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
+  FROM articles a JOIN titles t ON t.id = a.title_id JOIN editions e ON e.id = a.edition_id JOIN works w ON w.id = e.work`;
+
+function listings(rows: Record<string, unknown>[]): ArticleListing[] {
+  return rows
+    .filter((r) => r.first_ref)
+    .map((r) => {
+      const title = String(r.title);
+      const site = String(r.site);
+      const shelf = r.shelf ? String(r.shelf) : "";
+      return {
+        title,
+        name: title.startsWith(`${site}, `) ? title.slice(site.length + 2) : title,
+        ...(r.author ? { author: String(r.author) } : {}),
+        ...(r.published ? { published: String(r.published) } : {}),
+        ...(shelf ? { shelf: shelf.startsWith(`${site}: `) ? shelf.slice(site.length + 2) : shelf } : {}),
+        firstRef: String(r.first_ref),
+      };
+    });
+}
+
+/** A search's words, as the full-text index holds them: plain, lowercase, no query symbols. */
+export function searchWords(text: string): string[] {
+  return plainForSearch(text)
+    .replace(/["*^():{}+\-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 2)
+    .slice(0, 8);
 }
 
 /** A title's Sefaria category path, stored as JSON; empty when missing or unreadable. */
@@ -939,26 +973,51 @@ export function createTestingStore(db: Db): TestingStore {
     async articleList(work, offset, limit) {
       if (limit <= 0 || !(await hasArticles())) return [];
       const rows = await db.all(
-        `SELECT t.title, a.site, a.author, a.published,
-                (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
-         FROM articles a JOIN titles t ON t.id = a.title_id JOIN editions e ON e.id = a.edition_id
-         WHERE e.work = ?
+        `${LISTING_SELECT} WHERE e.work = ?
          ORDER BY a.published DESC, t.id DESC LIMIT ${Math.floor(limit)} OFFSET ${Math.max(0, Math.floor(offset))}`,
         [work],
       );
-      return rows
-        .filter((r) => r.first_ref)
-        .map((r) => {
-          const title = String(r.title);
-          const site = String(r.site);
-          return {
-            title,
-            name: title.startsWith(`${site}, `) ? title.slice(site.length + 2) : title,
-            ...(r.author ? { author: String(r.author) } : {}),
-            ...(r.published ? { published: String(r.published) } : {}),
-            firstRef: String(r.first_ref),
-          };
-        });
+      return listings(rows);
+    },
+
+    async articleSearch(text, limit) {
+      if (limit <= 0 || !(await hasArticles())) return [];
+      const words = searchWords(text);
+      if (!words.length) return [];
+      const lim = Math.floor(limit);
+      // First, articles whose title (after the site's name) holds every word, newest first.
+      const titled = await db.all(
+        `${LISTING_SELECT} WHERE ${words.map(() => "substr(t.title, length(a.site) + 3) LIKE ? ESCAPE '\\'").join(" AND ")}
+         ORDER BY a.published DESC, t.id DESC LIMIT ${lim}`,
+        words.map((w) => `%${w.replace(/[\\%_]/g, (c) => `\\${c}`)}%`),
+      );
+      const out = listings(titled);
+      if (out.length >= lim) return out;
+      // Then articles whose text holds every word, best match first.
+      let hits: Record<string, unknown>[] = [];
+      try {
+        hits = await db.all(`SELECT rowid AS id FROM passages_fts WHERE passages_fts MATCH ? ORDER BY rank LIMIT 300`, [
+          words.map((w) => `"${w}"`).join(" "),
+        ]);
+      } catch (err) {
+        console.warn("[rabai] searching the articles failed:", err instanceof Error ? err.message : err);
+      }
+      if (!hits.length) return out;
+      const ids = hits.map((r) => Number(r.id));
+      const owners = await db.all(`SELECT id, title_id FROM passages WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
+      const titleOf = new Map(owners.map((r) => [Number(r.id), Number(r.title_id)]));
+      const have = new Set(titled.map((r) => Number(r.title_id)));
+      const want: number[] = [];
+      for (const id of ids) {
+        const t = titleOf.get(id);
+        if (t !== undefined && !have.has(t) && !want.includes(t)) want.push(t);
+        if (out.length + want.length >= lim) break;
+      }
+      if (!want.length) return out;
+      const rows = await db.all(`${LISTING_SELECT} WHERE t.id IN (${want.map(() => "?").join(",")})`, want);
+      const rank = new Map(want.map((t, i) => [t, i]));
+      rows.sort((a, b) => (rank.get(Number(a.title_id)) ?? 0) - (rank.get(Number(b.title_id)) ?? 0));
+      return [...out, ...listings(rows)];
     },
 
     async books() {

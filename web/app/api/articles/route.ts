@@ -8,13 +8,25 @@ const PAGE = 50;
 
 /**
  * GET /api/articles?work=aish-ask-the-rabbi&offset=0 → one section of a website collection, newest
- * first, fifty at a time. The collections are private and never open on a public app.
+ * first, fifty at a time. GET /api/articles?q=shabbat+candles → articles found by their titles,
+ * then by their text. The collections are private and never open on a public app.
  */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+  const q = (params.get("q") ?? "").trim().slice(0, 200);
+  if (q) {
+    const store = loadLibrary().mode === "testing" ? testingStore() : null;
+    if (!store) return NextResponse.json({ error: "The articles aren't connected right now." }, { status: 503 });
+    try {
+      return NextResponse.json({ articles: await store.articleSearch(q, 40), more: false });
+    } catch (err) {
+      console.error("[rabai] searching articles failed:", err instanceof Error ? err.message : err);
+      return NextResponse.json({ error: "The articles couldn't be searched just now." }, { status: 502 });
+    }
+  }
   const work = (params.get("work") ?? "").slice(0, 120);
   const offset = Math.max(0, Math.min(1_000_000, Number(params.get("offset")) || 0));
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(work)) return NextResponse.json({ error: "Which section? Pass ?work=" }, { status: 400 });
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(work)) return NextResponse.json({ error: "Which section? Pass ?work= or ?q=" }, { status: 400 });
   const store = loadLibrary().mode === "testing" ? testingStore() : null;
   if (!store) return NextResponse.json({ error: "The articles aren't connected right now." }, { status: 503 });
   try {

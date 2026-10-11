@@ -119,5 +119,7 @@ export interface ArticleListing {
   author?: string;
   /** ISO date and time, when the site gives one. */
   published?: string;
+  /** Its section's name, without the site's ("Ask the Rabbi"). */
+  shelf?: string;
   firstRef: string;
 }

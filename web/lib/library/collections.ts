@@ -1,4 +1,4 @@
-import type { Passage } from "./types";
+import type { ArticleListing, Passage } from "./types";
 import type { Db, TestingStore } from "./testing";
 
 /*
@@ -136,6 +136,23 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
       const cols = await collections();
       const each = await Promise.all(cols.map((c) => c.store.articleList(work, offset, limit).catch(() => [])));
       return each.flat().slice(0, Math.max(0, limit));
+    },
+    async articleSearch(text, limit) {
+      const cols = await collections();
+      const each = await Promise.all(
+        cols.map((c) =>
+          c.store.articleSearch(text, limit).catch((err) => {
+            console.warn(`[rabai] searching ${c.site}'s articles failed:`, err instanceof Error ? err.message : err);
+            return [];
+          }),
+        ),
+      );
+      // Take from each collection in turn, so one site can't crowd out the others.
+      const out: ArticleListing[] = [];
+      for (let i = 0; out.length < limit && each.some((list) => i < list.length); i++) {
+        for (const list of each) if (i < list.length && out.length < limit) out.push(list[i]);
+      }
+      return out;
     },
   };
 }
