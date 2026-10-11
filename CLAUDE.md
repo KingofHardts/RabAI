@@ -223,14 +223,15 @@ Open items:
 - The testing library on Turso was rebuilt 2026-10-07 (run #4, commit `8aa2fd7`): 3,006,539
   passages, 5,445 books, 765 editions, 4,064 MB, with the debated books' cautions. Rebuild to add
   Torat Emet's texts (35 files, about 34 MB of Sefaria's JSON, by its permission), Milchamot
-  HaShem and Rabbi Yosef ibn Yahya. It has no printed-page layouts yet: the "Make the
-  printed-page layouts" workflow has never been run.
+  HaShem and Rabbi Yosef ibn Yahya. The "Make the printed-page layouts" workflow ran on
+  2026-10-11 for all of Shas: 5,206 amudim have a layout, 4,436 place every word (drawn as
+  printed), and 2,115 of those have no estimated word. Sefaria has no scans of Niddah, and
+  files Nazir's under "Nazit" (`SCAN_ALIASES` in `tools/daf_layout.py`).
 - **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages off,** so going
   past 9 GB blocks every write again. Storage counts every database used in the month, deleted
-  ones included: 8.1 GB were used by 2026-10-10, leaving under 1 GB until Turso's usage period
-  resets (its dashboard shows the date). A rebuild of the testing library adds about its size
-  (4.1 GB) to the period's count, so it waits for the reset, or for the maintainer to turn
-  overages on. Batch canon changes into one rebuild, and check a collection's estimated size
+  ones included: 8.38 GB (93%) were used by 2026-10-11, and the period ends 2026-11-01. A
+  rebuild of the testing library adds about its size (4.1 GB) to the period's count, so it waits
+  for the reset, or for the maintainer to turn overages on (about $0.75 per GB over). Batch canon changes into one rebuild, and check a collection's estimated size
   before writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
@@ -249,13 +250,17 @@ Open items:
   exists, `RABAI_AUTH_SECRET` is set in Vercel (never change it), and "Was this helpful?" is
   saved. Sign-in stays off online until the maintainer sets up Resend with a verified domain
   (`web/README.md`, "Accounts").
-- Translating inside a Claude Code session works end to end (40 Rashi comments imported on
-  2026-10-07). It uses the session's plan, not the API, but takes a lot of it (about 540,000
-  tokens for 728 Hebrew words), so it suits chosen books, not all of Shas.
+- Translating inside a Claude Code session works end to end (`docs/session-translation.md`).
+  Rashi and Tosafot on Berakhot 2a-13a (chapter 1, 604 comments) are translated and imported
+  (2026-10-07 and 2026-10-11). It uses the session's plan, not the API. In a session that also
+  has Senior Stylist's repo, every helper agent starts with about 400,000 tokens of Senior
+  Stylist's instructions, which is nearly all of its cost (about 500,000 tokens a helper), so
+  translate from a RabAI-only session, and reuse helpers instead of starting new ones.
 - Still missing because Sefaria lists no license on their files: 24 files, among them the Hebrew
   of the Ramban on Shemot (`python3 tools/library_plan.py` lists them). The maintainer reported on
   2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
-  what the build reads; its daily database backup shows a new label first.
+  what the build reads; its daily database backup shows a new label first. The backup of
+  2026-10-11 had no label changes yet.
 - Waiting on the maintainer's yes or no: an outside check that compares a claim against the
   library. Proposed design: automatic lookups only on trusted Orthodox sites; the open web
   only for a claim the person brings; outside content is never treated as a source.
@@ -263,7 +268,9 @@ Open items:
   the founding spec).
 - Aish.com and Chabad.org couldn't send exports, so their articles are copied from their
   websites, section by section through the canon (website collections, above), never a whole
-  site at once. Aish.com's ten sections are in the canon for the board; Chabad.org shows robots a
+  site at once. Aish.com's ten sections (in the canon for the board) were copied on 2026-10-11:
+  11,259 articles in 8 shelves (two sections hold only articles already in others), database
+  `rabai-collection-aish` (158 MB on Turso), and the app reads it. Chabad.org shows robots a
   Cloudflare check, so it waits until Chabad.org lets RabAIBot through
   (`docs/permissions-plan.md`). Keep the access code to a small circle while these permissions are
   private only.
