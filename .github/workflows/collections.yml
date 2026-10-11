@@ -1,0 +1,69 @@
+name: Copy a website's sections (collections)
+
+# Copies the website sections the canon lists for one written permission (canon/canon.yaml,
+# editions with `site:`) into that site's own collection database on Turso,
+# rabai-collection-<permission> (tools/collection_build.py). Run it by hand: Actions, "Copy a
+# website's sections (collections)", Run workflow. Without "write", it is a trial into a
+# throwaway file on the runner that prints only counts and sizes.
+#
+# Nothing is kept as an artifact, and nothing prints an article's text: this repository's logs
+# are public, and the permissions are for private use only. Every token made here is masked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      collection:
+        description: "Whose site (the permission in canon/permissions.yaml)"
+        type: choice
+        options: [aish]
+        default: aish
+      write:
+        description: "Write to Turso (otherwise a trial that prints counts only)"
+        type: boolean
+        default: false
+      limit:
+        description: "At most this many articles per section (0: all)"
+        type: number
+        default: 0
+      full:
+        description: "Read every article again, not only those changed since the last run"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collections
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Check the canon
+        run: python3 tools/validate.py
+      - name: Test the collection builder
+        run: python3 -m unittest tools.tests.test_collections
+      - name: Copy the sections
+        env:
+          COLLECTION: ${{ inputs.collection }}
+          WRITE: ${{ inputs.write }}
+          LIMIT: ${{ inputs.limit }}
+          FULL: ${{ inputs.full }}
+          TURSO_API_TOKEN: ${{ inputs.write && secrets.TURSO_API_TOKEN || '' }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          VERCEL_TOKEN: ${{ inputs.write && secrets.VERCEL_TOKEN || '' }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+        run: |
+          args=("$COLLECTION")
+          if [ "$WRITE" = "true" ]; then args+=(--turso); else args+=(--out "$RUNNER_TEMP/collection.db"); fi
+          if [ "$LIMIT" != "0" ]; then args+=(--limit "$LIMIT"); fi
+          if [ "$FULL" = "true" ]; then args+=(--full); fi
+          python3 tools/collection_build.py "${args[@]}"

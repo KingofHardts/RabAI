@@ -19573,3 +19573,245 @@ works:
           - version: "Warsaw, 1878-1882"
             license: "Public Domain"
             printed: 1882
+
+  # ---------------------------------------------------------------------------
+  # Articles from organizations' websites (maintainer's direction, 2026-10-10)
+  #
+  # Each work below is one section of a site, copied by tools/collection_build.py into that
+  # site's own collection database (rabai-collection-<permission>), by the site's written
+  # permission for private use only (canon/permissions.yaml). Only sections that teach Torah are
+  # listed: never the news, politics, humor, recipes or videos, which every section's `exclude`
+  # leaves out even when an article is also filed under a Torah section. An article filed in two
+  # sections goes to the first one listed here. Each article keeps its own author and address.
+  # All are proposals: the board decides which sections stay.
+  # ---------------------------------------------------------------------------
+
+  - id: aish-ask-the-rabbi
+    title: "Aish.com: Ask the Rabbi"
+    author: "Aish.com's rabbis"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Questions people sent to Aish.com, each with a rabbi's written answer, filed by topic (God and spirituality, holidays and Shabbat, mitzvot, lifecycle, the Bible, Jews and non-Jews). Left out: the Arab-Israeli conflict and Israel today (politics), and the video answers.
+    editions:
+      - name: "Aish.com, Ask the Rabbi (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [ask-the-rabbi]
+          exclude: [arab-israeli-conflict, israel-today, multimedia-atr, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-torah-portion
+    title: "Aish.com: The weekly Torah portion"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Aish.com's columns on the weekly parsha, for beginners, intermediate learners, and parents and children: among them Rabbi Frand, the Shem MiShmuel, What's Bothering Rashi?, Mayanot, M'oray Ha'Aish, The Guiding Light, Covenant and Conversation (Rabbi Jonathan Sacks) and Shabbat Shalom Weekly. For the board: who writes the column "Blogging the Bible" (550 articles) is to be confirmed. Left out: coloring pages and the video and audio columns.
+    editions:
+      - name: "Aish.com, The weekly Torah portion (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [torah-portion]
+          exclude: [coloring-pages, ariellas-inspiring-parsha-video, inspiring-audio-minute, parshaselfie, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-judaism-101
+    title: "Aish.com: Judaism 101"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Aish.com's introductions to the mitzvot, the lifecycle (birth, bar and bat mitzvah, weddings, mourning) and the Torah, written for people new to Jewish practice.
+    editions:
+      - name: "Aish.com, Judaism 101 (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [judaism101]
+          exclude: [current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-halacha-series
+    title: "Aish.com: The laws of blessings and of Shabbat"
+    author: "Aish.com"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Two series on practical halacha, marked advanced on Aish.com: the laws of blessings and the laws of Shabbat. Practical questions still go to a person's own rabbi.
+    editions:
+      - name: "Aish.com, Laws of Blessings and Laws of Shabbat (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [laws-of-blessings, laws-of-shabbat]
+          exclude: [current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-shabbat
+    title: "Aish.com: Shabbat"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Aish.com's guide to Shabbat: how to keep it, from Friday night to Havdalah, and essays on its meaning. Left out: its recipes and songs.
+    editions:
+      - name: "Aish.com, Shabbat (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [shabbat]
+          exclude: [shabbat-recipes, shabbat-songs, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-holidays
+    title: "Aish.com: The holidays"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Aish.com's guides to the holidays and fast days: how to keep them and essays on their meaning, from Elul through Tisha B'Av. Left out: recipes, crafts and games, the videos, and Israel's national days (Yom HaAtzmaut, Yom HaZikaron, Yom Yerushalayim), whose observance differs between Orthodox communities; the board may add them.
+    editions:
+      - name: "Aish.com, The holidays (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [holidays]
+          exclude: [israel-independence-day, israel-memorial-day, jerusalem-day, cookbook-ha, cookbook-passover, recipes-party-time, recipes-shavuot, cookbook-hh, recipes-rh, arts-crafts, games, family-activities-high-holidays, multimedia-ha, multimedia-pas, multimedia-pur, multimedia-suk, multimedia-9av, tu-bshvat-multi-media, video-shavuot, videos-ebooks, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-jewish-thought
+    title: "Aish.com: Jewish thought"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Rabbi Noah Weinberg's 48 Ways to Wisdom and his other teachings, Aish.com's philosophy section (the big questions), prayer and Kabbalah, and spiritual practices.
+    editions:
+      - name: "Aish.com, Jewish thought (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [48-ways, rabbi-noah, philosophy, prayer-and-kabbalah, spiritual-practices]
+          exclude: [multimedia-rn, current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-personal-growth
+    title: "Aish.com: Personal growth and relationships"
+    author: "Many writers (Aish.com)"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Articles on personal growth, dating, marriage and raising children, many by rabbis and teachers and some by other writers. For the board: these are the least formal of Aish.com's sections; keep, narrow or drop them.
+    editions:
+      - name: "Aish.com, Personal growth and relationships (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [personal-growth, relationships]
+          exclude: [current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-crash-course-history
+    title: "Aish.com: Crash Course in Jewish History"
+    author: "Rabbi Ken Spiro"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Rabbi Ken Spiro's Crash Course in Jewish History, from Avraham to the present, as Aish.com publishes it.
+    editions:
+      - name: "Aish.com, Crash Course in Jewish History (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [crash-course]
+          exclude: [current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]
+
+  - id: aish-learn-hebrew
+    title: "Aish.com: Learn Hebrew"
+    author: "Aish.com"
+    era: contemporary
+    category: articles
+    kind: article
+    streams: [kiruv]
+    status: proposed
+    notes: >-
+      Aish.com's series for learning to read Hebrew.
+    editions:
+      - name: "Aish.com, Learn Hebrew (English)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        site:
+          permission: aish
+          home: https://aish.com/
+          from: wordpress
+          include: [learn-hebrew-series]
+          exclude: [current, war-in-israel, antisemitism, aish-haam-wzo-elections, jewish-good-news, jewlarious, jewlish, video, podcasts]

@@ -7,6 +7,7 @@ category:
   halacha: Codes, commentaries on the codes, and responsa
   hashkafah_mussar: Jewish thought, mussar, and Chassidus
   kabbalah: Kabbalah (Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built on them)
+  articles: Articles and rabbis' written answers for today's readers, from an organization's website
 
 kind:
   text: A primary text (Tanakh, Mishnah, Talmud, Midrash)
@@ -21,6 +22,7 @@ kind:
   liturgy: Siddur and machzor
   history: History of the mesorah
   reference: Guides to method, dictionaries, and reference works
+  article: An article or a rabbi's written answer, published on an organization's website
 
 era:
   mikra: Tanakh

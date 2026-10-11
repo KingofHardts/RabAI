@@ -46,7 +46,8 @@ def testing_editions():
     barred = V.check_excluded(V.load("canon/excluded.yaml"), canon_ids)
     if V.errors:
         raise SystemExit("validate.py reports problems; fix them first:\n  " + "\n  ".join(V.errors))
-    return V.testing(canon_ids, barred), barred
+    # Website sections are copied into their own collection databases (tools/collection_build.py).
+    return [e for e in V.testing(canon_ids, barred) if not e.get("site")], barred
 
 
 def main() -> int:
