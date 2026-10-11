@@ -419,6 +419,13 @@ def probe_feeds(name: str, site: dict, home_status: int, home_headers: dict, hom
                 if status == 200:
                     bodies.append(body.decode("utf-8", "replace"))
         print(f"  scripts read for addresses: {len(bodies) - 1}")
+        # The app's own pages, as its scripts name them ("/lectures/", "/speakers/[slug]"): counts only.
+        routes = Counter()
+        for b in bodies[1:]:
+            for r in ROUTE_RE.findall(b):
+                if not NOT_AN_INTERFACE.search(r) and not r.startswith(("/_next", "/static")):
+                    routes[re.sub(r"/[0-9]+(?=/|$)", "/<n>", r.rstrip("/") or "/")] += 1
+        print(f"  the app's own page addresses named in its scripts (most common 40): {dict(routes.most_common(40))}")
         for b in bodies:
             for full, rel in API_RE.findall(b):
                 a = full or rel
@@ -452,8 +459,10 @@ DATA_PAGES = {
         "https://www.torahanytime.com/lectures/300000",
         "https://www.torahanytime.com/",
         "https://www.torahanytime.com/speakers",
+        "https://www.torahanytime.com/search?q=kiddushin",
     ],
 }
+ROUTE_RE = re.compile(r"""["'`](/[a-z][a-z0-9-]*(?:/(?:[a-z0-9-]+|\[[a-zA-Z.]+\]|\$\{[^}]{1,30}\}))*/?)["'`?]""")
 KEY_RE = re.compile(r'\\?"([A-Za-z_][A-Za-z0-9_]{1,40})\\?":')
 PATH_RE = re.compile(r'(?:href=|\\?"href\\?":|\\?"url\\?":|\\?")\\?"?(/[a-z][a-z0-9-]*(?:/[A-Za-z0-9_.-]+)?)')
 MEDIA_RE = re.compile(r"https?://([A-Za-z0-9.-]+)/[^\s\"'<>\\]*\.(mp3|mp4|m4a|m3u8|webm|ogg)", re.I)
@@ -473,6 +482,8 @@ def page_data(url: str, rp) -> None:
     print(f"    field names in the page's data (most common 60): {[k for k, _ in keys.most_common(60)]}")
     paths = Counter("/".join(p.split("/")[:2]) + ("/<id>" if p.count("/") > 1 and p.split("/")[2].isdigit() else ("/<name>" if p.count("/") > 1 else "")) for p in PATH_RE.findall(text))
     print(f"    kinds of links: {dict(paths.most_common(25))}")
+    records = {k: keys.get(k, 0) for k in ("lecture_title", "title", "speaker_name_last", "date_created", "desc", "transcript", "subcategories")}
+    print(f"    how often a few lecture fields appear (counts only): {records}")
     media = Counter(f"{h} (.{ext})" for h, ext in MEDIA_RE.findall(text))
     print(f"    media hosts: {dict(media.most_common(8))}")
 FEED_GUESSES = {
