@@ -224,25 +224,25 @@ Moving RabAI off Senior Stylist:
   Sessions call the Vercel API with `curl` and never see the token.
 
 Open items:
-- The testing library on Turso was rebuilt 2026-10-07 (run #4, commit `8aa2fd7`): 3,006,539
-  passages, 5,445 books, 765 editions, 4,064 MB, with the debated books' cautions. Rebuild to add
-  Torat Emet's texts (35 files, about 34 MB of Sefaria's JSON, by its permission), Milchamot
-  HaShem and Rabbi Yosef ibn Yahya. The "Make the printed-page layouts" workflow ran on
-  2026-10-11 for all of Shas: 5,206 amudim have a layout, 4,436 place every word (drawn as
-  printed), and 2,115 of those have no estimated word. Sefaria has no scans of Niddah, and
-  files Nazir's under "Nazit" (`SCAN_ALIASES` in `tools/daf_layout.py`).
-- **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages off,** so going
-  past 9 GB blocks every write again. Storage counts every database used in the month, deleted
-  ones included: 8.38 GB (93%) were used by 2026-10-11, and the period ends 2026-11-01. A
-  rebuild of the testing library adds about its size (4.1 GB) to the period's count, so it waits
-  for the reset, or for the maintainer to turn overages on (about $0.75 per GB over). Batch canon changes into one rebuild, and check a collection's estimated size
-  before writing it.
+- The testing library on Turso was rebuilt 2026-10-11 with overages on: 3,031,757 passages,
+  5,470 books, 768 editions, 4,212 MB, with the editions that were waiting for it (Torat Emet's
+  texts, Milchamot HaShem and Rabbi Yosef ibn Yahya). The "Is RabAI working?" check passed
+  everything afterwards (library, articles, Gemara page, words, translations, answers, on a phone
+  and a computer). The "Make the printed-page layouts" workflow ran on 2026-10-11 for all of
+  Shas: 5,206 amudim have a layout, 4,436 place every word (drawn as printed), and 2,115 of those
+  have no estimated word. Sefaria has no scans of Niddah, and files Nazir's under "Nazit"
+  (`SCAN_ALIASES` in `tools/daf_layout.py`).
+- **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages on since
+  2026-10-11** (about $0.75 per GB over 9 GB in a month), so going past 9 GB costs money but no
+  longer blocks writes. Storage counts every database used in the month, deleted ones included;
+  the period runs to 2026-11-01. Batch canon changes into one rebuild, and check a collection's
+  estimated size before writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
 - Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
   2026-10-10; `canon/permissions.yaml`): complete access, for private use only, not public for
   now (`public: false`). Their emails' own words aren't on file yet. Torat Emet's vocalized Zohar
-  (Zohar Menukad) enters the library at the next rebuild. Its Hebrew translation of the Zohar stays out (translator unknown), as does the Sulam's
+  (Zohar Menukad) entered the library with the 2026-10-11 rebuild. Its Hebrew translation of the Zohar stays out (translator unknown), as does the Sulam's
   Aramaic (rights holder unknown).
 - Milchamot HaShem (Rabbi Yichya Qafih) is in the canon as a debated book whose claims Orthodox
   authorities rejected (maintainer's direction, 2026-10-10). The board should confirm the
@@ -256,10 +256,15 @@ Open items:
   (`web/README.md`, "Accounts").
 - Translating inside a Claude Code session works end to end (`docs/session-translation.md`).
   Rashi and Tosafot on Berakhot 2a-13a (chapter 1, 604 comments) are translated and imported
-  (2026-10-07 and 2026-10-11). It uses the session's plan, not the API. In a session that also
-  has Senior Stylist's repo, every helper agent starts with about 400,000 tokens of Senior
-  Stylist's instructions, which is nearly all of its cost (about 500,000 tokens a helper), so
-  translate from a RabAI-only session, and reuse helpers instead of starting new ones.
+  (2026-10-07 and 2026-10-11). Kiddushin, the tractate the maintainer is learning, is under way:
+  2a-4b (221 passages) were imported on 2026-10-11: Rashi and Tosafot with a general
+  translation and word by word, and the Gemara lines word by word only, since they have
+  Steinsaltz's English. `send --words` makes word-by-word lists even for lines that have the
+  library's English, `--pages 5a-5b` picks amudim, and anything already in the shared library is
+  skipped. It uses the session's plan, not the API. In a session that also has Senior Stylist's
+  repo, every helper agent starts with about 400,000 tokens of Senior Stylist's instructions,
+  which is nearly all of its cost (about 500,000 tokens a helper), so translate from a RabAI-only
+  session, and reuse helpers instead of starting new ones.
 - Still missing because Sefaria lists no license on their files: 24 files, among them the Hebrew
   of the Ramban on Shemot (`python3 tools/library_plan.py` lists them). The maintainer reported on
   2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
@@ -277,9 +282,21 @@ Open items:
   `rabai-collection-aish` (163 MB on Turso), and the app reads it. Ask the Rabbi's interface
   gives only each reader's question, so its answers are read from each article's own page
   (`site.page`; 1,055 of 1,056 re-copied that way on 2026-10-11). Chabad.org shows robots a
-  Cloudflare check, so it waits until Chabad.org lets RabAIBot through
-  (`docs/permissions-plan.md`). Keep the access code to a small circle while these permissions are
+  Cloudflare check on every page, sitemap and feed (only its magazine RSS feed answers, with
+  recent items and no full text), so it waits until Chabad.org lets RabAIBot through
+  (`docs/outreach/chabad-org-access.md` has the exact rule to ask for). Chabad.org said on
+  2026-10-11 that it can't change the check; never get around it, and ask whoever runs its
+  Cloudflare settings instead. Keep the access code to a small circle while these permissions are
   private only.
+- Under an answer, the app shows the articles it used under their own heading, apart from the
+  texts, and RabAI is told that only the texts confirm a point (core premise drafted 2026-10-11,
+  for the board).
+- TorahAnytime gave permission (reported 2026-10-11; `canon/permissions.yaml`, private use). Its
+  site has no sitemap, feed or search a robot can use; speaker pages (`/speakers/<id>`) list
+  about 30 shiurim in the page's own data, while topic, category and series pages load their
+  lists in the browser (`tools/site_map.py`, "Map a source's website"). Nothing is copied yet:
+  the plan is a "Shiurim on this daf" list (title, speaker, date, a link that plays on
+  TorahAnytime), best from a data feed TorahAnytime could send.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
