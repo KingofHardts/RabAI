@@ -37,6 +37,11 @@ export const LOOKUP_LIMITS = {
   documents: 24,
   /** Dictionary entries for the words of passages that have no English. */
   dictionary: 8,
+  /**
+   * Articles from the website collections (Aish.com and the like), added after the texts
+   * themselves so they never take a primary source's place.
+   */
+  articles: 4,
 };
 
 export function lookupModel(env: Record<string, string | undefined> = process.env): string {
@@ -163,9 +168,13 @@ export async function retrieveFromTesting(
   const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
 
-  const [opened, searched] = await Promise.all([
+  const [opened, searched, articles] = await Promise.all([
     store.lookup(refs, LOOKUP_LIMITS.perRef),
     store.search(phrases, LOOKUP_LIMITS.searched),
+    store.articles(phrases, LOOKUP_LIMITS.articles).catch((err) => {
+      console.warn("[rabai] article search failed:", err instanceof Error ? err.message : err);
+      return [] as Passage[];
+    }),
   ]);
   // Follow cross-references from the places opened: the commentaries on a verse, the Mishnah
   // behind a Gemara, the Gemara behind a halacha. Every line asked for by name is followed; a
@@ -198,5 +207,7 @@ export async function retrieveFromTesting(
       console.warn("[rabai] dictionary lookup failed:", err instanceof Error ? err.message : err);
     }
   }
+  // Contemporary articles last: they explain and point to the texts, and never replace them.
+  add(articles, out.size + LOOKUP_LIMITS.articles);
   return { plan, documents: [...out.values()] };
 }

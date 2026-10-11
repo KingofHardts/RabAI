@@ -191,6 +191,21 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   (`canon/permissions.yaml`). Their content still comes in edition by edition, each listed in
   the canon for the board, not as whole sites.
 
+  Website collections (Josh, 2026-10-10: Aish.com and Chabad.org couldn't send an export, so
+  their articles are copied from their websites). Each section of a site that RabAI uses is an
+  edition in the canon (`site:` in `canon/canon.yaml`, category `articles`), never the whole
+  site: for Aish.com, ten sections chosen for Torah learning, leaving out news, politics,
+  entertainment, recipes and video. `tools/collection_build.py` copies them through the site's
+  own interface, one request at a time with a pause, within its robots.txt and under an honest
+  name (RabAIBot); it never gets around a site's protections. Each site's articles go into their
+  own private database (`rabai-collection-<permission>`), read by the locked app beside the
+  testing library and labeled the same way. Each article keeps its address, author and dates, and
+  the app shows who wrote it with a link to the original. RabAI uses an article as a teacher's
+  explanation that points to the texts, never as a primary source and never as a ruling (the
+  core premises' "Articles by today's teachers", for the board). A collection is never public,
+  never committed and never kept as a build artifact, and the app never opens one once it is
+  public.
+
   The printed page, line for line (Josh asked, 2026-10-07): so that a word found on a line of a
   printed Gemara is in the same place on RabAI's page, `tools/daf_layout.py` reads Sefaria's
   scans of the Romm Vilna printing (1880-86, public domain) and records where each printed line

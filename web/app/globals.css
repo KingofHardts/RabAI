@@ -281,6 +281,7 @@ p.muted { margin: 0; }
 .rb-btn[aria-expanded="true"] { background: var(--tint); }
 .reader-label { margin: 0; font-size: 12.5px; color: var(--muted); padding: 0 6px; }
 .reader-label .link { font-size: 12.5px; min-height: 0; padding: 0; }
+.article-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .tag-gray { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-inline-end: 4px; }
 .rb-menu { position: absolute; top: 52px; inset-inline: 10px; z-index: 6; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); font-size: 14px; }
 .rb-menu p { margin: 0 0 6px; }

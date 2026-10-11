@@ -3214,7 +3214,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   onClick={openContents}
                 >
                   <span className="rb-t">{reader?.section ?? readerRef}</span>
-                  {reader && (
+                  {reader && reader.sectionHe && reader.sectionHe !== reader.section && (
                     <span className="he" lang="he">
                       {reader.sectionHe}
                     </span>
@@ -3260,6 +3260,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   Aa
                 </button>
               </div>
+              {reader?.work.article && (
+                <p className="reader-label article-credit">
+                  {reader.work.article.author ? `By ${reader.work.article.author} · ` : ""}
+                  {reader.work.article.site}
+                  {/^\d{4}/.test(reader.work.article.published ?? "") ? `, ${reader.work.article.published!.slice(0, 4)}` : ""}
+                  {" · "}
+                  <a href={reader.work.article.url} target="_blank" rel="noopener noreferrer">
+                    Read it on {reader.work.article.site}
+                  </a>
+                </p>
+              )}
               {reader && (
                 <p className="reader-label">
                   {reader.libraryMode === "testing" ? (
@@ -3288,9 +3299,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <p>
                     {reader.libraryMode === "testing" ? TESTING_LABEL : reader.libraryMode === "development" ? DEV_NOTE : null}
                   </p>
-                  <p>
-                    {reader.work.edition ? `Hebrew: ${reader.work.edition}. ` : ""}English: {reader.work.translation.by}.
-                  </p>
+                  {reader.work.article ? (
+                    <p>
+                      An article from {reader.work.article.site}&rsquo;s website, used by its written permission for private study only.
+                      {reader.work.article.section ? ` Its section there: ${reader.work.article.section}.` : ""}
+                    </p>
+                  ) : (
+                    <p>
+                      {reader.work.edition ? `Hebrew: ${reader.work.edition}. ` : ""}English: {reader.work.translation.by}.
+                    </p>
+                  )}
                 </div>
               )}
               {reader && readerMenu === "aa" && (

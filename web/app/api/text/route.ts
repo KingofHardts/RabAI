@@ -76,10 +76,12 @@ async function testingSection(ref: string, lib: Library) {
     title: s.book,
     he: s.bookHe ?? s.book,
     canonId: s.canonId,
-    kind: / on /.test(s.book) ? "commentary" : "text",
+    // An article's own title may say "on" ("Shabbat on the Road"); only a library book is a commentary by name.
+    kind: !s.article && / on /.test(s.book) ? "commentary" : "text",
     edition: s.heEdition ?? s.enEdition ?? "",
     translation: { by: s.enEdition ?? "No English translation in the library yet", status: "testing" },
     library: "testing",
+    ...(s.article ? { article: s.article, ...(s.article.author ? { author: s.article.author } : {}) } : {}),
   };
   const all: Passage[] = [...found.lines, ...[...found.commentaries.values()].flat()];
   const { tokens, study } = studyPassages({ ...lib, passages: all }, all);

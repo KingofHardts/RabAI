@@ -30,7 +30,8 @@ class ParagraphsTest(unittest.TestCase):
         self.assertTrue(all(p.endswith(".") for p in parts[:-1]))
 
     def test_titles_never_carry_a_colon(self):
-        self.assertEqual(L.clean_title("PODCAST: Why <b>Jews</b>&#8217; Success"), "PODCAST – Why Jews’ Success")
+        self.assertEqual(L.clean_title("PODCAST: Why <b>Jews</b>&#8217; Success"), "PODCAST - Why Jews' Success")
+        self.assertEqual(L.clean_title("Chanukah \u2013 Lights\u2014and Bar\u2011Mitzvah \u201cJoy\u201d"), 'Chanukah - Lights-and Bar-Mitzvah "Joy"')
         self.assertEqual(L.site_label("https://www.chabad.org/"), "Chabad.org")
         self.assertEqual(L.site_label("https://aish.com/"), "Aish.com")
 
@@ -140,11 +141,11 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(counts[1]["new"], 1)
         self.assertNotIn(12, [i for ids in site.fetched for i in ids])  # an excluded section's post is never fetched
         refs = [r[0] for r in sink.query("SELECT ref FROM passages ORDER BY seq")]
-        self.assertEqual(refs, ["Example.org, Lighting – Why? 1", "Example.org, Lighting – Why? 2", "Example.org, Lighting – Why? 3",
+        self.assertEqual(refs, ["Example.org, Lighting - Why? 1", "Example.org, Lighting - Why? 2", "Example.org, Lighting - Why? 3",
                                 "Example.org, Chanukah Guide 1"])
-        self.assertEqual(sink.query("SELECT text FROM passages WHERE ref = ?", ["Example.org, Lighting – Why? 3"])[0][0], "Note 1: Shabbat 23b")
+        self.assertEqual(sink.query("SELECT text FROM passages WHERE ref = ?", ["Example.org, Lighting - Why? 3"])[0][0], "Note 1: Shabbat 23b")
         row = sink.query("SELECT url, author, section, site FROM articles a JOIN titles t ON t.id = a.title_id WHERE t.title = ?",
-                         ["Example.org, Lighting – Why?"])[0]
+                         ["Example.org, Lighting - Why?"])[0]
         self.assertEqual(row, ["https://example.org/10/", "Rabbi A. Writer", "Ask The Rabbi > Shabbat", "Example.org"])
         self.assertEqual(len(sink.query("SELECT rowid FROM passages_fts WHERE passages_fts MATCH ?", ['"sunset"'])), 1)
         self.assertFalse(sink.query("SELECT 1 FROM passages WHERE text LIKE '%Politics%'"))

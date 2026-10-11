@@ -58,6 +58,17 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Dictionaries (Jastrow, Sefer HaShorashim) come from Sefaria's database backup
   (`lexicon_entries` in `tools/sefaria_lib.py`, needs `pymongo`). A dictionary marked
   `word_tool_only` (Jastrow) is used only for what words mean, and every entry says so.
+- Website collections (`web/lib/library/collections.ts`, databases `rabai-collection-<permission>`)
+  hold articles copied from a site that gave written permission, section by section as the canon
+  lists them (`site:` editions, category `articles`), by `tools/collection_build.py` and the
+  "Copy a website's sections (collections)" workflow. The copier reads only through the site's
+  own interface, one request at a time with a pause, within robots.txt, as RabAIBot; never get
+  around a site's protections (a Cloudflare check means asking the site to let RabAIBot through).
+  Nothing it copies is printed in a log, committed, or kept as an artifact. Every reference in a
+  collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that
+  database. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
+  is a teacher's explanation, not a primary source and never a ruling (`articleContext`). Keep
+  `collectionClients` refusing a public app, like `testingClient`.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
   that shows sources around it. A live (streamed) answer shows only text; citation buttons
@@ -169,6 +180,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   settings (names only), and the live app, by request and in a real browser on a phone and a
   computer (`tools/health_check.py`, `tools/health_browser.cjs`). It prints no secrets and no
   answer text. This session can't reach the live app; run the workflow instead.
+- **Website collections:** the "Copy a website's sections (collections)" workflow
+  (`.github/workflows/collections.yml`, run by hand) copies a site's canon sections into its own
+  Turso database. Without "write" it is a trial that prints counts (and, with a limit, the whole
+  collection's estimated size); check that estimate against Turso's storage before writing.
 - **Checking a deploy:** Vercel reports each deploy on its commit
   (`https://api.github.com/repos/KingofHardts/RabAI/commits/<sha>/status`, context `Vercel`).
   Build and runtime logs need access to the maintainer's personal Vercel account; the
@@ -186,7 +201,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-10)
+## Where things stand (2026-10-11)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -209,11 +224,13 @@ Open items:
   Torat Emet's texts (35 files, about 34 MB of Sefaria's JSON, by its permission), Milchamot
   HaShem and Rabbi Yosef ibn Yahya. It has no printed-page layouts yet: the "Make the
   printed-page layouts" workflow has never been run.
-- **Turso is over its free plan (2026-10-10), so its writes are blocked.** Storage counts every
-  database used in the month, deleted ones included: 8.1 GB of 5 GB. Until the maintainer moves
-  to the Developer plan (or the month resets), new translations aren't kept, the people database
-  can't be made, and a rebuild would fail. Each rebuild adds about the library's size to the
-  month's count, so batch canon changes into one rebuild.
+- **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages off,** so going
+  past 9 GB blocks every write again. Storage counts every database used in the month, deleted
+  ones included: 8.1 GB were used by 2026-10-10, leaving under 1 GB until Turso's usage period
+  resets (its dashboard shows the date). A rebuild of the testing library adds about its size
+  (4.1 GB) to the period's count, so it waits for the reset, or for the maintainer to turn
+  overages on. Batch canon changes into one rebuild, and check a collection's estimated size
+  before writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
 - Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
@@ -241,8 +258,12 @@ Open items:
   only for a claim the person brings; outside content is never treated as a source.
 - For the board: the core premises, including "Talking about anything" (open question 14 in
   the founding spec).
-- Aish.com and Chabad.org content comes in edition by edition through the canon, never a whole
-  site at once. Keep the access code to a small circle while these permissions are private only.
+- Aish.com and Chabad.org couldn't send exports, so their articles are copied from their
+  websites, section by section through the canon (website collections, above), never a whole
+  site at once. Aish.com's ten sections are in the canon for the board; Chabad.org shows robots a
+  Cloudflare check, so it waits until Chabad.org lets RabAIBot through
+  (`docs/permissions-plan.md`). Keep the access code to a small circle while these permissions are
+  private only.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.

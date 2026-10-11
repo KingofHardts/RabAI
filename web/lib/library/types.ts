@@ -25,6 +25,8 @@ export interface Work {
   library: "development" | "approved" | "testing";
   /** Other names people use for this work, to help search. */
   aliases?: string[];
+  /** An article from a website collection: who wrote it, and where the original is. */
+  article?: ArticleSource;
 }
 
 export interface Passage {
@@ -80,4 +82,21 @@ export interface PassageSource {
    * or rejected_views (Orthodox authorities rejected its main claims; it is kept so they can be explained).
    */
   cautionKinds?: string[];
+  /**
+   * An article from an organization's website (a website collection, tools/collection_build.py),
+   * copied by the site's written permission for private use only: where it is, and who wrote it.
+   */
+  article?: ArticleSource;
+}
+
+export interface ArticleSource {
+  /** The site's name as shown, e.g. "Aish.com". */
+  site: string;
+  /** The article's address on the site. */
+  url: string;
+  author?: string;
+  /** ISO date and time, when the site gives one. */
+  published?: string;
+  /** The site's own section path, e.g. "Ask The Rabbi > Holidays & Shabbat". */
+  section?: string;
 }

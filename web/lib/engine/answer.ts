@@ -199,6 +199,7 @@ export function documentText(passage: Passage): string {
 
 export function testingContext(passage: Passage): string {
   const s = passage.source!;
+  if (s.article) return articleContext(s);
   // A debated work whose main claims Orthodox authorities rejected (caution kind rejected_views).
   const rejected = s.standing === "debated" && Boolean(s.caution) && (s.cautionKinds ?? []).includes("rejected_views");
   const parts = [
@@ -220,6 +221,26 @@ export function testingContext(passage: Passage): string {
       : s.standing === "debated" && s.caution
         ? `Caution, a debated source: ${s.caution} Tell the person this caution when you use it, and never rest a halachic answer on it alone.`
         : "",
+  ];
+  return parts.filter(Boolean).join(" ");
+}
+
+/**
+ * An article from a website collection (Aish.com and the like): a teacher's explanation for
+ * today's readers, copied by the site's written permission for private study. It explains and
+ * points to the texts; it doesn't replace them.
+ */
+export function articleContext(s: NonNullable<Passage["source"]>): string {
+  const a = s.article!;
+  const name = s.book.startsWith(`${a.site}, `) ? s.book.slice(a.site.length + 2) : s.book;
+  const year = /^\d{4}/.test(a.published ?? "") ? a.published!.slice(0, 4) : "";
+  const parts = [
+    `Article: "${name}" on ${a.site}${a.author ? `, by ${a.author}` : ""}${year ? ` (${year})` : ""}.`,
+    `From the private testing library: an article from ${a.site}'s website, used by the site's written permission for private study, not yet reviewed by the rabbinic board.`,
+    "It is a teacher's explanation for today's readers, not a primary source. Use it to explain and to find where things are discussed; when it quotes or cites a text, rest your answer on that text if you were given it. Say who wrote it when you use it, and never present its opinion as settled halacha.",
+    s.standing === "debated" && s.caution
+      ? `Caution: ${s.caution} Tell the person this caution when you use it.`
+      : "",
   ];
   return parts.filter(Boolean).join(" ");
 }

@@ -1,7 +1,8 @@
 import { abbreviationOf } from "./word-parts";
 import { createClient as createHttpClient } from "@libsql/client/http";
 import type { Client, InValue } from "@libsql/client";
-import { TESTING_LABEL, testingDbUrl } from "./testing-config";
+import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config";
+import { combineStores } from "./collections";
 import type { Passage, PassageSource } from "./types";
 
 export { TESTING_LABEL, testingDbUrl };
@@ -26,25 +27,42 @@ export const TESTING_LIMITS = {
 // ---------------------------------------------------------------------------
 // Connection
 
-let cached: { url: string; client: Promise<Client> } | null = null;
+const clients = new Map<string, Promise<Client>>();
 
 /**
- * The database client. A hosted database (Turso) is reached over plain HTTPS, which suits
+ * A database client. A hosted database (Turso) is reached over plain HTTPS, which suits
  * serverless functions and needs no native code. A local file (a developer's own build of the
  * library) loads the full client only when it is used.
  */
+function clientFor(url: string, authToken: string | undefined): Promise<Client> {
+  const key = `${url}\n${authToken ?? ""}`;
+  let client = clients.get(key);
+  if (!client) {
+    const remote = /^(libsql|https?):\/\//.test(url);
+    client = remote
+      ? Promise.resolve(createHttpClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }))
+      : import("@libsql/client").then((m) => m.createClient({ url, authToken }));
+    clients.set(key, client);
+  }
+  return client;
+}
+
+/** The testing library's database client, or null when it isn't configured or the app is public. */
 export function testingClient(env: Record<string, string | undefined> = process.env): Promise<Client> | null {
   const url = testingDbUrl(env);
   // Never open the testing library on a public app (see libraryMode in ./index).
   if (!url || env.RABAI_PUBLIC === "true") return null;
-  if (cached?.url === url) return cached.client;
-  const authToken = env.RABAI_LIBRARY_DB_TOKEN || env.TURSO_AUTH_TOKEN || undefined;
-  const remote = /^(libsql|https?):\/\//.test(url);
-  const client = remote
-    ? Promise.resolve(createHttpClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }))
-    : import("@libsql/client").then((m) => m.createClient({ url, authToken }));
-  cached = { url, client };
-  return client;
+  return clientFor(url, env.RABAI_LIBRARY_DB_TOKEN || env.TURSO_AUTH_TOKEN || undefined);
+}
+
+/**
+ * The website collections' database clients (RABAI_COLLECTION_DB_URLS). Like the testing
+ * library, they are never opened on a public app: their sites allowed private use only.
+ */
+export function collectionClients(env: Record<string, string | undefined> = process.env): Array<Promise<Client>> {
+  if (env.RABAI_PUBLIC === "true" || !testingDbUrl(env)) return [];
+  const token = env.RABAI_COLLECTION_DB_TOKEN || env.RABAI_LIBRARY_DB_TOKEN || env.TURSO_AUTH_TOKEN || undefined;
+  return collectionDbUrls(env).map((url) => clientFor(url, token));
 }
 
 /** The few queries the store makes, so tests can run against a small local database. */
@@ -85,25 +103,35 @@ interface Row {
   standing: "established" | "debated";
   caution: string | null;
   caution_kinds: string[];
+  /** An article from a website collection: where it is and who wrote it. */
+  article_url: string | null;
+  article_site: string | null;
+  article_author: string | null;
+  article_published: string | null;
+  article_section: string | null;
 }
 
 /**
  * The columns for each passage row. A library built before works carried their standing has no
  * standing columns; it reads as established until it is rebuilt.
  */
-function rowSelect(hasStanding: boolean): string {
+function rowSelect(hasStanding: boolean, hasArticles = false): string {
   const standing = hasStanding
     ? "w.standing, w.caution, w.caution_kinds"
     : "'established' AS standing, NULL AS caution, NULL AS caution_kinds";
+  // A website collection (tools/collection_schema.sql) keeps each article's address and author.
+  const article = hasArticles
+    ? "a.url AS article_url, a.site AS article_site, a.author AS article_author, a.published AS article_published, a.section AS article_section"
+    : "NULL AS article_url, NULL AS article_site, NULL AS article_author, NULL AS article_published, NULL AS article_section";
   return `
   SELECT p.id, p.ref, p.text, p.seq, t.title, t.he_title, t.work, w.title AS work_title, w.category,
-         ${standing},
+         ${standing}, ${article},
          e.name AS edition, e.language, e.word_tool, t.categories, v.name AS version, v.license
   FROM passages p
   JOIN titles t ON t.id = p.title_id
   JOIN works w ON w.id = t.work
   JOIN editions e ON e.id = p.edition_id
-  JOIN versions v ON v.id = p.version_id`;
+  JOIN versions v ON v.id = p.version_id${hasArticles ? "\n  LEFT JOIN articles a ON a.title_id = t.id" : ""}`;
 }
 
 /** The caution kinds stored as JSON; anything unreadable is left out. */
@@ -137,6 +165,11 @@ function toRow(r: Record<string, unknown>): Row {
     standing: r.standing === "debated" ? "debated" : "established",
     caution: r.caution == null || r.caution === "" ? null : String(r.caution),
     caution_kinds: cautionKinds(r.caution_kinds),
+    article_url: r.article_url == null ? null : String(r.article_url),
+    article_site: r.article_site == null ? null : String(r.article_site),
+    article_author: r.article_author == null || r.article_author === "" ? null : String(r.article_author),
+    article_published: r.article_published == null || r.article_published === "" ? null : String(r.article_published),
+    article_section: r.article_section == null || r.article_section === "" ? null : String(r.article_section),
   };
 }
 
@@ -195,6 +228,17 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
         ...(base.standing === "debated" && base.caution
           ? { standing: "debated" as const, caution: base.caution, cautionKinds: base.caution_kinds }
           : {}),
+        ...(base.article_url && base.article_site
+          ? {
+              article: {
+                site: base.article_site,
+                url: base.article_url,
+                ...(base.article_author ? { author: base.article_author } : {}),
+                ...(base.article_published ? { published: base.article_published } : {}),
+                ...(base.article_section ? { section: base.article_section } : {}),
+              },
+            }
+          : {}),
       };
       return {
         ref,
@@ -219,6 +263,11 @@ export interface TestingStore {
   lookup(refs: string[], perRef?: number): Promise<Passage[]>;
   /** Full-text search. Hebrew is matched without vowels. */
   search(phrases: string[], limit: number): Promise<Passage[]>;
+  /**
+   * Full-text search of the website collections only (articles from Aish.com and the like). Empty
+   * when no collection is connected.
+   */
+  articles(phrases: string[], limit: number): Promise<Passage[]>;
   /** Passages linked to these refs by Sefaria's cross-references, commentaries first. */
   linked(refs: string[], limit: number): Promise<Passage[]>;
   /**
@@ -489,12 +538,12 @@ export function createTestingStore(db: Db): TestingStore {
   let catalogCache: string | null = null;
   let selectCache: Promise<string> | null = null;
 
-  /** The row columns, checked once against the library's works table. */
+  /** The row columns, checked once against the library's works table, and whether it holds articles. */
   function select(): Promise<string> {
-    selectCache ??= db
-      .all("SELECT name FROM pragma_table_info('works')")
-      .then((cols) => rowSelect(cols.some((c) => c.name === "standing")))
-      .catch(() => rowSelect(false));
+    selectCache ??= Promise.all([
+      db.all("SELECT name FROM pragma_table_info('works')").catch(() => [] as Record<string, unknown>[]),
+      db.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'articles'").catch(() => [] as Record<string, unknown>[]),
+    ]).then(([cols, articles]) => rowSelect(cols.some((c) => c.name === "standing"), articles.length > 0));
     return selectCache;
   }
 
@@ -519,6 +568,10 @@ export function createTestingStore(db: Db): TestingStore {
       const endRow = rows.find((r) => r.ref === end);
       return endRow ? rows.filter((r) => r.seq <= endRow.seq) : rows;
     }
+    // A whole book or article by its title ("Genesis", "Aish.com, Why We Light Candles"), so a
+    // title that begins another ("Genesis Rabbah") isn't mixed in.
+    const whole = await rowsWhere("t.title = ?", [start], perRef * 4);
+    if (whole.length) return whole;
     // A section ("Berakhot 2a", "Genesis 1") or a book with numbered paragraphs ("Kuzari 1").
     for (const sep of [":", " ", ", "]) {
       const [lo, hi] = prefixRange(start + sep);
@@ -574,6 +627,11 @@ export function createTestingStore(db: Db): TestingStore {
       const rows = await byExactRefs(top);
       const order = new Map(top.map((r, i) => [r, i]));
       return groupRows(rows).sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
+    },
+
+    async articles() {
+      // One database is the testing library or one collection; combineStores searches the collections.
+      return [];
     },
 
     async linked(refs, limit) {
@@ -884,16 +942,25 @@ export function createTestingStore(db: Db): TestingStore {
   };
 }
 
-let storeCache: { url: string; store: TestingStore } | null = null;
+let storeCache: { key: string; store: TestingStore } | null = null;
 
-/** The testing library, when its database is configured. */
+/**
+ * The testing library, when its database is configured, together with any website collections
+ * (RABAI_COLLECTION_DB_URLS): one store that sends each request to the database that holds it.
+ */
 export function testingStore(env: Record<string, string | undefined> = process.env): TestingStore | null {
   const url = testingDbUrl(env);
   const client = testingClient(env);
-  // testingClient refuses a public app, so so does this.
+  // testingClient refuses a public app, so so does this (and collectionClients).
   if (!url || !client) return null;
-  if (storeCache?.url === url) return storeCache.store;
-  const store = createTestingStore(dbFrom(client));
-  storeCache = { url, store };
+  const key = [url, ...collectionDbUrls(env)].join("\n");
+  if (storeCache?.key === key) return storeCache.store;
+  const main = createTestingStore(dbFrom(client));
+  const sources = collectionClients(env).map((c) => {
+    const db = dbFrom(c);
+    return { db, store: createTestingStore(db) };
+  });
+  const store = sources.length ? combineStores(main, sources) : main;
+  storeCache = { key, store };
   return store;
 }

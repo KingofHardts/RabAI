@@ -239,16 +239,24 @@ def split_long(text: str, max_chars: int) -> list[str]:
     return out
 
 
+QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u2032": "'",
+                        "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u201f": '"', "\u2033": '"'})
+DASH = "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
+
+
 def clean_title(raw: str) -> str:
     """A title as plain text, safe inside a library reference.
 
-    A colon separates a reference's levels ("Genesis 1:1"), so a colon in an article's title
-    becomes a dash.
+    A colon separates a reference's levels ("Genesis 1:1") and the app reads a long dash between
+    numbers as a range ("Genesis 1:1\u20135"), so a colon becomes " - " and every kind of dash a
+    plain hyphen. Curly quotes become straight ones, the way RabAI writes a reference back.
     """
     text = html.unescape(re.sub(r"<[^>]+>", "", raw or ""))
-    text = BIDI.sub("", text)
+    text = BIDI.sub("", text).translate(QUOTES)
     text = SPACES.sub(" ", text).strip()
-    text = re.sub(r"\s*:\s*", " – ", text)
+    text = re.sub(r"\s*:\s*", " - ", text)
+    text = re.sub(rf"\s+[{DASH}-]+\s+", " - ", text)
+    text = re.sub(rf"[{DASH}]", "-", text)
     return text[:180].strip() or "Untitled"
 
 
