@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { listSections, loadLibrary } from "@/lib/library";
 import { phraseGlossary } from "@/lib/library/word-study";
-import { testingStore } from "@/lib/library/testing";
+import { testingStore, type ArticleShelf } from "@/lib/library/testing";
 
 export const runtime = "nodejs";
 
@@ -11,8 +11,11 @@ export async function GET() {
   if (lib.mode === "testing") {
     const store = testingStore();
     let books: Awaited<ReturnType<NonNullable<typeof store>["books"]>> = [];
+    let articleShelves: ArticleShelf[] = [];
     try {
-      books = store ? await store.books() : [];
+      [books, articleShelves] = store
+        ? await Promise.all([store.books(), store.articleShelves().catch(() => [] as ArticleShelf[])])
+        : [[], []];
     } catch (err) {
       console.error("[rabai] listing the library failed:", err instanceof Error ? err.message : err);
     }
@@ -31,6 +34,8 @@ export async function GET() {
         order: b.order,
       })),
       phrases: phraseGlossary(lib),
+      // The website collections' sections (articles copied by the sites' permission, private use only).
+      articleShelves,
     });
   }
   return NextResponse.json({

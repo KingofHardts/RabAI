@@ -100,3 +100,24 @@ export interface ArticleSource {
   /** The site's own section path, e.g. "Ask The Rabbi > Holidays & Shabbat". */
   section?: string;
 }
+
+/** A section of a website collection ("Aish.com: Ask the Rabbi"). */
+export interface ArticleShelf {
+  site: string;
+  /** The canon work id, e.g. "aish-ask-the-rabbi". */
+  work: string;
+  title: string;
+  count: number;
+}
+
+/** One article in a section's list. */
+export interface ArticleListing {
+  /** Its title in the library ("Aish.com, Why We Light Candles"). */
+  title: string;
+  /** Its own name, without the site's ("Why We Light Candles"). */
+  name: string;
+  author?: string;
+  /** ISO date and time, when the site gives one. */
+  published?: string;
+  firstRef: string;
+}

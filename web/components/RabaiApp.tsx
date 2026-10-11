@@ -7,7 +7,7 @@ import type { LibraryMode } from "@/lib/library";
 import { TESTING_LABEL } from "@/lib/library/testing-config";
 import { CautionBanner, CautionTag } from "./CautionNote";
 import type { Token } from "@/lib/library/language";
-import type { Passage, TranslationStatus, Work } from "@/lib/library/types";
+import type { ArticleShelf, Passage, TranslationStatus, Work } from "@/lib/library/types";
 import type { PhraseInfo, WordStudy } from "@/lib/library/word-study";
 import type { WordEntry } from "@/lib/library/word-parts";
 import {
@@ -29,6 +29,7 @@ import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voi
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
+import ArticleShelves from "./ArticleShelves";
 import ContentsGrid from "./ContentsGrid";
 import DafColumn from "./DafColumn";
 import { usePinchZoom } from "./use-pinch-zoom";
@@ -520,7 +521,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   }, []);
 
   /** Learn's screens: the library, My words, or the Gemara's key words. */
-  const [learnView, setLearnView] = useState<"library" | "words" | "phrases">("library");
+  const [learnView, setLearnView] = useState<"library" | "words" | "phrases" | "articles">("library");
   const [lang, setLang] = useState<Lang>("both");
 
   const [readerRef, setReaderRef] = useState<string | null>(null);
@@ -563,6 +564,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     [sections],
   );
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
+  const [articleShelves, setArticleShelves] = useState<ArticleShelf[]>([]);
   // Saved chats and recent reading, on this device only.
   const [chats, setChats] = useState<SavedChat[]>([]);
   const chatsRef = useRef<SavedChat[]>([]);
@@ -1317,9 +1319,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (mode !== "learn" || sections) return;
     fetch("/api/library")
       .then((r) => r.json())
-      .then((j: { sections: SectionSummary[]; phrases?: PhraseInfo[] }) => {
+      .then((j: { sections: SectionSummary[]; phrases?: PhraseInfo[]; articleShelves?: ArticleShelf[] }) => {
         setSections(j.sections);
         setGlossary(j.phrases ?? []);
+        setArticleShelves(j.articleShelves ?? []);
       })
       .catch(() => setSections([]));
   }, [mode, sections]);
@@ -1930,7 +1933,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string) => {
     const isSelected = selected === p.ref;
-    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}`;
+    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}${p.source?.article ? " article" : ""}`;
     return (
       <div key={p.ref} className={isCommentary ? "comm" : undefined}>
         {/* A div rather than a button, so the words can be highlighted and asked about. */}
@@ -3002,6 +3005,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
               )}
             </div>
+          ) : learnView === "articles" ? (
+            <ArticleShelves shelves={articleShelves} onRead={(ref) => void openReader(ref)} onBack={() => setLearnView("library")} />
           ) : learnView === "words" ? (
             <div className="thread learn-screen">
               <button type="button" className="link back-link" onClick={() => setLearnView("library")}>
@@ -3123,6 +3128,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           </span>
                         </button>
                       )}
+                      {articleShelves.length > 0 && (
+                        <button type="button" className="lib-row" onClick={() => setLearnView("articles")}>
+                          <span className="lr-t">Articles</span>
+                          <span className="lr-sub">
+                            {articleShelves.reduce((n, a) => n + a.count, 0).toLocaleString()} articles from{" "}
+                            {[...new Set(articleShelves.map((a) => a.site))].join(" and ")}
+                          </span>
+                          <span className="lr-chev" aria-hidden="true">
+                            ›
+                          </span>
+                        </button>
+                      )}
                     </div>
                   }
                 />
@@ -3213,7 +3230,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   disabled={!reader?.book}
                   onClick={openContents}
                 >
-                  <span className="rb-t">{reader?.section ?? readerRef}</span>
+                  <span className="rb-t">
+                    {/* An article's site is named in the credit line below, so the bar shows just its name. */}
+                    {reader?.work.article && reader.section.startsWith(`${reader.work.article.site}, `)
+                      ? reader.section.slice(reader.work.article.site.length + 2)
+                      : (reader?.section ?? readerRef)}
+                  </span>
                   {reader && reader.sectionHe && reader.sectionHe !== reader.section && (
                     <span className="he" lang="he">
                       {reader.sectionHe}

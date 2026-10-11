@@ -124,8 +124,18 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
     booksFor: (select) => main.booksFor(select),
     untranslated: (titles, afterSeq, limit) => main.untranslated(titles, afterSeq, limit),
     untranslatedCount: (titles) => main.untranslatedCount(titles),
-    // The shelves list the library's books; articles are found by asking and by search.
+    // The shelves list the library's books; the articles have their own list (articleShelves).
     books: () => main.books(),
     catalog: () => main.catalog(),
+    async articleShelves() {
+      const cols = await collections();
+      const each = await Promise.all(cols.map((c) => c.store.articleShelves().catch(() => [])));
+      return each.flat();
+    },
+    async articleList(work, offset, limit) {
+      const cols = await collections();
+      const each = await Promise.all(cols.map((c) => c.store.articleList(work, offset, limit).catch(() => [])));
+      return each.flat().slice(0, Math.max(0, limit));
+    },
   };
 }

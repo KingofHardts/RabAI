@@ -67,7 +67,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Nothing it copies is printed in a log, committed, or kept as an artifact. Every reference in a
   collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that
   database. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
-  is a teacher's explanation, not a primary source and never a ruling (`articleContext`). Keep
+  is a teacher's explanation, not a primary source and never a ruling (`articleContext`). The
+  Learn tab lists them by section (`ArticleShelves.tsx`, `/api/articles`). Keep
   `collectionClients` refusing a public app, like `testingClient`.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path

@@ -126,3 +126,20 @@ test("collections are never opened on a public app", () => {
   assert.deepEqual(collectionClients({ ...env, RABAI_PUBLIC: "true" }), []);
   assert.deepEqual(collectionClients({ RABAI_COLLECTION_DB_URLS: "libsql://a.example" }), []);
 });
+
+test("the articles are listed by section, with counts, newest first", async () => {
+  const store = combineStores(await mainLibrary(), [await aishCollection()]);
+  assert.deepEqual(await store.articleShelves(), [{ site: "Aish.com", work: "aish-shabbat", title: "Aish.com: Shabbat", count: 2 }]);
+  const list = await store.articleList("aish-shabbat", 0, 10);
+  assert.deepEqual(
+    list.map((a) => [a.name, a.author ?? null, a.firstRef]),
+    [
+      ["Lighting Candles", "Rabbi A. Writer", "Aish.com, Lighting Candles 1"],
+      ["Lighting Candles (2)", null, "Aish.com, Lighting Candles (2) 1"],
+    ],
+  );
+  assert.deepEqual((await store.articleList("aish-shabbat", 1, 10)).map((a) => a.name), ["Lighting Candles (2)"]);
+  assert.deepEqual(await store.articleList("aish-nothing", 0, 10), []);
+  // The library alone has no articles.
+  assert.deepEqual(await (await mainLibrary()).articleShelves(), []);
+});

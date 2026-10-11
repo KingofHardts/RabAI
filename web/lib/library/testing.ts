@@ -3,7 +3,9 @@ import { createClient as createHttpClient } from "@libsql/client/http";
 import type { Client, InValue } from "@libsql/client";
 import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config";
 import { combineStores } from "./collections";
-import type { Passage, PassageSource } from "./types";
+import type { ArticleListing, ArticleShelf, Passage, PassageSource } from "./types";
+
+export type { ArticleListing, ArticleShelf };
 
 export { TESTING_LABEL, testingDbUrl };
 
@@ -317,6 +319,10 @@ export interface TestingStore {
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string; categories: string[]; order: number }>>;
   /** The short list of book names the lookup planner may use. */
   catalog(): Promise<string>;
+  /** The website collections' sections, each with how many articles it holds. Empty without collections. */
+  articleShelves(): Promise<ArticleShelf[]>;
+  /** One section's articles (by its canon work id), newest first. */
+  articleList(work: string, offset: number, limit: number): Promise<ArticleListing[]>;
 }
 
 /** A title's Sefaria category path, stored as JSON; empty when missing or unreadable. */
@@ -538,12 +544,23 @@ export function createTestingStore(db: Db): TestingStore {
   let catalogCache: string | null = null;
   let selectCache: Promise<string> | null = null;
 
+  let articlesCache: Promise<boolean> | null = null;
+
+  /** Whether this database is a website collection (it has the articles table). */
+  function hasArticles(): Promise<boolean> {
+    articlesCache ??= db
+      .all("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'articles'")
+      .then((rows) => rows.length > 0)
+      .catch(() => false);
+    return articlesCache;
+  }
+
   /** The row columns, checked once against the library's works table, and whether it holds articles. */
   function select(): Promise<string> {
     selectCache ??= Promise.all([
       db.all("SELECT name FROM pragma_table_info('works')").catch(() => [] as Record<string, unknown>[]),
-      db.all("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'articles'").catch(() => [] as Record<string, unknown>[]),
-    ]).then(([cols, articles]) => rowSelect(cols.some((c) => c.name === "standing"), articles.length > 0));
+      hasArticles(),
+    ]).then(([cols, articles]) => rowSelect(cols.some((c) => c.name === "standing"), articles));
     return selectCache;
   }
 
@@ -907,6 +924,41 @@ export function createTestingStore(db: Db): TestingStore {
         titles,
       );
       return { passages: Number(rows[0]?.n ?? 0), words: Number(rows[0]?.words ?? 0) };
+    },
+
+    async articleShelves() {
+      if (!(await hasArticles())) return [];
+      const rows = await db.all(
+        `SELECT w.id AS work, w.title, a.site, COUNT(*) AS n
+         FROM articles a JOIN editions e ON e.id = a.edition_id JOIN works w ON w.id = e.work
+         GROUP BY w.id, a.site ORDER BY MIN(e.id)`,
+      );
+      return rows.map((r) => ({ site: String(r.site), work: String(r.work), title: String(r.title), count: Number(r.n) }));
+    },
+
+    async articleList(work, offset, limit) {
+      if (limit <= 0 || !(await hasArticles())) return [];
+      const rows = await db.all(
+        `SELECT t.title, a.site, a.author, a.published,
+                (SELECT p.ref FROM passages p WHERE p.title_id = t.id ORDER BY p.seq LIMIT 1) AS first_ref
+         FROM articles a JOIN titles t ON t.id = a.title_id JOIN editions e ON e.id = a.edition_id
+         WHERE e.work = ?
+         ORDER BY a.published DESC, t.id DESC LIMIT ${Math.floor(limit)} OFFSET ${Math.max(0, Math.floor(offset))}`,
+        [work],
+      );
+      return rows
+        .filter((r) => r.first_ref)
+        .map((r) => {
+          const title = String(r.title);
+          const site = String(r.site);
+          return {
+            title,
+            name: title.startsWith(`${site}, `) ? title.slice(site.length + 2) : title,
+            ...(r.author ? { author: String(r.author) } : {}),
+            ...(r.published ? { published: String(r.published) } : {}),
+            firstRef: String(r.first_ref),
+          };
+        });
     },
 
     async books() {

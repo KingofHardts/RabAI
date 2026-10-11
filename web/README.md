@@ -239,7 +239,9 @@ on. The canon lists which sections of a site are included (`canon/canon.yaml`, c
 `articles`). The app reads them beside the testing library: a reference that starts with a site's
 name ("Aish.com, Why We Light Candles 3") goes to that site's collection, and up to four articles
 are added after the texts for each question. In the reader, an article shows its author and a
-link to the original.
+link to the original. The Learn tab has an "Articles" row (shown only when a collection is
+connected) that lists each section with its count, then its articles, newest first, fifty at a
+time (`/api/articles`).
 
 To copy or update one: in GitHub, open Actions, then "Copy a website's sections (collections)",
 then Run workflow. Without "write" it is a trial into a throwaway file that prints only counts;
