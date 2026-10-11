@@ -272,7 +272,9 @@ Open items:
   websites, section by section through the canon (website collections, above), never a whole
   site at once. Aish.com's ten sections (in the canon for the board) were copied on 2026-10-11:
   11,259 articles in 8 shelves (two sections hold only articles already in others), database
-  `rabai-collection-aish` (158 MB on Turso), and the app reads it. Chabad.org shows robots a
+  `rabai-collection-aish` (163 MB on Turso), and the app reads it. Ask the Rabbi's interface
+  gives only each reader's question, so its answers are read from each article's own page
+  (`site.page`; 1,055 of 1,056 re-copied that way on 2026-10-11). Chabad.org shows robots a
   Cloudflare check, so it waits until Chabad.org lets RabAIBot through
   (`docs/permissions-plan.md`). Keep the access code to a small circle while these permissions are
   private only.
