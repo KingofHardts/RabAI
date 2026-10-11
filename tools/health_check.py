@@ -13,9 +13,9 @@ summary:
      collection reports its article count);
    - the Anthropic key answers a one-word request (a fraction of a cent).
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
-   the articles' sections, and one real question is answered (about the cost of one question in
-   the app). Only whether each step worked is printed, never the answer, and never an article's
-   title or words (only counts).
+   the articles' sections (with how many paragraphs the first articles of each open with), and one
+   real question is answered (about the cost of one question in the app). Only whether each step
+   worked is printed, never the answer, and never an article's title or words (only counts).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -366,6 +366,23 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                     problem(f"A section's list of articles answered HTTP {status} with {len(listed)} articles.")
             except ValueError:
                 problem(f"A section's list of articles answered HTTP {status} with something that isn't JSON.")
+            # How many paragraphs the first few articles of each section open with, the way the reader
+            # opens them. One paragraph everywhere would mean articles are being read as one block.
+            for shelf in shelves:
+                status, raw = fetch("/api/articles?work=" + urllib.parse.quote(str(shelf.get("work") or "")))
+                try:
+                    listed = json.loads(raw).get("articles") or []
+                except ValueError:
+                    listed = []
+                counts = []
+                for article in listed[:3]:
+                    status, raw = fetch("/api/text?ref=" + urllib.parse.quote(str(article.get("firstRef") or "")))
+                    try:
+                        counts.append(str(len(json.loads(raw).get("lines") or [])) if status == 200 else f"HTTP {status}")
+                    except ValueError:
+                        counts.append("not JSON")
+                summary(f"  - {plain(shelf.get('title'))}: paragraphs in its first {len(counts)} articles: "
+                        f"{', '.join(counts) or 'none listed'}.")
         elif collections_expected:
             problem("`RABAI_COLLECTION_DB_URLS` is set, but the app listed no articles.")
     except ValueError:
