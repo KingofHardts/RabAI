@@ -32,6 +32,7 @@ Options:
   --full        fetch every article again, not only new and changed ones
   --prune       remove the articles the site no longer lists, even when that is many of them
   --connect     point the app at every collection database (done anyway when one is created)
+  --probe       try the listing query's parts one at a time on two sections, printing status codes only
 """
 
 import json
@@ -537,6 +538,35 @@ def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, lim
     return {"sections": sections, "fetcher": fetcher, "removed": removed, "kept_note": kept_note}
 
 
+def probe(wp: WordPress, canon_sections: list[dict]) -> None:
+    """Try the listing query's parts one at a time on the first two sections, to see which one the
+    site can't answer. Prints only status codes, counts and times: no article text."""
+    for canon in canon_sections[:2]:
+        include = wp.resolve(canon["site"]["include"])
+        exclude = wp.resolve(canon["site"]["exclude"]) if canon["site"].get("exclude") else set()
+        top = {c["id"] for c in wp.categories() if c["slug"] in canon["site"]["include"]}
+        ids = ",".join(map(str, sorted(include)))
+        print(f"- {canon['title']}: {len(include)} categories included ({len(top)} named), {len(exclude)} excluded", flush=True)
+        tries = [
+            ("named categories only", {"categories": ",".join(map(str, sorted(top)))}),
+            ("with subcategories", {"categories": ids}),
+            ("+ _fields=id,modified_gmt,categories", {"categories": ids, "_fields": "id,modified_gmt,categories"}),
+            ("+ orderby=id", {"categories": ids, "_fields": "id,modified_gmt", "orderby": "id", "order": "asc"}),
+            ("+ offset=0", {"categories": ids, "_fields": "id,modified_gmt", "offset": "0"}),
+            ("+ categories_exclude", {"categories": ids, "_fields": "id,modified_gmt", "categories_exclude": ",".join(map(str, sorted(exclude)))}),
+            ("+ orderby=modified", {"categories": ids, "_fields": "id,modified_gmt", "orderby": "modified", "order": "asc"}),
+        ]
+        for label, params in tries:
+            if label == "+ categories_exclude" and not exclude:
+                continue
+            params = {"per_page": "5", **params}
+            start = time.time()
+            status, body, headers = wp.polite.get(wp.base + "/posts?" + urllib.parse.urlencode(params, safe=","), attempts=1)
+            hint = L.error_hint(body) if status != 200 else ""
+            print(f"  {label}: HTTP {status}, total {L.header(headers, 'X-WP-Total')}, {time.time() - start:.1f}s"
+                  + (f" ({hint})" if hint else ""), flush=True)
+
+
 # ---------------------------------------------------------------------------------------------
 # Turso
 
@@ -644,6 +674,9 @@ def main() -> int:
     col.load()
     polite = L.Polite(home)
     wp = WordPress(polite, home)
+    if "--probe" in args:
+        probe(wp, canon_sections)
+        return 0
     print(f"# {label}: {len(canon_sections)} sections in the canon; {len(col.stored)} articles already copied; "
           f"pause {polite.pause}s between requests", flush=True)
 
