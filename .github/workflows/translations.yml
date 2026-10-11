@@ -21,9 +21,9 @@ on:
         options: [estimate, fill, collect, setup]
         default: estimate
       books:
-        description: 'Book titles, comma separated (for example "Rashi on Berakhot")'
+        description: 'Book titles, comma separated (for example "Ritva on Kiddushin")'
         type: string
-        default: "Rashi on Berakhot"
+        default: ""
       like:
         description: 'Or title patterns, comma separated (for example "Tosafot on %")'
         type: string
