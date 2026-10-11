@@ -22,11 +22,15 @@ on:
         type: boolean
         default: false
       limit:
-        description: "At most this many articles per section (0: all)"
+        description: "Fetch at most this many articles per section (0: all). A trial with a limit estimates the whole size."
         type: number
         default: 0
+      minutes:
+        description: "Stop fetching after this many minutes; the next run continues where it stopped"
+        type: number
+        default: 165
       full:
-        description: "Read every article again, not only those changed since the last run"
+        description: "Fetch every article again, not only new and changed ones"
         type: boolean
         default: false
 
@@ -56,6 +60,7 @@ jobs:
           COLLECTION: ${{ inputs.collection }}
           WRITE: ${{ inputs.write }}
           LIMIT: ${{ inputs.limit }}
+          MINUTES: ${{ inputs.minutes }}
           FULL: ${{ inputs.full }}
           TURSO_API_TOKEN: ${{ inputs.write && secrets.TURSO_API_TOKEN || '' }}
           TURSO_ORG: ${{ secrets.TURSO_ORG }}
@@ -65,5 +70,6 @@ jobs:
           args=("$COLLECTION")
           if [ "$WRITE" = "true" ]; then args+=(--turso); else args+=(--out "$RUNNER_TEMP/collection.db"); fi
           if [ "$LIMIT" != "0" ]; then args+=(--limit "$LIMIT"); fi
+          if [ "$MINUTES" != "0" ]; then args+=(--minutes "$MINUTES"); fi
           if [ "$FULL" = "true" ]; then args+=(--full); fi
           python3 tools/collection_build.py "${args[@]}"

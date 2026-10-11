@@ -8,6 +8,7 @@
 -- One row per article: where it came from and who wrote it. The text itself is in passages.
 CREATE TABLE IF NOT EXISTS articles (
   title_id INTEGER PRIMARY KEY,   -- titles.id
+  edition_id INTEGER NOT NULL,    -- editions.id: the canon section it was copied for
   url TEXT NOT NULL UNIQUE,       -- the article's address on the site
   site TEXT NOT NULL,             -- the site's name as shown, e.g. "Aish.com"
   site_id TEXT,                   -- the site's own id for the article (a WordPress post id)
@@ -20,5 +21,5 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 CREATE INDEX IF NOT EXISTS articles_site_id ON articles (site_id);
 
--- Where the copying stands, per canon edition, so a run can pick up where the last one stopped.
+-- Small notes the builder keeps between runs, such as articles that had no text to copy.
 CREATE TABLE IF NOT EXISTS crawl_state (key TEXT PRIMARY KEY, value TEXT);

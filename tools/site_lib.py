@@ -70,7 +70,8 @@ class Polite:
                         body = gzip.decompress(body)
                     return r.status, body, dict(r.headers)
             except urllib.error.HTTPError as e:
-                status, body, headers = e.code, b"", dict(e.headers or {})
+                status, headers = e.code, dict(e.headers or {})
+                body = _error_body(e, headers)
                 if e.code not in (429, 500, 502, 503, 504):
                     return status, body, headers
                 retry_after = headers.get("Retry-After") or headers.get("retry-after")
@@ -79,6 +80,36 @@ class Polite:
                 status = 0
                 time.sleep(10 * (attempt + 1))
         return status, body, headers
+
+
+def _error_body(err: urllib.error.HTTPError, headers: dict) -> bytes:
+    """The first few KB of an error page, for error_hint. Never printed whole."""
+    try:
+        raw = err.read()
+        if header(headers, "Content-Encoding") == "gzip":
+            raw = gzip.decompress(raw)
+        return raw[:4096]
+    except Exception:  # noqa: BLE001 - only a hint
+        return b""
+
+
+def header(headers: dict, name: str) -> str | None:
+    """A response header, whatever case the server wrote its name in."""
+    want = name.lower()
+    return next((v for k, v in (headers or {}).items() if k.lower() == want), None)
+
+
+def error_hint(body: bytes) -> str:
+    """A short, safe description of an error page: WordPress's error code, or the page's title."""
+    text = body.decode("utf-8", "replace") if body else ""
+    try:
+        data = json.loads(text)
+        if isinstance(data, dict) and data.get("code"):
+            return str(data["code"])[:80]
+    except ValueError:
+        pass
+    m = re.search(r"<title[^>]*>(.*?)</title>", text, re.S | re.I)
+    return SPACES.sub(" ", html.unescape(m.group(1))).strip()[:80] if m else ""
 
 
 # ---------------------------------------------------------------------------------------------

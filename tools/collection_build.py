@@ -8,11 +8,17 @@ by the app beside the testing library (web/lib/library/collections.ts). Each art
 title ("Aish.com, Why We Light Candles") and each paragraph a passage, with the article's
 address, author and dates kept in the `articles` table (tools/collection_schema.sql).
 
-A WordPress site (`site.from: wordpress`) is read through its own REST interface: whole
-articles, a hundred at a time, far lighter on the site than loading its pages. Requests go one
-at a time with a pause, and only to addresses robots.txt allows. An article that sits in two
-sections goes to the first one the canon lists. The next run reads only what changed since the
-last one (unless --full).
+A WordPress site (`site.from: wordpress`) is read through its own REST interface, far lighter on
+the site than loading its pages, in two steps:
+1. List each section's articles by number and date of last change only: no text, so a hundred
+   at a time is quick for the site. An article in two sections goes to the first one the canon
+   lists.
+2. Fetch only the articles that are new, or changed since the copy we have, a few at a time.
+   When the site struggles (a server error), ask for fewer at once; an article that still fails
+   on its own is skipped and tried again on the next run.
+Requests go one at a time with a pause, and only to addresses robots.txt allows. An article the
+site no longer lists in any section is removed from the copy, unless that is suspiciously many at
+once (then --prune).
 
 Nothing here prints an article's text: the GitHub Actions log is public. With --turso the rows
 go straight into Turso and nowhere else; the database is private and is never an artifact.
@@ -21,8 +27,11 @@ Usage:
   python3 tools/collection_build.py <permission-id> --out PATH   # a trial into a local SQLite file
   python3 tools/collection_build.py <permission-id> --turso      # into Turso (needs TURSO_API_TOKEN)
 Options:
-  --limit N     at most N articles per section (a trial)
-  --full        read every article again, not only those changed since the last run
+  --limit N     fetch at most N articles per section (a trial; the whole collection's size is estimated)
+  --minutes N   stop fetching after N minutes; the next run continues where this one stopped
+  --full        fetch every article again, not only new and changed ones
+  --prune       remove the articles the site no longer lists, even when that is many of them
+  --connect     point the app at every collection database (done anyway when one is created)
 """
 
 import json
@@ -31,7 +40,7 @@ import re
 import sys
 import time
 import urllib.parse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from html import unescape
 from pathlib import Path
 
@@ -41,8 +50,14 @@ import site_lib as L  # noqa: E402
 import validate as V  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-PER_PAGE = 100
+LIST_SIZE = 100  # articles per listing request (numbers and dates only)
+FETCH_START = 10  # articles per fetch request at first
+FETCH_MAX = 25  # ... grown back to at most this many while the site copes
 FLUSH_EVERY = 20  # articles per database transaction
+GIVE_UP_AFTER = 8  # single articles failing in a row: the site is down, so stop
+PRUNE_SHARE = 0.1  # more than this share of the copy gone at once looks like a problem on the site
+ARTICLE_FIELDS = "id,link,date_gmt,modified_gmt,title,content,categories,authors,meta.footnotes"
+STRUGGLING = {0, 500, 502, 503, 504, 520, 521, 522, 523, 524}  # 0: no answer in time
 LABEL = "Private testing library. Not yet approved by the rabbinic board."
 
 
@@ -56,7 +71,7 @@ def db_name(permission: str) -> str:
 
 def schema_statements() -> list[str]:
     """The testing library's tables (made idempotent) and the collection's own."""
-    core = (ROOT / "tools" / "library_schema.sql").read_text().replace("-- @indexes", "")
+    core = (ROOT / "tools" / "library_schema.sql").read_text()
     core = re.sub(r"\bCREATE TABLE (?!IF NOT EXISTS)", "CREATE TABLE IF NOT EXISTS ", core)
     core = re.sub(r"\bCREATE VIRTUAL TABLE (?!IF NOT EXISTS)", "CREATE VIRTUAL TABLE IF NOT EXISTS ", core)
     core = re.sub(r"\bCREATE INDEX (?!IF NOT EXISTS)", "CREATE INDEX IF NOT EXISTS ", core)
@@ -82,6 +97,16 @@ def sections_for(permission: str) -> list[dict]:
 # WordPress
 
 
+class SiteError(RuntimeError):
+    """The site answered with an error (status 0: it didn't answer in time)."""
+
+    def __init__(self, url: str, status: int, body: bytes):
+        self.status = status
+        hint = L.error_hint(body)
+        what = f"answered HTTP {status}" if status else "didn't answer"
+        super().__init__(f"{url} {what}" + (f" ({hint})" if hint else ""))
+
+
 class WordPress:
     """A WordPress site's REST interface: categories, authors and posts."""
 
@@ -91,10 +116,10 @@ class WordPress:
         self._categories: list[dict] | None = None
         self.authors: dict[int, str] = {}
 
-    def get_json(self, path: str) -> tuple[object, dict]:
-        status, body, headers = self.polite.get(self.base + path)
+    def get_json(self, path: str, attempts: int = 4) -> tuple[object, dict]:
+        status, body, headers = self.polite.get(self.base + path, attempts=attempts)
         if status != 200:
-            raise RuntimeError(f"{self.base + path.split('?')[0]} answered HTTP {status}")
+            raise SiteError(self.base + path.split("?")[0], status, body)
         return json.loads(body), headers
 
     def categories(self) -> list[dict]:
@@ -103,7 +128,7 @@ class WordPress:
             while True:
                 batch, headers = self.get_json(f"/categories?per_page=100&page={page}&_fields=id,name,slug,parent")
                 out += batch
-                if page >= int(headers.get("X-WP-TotalPages") or headers.get("x-wp-totalpages") or 1):
+                if page >= int(L.header(headers, "X-WP-TotalPages") or 1):
                     break
                 page += 1
             self._categories = out
@@ -141,34 +166,45 @@ class WordPress:
             chunk = wanted[i : i + 100]
             try:
                 batch, _ = self.get_json(f"/authors?include={','.join(map(str, chunk))}&per_page=100&_fields=id,name")
-            except RuntimeError:
+            except SiteError:
                 return  # a site without an authors list: the article keeps the site's name
             for a in batch:
                 self.authors[a["id"]] = unescape(a.get("name") or "").strip()
 
-    def posts(self, include: set[int], exclude: set[int], after: str | None):
-        """Posts in these categories, least recently changed first, each with its page's position."""
-        params = {
-            "categories": ",".join(map(str, sorted(include))),
-            "orderby": "modified",
-            "order": "asc",
-            "per_page": str(PER_PAGE),
-            "_fields": "id,link,date_gmt,modified,modified_gmt,title,content,categories,authors,meta.footnotes",
-        }
+    def listing(self, include: set[int], exclude: set[int]) -> dict[str, str]:
+        """Every post in these categories: {post id: when it last changed (GMT)}, in id order.
+
+        Only numbers and dates, so a hundred at a time is light for the site. Posts are counted
+        off by `offset`, so the page size can shrink if the site struggles without losing place.
+        """
+        params = {"categories": ",".join(map(str, sorted(include))), "orderby": "id", "order": "asc",
+                  "_fields": "id,modified_gmt"}
         if exclude:
             params["categories_exclude"] = ",".join(map(str, sorted(exclude)))
-        if after:
-            params["modified_after"] = after
-        page = 1
+        found: dict[str, str] = {}
+        offset, size = 0, LIST_SIZE
         while True:
-            params["page"] = str(page)
-            query = urllib.parse.urlencode(params, safe=",")
-            batch, headers = self.get_json(f"/posts?{query}")
-            total_pages = int(headers.get("X-WP-TotalPages") or headers.get("x-wp-totalpages") or 1)
-            yield batch, page, total_pages
-            if page >= total_pages or not batch:
-                return
-            page += 1
+            params["offset"], params["per_page"] = str(offset), str(size)
+            try:
+                batch, headers = self.get_json("/posts?" + urllib.parse.urlencode(params, safe=","))
+            except SiteError as e:
+                if e.status in STRUGGLING and size > 10:
+                    size //= 2
+                    print(f"  the site struggled listing ({e}); asking for {size} at a time", flush=True)
+                    continue
+                raise
+            for post in batch:
+                found[str(post["id"])] = str(post.get("modified_gmt") or "")
+            offset += len(batch)
+            total = L.header(headers, "X-WP-Total")
+            if not batch or (total and total.isdigit() and offset >= int(total)) or (not total and len(batch) < size):
+                return found
+
+    def fetch(self, ids: list[str]) -> list[dict]:
+        """These posts in full, by id."""
+        params = {"include": ",".join(ids), "per_page": str(len(ids)), "_fields": ARTICLE_FIELDS}
+        batch, _ = self.get_json("/posts?" + urllib.parse.urlencode(params, safe=","), attempts=2)
+        return batch
 
 
 def footnotes(meta) -> list[str]:
@@ -199,21 +235,20 @@ class Collection:
         self.license = license
         self.pending: list[tuple[str, list]] = []
         self.pending_articles = 0
-        self.unsaved: list[str] = []  # new articles whose title ids aren't known until the next flush
-        self.claimed: dict[str, int] = {}  # article address -> the edition that took it in this run
-        self.rank: dict[int, int] = {}  # edition id -> its place in the canon (an article goes to the first)
-        self.by_url: dict[str, dict] = {}
+        self.unsaved: set[str] = set()  # titles whose rows are queued but not yet written
+        self.stored: dict[str, dict] = {}  # site's post id -> what the database holds for it
         self.titles: set[str] = set()
-        self.editions: dict[tuple[str, str], int] = {}
+        self.no_text: dict[str, str] = {}  # post id -> its date, for posts that had no text to copy
 
     def load(self) -> None:
-        for title_id, url, check, title, edition_id in self.sink.query(
-            "SELECT a.title_id, a.url, a.checksum, t.title, "
-            "(SELECT p.edition_id FROM passages p WHERE p.title_id = a.title_id LIMIT 1) "
+        for edition_id, url, site_id, modified, check, title in self.sink.query(
+            "SELECT a.edition_id, a.url, a.site_id, a.modified, a.checksum, t.title "
             "FROM articles a JOIN titles t ON t.id = a.title_id"
         ):
-            self.by_url[url] = {"title_id": title_id, "checksum": check, "title": title, "edition_id": edition_id}
+            self.stored[str(site_id)] = {"edition_id": edition_id, "url": url, "modified": modified,
+                                         "checksum": check, "title": title}
         self.titles = {r[0] for r in self.sink.query("SELECT title FROM titles")}
+        self.no_text = json.loads(self.state("no_text") or "{}")
 
     def work_and_edition(self, section: dict) -> int:
         kinds = section.get("caution_kinds")
@@ -222,19 +257,17 @@ class Collection:
             [section["work"], section["title"], section["category"], json.dumps(section["streams"]),
              section.get("standing") or "established", section.get("caution"), json.dumps(kinds) if kinds else None],
         )])
-        key = (section["work"], section["edition"])
-        rows = self.sink.query("SELECT id FROM editions WHERE work = ? AND name = ?", list(key))
+        key = [section["work"], section["edition"]]
+        rows = self.sink.query("SELECT id FROM editions WHERE work = ? AND name = ?", key)
         if not rows:
             self.sink.batch([("INSERT INTO editions (work, name, language, approved) VALUES (?, ?, ?, ?)",
                               [section["work"], section["edition"], section["language"], int(bool(section["approved"]))])])
-            rows = self.sink.query("SELECT id FROM editions WHERE work = ? AND name = ?", list(key))
-        self.editions[key] = rows[0][0]
+            rows = self.sink.query("SELECT id FROM editions WHERE work = ? AND name = ?", key)
         return rows[0][0]
 
-    def title_for(self, url: str, name: str) -> str:
-        """The article's title in the library: the one it has, or a new one no other article uses."""
-        if url in self.by_url:
-            return self.by_url[url]["title"]
+    def new_title(self, name: str) -> str:
+        """A title in the library no other article uses. An article keeps its first title for good,
+        so the references people saved keep working."""
         base = f"{self.site}, {name}"
         title, n = base, 2
         while title in self.titles:
@@ -242,21 +275,39 @@ class Collection:
         self.titles.add(title)
         return title
 
+    def _drop_rows(self, old: dict) -> list[tuple[str, list]]:
+        """Statements removing an article's passages (and their search entries)."""
+        if old["title"] in self.unsaved:
+            self.flush()  # its rows must be in the database to be found
+        stmts: list[tuple[str, list]] = []
+        for pid, text in self.sink.query(
+            "SELECT p.id, p.text FROM passages p JOIN titles t ON t.id = p.title_id WHERE t.title = ?", [old["title"]]
+        ):
+            stmts.append(("INSERT INTO passages_fts (passages_fts, rowid, plain) VALUES ('delete', ?, ?)", [pid, B.plain(text)]))
+        stmts.append(("DELETE FROM passages WHERE title_id = (SELECT id FROM titles WHERE title = ?)", [old["title"]]))
+        return stmts
+
     def put(self, *, url, site_id, name, work, edition_id, categories, author, published, modified, section, paras) -> str:
         """Queue an article's rows. Returns 'new', 'changed' or 'same'."""
-        check = L.checksum([name, author or "", section or "", *paras])
-        old = self.by_url.get(url)
-        if old and old["checksum"] == check and old["edition_id"] == edition_id:
-            return "same"
-        title = self.title_for(url, name)
+        key = str(site_id)
+        check = L.checksum([name, url, author or "", section or "", *paras])
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        old = self.stored.get(key)
+        if old and old["checksum"] == check and old["edition_id"] == edition_id:
+            if old["modified"] != modified:  # changed on the site, but not in anything we copy
+                self._queue([("UPDATE articles SET modified = ?, fetched_on = ? WHERE title_id = (SELECT id FROM titles WHERE title = ?)",
+                              [modified, now, old["title"]])])
+                old["modified"] = modified
+            return "same"
         stmts: list[tuple[str, list]] = []
         if old:
-            for pid, text in self.sink.query("SELECT id, text FROM passages WHERE title_id = ?", [old["title_id"]]):
-                stmts.append(("INSERT INTO passages_fts (passages_fts, rowid, plain) VALUES ('delete', ?, ?)", [pid, B.plain(text)]))
-            stmts.append(("DELETE FROM passages WHERE title_id = ?", [old["title_id"]]))
-            stmts.append(("UPDATE titles SET work = ?, categories = ? WHERE id = ?", [work, json.dumps(categories), old["title_id"]]))
+            title = old["title"]
+            stmts += self._drop_rows(old)
+            stmts.append(("UPDATE titles SET work = ?, categories = ? WHERE title = ?", [work, json.dumps(categories), title]))
+            if old["url"] != url:
+                stmts.append(("DELETE FROM versions WHERE name = ? AND license = ? AND source = ?", [self.site, self.license, old["url"]]))
         else:
+            title = self.new_title(name)
             stmts.append(("INSERT INTO titles (title, he_title, work, categories, depth, section_names) VALUES (?, NULL, ?, ?, 1, ?)",
                           [title, work, json.dumps(categories), json.dumps(["Paragraph"])]))
         stmts.append(("INSERT OR IGNORE INTO versions (name, license, source) VALUES (?, ?, ?)", [self.site, self.license, url]))
@@ -270,28 +321,38 @@ class Collection:
             ))
             stmts.append(("INSERT INTO passages_fts (rowid, plain) VALUES ((SELECT id FROM passages WHERE ref = ?), ?)", [ref, B.plain(text)]))
         stmts.append((
-            f"INSERT OR REPLACE INTO articles (title_id, url, site, site_id, author, published, modified, section, fetched_on, checksum) "
-            f"VALUES ({title_id}, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [title, url, self.site, str(site_id), author, published, modified, section, now, check],
+            f"INSERT OR REPLACE INTO articles (title_id, edition_id, url, site, site_id, author, published, modified, section, fetched_on, checksum) "
+            f"VALUES ({title_id}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [title, edition_id, url, self.site, key, author, published, modified, section, now, check],
         ))
+        self.stored[key] = {"edition_id": edition_id, "url": url, "modified": modified, "checksum": check, "title": title}
+        self.unsaved.add(title)
+        self.no_text.pop(key, None)
+        self._queue(stmts)
+        return "changed" if old else "new"
+
+    def remove(self, key: str) -> None:
+        """Queue removing an article the site no longer lists."""
+        old = self.stored.pop(key)
+        stmts = self._drop_rows(old)
+        stmts += [
+            ("DELETE FROM articles WHERE title_id = (SELECT id FROM titles WHERE title = ?)", [old["title"]]),
+            ("DELETE FROM titles WHERE title = ?", [old["title"]]),
+            ("DELETE FROM versions WHERE name = ? AND license = ? AND source = ?", [self.site, self.license, old["url"]]),
+        ]
+        self.titles.discard(old["title"])
+        self._queue(stmts)
+
+    def _queue(self, stmts: list[tuple[str, list]]) -> None:
         self.pending += stmts
         self.pending_articles += 1
-        self.by_url[url] = {"title_id": old["title_id"] if old else None, "checksum": check, "title": title, "edition_id": edition_id}
-        if not old:
-            self.unsaved.append(url)
         if self.pending_articles >= FLUSH_EVERY:
             self.flush()
-        return "changed" if old else "new"
 
     def flush(self) -> None:
         if self.pending:
             self.sink.batch(self.pending)
-            # New articles' title ids, for a later change in the same run.
-            for url in self.unsaved:
-                info = self.by_url[url]
-                rows = self.sink.query("SELECT id FROM titles WHERE title = ?", [info["title"]])
-                info["title_id"] = rows[0][0] if rows else None
-        self.pending, self.pending_articles, self.unsaved = [], 0, []
+        self.pending, self.pending_articles, self.unsaved = [], 0, set()
 
     def state(self, key: str) -> str | None:
         rows = self.sink.query("SELECT value FROM crawl_state WHERE key = ?", [key])
@@ -301,62 +362,179 @@ class Collection:
         self.sink.batch([("INSERT OR REPLACE INTO crawl_state (key, value) VALUES (?, ?)", [key, value])])
 
 
-def copy_wordpress(col: Collection, wp: WordPress, section: dict, edition_id: int, limit: int, full: bool) -> dict:
-    site = section["site"]
-    include = wp.resolve(site["include"])
-    exclude = wp.resolve(site.get("exclude") or []) if site.get("exclude") else set()
-    key = f"{section['work']}|{section['edition']}|modified"
-    after = None if full else col.state(key)
-    if after:
-        # WordPress compares in whole seconds; start one second early so nothing at the same moment is missed.
-        try:
-            after = (datetime.fromisoformat(after) - timedelta(seconds=1)).isoformat(timespec="seconds")
-        except ValueError:
-            after = None
-    counts = {"new": 0, "changed": 0, "same": 0, "no text": 0, "another section": 0, "excluded": 0}
-    seen = 0
-    for batch, page, pages in wp.posts(include, exclude, after):
-        wp.author_names({a for post in batch for a in post.get("authors") or [] if isinstance(a, int)})
-        last = None
-        for post in batch:
-            last = post.get("modified") or last
-            cats = set(post.get("categories") or [])
-            if cats & exclude:
-                counts["excluded"] += 1
+# ---------------------------------------------------------------------------------------------
+# Copying a WordPress site
+
+
+class Section:
+    """One canon section of a WordPress site, with what its listing found."""
+
+    def __init__(self, canon: dict, edition_id: int, wp: WordPress):
+        self.canon = canon
+        self.edition_id = edition_id
+        site = canon["site"]
+        self.include = wp.resolve(site["include"])
+        self.exclude = wp.resolve(site["exclude"]) if site.get("exclude") else set()
+        self.listed: dict[str, str] = {}
+        self.mine: list[str] = []  # listed and not taken by an earlier section
+        self.to_fetch: list[str] = []
+        self.counts = {"listed": 0, "in an earlier section": 0, "unchanged": 0, "new": 0, "changed": 0, "same": 0,
+                       "no text": 0, "gone": 0, "failed": 0, "not reached": 0}
+
+
+def plan_section(col: Collection, sec: Section, claimed: dict[str, int], full: bool) -> None:
+    """Which of a section's listed articles are its own, and which of those need fetching."""
+    for key, modified in sec.listed.items():
+        sec.counts["listed"] += 1
+        if claimed.setdefault(key, sec.edition_id) != sec.edition_id:
+            sec.counts["in an earlier section"] += 1
+            continue
+        sec.mine.append(key)
+        old = col.stored.get(key)
+        if full or not old or old["edition_id"] != sec.edition_id or old["modified"] != modified:
+            if not full and not old and col.no_text.get(key) == modified:
+                sec.counts["no text"] += 1  # nothing to copy last time, and unchanged since
                 continue
+            sec.to_fetch.append(key)
+        else:
+            sec.counts["unchanged"] += 1
+
+
+class Fetcher:
+    """Asks for a few articles at a time: fewer when the site struggles, more again when it copes."""
+
+    def __init__(self, wp: WordPress, deadline: float | None):
+        self.wp = wp
+        self.size = FETCH_START
+        self.streak = 0
+        self.failing = 0
+        self.deadline = deadline
+        self.failed: list[str] = []
+
+    def out_of_time(self) -> bool:
+        return self.deadline is not None and time.time() > self.deadline
+
+    def batches(self, ids: list[str]):
+        """Yield (asked ids, posts the site returned) until done or out of time."""
+        i = 0
+        while i < len(ids):
+            if self.out_of_time():
+                return
+            chunk = ids[i : i + self.size]
+            try:
+                posts = self.wp.fetch(chunk)
+            except SiteError as e:
+                if e.status not in STRUGGLING:
+                    raise
+                if len(chunk) > 1:
+                    self.size = max(1, len(chunk) // 2)
+                    self.streak = 0
+                    print(f"  the site struggled ({e}); asking for {self.size} at a time", flush=True)
+                    continue
+                self.failed.append(chunk[0])
+                self.failing += 1
+                print(f"  post {chunk[0]} failed on its own ({e}); skipped for now", flush=True)
+                if self.failing >= GIVE_UP_AFTER:
+                    raise SystemExit(f"The site failed {self.failing} times in a row; stopping. Run again later.") from e
+                i += 1
+                continue
+            self.failing = 0
+            self.streak += 1
+            if self.streak >= 10 and self.size < FETCH_MAX:
+                self.size, self.streak = min(FETCH_MAX, self.size * 2), 0
+            yield chunk, posts
+            i += len(chunk)
+
+
+def copy_section(col: Collection, wp: WordPress, sec: Section, fetcher: Fetcher, limit: int) -> None:
+    """Fetch and write a section's new and changed articles."""
+    ids = sec.to_fetch[:limit] if limit else sec.to_fetch
+    asked = set(ids)
+    done = 0
+    for chunk, posts in fetcher.batches(ids):
+        wp.author_names({a for post in posts for a in post.get("authors") or [] if isinstance(a, int)})
+        returned = set()
+        for post in posts:
+            key = str(post.get("id"))
+            returned.add(key)
             url = post.get("link") or ""
-            stored = (col.by_url.get(url) or {}).get("edition_id")
-            if col.claimed.get(url, edition_id) != edition_id or (
-                stored in col.rank and stored != edition_id and col.rank[stored] < col.rank[edition_id]
-            ):
-                counts["another section"] += 1
-                continue
+            modified = post.get("modified_gmt") or sec.listed.get(key) or ""
             paras = L.paragraphs((post.get("content") or {}).get("rendered") or "") + footnotes(post.get("meta"))
-            if not paras:
-                counts["no text"] += 1
+            if not paras or not url:
+                sec.counts["no text"] += 1
+                col.no_text[key] = sec.listed.get(key, modified)
                 continue
-            col.claimed[url] = edition_id
-            name = L.clean_title((post.get("title") or {}).get("rendered") or "")
+            cats = set(post.get("categories") or [])
+            name = L.clean_title((post.get("title") or {}).get("rendered") or "") or f"Article {key}"
             authors = [wp.authors.get(a, "") for a in post.get("authors") or [] if isinstance(a, int)]
-            author = " and ".join(a for a in authors if a) or None
-            mine = sorted(cats & include, key=lambda c: -len(wp.path(c)))
+            mine = sorted(cats & sec.include, key=lambda c: -len(wp.path(c)))
             path = wp.path(mine[0]) if mine else ""
             result = col.put(
-                url=url, site_id=post.get("id"), name=name, work=section["work"], edition_id=edition_id,
-                categories=[col.site] + [p for p in path.split(" > ") if p], author=author,
-                published=post.get("date_gmt"), modified=post.get("modified_gmt"), section=path, paras=paras,
+                url=url, site_id=key, name=name, work=sec.canon["work"], edition_id=sec.edition_id,
+                categories=[col.site] + [p for p in path.split(" > ") if p],
+                author=" and ".join(a for a in authors if a) or None,
+                published=post.get("date_gmt"), modified=modified, section=path, paras=paras,
             )
-            counts[result] += 1
-            seen += 1
-            if limit and seen >= limit:
-                break
-        col.flush()
-        if last and not limit:
-            col.set_state(key, last)
-        print(f"  page {page} of {pages}: {sum(counts.values())} articles so far", flush=True)
-        if limit and seen >= limit:
-            break
-    return counts
+            sec.counts[result] += 1
+        sec.counts["gone"] += len(set(chunk) - returned)  # unpublished between listing and fetching
+        done += len(chunk)
+        if done % 200 < len(chunk):
+            print(f"  {done} of {len(ids)} fetched", flush=True)
+    col.flush()
+    failed = len([k for k in fetcher.failed if k in asked])
+    sec.counts["failed"] = failed
+    sec.counts["not reached"] = len(ids) - done - failed
+
+
+def prune(col: Collection, sections: list[Section], claimed: dict[str, int], canon_editions: set[int], force: bool) -> tuple[int, str | None]:
+    """Remove stored articles no section lists any more. Returns (removed, why some were kept)."""
+    listed_editions = {s.edition_id for s in sections}
+    gone = [k for k, old in col.stored.items()
+            if k not in claimed and (old["edition_id"] in listed_editions or old["edition_id"] not in canon_editions)]
+    if not gone:
+        return 0, None
+    if not force and len(gone) > max(25, PRUNE_SHARE * len(col.stored)):
+        return 0, (f"{len(gone)} copied articles aren't listed on the site any more. That's a lot at once, so they were kept; "
+                   "check the site, then run again with --prune to remove them.")
+    for key in gone:
+        col.remove(key)
+    col.flush()
+    return len(gone), None
+
+
+def copy_site(col: Collection, wp: WordPress, canon_sections: list[dict], *, limit: int = 0, minutes: int = 0,
+              full: bool = False, prune_all: bool = False) -> dict:
+    """List every section, remove what the site dropped, then fetch what's new or changed."""
+    started = time.time()
+    # 1. List every section: numbers and dates only.
+    sections: list[Section] = []
+    claimed: dict[str, int] = {}
+    canon_editions = set()
+    for canon in canon_sections:
+        edition_id = col.work_and_edition(canon)
+        canon_editions.add(edition_id)
+        if canon["site"]["from"] != "wordpress":
+            print(f"- {canon['title']}: reading a site's pages is not built yet; skipped")
+            continue
+        sec = Section(canon, edition_id, wp)
+        sec.listed = wp.listing(sec.include, sec.exclude)
+        plan_section(col, sec, claimed, full)
+        sections.append(sec)
+        print(f"- {canon['title']}: {sec.counts['listed']} listed, {len(sec.mine)} its own, {len(sec.to_fetch)} to fetch", flush=True)
+
+    # 2. Remove what the site no longer lists (only when every section was listed).
+    removed, kept_note = 0, None
+    if all(c["site"]["from"] == "wordpress" for c in canon_sections):
+        removed, kept_note = prune(col, sections, claimed, canon_editions, prune_all)
+
+    # 3. Fetch what's new or changed.
+    fetcher = Fetcher(wp, started + minutes * 60 if minutes else None)
+    for sec in sections:
+        if sec.to_fetch and not fetcher.out_of_time():
+            print(f"- Fetching {sec.canon['title']}: {len(sec.to_fetch[:limit] if limit else sec.to_fetch)} articles", flush=True)
+        copy_section(col, wp, sec, fetcher, limit)
+    col.set_state("no_text", json.dumps(col.no_text, sort_keys=True))
+    return {"sections": sections, "fetcher": fetcher, "removed": removed, "kept_note": kept_note}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -395,13 +573,14 @@ def connect_app(turso: dict) -> None:
 
     vercel = os.environ.get("VERCEL_TOKEN", "").strip()
     if not vercel:
-        U.summary("- No VERCEL_TOKEN secret, so the app doesn't know about this collection yet. See web/README.md, \"Collections\".")
+        say("- No VERCEL_TOKEN secret, so the app doesn't know about this collection yet. See web/README.md, \"Collections\".")
         return
     U.mask(vercel)
     dbs = U.call("GET", f"{U.TURSO_API}/organizations/{turso['org']}/databases", turso["token"]).get("databases", [])
     urls = sorted(f"libsql://{d['Hostname']}" for d in dbs if str(d.get("Name", "")).startswith("rabai-collection-"))
     scope = U.set_vercel_env(vercel, {"RABAI_COLLECTION_DB_URLS": ",".join(urls)})
     U.redeploy(vercel, scope)
+    say(f"- The app now reads {len(urls)} collection database(s); a redeploy was started.")
 
 
 def usage_bytes(turso: dict) -> int | None:
@@ -414,7 +593,20 @@ def usage_bytes(turso: dict) -> int | None:
         return None
 
 
+def say(line: str = "") -> None:
+    """A line for the log, and for the run's summary page on GitHub."""
+    print(line, flush=True)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+
+
 # ---------------------------------------------------------------------------------------------
+
+
+def option(args: list[str], name: str, default: int = 0) -> int:
+    return int(args[args.index(name) + 1]) if name in args else default
 
 
 def main() -> int:
@@ -422,14 +614,16 @@ def main() -> int:
     if not args or args[0].startswith("-"):
         print(__doc__)
         return 2
+    started = time.time()
     permission = args[0]
-    limit = int(args[args.index("--limit") + 1]) if "--limit" in args else 0
+    limit = option(args, "--limit")
+    minutes = option(args, "--minutes")
     full = "--full" in args
-    sections = sections_for(permission)
-    if not sections:
+    canon_sections = sections_for(permission)
+    if not canon_sections:
         raise SystemExit(f"The canon lists no website sections for the permission '{permission}'.")
     granted = V.load_permissions()[permission]
-    homes = {s["site"]["home"] for s in sections}
+    homes = {s["site"]["home"] for s in canon_sections}
     if len(homes) != 1:
         raise SystemExit(f"The sections of '{permission}' name more than one site ({', '.join(sorted(homes))}); give each its own permission.")
     home = homes.pop()
@@ -450,19 +644,12 @@ def main() -> int:
     col.load()
     polite = L.Polite(home)
     wp = WordPress(polite, home)
-    print(f"# {label}: {len(sections)} sections; {len(col.by_url)} articles already copied; pause {polite.pause}s", flush=True)
-    totals = {}
-    ids = [col.work_and_edition(section) for section in sections]
-    col.rank = {eid: i for i, eid in enumerate(ids)}
-    for section, edition_id in zip(sections, ids):
-        if section["site"]["from"] != "wordpress":
-            print(f"- {section['title']}: reading a site's pages is not built yet; skipped")
-            continue
-        print(f"- {section['title']} ({section['edition']})", flush=True)
-        counts = copy_wordpress(col, wp, section, edition_id, limit, full)
-        totals[section["title"]] = counts
-        print(f"  {json.dumps(counts)}", flush=True)
-    col.flush()
+    print(f"# {label}: {len(canon_sections)} sections in the canon; {len(col.stored)} articles already copied; "
+          f"pause {polite.pause}s between requests", flush=True)
+
+    run = copy_site(col, wp, canon_sections, limit=limit, minutes=minutes, full=full, prune_all="--prune" in args)
+    sections, fetcher = run["sections"], run["fetcher"]
+    removed, kept_note = run["removed"], run["kept_note"]
 
     meta = {
         "label": LABEL,
@@ -480,23 +667,42 @@ def main() -> int:
     }
     sink.batch([("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", [k, v]) for k, v in meta.items()])
     text_bytes = sink.query("SELECT COALESCE(SUM(LENGTH(text)), 0) FROM passages")[0][0]
+    whole = sum(len(s.mine) for s in sections)
 
-    print(f"\n## {label} collection")
-    print(f"- Articles: {meta['articles']}; paragraphs: {meta['passages']}; text: {text_bytes / 1e6:.1f} MB")
-    print(f"- Requests to the site: {polite.requests}")
-    for title, counts in totals.items():
-        print(f"- {title}: " + ", ".join(f"{v} {k}" for k, v in counts.items() if v))
+    say(f"\n## {label} collection")
+    say(f"- Articles copied: {meta['articles']} of the {whole} the canon's sections list; paragraphs: {meta['passages']}; "
+        f"text: {text_bytes / 1e6:.1f} MB")
+    say(f"- Requests to the site: {polite.requests}; minutes: {(time.time() - started) / 60:.0f}")
+    for sec in sections:
+        say(f"- {sec.canon['title']}: " + ", ".join(f"{v} {k}" for k, v in sec.counts.items() if v))
+    if removed:
+        say(f"- Removed {removed} articles the site no longer lists.")
+    if kept_note:
+        say(f"- {kept_note}")
+    if fetcher.failed:
+        say(f"- {len(fetcher.failed)} articles failed on the site and will be tried again next run (post ids: "
+            f"{', '.join(fetcher.failed[:30])}{' ...' if len(fetcher.failed) > 30 else ''}).")
+    left = sum(s.counts["not reached"] for s in sections)
+    if left and not limit:
+        say(f"- {left} articles weren't reached in the time allowed; the next run continues with them.")
     if turso:
         size = usage_bytes(turso)
-        print(f"- Database: {turso['name']} ({'created now' if turso['created'] else 'updated'}); storage {size / 1e6:.0f} MB" if size else f"- Database: {turso['name']}")
+        say(f"- Database: {turso['name']} ({'created now' if turso['created'] else 'updated'})"
+            + (f"; storage {size / 1e6:.0f} MB" if size else ""))
         if turso["created"] or "--connect" in args:
             connect_app(turso)
     elif isinstance(sink, L.LocalSink):
         sink.con.execute("INSERT INTO passages_fts (passages_fts) VALUES ('optimize')")
         sink.con.commit()
+        sink.con.execute("VACUUM")
         out = Path(args[args.index("--out") + 1])
+        copied = int(meta["articles"])
         sink.close()
-        print(f"- Local file: {out.stat().st_size / 1e6:.0f} MB")
+        size = out.stat().st_size
+        say(f"- Local file: {size / 1e6:.1f} MB")
+        if copied and whole > copied:
+            say(f"- Estimated size with all {whole} articles: about {size * whole / copied / 1e6:.0f} MB "
+                f"(from the {copied} copied here)")
     return 0
 
 
