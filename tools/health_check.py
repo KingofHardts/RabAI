@@ -80,6 +80,14 @@ def plain(value) -> str:
 # 1. Turso
 
 
+def when_fields(d: dict) -> str:
+    """The date-like fields of a Turso answer (when a period starts, ends or resets), as text."""
+    words = ("period", "start", "end", "reset", "renew", "cycle", "date")
+    found = {k: v for k, v in (d or {}).items() if isinstance(v, (str, int, float)) and not isinstance(v, bool)
+             and any(w in k.lower() for w in words)}
+    return ", ".join(f"{k} = {plain(v)}" for k, v in sorted(found.items()))
+
+
 def check_turso() -> None:
     summary("## Turso (the databases)")
     token = os.environ.get("TURSO_API_TOKEN", "").strip()
@@ -107,6 +115,9 @@ def check_turso() -> None:
         sub = call("GET", f"{base}/subscription", token).get("subscription", {})
         plan_name = sub.get("plan") or sub.get("name")
         summary(f"- Plan: {plain(plan_name)}" + (f" (overages {plain(sub.get('overages'))})" if "overages" in sub else ""))
+        dates = when_fields(sub)
+        if dates:
+            summary("- Billing: " + dates)
         plans = call("GET", f"{base}/plans", token).get("plans", [])
         for p in plans:
             if plan_name and p.get("name") == plan_name:
@@ -120,6 +131,9 @@ def check_turso() -> None:
         usage = call("GET", f"{base}/usage", token).get("organization", {})
         totals = usage.get("usage", {}) or {}
         summary("- Used this month: " + ", ".join(f"{k} = {plain(v)}" for k, v in sorted(totals.items())))
+        dates = when_fields(usage) or when_fields(totals)
+        if dates:
+            summary("- Usage period (storage counts every database used in it, deleted ones too): " + dates)
         for key, quota_key in (("rows_read", "rowsRead"), ("rows_written", "rowsWritten"), ("storage_bytes", "storage")):
             used, limit = totals.get(key), quotas.get(quota_key)
             if isinstance(used, (int, float)) and isinstance(limit, (int, float)) and limit > 0:
