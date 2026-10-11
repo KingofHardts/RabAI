@@ -323,6 +323,8 @@ FEED_TYPES = ("application/rss+xml", "application/atom+xml", "application/feed+j
 # Addresses that look like a site's own interface, as they appear in its pages and scripts.
 API_RE = re.compile(r"""(https?://[A-Za-z0-9.-]+\.[a-z]{2,}(?:/[A-Za-z0-9._~%-]*)*)|["'`](/(?:api|graphql|v[0-9])[/?][A-Za-z0-9._~/%-]*)""")
 API_WORDS = re.compile(r"api|graphql|/v[0-9]+/|wp-json|lecture|speaker|shiur", re.I)
+# Pictures, styles, fonts and media files are not interfaces, even when their address says "lecture".
+NOT_AN_INTERFACE = re.compile(r"\.(?:png|jpe?g|gif|webp|avif|svg|ico|css|woff2?|ttf|mp3|mp4|m4a|webm)(?:$|[?#])|/thumbnails?/", re.I)
 
 
 def feed_links(body: bytes, base: str) -> list[str]:
@@ -420,7 +422,7 @@ def probe_feeds(name: str, site: dict, home_status: int, home_headers: dict, hom
         for b in bodies:
             for full, rel in API_RE.findall(b):
                 a = full or rel
-                if API_WORDS.search(a):
+                if API_WORDS.search(a) and not NOT_AN_INTERFACE.search(a):
                     apis.append(a)
     apis = list(dict.fromkeys(a.rstrip("/") for a in apis))
     print(f"  interface addresses named in the home page and its scripts: {len(apis)}")
@@ -428,6 +430,10 @@ def probe_feeds(name: str, site: dict, home_status: int, home_headers: dict, hom
         print(f"    {a}")
     for url in PAGE_GUESSES.get(name, []):
         sample(url, rp)
+    if DATA_PAGES.get(name):
+        print("\nthe pages' own data (field names, kinds of links and media hosts only):")
+        for url in DATA_PAGES[name]:
+            page_data(url, rp)
     if blocked:
         archive_coverage(name)
 
@@ -437,8 +443,38 @@ ARCHIVE_PREFIXES = {
 }
 PAGE_GUESSES = {
     # Pages to look at the shape of when a site has no sitemap (structure only).
-    "torahanytime": ["https://www.torahanytime.com/speakers", "https://www.torahanytime.com/lectures/300000", "https://www.torahanytime.com/search?q=kiddushin"],
+    "torahanytime": ["https://www.torahanytime.com/speakers", "https://www.torahanytime.com/lectures/300000"],
 }
+# Pages whose data the site sends inside the page (a Next.js app's own data), looked at for the
+# names of their fields, the kinds of addresses they link to, and their media hosts (never values).
+DATA_PAGES = {
+    "torahanytime": [
+        "https://www.torahanytime.com/lectures/300000",
+        "https://www.torahanytime.com/",
+        "https://www.torahanytime.com/speakers",
+    ],
+}
+KEY_RE = re.compile(r'\\?"([A-Za-z_][A-Za-z0-9_]{1,40})\\?":')
+PATH_RE = re.compile(r'(?:href=|\\?"href\\?":|\\?"url\\?":|\\?")\\?"?(/[a-z][a-z0-9-]*(?:/[A-Za-z0-9_.-]+)?)')
+MEDIA_RE = re.compile(r"https?://([A-Za-z0-9.-]+)/[^\s\"'<>\\]*\.(mp3|mp4|m4a|m3u8|webm|ogg)", re.I)
+
+
+def page_data(url: str, rp) -> None:
+    """The names of the fields a page's own data carries, the kinds of links in it, and its media hosts."""
+    if not rp.can_fetch(ROBOT_NAME, url):
+        print(f"- {url}: robots.txt asks robots to leave it alone")
+        return
+    status, body, _, headers = fetch(url)
+    print(f"- {url}: HTTP {status}{blocked_hint(status, headers, body)}")
+    if status != 200:
+        return
+    text = body.decode("utf-8", "replace")
+    keys = Counter(KEY_RE.findall(text))
+    print(f"    field names in the page's data (most common 60): {[k for k, _ in keys.most_common(60)]}")
+    paths = Counter("/".join(p.split("/")[:2]) + ("/<id>" if p.count("/") > 1 and p.split("/")[2].isdigit() else ("/<name>" if p.count("/") > 1 else "")) for p in PATH_RE.findall(text))
+    print(f"    kinds of links: {dict(paths.most_common(25))}")
+    media = Counter(f"{h} (.{ext})" for h, ext in MEDIA_RE.findall(text))
+    print(f"    media hosts: {dict(media.most_common(8))}")
 FEED_GUESSES = {
     # Addresses to try even if no page names them (status codes and item counts only).
     "chabad": ["https://www.chabad.org/tools/rss/default.xml", "https://www.chabad.org/rss.xml", "https://www.chabad.org/feed"],
