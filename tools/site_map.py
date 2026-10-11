@@ -368,6 +368,54 @@ def probe_wordpress(site: dict) -> None:
         print(f"categories: {len(cats)} (path, slug, posts)")
         for c in sorted(cats, key=path):
             print(f"  {c['count']:6d}  {path(c)}  [{c['slug']}, id {c['id']}]")
+    # Where the article's real author is kept, and how the category filter counts subcategories.
+    def keys_of(value, depth=0):
+        if isinstance(value, dict) and depth < 2:
+            return {k: keys_of(v, depth + 1) for k, v in value.items()}
+        return type(value).__name__
+
+    status, body, _, headers = fetch(base + "/wp/v2/posts?per_page=2")
+    if status == 200:
+        try:
+            posts = json.loads(body)
+            for post in posts:
+                y = post.get("yoast_head_json") or {}
+                graph = (y.get("schema") or {}).get("@graph") or []
+                schema_authors = [g.get("author", {}).get("name") for g in graph if isinstance(g, dict) and isinstance(g.get("author"), dict)]
+                people = [g.get("name") for g in graph if isinstance(g, dict) and g.get("@type") == "Person"]
+                print(f"post {post.get('id')} fields: {sorted(post)}")
+                print(f"  yoast_head_json fields: {sorted(y)}")
+                print(f"  yoast author: {y.get('author')!r}; schema Article author: {schema_authors}; schema people: {people}")
+                print(f"  acf: {keys_of(post.get('acf')) if post.get('acf') else None}; meta: {keys_of(post.get('meta')) if post.get('meta') else None}")
+                print(f"  links: {sorted((post.get('_links') or {}))}")
+        except ValueError:
+            print("  (not JSON)")
+    status, body, _, headers = fetch(base + "/wp/v2/posts?per_page=1&_fields=id,yoast_head_json.author")
+    print(f"nested _fields (yoast_head_json.author): HTTP {status}; body {body[:200]!r}")
+    status, body, _, headers = fetch(base + "/wp/v2/authors?per_page=1")
+    if status == 200:
+        try:
+            item = json.loads(body)[0]
+            print(f"authors item fields: {sorted(item)}; acf: {keys_of(item.get('acf')) if item.get('acf') else None}; title: {(item.get('title') or {}).get('rendered')!r}")
+        except (ValueError, IndexError):
+            pass
+    if cats:
+        def descendants(cid):
+            out, frontier = {cid}, [cid]
+            while frontier:
+                nxt = [c["id"] for c in cats if c.get("parent") in frontier]
+                out.update(nxt)
+                frontier = nxt
+            return out
+
+        for slug in ("ask-the-rabbi", "torah-portion", "holidays"):
+            top = next((c for c in cats if c["slug"] == slug), None)
+            if not top:
+                continue
+            ids = sorted(descendants(top["id"]))
+            for label, q in (("the category alone", str(top["id"])), (f"with its {len(ids) - 1} subcategories", ",".join(map(str, ids)))):
+                status, body, _, headers = fetch(base + f"/wp/v2/posts?per_page=1&_fields=id&categories={q}")
+                print(f"posts in {slug}, {label}: HTTP {status}; total {headers.get('X-WP-Total') or headers.get('x-wp-total')}")
     for kind in ("parsha", "holiday", "authors", "author", "daily_quotes", "spirituality"):
         status, body, _, headers = fetch(base + f"/wp/v2/{kind}?per_page=1&_fields=id,link,type")
         print(f"route /wp/v2/{kind}: HTTP {status}; total {headers.get('X-WP-Total') or headers.get('x-wp-total')}")

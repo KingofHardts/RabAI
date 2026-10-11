@@ -40,6 +40,13 @@ Two refinements (founding spec, "Testing library"):
   (<...>) are removed from its text when the library is built, and any passage where they can't
   be separated cleanly is left out. Used where a digital copy mixed a modern editor's words into
   the author's text.
+- An edition may come from a section of an organization's website (`site:`, maintainer's
+  decision, 2026-10-10), copied by tools/collection_build.py into that site's own collection
+  database, never the whole site at once. `site.permission` names the site's written permission
+  (canon/permissions.yaml), and `site.home` must be one of its sites. `site.from` says how the
+  articles are read: `wordpress` (the site's WordPress interface; `include` and `exclude` are
+  category slugs, each with its subcategories) or `pages` (its article pages, found through its
+  sitemaps; `include` and `exclude` are patterns an article's address is matched against).
 """
 
 import json
@@ -68,6 +75,10 @@ PERMISSION_KEYS = {"id", "holder", "sites", "received", "how", "scope", "public"
 PERMISSION_ALSO_KEYS = {"version", "why"}
 SITE_RE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
 LEXICON_KEYS = {"name", "license", "printed"}
+# A section of an organization's website (an edition's `site:`).
+SITE_KEYS = {"permission", "home", "from", "include", "exclude", "note"}
+SITE_FROM = {"wordpress", "pages"}
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_%-]*$")
 
 
 def printed_ok(value) -> bool:
@@ -130,7 +141,51 @@ def private_permissions(edition: dict) -> list:
     """The private-only permissions (public: false) that an edition's versions rest on."""
     granted = load_permissions()
     ids = {v.get("permission") for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)}
+    if isinstance(edition.get("site"), dict):
+        ids.add(edition["site"].get("permission"))
     return sorted(i for i in ids if i in granted and granted[i].get("public") is False)
+
+
+def on_sites(url, sites) -> bool:
+    """Whether an address is on one of these sites (or their subdomains)."""
+    from urllib.parse import urlparse
+
+    host = urlparse(str(url or "")).hostname or ""
+    return any(host == site or host.endswith("." + site) for site in sites)
+
+
+def site_problems(site) -> list:
+    """What is wrong with an edition's `site:` block (a section of an organization's website)."""
+    if not isinstance(site, dict) or set(site) - SITE_KEYS:
+        return [f"site may only have the keys {sorted(SITE_KEYS)}"]
+    out = []
+    granted = load_permissions().get(site.get("permission"))
+    if not granted:
+        out.append(f"site permission '{site.get('permission')}' is not in canon/permissions.yaml")
+    home = str(site.get("home") or "")
+    if not home.startswith("https://"):
+        out.append("site home must be the site's https:// address")
+    elif granted and not on_sites(home, granted["sites"]):
+        out.append(f"site home {home} is not one of the permission's sites ({', '.join(granted['sites'])})")
+    how = site.get("from")
+    if how not in SITE_FROM:
+        out.append(f"site from must be one of {sorted(SITE_FROM)}")
+    for field in ("include", "exclude"):
+        value = site.get(field)
+        if field == "exclude" and value is None:
+            continue
+        if not isinstance(value, list) or not value or not all(isinstance(v, str) and v.strip() for v in value):
+            out.append(f"site {field} must be a non-empty list")
+            continue
+        for v in value:
+            if how == "wordpress" and not SLUG_RE.match(v):
+                out.append(f"site {field}: '{v}' is not a WordPress category slug")
+            elif how == "pages":
+                try:
+                    re.compile(v)
+                except re.error as e:
+                    out.append(f"site {field}: '{v}' is not a valid pattern ({e})")
+    return out
 
 
 def version_usable(v: dict) -> bool:
@@ -284,6 +339,11 @@ def check_canon(vocab: dict, canon: dict) -> dict:
                     fail(f"{ewhere}: word_tool_only is either true or left out")
                 elif not isinstance(lexicon, dict) or work.get("kind") != "reference":
                     fail(f"{ewhere}: only a dictionary (kind: reference, with sefaria_lexicon) may be a word tool")
+            if "site" in edition:
+                for problem in site_problems(edition["site"]):
+                    fail(f"{ewhere}: {problem}")
+                if versions is not None or lexicon is not None:
+                    fail(f"{ewhere}: a website section (site) can't also list sefaria_versions or sefaria_lexicon")
             if "strip_brackets" in edition and edition["strip_brackets"] != "angle":
                 fail(f"{ewhere}: strip_brackets may only be 'angle'")
             if "vowels_only" in edition:
@@ -421,12 +481,13 @@ def testing(canon_ids: dict, barred: set) -> list:
         for edition in work.get("editions") or []:
             versions = [v for v in edition.get("sefaria_versions") or [] if isinstance(v, dict)] if work.get("sefaria") else []
             lexicon = edition.get("sefaria_lexicon") if isinstance(edition.get("sefaria_lexicon"), dict) else None
+            site = edition.get("site") if isinstance(edition.get("site"), dict) and not site_problems(edition.get("site")) else None
             word_tool = edition.get("word_tool_only") is True and lexicon is not None and work.get("kind") == "reference"
             if (
                 (edition.get("orthodox") is True or (word_tool and edition.get("orthodox") == "review"))
                 and edition.get("license") in ("verify", "cleared")
                 and edition.get("status") != "excluded"
-                and (versions or lexicon)
+                and (versions or lexicon or site)
                 and all(version_key(v.get("version")) not in barred for v in versions)
                 and all(version_usable(v) for v in versions)
                 and (lexicon is None or licenses_open(lexicon.get("license")))
@@ -440,6 +501,7 @@ def testing(canon_ids: dict, barred: set) -> list:
                         "sefaria": work.get("sefaria"),
                         "sefaria_versions": versions,
                         "sefaria_lexicon": lexicon,
+                        **({"site": site} if site else {}),
                         "word_tool_only": word_tool,
                         "vowels_only": edition.get("vowels_only") is True,
                         "approved": work.get("status") == "approved" and edition.get("status") == "approved",
@@ -494,7 +556,11 @@ def main() -> int:
     print(f"Retrieval whitelist: {len(allowed)} editions")
     if not allowed:
         print("  (empty until the board approves works and editions and their licenses are cleared)")
+    sections = [e for e in test_list if e.get("site")]
     print(f"Testing library: {len(test_list)} editions (private, labeled not yet approved by the board)")
+    if sections:
+        by_site = Counter(e["site"]["permission"] for e in sections)
+        print("  website sections: " + ", ".join(f"{k} {v}" for k, v in sorted(by_site.items())))
 
     if errors:
         print(f"\n{len(errors)} problem(s):", file=sys.stderr)
