@@ -9,11 +9,13 @@ summary:
 2. Vercel: the latest production deploy, and which settings exist (names and kinds only).
 3. The settings, used the way the app uses them. Each value is masked in the log before it is
    used, and none is ever printed:
-   - the library and translation databases each answer a small query;
+   - the library, translation and website-collection databases each answer a small query (a
+     collection reports its article count);
    - the Anthropic key answers a one-word request (a fraction of a cent).
-4. The live app: the lock page answers, the access code opens it, the library lists its books,
-   and one real question is answered (about the cost of one question in the app). Only whether
-   each step worked is printed, never the answer.
+4. The live app: the lock page answers, the access code opens it, the library lists its books and
+   the articles' sections, and one real question is answered (about the cost of one question in
+   the app). Only whether each step worked is printed, never the answer, and never an article's
+   title or words (only counts).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -24,6 +26,7 @@ Uses only the standard library and the helpers in tools/library_upload.py.
 import http.cookiejar
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -51,6 +54,7 @@ SETTINGS = (
     "RABAI_AUTH_SECRET",
     "RESEND_API_KEY",
     "RABAI_MAIL_FROM",
+    "RABAI_COLLECTION_DB_URLS",
 )
 QUESTION = "What is the first word of the Torah, and what does it mean?"
 
@@ -129,7 +133,8 @@ def check_turso() -> None:
     try:
         listed = call("GET", f"{base}/databases", token).get("databases", [])
         names = {d.get("Name") or d.get("name"): d for d in listed}
-        for name in DATABASES:
+        collections = sorted(n for n in names if isinstance(n, str) and n.startswith("rabai-collection-"))
+        for name in [*DATABASES, *collections]:
             d = names.get(name)
             if not d:
                 summary(f"- Database `{name}`: not there.")
@@ -222,17 +227,29 @@ def setting_value(by_name: dict, name: str, project_id: str, scope: str) -> str 
 # 3. The settings, used as the app uses them
 
 
-def check_database(label: str, url: str | None, token: str | None) -> None:
+def check_database(label: str, url: str | None, token: str | None, count: str | None = None) -> None:
+    """Ask a database one small question with the app's own settings. `count` is an extra query
+    whose single answer (a name and a number, never a database's text) is reported."""
     if not url or not token:
         summary(f"- {label}: its settings couldn't be read here (they may be marked sensitive), so it wasn't tested.")
         return
     host = url.split("://", 1)[-1].strip("/")
-    body = {"requests": [{"type": "execute", "stmt": {"sql": "SELECT count(*) FROM sqlite_master"}}, {"type": "close"}]}
+    stmts = [{"type": "execute", "stmt": {"sql": "SELECT count(*) FROM sqlite_master"}}]
+    if count:
+        stmts.append({"type": "execute", "stmt": {"sql": count}})
+    body = {"requests": [*stmts, {"type": "close"}]}
     try:
         out = call("POST", f"https://{host}/v2/pipeline", token, body, attempts=2)
         first = out["results"][0]
         if first.get("type") == "ok":
-            summary(f"- {label}: answers with the app's own settings.")
+            extra = ""
+            if count and len(out["results"]) > 1 and out["results"][1].get("type") == "ok":
+                try:
+                    cell = out["results"][1]["response"]["result"]["rows"][0][0]
+                    extra = f" ({plain(cell.get('value') if isinstance(cell, dict) else cell)})"
+                except (KeyError, IndexError, TypeError):
+                    extra = ""
+            summary(f"- {label}: answers with the app's own settings{extra}.")
         else:
             err = (first.get("error") or {}).get("message", "unknown error")
             problem(f"{label} refused the app's query: {plain(err)}")
@@ -271,7 +288,7 @@ def check_anthropic(key: str | None, model: str) -> None:
 # 4. The live app
 
 
-def check_app(code: str | None) -> None:
+def check_app(code: str | None, collections_expected: bool = False) -> None:
     summary("## The live app")
     jar = http.cookiejar.CookieJar()
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
@@ -320,6 +337,23 @@ def check_app(code: str | None) -> None:
             problem("The app isn't connected to the testing library.")
         elif not lib.get("sections"):
             problem("The app is connected to the testing library, but it listed no books (the database didn't answer).")
+        # The website collections: only counts are printed, never an article's title or words.
+        shelves = [s for s in lib.get("articleShelves") or [] if isinstance(s, dict)]
+        if shelves:
+            sites = sorted({str(s.get("site")) for s in shelves})
+            total = sum(int(s.get("count") or 0) for s in shelves)
+            summary(f"- The articles: {len(shelves)} sections, {total:,} articles, from {', '.join(sites)}.")
+            work = str(shelves[0].get("work") or "")
+            status, raw = fetch("/api/articles?work=" + urllib.parse.quote(work))
+            try:
+                listed = json.loads(raw).get("articles") or []
+                summary(f"- One section's list of articles: HTTP {status}, {len(listed)} listed.")
+                if status != 200 or not listed:
+                    problem(f"A section's list of articles answered HTTP {status} with {len(listed)} articles.")
+            except ValueError:
+                problem(f"A section's list of articles answered HTTP {status} with something that isn't JSON.")
+        elif collections_expected:
+            problem("`RABAI_COLLECTION_DB_URLS` is set, but the app listed no articles.")
     except ValueError:
         problem(f"The library list answered HTTP {status} with something that isn't JSON.")
 
@@ -396,13 +430,13 @@ def check_app(code: str | None) -> None:
         problem(f"A live answer ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
 
 
-def check_browser(code: str | None) -> None:
+def check_browser(code: str | None, articles: bool = False) -> None:
     """Open the app in a real browser (tools/health_browser.cjs), when Playwright is installed."""
     pw = os.environ.get("PW_PATH")
     if not pw or not code:
         summary("- The browser test didn't run (no Playwright or no access code).")
         return
-    env = {**os.environ, "RABAI_CODE": code, "APP": APP}
+    env = {**os.environ, "RABAI_CODE": code, "APP": APP, "ARTICLES_EXPECTED": "1" if articles else ""}
     try:
         out = subprocess.run(["node", "tools/health_browser.cjs"], env=env, capture_output=True, text=True, timeout=400)
     except subprocess.TimeoutExpired:
@@ -436,17 +470,29 @@ def main() -> int:
     check_database("The library (`TURSO_*`)", value("TURSO_DATABASE_URL"), value("TURSO_AUTH_TOKEN"))
     if "TRANSLATIONS_DATABASE_URL" in by_name:
         check_database("The translation library (`TRANSLATIONS_*`)", value("TRANSLATIONS_DATABASE_URL"), value("TRANSLATIONS_AUTH_TOKEN"))
+    collection_urls = [u for u in re.split(r"[\s,]+", value("RABAI_COLLECTION_DB_URLS") or "") if u]
+    for i, url in enumerate(collection_urls, 1):
+        mask(url)
+        check_database(
+            f"Website collection {i} (`RABAI_COLLECTION_DB_URLS`)",
+            url,
+            value("RABAI_COLLECTION_DB_TOKEN") or value("TURSO_AUTH_TOKEN"),
+            count="SELECT (SELECT value FROM meta WHERE key = 'site') || ', ' || (SELECT COUNT(*) FROM articles) || ' articles'",
+        )
+    if "RABAI_COLLECTION_DB_URLS" in by_name and not collection_urls:
+        summary("- The website collections: their setting couldn't be read here, so they weren't tested.")
     key = value("ANTHROPIC_API_KEY")
     check_anthropic(key, value("RABAI_MODEL") or "claude-opus-5-5")
     check_anthropic(key, value("RABAI_LOOKUP_MODEL") or "claude-sonnet-5-5")
 
     code = value("RABAI_ACCESS_CODE")
+    expected = "RABAI_COLLECTION_DB_URLS" in by_name
     try:
-        check_app(code)
+        check_app(code, expected)
     except Exception as e:  # noqa: BLE001
         problem(f"The live app couldn't be checked: {plain(e)}")
     summary("## The live app in a browser")
-    check_browser(code)
+    check_browser(code, expected)
 
     summary("## Result")
     if problems:

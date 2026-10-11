@@ -10,6 +10,8 @@ const { chromium, devices } = require(process.env.PW_PATH || "playwright");
 const APP = process.env.APP || "https://rab-ai-ecru.vercel.app";
 const CODE = process.env.RABAI_CODE || "";
 const QUESTION = "What is the first word of the Torah, and what does it mean?";
+// Set when the app has website collections, so the Articles screens should be there.
+const ARTICLES = process.env.ARTICLES_EXPECTED === "1";
 
 function say(kind, text) {
   console.log(`${kind} ${text.replace(/\s+/g, " ").slice(0, 300)}`);
@@ -28,6 +30,27 @@ async function unlock(page) {
   await page.waitForSelector("#ask-input", { timeout: 60000 });
 }
 
+// Learn, Articles, the first section, its first article: only counts and yes or no are printed,
+// never an article's title or words.
+async function walkArticles(page, name) {
+  await page.evaluate(() => window.localStorage.setItem("rabai_mode", "learn"));
+  await page.reload({ waitUntil: "networkidle", timeout: 60000 });
+  const row = page.locator("button.lib-row", { hasText: "Articles" });
+  await row.waitFor({ timeout: 60000 });
+  await row.click();
+  const shelves = page.locator(".learn-screen button.lib-row");
+  await shelves.first().waitFor({ timeout: 30000 });
+  const n = await shelves.count();
+  await shelves.first().click();
+  const items = page.locator(".article-rows .lib-row");
+  await items.first().waitFor({ timeout: 30000 });
+  const listed = await items.count();
+  await items.first().click();
+  await page.locator(".article-credit").first().waitFor({ timeout: 30000 });
+  const lines = await page.locator(".line.article").count();
+  say("OK", `${name}: Learn shows Articles (${n} sections); a section listed ${listed}; an article opened with its credit line and ${lines} paragraphs.`);
+}
+
 async function run(name, options, ask) {
   const browser = await chromium.launch();
   const context = await browser.newContext(options);
@@ -43,6 +66,13 @@ async function run(name, options, ask) {
   try {
     await unlock(page);
     say("OK", `${name}: the app opened after the access code.`);
+    if (ARTICLES && !ask) {
+      try {
+        await walkArticles(page, name);
+      } catch (e) {
+        say("PROBLEM", `${name}: the Articles screens: ${e.message.split("\n")[0]}`);
+      }
+    }
     if (ask) {
       const started = Date.now();
       await page.fill("#ask-input", QUESTION);
