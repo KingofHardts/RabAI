@@ -441,6 +441,8 @@ def probe_feeds(name: str, site: dict, home_status: int, home_headers: dict, hom
         print("\nthe pages' own data (field names, kinds of links and media hosts only):")
         for url in DATA_PAGES[name]:
             page_data(url, rp)
+    if ROUTE_GUESSES.get(name):
+        route_probe(name, home_body, rp)
     if blocked:
         archive_coverage(name)
 
@@ -486,6 +488,69 @@ def page_data(url: str, rp) -> None:
     print(f"    how often a few lecture fields appear (counts only): {records}")
     media = Counter(f"{h} (.{ext})" for h, ext in MEDIA_RE.findall(text))
     print(f"    media hosts: {dict(media.most_common(8))}")
+# Page addresses to try on a site with no sitemap, as templates. A <name> is filled with a value
+# taken from the site's own page data (never printed), so only the template and what came back show.
+ROUTE_GUESSES = {
+    "torahanytime": [
+        "/speakers/<speaker_id>", "/speakers/<slug>", "/speaker/<speaker_id>", "/topics/<topic_id>",
+        "/topic/<topic_id>", "/subtopics/<subtopic_id>", "/categories/<category>", "/category/<category>",
+        "/subcategories/<subcategory>", "/projects/<project_id>", "/series/<project_id>", "/topics",
+        "/categories", "/series", "/daf-yomi", "/dafyomi", "/browse", "/explore", "/latest", "/search",
+        "/search/kiddushin", "/lectures", "/lectures?search=kiddushin", "/api/lectures",
+        "/api/search?q=kiddushin", "/api/v1/lectures", "/sitemap-0.xml", "/server-sitemap.xml",
+    ],
+}
+VALUE_RES = {
+    "speaker_id": r'\\?"speaker_id\\?":\\?"?([0-9]+)',
+    "slug": r'\\?"slug\\?":\\?"([a-z0-9][a-z0-9-]{1,60})\\?"',
+    "topic_id": r'\\?"topic_id\\?":\\?"?([0-9]+)',
+    "subtopic_id": r'\\?"subtopic_id\\?":\\?"?([0-9]+)',
+    "project_id": r'\\?"project_id\\?":\\?"?([0-9]+)',
+    "category": r'\\?"category\\?":\\?"?([0-9]+)',
+    "subcategory": r'\\?"subcategor(?:y|ies)\\?":\[?\{?(?:\\?"id\\?":)?\\?"?([0-9]+)',
+}
+
+
+def route_probe(name: str, home_body: bytes, rp) -> None:
+    """Try likely page addresses (status, title and counts of lecture fields only; no values)."""
+    print("\nlikely page addresses (templates; the values filled in are not shown):")
+    texts = [home_body.decode("utf-8", "replace")] if home_body else []
+    for url in DATA_PAGES.get(name, [])[:3]:
+        status, body, _, _ = fetch(url)
+        if status == 200:
+            texts.append(body.decode("utf-8", "replace"))
+    values = {}
+    for key, pattern in VALUE_RES.items():
+        for t in texts:
+            m = re.search(pattern, t)
+            if m:
+                values[key] = m.group(1)
+                break
+    print(f"  values found in the page data for: {sorted(values)}")
+    base = SITES[name]["home"].rstrip("/")
+    for template in ROUTE_GUESSES[name]:
+        keys = re.findall(r"<([a-z_]+)>", template)
+        if any(k not in values for k in keys):
+            print(f"  {template}: no value to try")
+            continue
+        path = template
+        for k in keys:
+            path = path.replace(f"<{k}>", urllib.parse.quote(values[k]))
+        url = base + path
+        if not rp.can_fetch(ROBOT_NAME, url):
+            print(f"  {template}: robots.txt asks robots to leave it alone")
+            continue
+        status, body, final, headers = fetch(url)
+        text = body.decode("utf-8", "replace") if body else ""
+        title = re.search(r"<title[^>]*>(.*?)</title>", text, re.S | re.I)
+        keys_seen = Counter(KEY_RE.findall(text))
+        counts = {k: keys_seen.get(k, 0) for k in ("lecture_title", "title", "date_created", "speaker_name_last", "total", "count", "page")}
+        moved = " (moved)" if final.rstrip("/") != url.rstrip("/") else ""
+        kind = (headers.get("Content-Type") or headers.get("content-type") or "?").split(";")[0]
+        has_title = "a title" if (title and title.group(1).strip()) else "no title"
+        print(f"  {template}: HTTP {status}{moved}, {kind}, {len(text):,} characters, {has_title}; fields: {counts}")
+
+
 FEED_GUESSES = {
     # Addresses to try even if no page names them (status codes and item counts only).
     "chabad": ["https://www.chabad.org/tools/rss/default.xml", "https://www.chabad.org/rss.xml", "https://www.chabad.org/feed"],
