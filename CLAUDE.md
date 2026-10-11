@@ -257,7 +257,7 @@ Open items:
 - Translating inside a Claude Code session works end to end (`docs/session-translation.md`).
   Rashi and Tosafot on Berakhot 2a-13a (chapter 1, 604 comments) are translated and imported
   (2026-10-07 and 2026-10-11). Kiddushin, the tractate the maintainer is learning, is under way:
-  2a-44b (3,682 passages) were translated on 2026-10-11 and sent through the inbox: Rashi and Tosafot with a general
+  2a-46b (3,828 passages) were translated on 2026-10-11 and sent through the inbox: Rashi and Tosafot with a general
   translation and word by word, and the Gemara lines word by word only, since they have
   Steinsaltz's English. `send --words` makes word-by-word lists even for lines that have the
   library's English, `--pages 5a-5b` picks amudim, and anything already in the shared library is
