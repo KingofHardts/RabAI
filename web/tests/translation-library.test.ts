@@ -58,8 +58,8 @@ function fakeStore(passages: Passage[] = [GEMARA, RASHI1, RASHI2, RASHI3, TOSAFO
     async dictionary() {
       return [JASTROW];
     },
-    async untranslated(_titles, after, limit) {
-      return passages.filter((p) => / on /.test(p.ref) && !p.en && p.order > after).slice(0, limit);
+    async toTranslate(_titles, after, limit, withEnglish = false) {
+      return passages.filter((p) => (withEnglish ? p.he : / on /.test(p.ref) && !p.en) && p.order > after).slice(0, limit);
     },
   };
   return store as TestingStore;
@@ -146,6 +146,41 @@ test("short passages of one page go in one request, and each answer is found by 
   const one = assembleOne({ ref: RASHI2.ref, he: RASHI2.he, en: "", sources: [] }, { general: true, words: false }, parts.get(RASHI2.ref)!, []);
   assert.equal(one.general, "The Shema of the night.");
   assert.equal(one.words, undefined);
+});
+
+test("word by word is made for a line that has the library's English too, and only word by word", async () => {
+  const LINE = P(GEMARA.ref, GEMARA.he, GEMARA.en, 5);
+  const testing = fakeStore([LINE, RASHI1, JASTROW]);
+  const client = createClient({ url: ":memory:" });
+  const library = createTranslationStore({ run: async (sql, args = []) => (await client.execute({ sql, args })).rows.map((r) => ({ ...r })) });
+
+  const general = { titles: ["Berakhot"], want: { general: true, words: false }, model: "claude-opus-5-5" };
+  assert.deepEqual((await pendingPassages(testing, library, general, 10)).map((p) => p.ref), [RASHI1.ref], "a general translation only where there is no English");
+
+  const words = { titles: ["Berakhot"], want: { general: true, words: true }, model: "claude-opus-5-5" };
+  const pending = await pendingPassages(testing, library, words, 10);
+  assert.deepEqual(pending.map((p) => p.ref), [LINE.ref, RASHI1.ref], "word by word: the line with English is chosen too");
+
+  const { requests, manifest } = await buildRequests(testing, [LINE], words, "t2");
+  const asked = JSON.stringify(requests[0].params);
+  assert.match(asked, /The library's English for it/);
+  assert.match(asked, /WORDS:/);
+  assert.doesNotMatch(asked, /GENERAL:\\" \(only/, "a line that has English isn't given a general translation");
+
+  const id = requests[0].custom_id;
+  const batches: BatchClient = {
+    create: async () => ({ id: "b2" }),
+    ended: async () => true,
+    async *results() {
+      yield { custom_id: id, model: "claude-opus-5-5", text: `[${LINE.ref}]\nWORDS:\nמאימתי | from when\nקורין | do we recite\nאת | (marks the object)\nשמע | Shema\nבערבין | in the evenings` };
+    },
+  };
+  const report = await collectBatch(testing, library, batches, { batchId: "b2", madeOn: "2026-10-11", model: "claude-opus-5-5", status: "submitted", manifest });
+  assert.equal(report.kept, 1);
+  const kept = (await library.get([LINE.ref])).get(LINE.ref)!;
+  assert.equal(kept.translation.general, null, "the library's English stays the translation");
+  assert.equal(kept.translation.words?.length, 5);
+  assert.ok((await library.have([{ ref: LINE.ref, check: textCheck(LINE.he) }], words.want)).has(LINE.ref), "a later fill skips it");
 });
 
 test("the batch job sends only what is missing and keeps what comes back", async () => {

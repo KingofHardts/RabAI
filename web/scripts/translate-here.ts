@@ -14,6 +14,10 @@
  *   export RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db
  *   export RABAI_TRANSLATIONS_DB_URL=file:../library/rabai-translations-local.db
  *   npx tsx scripts/translate-here.ts send --books "Rashi on Berakhot" --limit 100 [--words] [--like ...] [--works ...]
+ *
+ * --words also makes word-by-word lists for passages that have the library's English (the Gemara),
+ * which get only that list. RABAI_LIBRARY_DB_URL may be the library on Turso (libsql://...) when the
+ * session has its read-only token as a network secret (docs/session-translation.md).
  *   npx tsx scripts/translate-here.ts status
  *   npx tsx scripts/translate-here.ts collect [--job ID] [--partial]
  *   npx tsx scripts/translate-here.ts seal

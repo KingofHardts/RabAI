@@ -122,8 +122,8 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
     dafLayout: (section) => main.dafLayout(section),
     vowels: (refs) => main.vowels(refs),
     booksFor: (select) => main.booksFor(select),
-    untranslated: (titles, afterSeq, limit) => main.untranslated(titles, afterSeq, limit),
-    untranslatedCount: (titles) => main.untranslatedCount(titles),
+    toTranslate: (titles, afterSeq, limit, withEnglish) => main.toTranslate(titles, afterSeq, limit, withEnglish),
+    toTranslateCount: (titles, withEnglish) => main.toTranslateCount(titles, withEnglish),
     // The shelves list the library's books; the articles have their own list (articleShelves).
     books: () => main.books(),
     catalog: () => main.catalog(),

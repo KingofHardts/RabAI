@@ -89,7 +89,11 @@ export interface Selection {
   model: string;
 }
 
-/** Passages of the selection that still need a translation, in reading order, at most `limit`. */
+/**
+ * Passages of the selection that still need a translation, in reading order, at most `limit`. With
+ * word by word wanted, a passage that has the library's English is included too: its word-by-word
+ * list is made, and a general translation only where there is no English (planTranslation).
+ */
 export async function pendingPassages(
   store: TestingStore,
   library: TranslationStore,
@@ -99,7 +103,7 @@ export async function pendingPassages(
   const out: Passage[] = [];
   let after = 0;
   for (let page = 0; out.length < limit && page < 10_000; page++) {
-    const batch = await store.untranslated(sel.titles, after, 200);
+    const batch = await store.toTranslate(sel.titles, after, 200, sel.want.words);
     if (!batch.length) break;
     after = Math.max(...batch.map((p) => p.order));
     const done = await library.have(
@@ -182,7 +186,9 @@ export async function buildRequests(
       for (const job of plan.jobs) add(`${stamp}-${g}-${job.key}`, job.params, entryOf(job.key, inputs));
     } else {
       const sources = await gatherGroupSources(store, group);
-      add(`${stamp}-${g}-group`, groupRequest(inputs, sources, sel.want, sel.model), entryOf("group", inputs));
+      // A group whose passages all have the library's English asks only for word by word.
+      const want = { general: sel.want.general && inputs.some((i) => !i.en.trim()), words: sel.want.words };
+      add(`${stamp}-${g}-group`, groupRequest(inputs, sources, want, sel.model), entryOf("group", inputs));
     }
   }
   return { requests, manifest, words };

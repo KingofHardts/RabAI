@@ -149,7 +149,7 @@ async function main() {
   const sel: Selection = { titles, want: { general: true, words: flag("words") }, model };
 
   // The estimate: tokens in from a sample of real requests, tokens out from earlier fills or an assumption.
-  const counted = await store.untranslatedCount(titles);
+  const counted = await store.toTranslateCount(titles, sel.want.words);
   const sample = await pendingPassages(store, library, sel, 60);
   const built = await buildRequests(store, sample, sel, "est");
   let inTokens = 0;
@@ -170,7 +170,7 @@ async function main() {
 
   say(`### RabAI's translation library: ${mode}`);
   say(`- Books: ${titles.length <= 8 ? titles.join(", ") : `${titles.slice(0, 8).join(", ")} and ${titles.length - 8} more`}`);
-  say(`- Passages without English: ${counted.passages.toLocaleString()}, about ${counted.words.toLocaleString()} Hebrew words (some may already be translated).`);
+  say(`- Passages${sel.want.words ? "" : " without English"}: ${counted.passages.toLocaleString()}, about ${counted.words.toLocaleString()} Hebrew words (some may already be translated${sel.want.words ? "; the estimate counts a general translation for every one, so it runs high where the library has English" : ""}).`);
   say(`- Making: the general translation${sel.want.words ? " and word by word" : ""}, with ${model}, at batch prices.`);
   say(`- Tokens in: about ${Math.round(inPerWord)} per Hebrew word (${anthropic ? "counted" : "estimated from length"} on ${sample.length} passages).`);
   say(

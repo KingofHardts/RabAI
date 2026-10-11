@@ -18,6 +18,10 @@ out of the session's plan, not the API account.
 - **Reuse a helper** (SendMessage to it) for the next files instead of starting a new one: it
   already has its instructions loaded, so it pays only for the new requests.
 - General translations only (no `--words`) cover the most text for the cost.
+- `--words` also makes word-by-word lists for passages that already have the library's English
+  (the Gemara, for example), so "Word by word" on those lines opens a saved list instead of
+  calling the model. Those passages get only the word-by-word list; their translation stays the
+  library's English. A passage that already has a word-by-word list is skipped.
 
 ## Steps
 
@@ -28,6 +32,13 @@ export RABAI_LIBRARY_DB_URL=file:../library/rabai-library.db
 export RABAI_TRANSLATIONS_DB_URL=file:../library/rabai-translations-local.db
 npx tsx scripts/translate-here.ts send --books "Rashi on Berakhot" --limit 200
 ```
+
+A new session doesn't have the library file. It can read the library on Turso instead: set
+`RABAI_LIBRARY_DB_URL` to the database's `libsql://` address, and keep the read-only token as the
+environment's network secret for `*.turso.io` (header `Authorization`, prefix `Bearer`), so the
+session uses it without ever seeing it. Run the script with `NODE_USE_ENV_PROXY=1`, so Node's
+own network calls go through the session's proxy. The translation library stays a file on the
+session's computer, as above.
 
 `send` picks the next passages without English that aren't translated yet, in library order,
 and writes the requests to `../library/session-translations/<job>/`. Then:

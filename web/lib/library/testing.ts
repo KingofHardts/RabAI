@@ -313,10 +313,14 @@ export interface TestingStore {
    * works, and the books whose titles match these patterns ("Rashi on %").
    */
   booksFor(select: { titles?: string[]; works?: string[]; like?: string[] }): Promise<string[]>;
-  /** Passages of these books with Hebrew and no English, in reading order, after `afterSeq` (Passage.order). */
-  untranslated(titles: string[], afterSeq: number, limit: number): Promise<Passage[]>;
-  /** How many passages of these books have Hebrew and no English, and about how many words they hold. */
-  untranslatedCount(titles: string[]): Promise<{ passages: number; words: number }>;
+  /**
+   * Passages of these books for RabAI's translation library, in reading order, after `afterSeq`
+   * (Passage.order): those with Hebrew and no English, or, with `withEnglish`, every passage with
+   * Hebrew (a word-by-word list is made for a passage that has the library's English too).
+   */
+  toTranslate(titles: string[], afterSeq: number, limit: number, withEnglish?: boolean): Promise<Passage[]>;
+  /** How many passages toTranslate would give for these books, and about how many words they hold. */
+  toTranslateCount(titles: string[], withEnglish?: boolean): Promise<{ passages: number; words: number }>;
   /** Every book in the library: [title, Hebrew title, first ref, work title]. */
   books(): Promise<Array<{ title: string; he: string; firstRef: string; workTitle: string; categories: string[]; order: number }>>;
   /** The short list of book names the lookup planner may use. */
@@ -328,6 +332,9 @@ export interface TestingStore {
   /** Articles whose title holds every word of the search, then those whose text does. */
   articleSearch(text: string, limit: number): Promise<ArticleListing[]>;
 }
+
+/** The passage has no English in the library (for the translation queries; `p` is the passage). */
+const NO_ENGLISH = `AND NOT EXISTS (SELECT 1 FROM passages q JOIN editions f ON f.id = q.edition_id WHERE q.ref = p.ref AND f.language = 'en')`;
 
 /** The columns an article's place in a list needs (a collection's articles table). */
 const LISTING_SELECT = `SELECT t.id AS title_id, t.title, a.site, a.author, a.published, w.title AS shelf,
@@ -935,28 +942,28 @@ export function createTestingStore(db: Db): TestingStore {
       return rows.map((r) => String(r.title));
     },
 
-    async untranslated(titles, afterSeq, limit) {
+    async toTranslate(titles, afterSeq, limit, withEnglish = false) {
       if (!titles.length || limit <= 0) return [];
       const rows = await db.all(
         `SELECT p.ref FROM passages p
            JOIN titles t ON t.id = p.title_id
            JOIN editions e ON e.id = p.edition_id
          WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0 AND p.seq > ?
-           AND NOT EXISTS (SELECT 1 FROM passages q JOIN editions f ON f.id = q.edition_id WHERE q.ref = p.ref AND f.language = 'en')
+           ${withEnglish ? "" : NO_ENGLISH}
          ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`,
         [...titles, afterSeq],
       );
-      return groupRows(await byExactRefs(rows.map((r) => String(r.ref))), { full: true }).filter((p) => p.he.trim() && !p.en.trim());
+      return groupRows(await byExactRefs(rows.map((r) => String(r.ref))), { full: true }).filter((p) => p.he.trim() && (withEnglish || !p.en.trim()));
     },
 
-    async untranslatedCount(titles) {
+    async toTranslateCount(titles, withEnglish = false) {
       if (!titles.length) return { passages: 0, words: 0 };
       const rows = await db.all(
         `SELECT COUNT(*) AS n, SUM(LENGTH(p.text) - LENGTH(REPLACE(p.text, ' ', '')) + 1) AS words FROM passages p
            JOIN titles t ON t.id = p.title_id
            JOIN editions e ON e.id = p.edition_id
          WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0
-           AND NOT EXISTS (SELECT 1 FROM passages q JOIN editions f ON f.id = q.edition_id WHERE q.ref = p.ref AND f.language = 'en')`,
+           ${withEnglish ? "" : NO_ENGLISH}`,
         titles,
       );
       return { passages: Number(rows[0]?.n ?? 0), words: Number(rows[0]?.words ?? 0) };
