@@ -66,10 +66,15 @@ def fetch(url: str, timeout: int = 30) -> tuple[int, bytes, str, dict]:
             return r.status, body, r.geturl(), dict(r.headers)
     except urllib.error.HTTPError as e:
         try:
-            body = e.read(20000)
+            body = e.read(200000)
         except Exception:  # noqa: BLE001
             body = b""
-        return e.code, body, url, dict(e.headers or {})
+        if (e.headers or {}).get("Content-Encoding") == "gzip":
+            try:
+                body = gzip.decompress(body)[:20000]
+            except OSError:
+                pass
+        return e.code, body[:20000], url, dict(e.headers or {})
     except Exception as e:  # noqa: BLE001 - report and carry on
         print(f"  (could not fetch {url}: {type(e).__name__})")
         return 0, b"", url, {}
@@ -316,7 +321,8 @@ EXTRA_PROBES = {
 
 FEED_TYPES = ("application/rss+xml", "application/atom+xml", "application/feed+json")
 # Addresses that look like a site's own interface, as they appear in its pages and scripts.
-API_RE = re.compile(r"""(https?://[A-Za-z0-9.-]*api[A-Za-z0-9.-]*\.[a-z]{2,}(?:/[A-Za-z0-9._~/-]*)?)|["'](/api/[A-Za-z0-9._~/-]+)""")
+API_RE = re.compile(r"""(https?://[A-Za-z0-9.-]+\.[a-z]{2,}(?:/[A-Za-z0-9._~%-]*)*)|["'`](/(?:api|graphql|v[0-9])[/?][A-Za-z0-9._~/%-]*)""")
+API_WORDS = re.compile(r"api|graphql|/v[0-9]+/|wp-json|lecture|speaker|shiur", re.I)
 
 
 def feed_links(body: bytes, base: str) -> list[str]:
@@ -370,15 +376,15 @@ def check_feed(url: str, rp) -> None:
     print(f"  feed {url}: HTTP {status}, {kind}{moved}{blocked_hint(status, headers, body)}{items}")
 
 
-def probe_feeds(name: str, site: dict, home_body: bytes, home_final: str, rp) -> None:
+def probe_feeds(name: str, site: dict, home_status: int, home_headers: dict, home_body: bytes, home_final: str, rp) -> None:
     """A site's own feeds and interface addresses, and whether they answer a robot.
 
     When the home page shows robots a check, the feeds are looked for in the Internet Archive's
     copy of the home page instead (addresses only), and then asked for from the site itself.
     """
     print("\nfeeds and interfaces (addresses, status codes and counts only):")
-    feeds = feed_links(home_body, home_final) if home_body else []
-    blocked = not home_body or bool(blocked_hint(200, {}, home_body))
+    blocked = home_status != 200 or bool(blocked_hint(home_status, home_headers, home_body))
+    feeds = feed_links(home_body, home_final) if home_body and not blocked else []
     if blocked:
         archived = "https://web.archive.org/web/2025/" + site["home"]
         status, body, final, headers = fetch(archived, timeout=60)
@@ -396,26 +402,42 @@ def probe_feeds(name: str, site: dict, home_body: bytes, home_final: str, rp) ->
     apis: list[str] = []
     if home_body and not blocked:
         text = home_body.decode("utf-8", "replace")
-        scripts = re.findall(r"""<script[^>]+src=["']([^"']+)["']""", text)
+        title = re.search(r"<title[^>]*>(.*?)</title>", text, re.S | re.I)
+        print(f"  home page: {len(text):,} characters; title: {' '.join((title.group(1) if title else '').split())[:100]!r}")
+        print(f"  frameworks seen: {[w for w in ('__NEXT_DATA__', '_next/static', 'ng-version', 'data-reactroot', '__NUXT__', 'wp-content', 'window.__INITIAL_STATE__') if w in text]}")
+        scripts = [urllib.parse.urljoin(home_final, x) for x in re.findall(r"""<script[^>]+src=["']([^"']+)["']""", text)]
+        hosts = Counter(urllib.parse.urlparse(x).hostname for x in scripts)
+        print(f"  scripts on the home page, by host: {dict(hosts.most_common(8))}")
+        domain = ".".join(sorted(site["hosts"], key=len)[0].split(".")[-2:])
         bodies = [text]
-        for src in [urllib.parse.urljoin(home_final, s) for s in scripts][:6]:
-            if urllib.parse.urlparse(src).hostname in site["hosts"] and rp.can_fetch(ROBOT_NAME, src):
+        own = [x for x in scripts if (urllib.parse.urlparse(x).hostname or "").endswith(domain)]
+        for src in own[:12]:
+            if rp.can_fetch(ROBOT_NAME, src):
                 status, body, _, _ = fetch(src)
                 if status == 200:
                     bodies.append(body.decode("utf-8", "replace"))
+        print(f"  scripts read for addresses: {len(bodies) - 1}")
         for b in bodies:
             for full, rel in API_RE.findall(b):
-                apis.append(full or rel)
+                a = full or rel
+                if API_WORDS.search(a):
+                    apis.append(a)
     apis = list(dict.fromkeys(a.rstrip("/") for a in apis))
     print(f"  interface addresses named in the home page and its scripts: {len(apis)}")
-    for a in apis[:30]:
+    for a in apis[:40]:
         print(f"    {a}")
+    for url in PAGE_GUESSES.get(name, []):
+        sample(url, rp)
     if blocked:
         archive_coverage(name)
 
 
 ARCHIVE_PREFIXES = {
     "chabad": ["chabad.org/library/article_cdo/aid/", "chabad.org/parshah/article_cdo/aid/", "chabad.org/holidays/"],
+}
+PAGE_GUESSES = {
+    # Pages to look at the shape of when a site has no sitemap (structure only).
+    "torahanytime": ["https://www.torahanytime.com/speakers", "https://www.torahanytime.com/lectures/300000", "https://www.torahanytime.com/search?q=kiddushin"],
 }
 FEED_GUESSES = {
     # Addresses to try even if no page names them (status codes and item counts only).
@@ -598,7 +620,7 @@ def main() -> int:
     if "--wordpress" in sys.argv:
         probe_wordpress(site)
     if "--feeds" in sys.argv:
-        probe_feeds(name, site, body, final, rp)
+        probe_feeds(name, site, status, headers, body, final, rp)
     for url in EXTRA_PROBES.get(name, []):
         status, body, final, headers = fetch(url)
         print(f"probe {url}: HTTP {status}{blocked_hint(status, headers, body)}" + (f", moved to {final}" if final != url else ""))
