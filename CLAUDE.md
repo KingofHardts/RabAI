@@ -244,8 +244,10 @@ Open items:
 - License requests for the texts still left out are listed by organization in
   `docs/permissions-plan.md`; none are sent yet.
 - Learner profiles: phase 1 (on the device) and phase 2 (accounts, "Was this helpful?") are
-  built. Accounts stay off online until the maintainer runs the "Accounts (the people
-  database)" workflow and sets up Resend with a verified domain (`web/README.md`, "Accounts").
+  built. The "Accounts (the people database)" workflow ran on 2026-10-11: the people database
+  exists, `RABAI_AUTH_SECRET` is set in Vercel (never change it), and "Was this helpful?" is
+  saved. Sign-in stays off online until the maintainer sets up Resend with a verified domain
+  (`web/README.md`, "Accounts").
 - Translating inside a Claude Code session works end to end (40 Rashi comments imported on
   2026-10-07). It uses the session's plan, not the API, but takes a lot of it (about 540,000
   tokens for 728 Hebrew words), so it suits chosen books, not all of Shas.
