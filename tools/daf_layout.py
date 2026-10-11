@@ -514,8 +514,9 @@ def main():
             if args.store and records:
                 save_layouts(db, records, made_on)
             done = sum(r["complete"] for r in records)
-            line = (f"{tractate}: {len(records)} amudim, {done} complete, {len(failed)} failed "
-                    f"({(time.time() - t0) / 60:.1f} min)")
+            shown = sum(bool(r["placed_all"]) for r in records)
+            line = (f"{tractate}: {len(records)} amudim, {shown} shown as printed (every word placed), "
+                    f"{done} of them with no word estimated, {len(failed)} failed ({(time.time() - t0) / 60:.1f} min)")
             print(line, flush=True)
             summary.append(line)
     if out:

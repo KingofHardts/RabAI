@@ -481,7 +481,14 @@ def main() -> int:
 
     value = (lambda name: setting_value(by_name, name, project_id, scope)) if project_id else (lambda name: None)
     summary("## The settings, used the way the app uses them")
-    check_database("The library (`TURSO_*`)", value("TURSO_DATABASE_URL"), value("TURSO_AUTH_TOKEN"))
+    check_database(
+        "The library (`TURSO_*`)",
+        value("TURSO_DATABASE_URL"),
+        value("TURSO_AUTH_TOKEN"),
+        # The printed-page layouts: how many amudim the app can show line for line.
+        count="SELECT COUNT(*) || ' printed-page layouts, ' || COALESCE(SUM(json_extract(data, '$.placed_all')), 0)"
+        " || ' shown as printed, ' || COALESCE(SUM(complete), 0) || ' with no word estimated' FROM daf_layout",
+    )
     if "TRANSLATIONS_DATABASE_URL" in by_name:
         check_database("The translation library (`TRANSLATIONS_*`)", value("TRANSLATIONS_DATABASE_URL"), value("TRANSLATIONS_AUTH_TOKEN"))
     collection_urls = [u for u in re.split(r"[\s,]+", value("RABAI_COLLECTION_DB_URLS") or "") if u]
