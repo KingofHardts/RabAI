@@ -59,8 +59,11 @@ class PageShapeTest(unittest.TestCase):
         around = lines[lines.index(next(l for l in lines if "found;" in l)) + 1]
         self.assertTrue(around.strip().startswith("div.entry-content"))
         self.assertIn("4 paragraphs", around)
-        self.assertIn("div.rabbi-answer (depth 5): 3 paragraphs", text)
+        self.assertIn("div.rabbi-answer (depth 5): 3 paragraphs, 0 headings", text)
         self.assertIn("section.comments", text)
+        box = lines.index("the children of the smallest element around it that holds more paragraphs, in page order:")
+        self.assertTrue(lines[box + 1].strip().startswith("p (depth 5): 1 paragraphs"))
+        self.assertTrue(lines[box + 2].strip().startswith("div.rabbi-answer (depth 5): 3 paragraphs"))
 
     def test_it_says_when_the_article_is_not_on_the_page(self):
         self.assertIn("not found on the page", "\n".join(self.report("Words that are not there")))

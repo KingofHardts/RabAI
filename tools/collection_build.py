@@ -603,18 +603,20 @@ def shape(path: str, value, depth: int = 0) -> list[str]:
 
 
 class PageShape(HTMLParser):
-    """A web page's named elements (a class or an id), each with how many paragraphs it holds and
-    how many characters of text. The text stays in memory only, to find where a known passage
-    sits; nothing but names and numbers ever leaves this class."""
+    """A web page's elements, each with how many paragraphs it holds and how many characters of
+    text, and its place in the page. The text stays in memory only, to find where a known passage
+    sits; nothing but element names and numbers ever leaves this class."""
 
     QUIET = {"script", "style", "noscript", "svg", "template"}
+    HEADS = {"h1", "h2", "h3", "h4", "h5", "h6"}
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.text: list[str] = []
         self.size = 0
-        self.stack: list[list] = []  # [tag, name, paragraphs, start]
-        self.named: list[tuple[str, int, int, int, int]] = []  # (name, depth, paragraphs, start, end)
+        # Each element: [tag, name, parent, depth, paragraphs, headings, start, end]
+        self.nodes: list[list] = []
+        self.stack: list[int] = []
         self.quiet = 0
         self.paragraphs = 0
 
@@ -631,31 +633,32 @@ class PageShape(HTMLParser):
         if tag in L.VOID:
             return
         attrs = dict(attrs)
-        name = ""
+        name = tag
         if attrs.get("class"):
             name = f"{tag}.{' '.join(attrs['class'].split())[:60]}"
         elif attrs.get("id"):
             name = f"{tag}#{attrs['id'][:40]}"
-        self.stack.append([tag, name, 0, self.size])
+        self.nodes.append([tag, name, self.stack[-1] if self.stack else -1, len(self.stack), 0, 0, self.size, None])
+        self.stack.append(len(self.nodes) - 1)
         if tag in self.QUIET:
             self.quiet += 1
-        if tag == "p" and not self.quiet:
-            self.paragraphs += 1
-            for frame in self.stack:
-                frame[2] += 1
+        if not self.quiet and tag in ("p", *self.HEADS):
+            if tag == "p":
+                self.paragraphs += 1
+            for i in self.stack:
+                self.nodes[i][4 if tag == "p" else 5] += 1
         if tag in L.BLOCKS:
             self._add(" ")
 
     def handle_endtag(self, tag):
-        if tag in L.VOID or tag not in (f[0] for f in self.stack):
+        if tag in L.VOID or tag not in (self.nodes[i][0] for i in self.stack):
             return
         while self.stack:
-            top, name, paras, start = self.stack.pop()
-            if top in self.QUIET:
+            i = self.stack.pop()
+            if self.nodes[i][0] in self.QUIET:
                 self.quiet = max(0, self.quiet - 1)
-            if name:
-                self.named.append((name, len(self.stack), paras, start, self.size))
-            if top == tag:
+            self.nodes[i][7] = self.size
+            if self.nodes[i][0] == tag:
                 break
         if tag in L.BLOCKS:
             self._add(" ")
@@ -664,31 +667,51 @@ class PageShape(HTMLParser):
         if not self.quiet:
             self._add(data)
 
-    def report(self, probe: str) -> list[str]:
-        """Lines describing the page: its largest named elements, and the elements around the
-        place where `probe` (the start of the article as the site's interface gives it) appears."""
+    def describe(self, i: int) -> str:
+        tag, name, parent, depth, paras, heads, start, end = self.nodes[i]
+        return f"{name} (depth {depth}): {paras} paragraphs, {heads} headings, {end - start} characters"
+
+    def children(self, i: int, levels: int, indent: str) -> list[str]:
+        """An element's children in page order, and theirs, down `levels` levels (only those with text)."""
+        out = []
+        for j, node in enumerate(self.nodes):
+            if node[2] == i and node[7] - node[6] > 0:
+                out.append(indent + self.describe(j))
+                if levels > 1 and node[4] + node[5] > 0:
+                    out += self.children(j, levels - 1, indent + "  ")
+        return out
+
+    def report(self, probe: str, given: int = 1) -> list[str]:
+        """Lines describing the page: the elements around the place where `probe` (the start of
+        the article as the site's interface gives it, `given` paragraphs long) appears, the
+        children of the smallest of them holding more paragraphs than that (the article's box),
+        the elements holding the most paragraphs, and any whose names suggest comments or answers."""
         self.close()
         while self.stack:
-            self.handle_endtag(self.stack[-1][0])
+            self.handle_endtag(self.nodes[self.stack[-1]][0])
         whole = "".join(self.text)
         out = [f"page: {len(whole)} characters of text, {self.paragraphs} paragraphs (<p>)"]
+        named = [i for i, n in enumerate(self.nodes) if n[1] != n[0]]
         at = whole.find(probe) if probe else -1
         if at < 0:
             out.append("the start of the article as the interface gives it: not found on the page")
         else:
-            around = sorted((n for n in self.named if n[3] <= at < n[4]), key=lambda n: n[4] - n[3])
+            around = sorted((i for i in named if self.nodes[i][6] <= at < self.nodes[i][7]),
+                            key=lambda i: (self.nodes[i][7] - self.nodes[i][6], -self.nodes[i][3]))
             out.append("the start of the article as the interface gives it: found; the elements around it, smallest first:")
-            for name, depth, paras, start, end in around[:8]:
-                out.append(f"  {name} (depth {depth}): {paras} paragraphs, {end - start} characters")
-        biggest = sorted(self.named, key=lambda n: -n[2])[:8]
+            out += ["  " + self.describe(i) for i in around[:8]]
+            box = next((i for i in around if self.nodes[i][4] > given), None)
+            if box is not None:
+                out.append("the children of the smallest element around it that holds more paragraphs, in page order:")
+                out += self.children(box, 3, "  ")
+        biggest = sorted(named, key=lambda i: -self.nodes[i][4])[:6]
         out.append("the named elements holding the most paragraphs:")
-        for name, depth, paras, start, end in biggest:
-            out.append(f"  {name} (depth {depth}): {paras} paragraphs, {end - start} characters")
-        hints = re.compile(r"answer|repl|question|qa\b|q-a|rabbi|comment|entry|post-content|article", re.I)
-        named = sorted({(n[0], n[2], n[4] - n[3]) for n in self.named if hints.search(n[0])}, key=lambda n: -n[2])[:12]
-        if named:
-            out.append("elements whose names suggest an article, a question, an answer or comments:")
-            out += [f"  {name}: {paras} paragraphs, {chars} characters" for name, paras, chars in named]
+        out += ["  " + self.describe(i) for i in biggest]
+        hints = re.compile(r"answer|repl|question|qa\b|q-a|rabbi|comment", re.I)
+        found = [i for i in named if hints.search(self.nodes[i][1]) and self.nodes[i][4]][:8]
+        if found:
+            out.append("elements with paragraphs whose names suggest a question, an answer or comments:")
+            out += ["  " + self.describe(i) for i in found]
         return out
 
 
@@ -730,7 +753,7 @@ def inspect(wp: WordPress, canon_sections: list[dict], which: str) -> None:
         page = PageShape()
         page.feed(body.decode("utf-8", "replace"))
         probe = re.sub(r"\s+", " ", " ".join(rest))[:50].strip()
-        for line in page.report(probe):
+        for line in page.report(probe, len(rest)):
             print(f"    {line}", flush=True)
 
 
