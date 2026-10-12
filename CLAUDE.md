@@ -256,15 +256,15 @@ Open items:
   (`web/README.md`, "Accounts").
 - Translating inside a Claude Code session works end to end (`docs/session-translation.md`).
   Rashi and Tosafot on Berakhot 2a-13a (chapter 1, 604 comments) are translated and imported
-  (2026-10-07 and 2026-10-11). Kiddushin, the tractate the maintainer is learning, is under way:
-  2a-78b (6,706 passages) were translated on 2026-10-11 and 2026-10-12 and sent through the inbox: Rashi and Tosafot with a general
+  (2026-10-07 and 2026-10-11). Kiddushin, the tractate the maintainer is learning, is done:
+  all of it, 2a-82b (7,075 passages), was translated on 2026-10-11 and 2026-10-12 and sent through the inbox: Rashi and Tosafot with a general
   translation and word by word, and the Gemara lines word by word only, since they have
   Steinsaltz's English. `send --words` makes word-by-word lists even for lines that have the
   library's English, `--pages 5a-5b` picks amudim, and anything already in the shared library is
   skipped. It uses the session's plan, not the API. In a session that also has Senior Stylist's
   repo, every helper agent starts with about 400,000 tokens of Senior Stylist's instructions,
-  which is nearly all of its cost (about 500,000 tokens a helper), so translate from a RabAI-only
-  session, and reuse helpers instead of starting new ones.
+  which is nearly all of its cost (about 600,000 tokens a helper, measured 2026-10-12), so
+  translate from a RabAI-only session, and reuse helpers instead of starting new ones.
 - Still missing because Sefaria lists no license on their files: 24 files, among them the Hebrew
   of the Ramban on Shemot (`python3 tools/library_plan.py` lists them). The maintainer reported on
   2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
