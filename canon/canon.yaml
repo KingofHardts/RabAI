@@ -1095,6 +1095,22 @@ works:
             license: "Public Domain"
           - version: "Biur Halacha"
             license: "Public Domain"
+          - version: "eu5 text"
+            license: "Public Domain"
+            printed: 1907
+            note: >-
+              Simanim 2-186 (On Your Way has only 187-697). A typed copy of the printed
+              Mishnah Berurah (Warsaw and Pietrkov, 1884-1907), from mishnaberura.eu5.org.
+              Sefaria lists no license; the printing is public domain by age. Proposed
+              2026-10-13 to close the gap.
+          - version: "Wikitext"
+            license: "Public Domain"
+            printed: 1907
+            note: >-
+              Hebrew Wikisource's copy of the printed Mishnah Berurah. Fills simanim 1, 8, 25,
+              58 and 89 and the two introductions, which the other versions lack. Sefaria lists
+              no license; the printing is public domain by age. Proposed 2026-10-13 to close
+              the gap.
       - name: Mishnah Berurah, English (ed. Rabbi Aharon Feldman)
         language: en
         publisher: Feldheim / Pisgah Foundation

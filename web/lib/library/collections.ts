@@ -84,7 +84,7 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
   }
 
   return {
-    lookup: (refs, perRef) => spread(refs, (store, mine) => store.lookup(mine, perRef)),
+    lookup: (refs, perRef, focus) => spread(refs, (store, mine) => store.lookup(mine, perRef, focus)),
     search: (phrases, limit) => main.search(phrases, limit),
     async articles(phrases, limit) {
       const cols = await collections();

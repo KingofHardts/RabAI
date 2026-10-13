@@ -3,6 +3,7 @@ import { createClient as createHttpClient } from "@libsql/client/http";
 import type { Client, InValue } from "@libsql/client";
 import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config";
 import { combineStores } from "./collections";
+import { codeOf, commentaryBase, commentaryPrefixes, isCommentaryOn, orderLinked, type LinkPair } from "./link-order";
 import type { ArticleListing, ArticleShelf, Passage, PassageSource } from "./types";
 
 export type { ArticleListing, ArticleShelf };
@@ -23,6 +24,15 @@ export const TESTING_LIMITS = {
   perRef: 8,
   section: 400,
   commentariesPerLine: 6,
+  /** A seif of the Shulchan Aruch or a halacha of the Rambam has more commentaries printed with it. */
+  codeCommentariesPerLine: 10,
+  /** Links read for each line followed; a verse like Genesis 1:1 has hundreds. */
+  linksRead: 1200,
+  /**
+   * Rows read from a whole section (a siman of the Arukh HaShulchan, a daf) to find the lines that
+   * hold the question's words, when the section is opened with them.
+   */
+  focusRows: 160,
   textChars: 2400,
 };
 
@@ -263,8 +273,11 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
 // The store
 
 export interface TestingStore {
-  /** Passages at these refs. A section ref ("Berakhot 2a") returns its first lines. */
-  lookup(refs: string[], perRef?: number): Promise<Passage[]>;
+  /**
+   * Passages at these refs. A section ref ("Berakhot 2a") returns the lines that hold the most of
+   * the focus words, when any are given and any line holds one; otherwise its first lines.
+   */
+  lookup(refs: string[], perRef?: number, focus?: string[]): Promise<Passage[]>;
   /** Full-text search. Hebrew is matched without vowels. */
   search(phrases: string[], limit: number): Promise<Passage[]>;
   /**
@@ -385,6 +398,63 @@ export function plainForSearch(s: string): string {
     .replace(/[־׀׃׳״]/g, " ")
     .replace(/[֑-ׇֽֿׁׂׅׄ]/g, "")
     .toLowerCase();
+}
+
+/** English words too common to say what a line is about. */
+const FOCUS_STOP = new Set(
+  "about after again also among another because before being between could does doing during every from have here into just know like many might more most much must only other over said same should since some such than that their them then there these they this those through very want were what when where which while whole will with would your".split(
+    " ",
+  ),
+);
+
+/**
+ * The words of the question's phrases, written as the library's text is compared: Hebrew without
+ * vowels, English in lower case. Whole phrases of two words or more are kept as well.
+ */
+export function focusWords(phrases: string[]): { words: string[]; phrases: string[] } {
+  const words = new Set<string>();
+  const whole = new Set<string>();
+  for (const phrase of phrases) {
+    const plain = plainForSearch(phrase).replace(/["'.,;:!?()]/g, " ").replace(/\s+/g, " ").trim();
+    if (!plain) continue;
+    const parts = plain.split(" ");
+    if (parts.length > 1) whole.add(plain);
+    for (const w of parts) {
+      const hebrew = /[א-ת]/.test(w);
+      if ((hebrew && w.length >= 2) || (!hebrew && w.length >= 4 && !FOCUS_STOP.has(w))) words.add(w);
+    }
+  }
+  return { words: [...words].slice(0, 24), phrases: [...whole].slice(0, 12) };
+}
+
+/**
+ * From a section's lines, those holding the most of the question's words, in reading order; a
+ * whole phrase counts for more than a word. When no line holds any, the section's first lines.
+ */
+export function focusedRefs(lines: Array<{ ref: string; text: string }>, perRef: number, focus: ReturnType<typeof focusWords>): string[] {
+  const order: string[] = [];
+  const score = new Map<string, number>();
+  for (const line of lines) {
+    if (!score.has(line.ref)) {
+      order.push(line.ref);
+      score.set(line.ref, 0);
+    }
+    const text = plainForSearch(line.text);
+    let n = 0;
+    for (const w of focus.words) if (text.includes(w)) n += 1;
+    for (const ph of focus.phrases) if (text.includes(ph)) n += 3;
+    score.set(line.ref, Math.max(score.get(line.ref)!, n));
+  }
+  if (![...score.values()].some((n) => n > 0)) return order.slice(0, perRef);
+  const best = new Set(
+    order
+      .map((ref, i) => ({ ref, i, n: score.get(ref)! }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n || a.i - b.i)
+      .slice(0, perRef)
+      .map((x) => x.ref),
+  );
+  return order.filter((r) => best.has(r));
 }
 
 /** A full-text query from phrases: each phrase must appear as written; any phrase may match. */
@@ -621,7 +691,38 @@ export function createTestingStore(db: Db): TestingStore {
     return rowsWhere(`p.ref IN (${refs.map(() => "?").join(",")})`, refs, refs.length * 4);
   }
 
-  async function lookupOne(ref: string, perRef: number): Promise<Row[]> {
+  /**
+   * Commentaries found by their refs, as links from each line: the Kessef Mishneh, Maggid Mishneh
+   * and the others on a halacha of the Mishneh Torah, which the library's links rarely reach.
+   */
+  async function commentariesByRef(refs: string[]): Promise<LinkPair[]> {
+    const parts: string[] = [];
+    const args: InValue[] = [];
+    for (const ref of refs) {
+      for (const prefix of commentaryPrefixes(ref)) {
+        const [lo, hi] = prefixRange(prefix);
+        parts.push("SELECT ? AS anchor, ref FROM (SELECT ref FROM passages WHERE ref >= ? AND ref < ? LIMIT 80)");
+        args.push(ref, lo, hi);
+      }
+    }
+    if (!parts.length) return [];
+    const rows = await db.all(parts.slice(0, 400).join(" UNION ALL "), args.slice(0, 1200));
+    const seen = new Set<string>();
+    const out: LinkPair[] = [];
+    for (const r of rows) {
+      const other = String(r.ref);
+      const anchor = String(r.anchor);
+      const base = commentaryBase(other);
+      // A chapter opened whole gives each comment to its own halacha.
+      const owner = base && base.startsWith(anchor) ? base : anchor;
+      if (seen.has(`${owner}\n${other}`)) continue;
+      seen.add(`${owner}\n${other}`);
+      out.push({ anchor: owner, other });
+    }
+    return out;
+  }
+
+  async function lookupOne(ref: string, perRef: number, focus: ReturnType<typeof focusWords> | null): Promise<Row[]> {
     const { start, end } = parseRef(ref);
     const exact = await rowsWhere("p.ref = ?", [start], 6);
     if (exact.length && !end) return exact;
@@ -632,15 +733,23 @@ export function createTestingStore(db: Db): TestingStore {
       const endRow = rows.find((r) => r.ref === end);
       return endRow ? rows.filter((r) => r.seq <= endRow.seq) : rows;
     }
+    // A whole section opened with the question's words: the lines that hold them (focusedRefs).
+    const useFocus = !!focus && (focus.words.length > 0 || focus.phrases.length > 0);
+    const many = useFocus ? TESTING_LIMITS.focusRows : perRef * 4;
+    const pick = (rows: Row[]): Row[] => {
+      if (!useFocus || !focus) return rows;
+      const keep = new Set(focusedRefs(rows, perRef, focus));
+      return rows.filter((r) => keep.has(r.ref));
+    };
     // A whole book or article by its title ("Genesis", "Aish.com, Why We Light Candles"), so a
     // title that begins another ("Genesis Rabbah") isn't mixed in.
-    const whole = await rowsWhere("t.title = ?", [start], perRef * 4);
-    if (whole.length) return whole;
+    const whole = await rowsWhere("t.title = ?", [start], many);
+    if (whole.length) return pick(whole);
     // A section ("Berakhot 2a", "Genesis 1") or a book with numbered paragraphs ("Kuzari 1").
     for (const sep of [":", " ", ", "]) {
       const [lo, hi] = prefixRange(start + sep);
-      const rows = await rowsWhere("p.ref >= ? AND p.ref < ?", [lo, hi], perRef * 4);
-      if (rows.length) return rows;
+      const rows = await rowsWhere("p.ref >= ? AND p.ref < ?", [lo, hi], many);
+      if (rows.length) return pick(rows);
     }
     return [];
   }
@@ -655,8 +764,9 @@ export function createTestingStore(db: Db): TestingStore {
   }
 
   return {
-    async lookup(refs, perRef = TESTING_LIMITS.perRef) {
-      const results = await Promise.all(refs.slice(0, 12).map((r) => lookupOne(r, perRef)));
+    async lookup(refs, perRef = TESTING_LIMITS.perRef, focus) {
+      const words = focus?.length ? focusWords(focus) : null;
+      const results = await Promise.all(refs.slice(0, 12).map((r) => lookupOne(r, perRef, words)));
       const rows = results.flatMap((rs) => limitRefs(rs, perRef));
       // Fill in the other language for refs that came back in only one.
       const refsSeen = [...new Set(rows.map((r) => r.ref))];
@@ -702,24 +812,18 @@ export function createTestingStore(db: Db): TestingStore {
       if (!refs.length || limit <= 0) return [];
       const marks = refs.map(() => "?").join(",");
       const notDictionary = "(kind IS NULL OR kind != 'dictionary')";
-      const rows = await db.all(
-        `SELECT a, b FROM links WHERE a IN (${marks}) AND ${notDictionary} UNION ALL ` +
-          `SELECT b, a FROM links WHERE b IN (${marks}) AND ${notDictionary} LIMIT 400`,
-        [...refs, ...refs],
-      );
-      const seen = new Set(refs);
-      const others: string[] = [];
-      for (const r of rows) {
-        const other = String(r.b);
-        if (!seen.has(other)) {
-          seen.add(other);
-          others.push(other);
-        }
-      }
-      // Commentaries on these lines first ("Rashi on Genesis 1:1:1"), then other texts.
-      const isCommentary = (ref: string) => / on /.test(ref) && refs.some((r) => ref.includes(` on ${sectionOf(r)}`));
-      others.sort((a, b) => Number(isCommentary(b)) - Number(isCommentary(a)));
-      const chosen = others.slice(0, limit);
+      const [rows, printed] = await Promise.all([
+        db.all(
+          `SELECT a AS anchor, b AS other FROM links WHERE a IN (${marks}) AND ${notDictionary} UNION ALL ` +
+            `SELECT b, a FROM links WHERE b IN (${marks}) AND ${notDictionary} LIMIT ${TESTING_LIMITS.linksRead}`,
+          [...refs, ...refs],
+        ),
+        commentariesByRef(refs),
+      ]);
+      // Which to open first: the commentaries printed with the text, then the sources of a ruling,
+      // then the rest, each book taking its turn (link-order.ts).
+      const pairs: LinkPair[] = [...printed, ...rows.map((r) => ({ anchor: String(r.anchor), other: String(r.other) }))];
+      const chosen = orderLinked(pairs, refs, limit);
       const found = await byExactRefs(chosen);
       const order = new Map(chosen.map((r, i) => [r, i]));
       return groupRows(found).sort((a, b) => (order.get(a.ref) ?? 0) - (order.get(b.ref) ?? 0));
@@ -806,14 +910,14 @@ export function createTestingStore(db: Db): TestingStore {
     },
 
     async section(ref) {
-      let first = (await lookupOne(ref, 1))[0];
+      let first = (await lookupOne(ref, 1, null))[0];
       if (!first) return null;
       // A commentary opens on the text it explains: "Rashi on Genesis 1:1:2" -> Genesis 1.
       const onBook = first.title.match(/^.+? on (.+)$/);
       if (onBook) {
         const parts = locationIn(first.ref, first.title).split(":");
         if (parts.length >= 2) {
-          const base = (await lookupOne(`${onBook[1]} ${parts.slice(0, -1).join(":")}`, 1))[0];
+          const base = (await lookupOne(`${onBook[1]} ${parts.slice(0, -1).join(":")}`, 1, null))[0];
           if (base) first = base;
         }
       }
@@ -825,21 +929,38 @@ export function createTestingStore(db: Db): TestingStore {
       const commentaries = new Map<string, Passage[]>();
       if (lineRefs.length) {
         const marks = lineRefs.map(() => "?").join(",");
-        const links = await db.all(
-          `SELECT a AS base, b AS other FROM links WHERE a IN (${marks}) UNION ALL SELECT b AS base, a AS other FROM links WHERE b IN (${marks})`,
-          [...lineRefs, ...lineRefs],
-        );
-        const wanted = new Map<string, string>();
+        const [links, printed] = await Promise.all([
+          db.all(
+            `SELECT a AS base, b AS other FROM links WHERE a IN (${marks}) UNION ALL SELECT b AS base, a AS other FROM links WHERE b IN (${marks})`,
+            [...lineRefs, ...lineRefs],
+          ),
+          commentariesByRef([section]),
+        ]);
+        // A line's commentaries: those written on this very line ("Rashi on Genesis 1:1:2"), those
+        // printed with a code on this siman (the Mishnah Berurah on a seif of Orach Chayim), and the
+        // Rambam's commentators found by their refs. A commentary on another line linked from here
+        // is a cross-reference, not shown as a comment on this line.
+        const lineSet = new Set(lineRefs);
+        const pairs: LinkPair[] = printed.filter((p) => lineSet.has(p.anchor));
         for (const l of links) {
           const other = String(l.other);
-          if (other.includes(` on ${first.title} `)) wanted.set(other, String(l.base));
+          const base = String(l.base);
+          if (isCommentaryOn(base, other)) pairs.push({ anchor: base, other });
         }
-        const comm = groupRows(await byExactRefs([...wanted.keys()].slice(0, 600)));
+        const byLine = new Map<string, LinkPair[]>();
+        for (const p of pairs) byLine.set(p.anchor, [...(byLine.get(p.anchor) ?? []), p]);
+        // Each line's commentaries in the order they are printed and read (link-order.ts).
+        const wanted = new Map<string, string>();
+        for (const [base, list] of byLine) {
+          const cap = codeOf(base) ? TESTING_LIMITS.codeCommentariesPerLine : TESTING_LIMITS.commentariesPerLine;
+          for (const ref of orderLinked(list, [base], cap)) if (!wanted.has(ref)) wanted.set(ref, base);
+        }
+        const chosen = [...wanted.keys()].slice(0, 1500);
+        const rank = new Map(chosen.map((r, i) => [r, i]));
+        const comm = groupRows(await byExactRefs(chosen)).sort((a, b) => (rank.get(a.ref) ?? 0) - (rank.get(b.ref) ?? 0));
         for (const c of comm) {
           const base = wanted.get(c.ref)!;
-          const list = commentaries.get(base) ?? [];
-          if (list.length < TESTING_LIMITS.commentariesPerLine) list.push({ ...c, on: base });
-          commentaries.set(base, list);
+          commentaries.set(base, [...(commentaries.get(base) ?? []), { ...c, on: base }]);
         }
       }
       // The sections before and after, in the book's own order.

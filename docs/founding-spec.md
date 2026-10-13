@@ -111,6 +111,17 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
 - in practical halacha, notes where Ashkenazi and Sephardi practice differ
 - for real-life rulings, lays out the mainstream positions and sends the person to their rav
 
+**Reading a ruling with its commentaries. Josh's direction (2026-10-13), pending the board:**
+halacha is read the way a posek reads it. When RabAI opens a seif of the Shulchan Aruch, the
+app opens with it the commentaries printed around it, the main ones first (on Orach Chayim the
+Mishnah Berurah and Biur Halacha, then the Magen Avraham and Taz; on Yoreh De'ah the Shach and
+Taz; on Even HaEzer the Chelkat Mechokek and Beit Shmuel; on Choshen Mishpat the Sma and Shach),
+then the Gemara and the Rambam the ruling rests on, then the later commentaries. A halacha of the
+Rambam opens with the Maggid Mishneh, the Kessef Mishneh and the Ra'avad; a line of Gemara with
+Rashi and Tosafot and the codes that rule on it; a verse with Onkelos, Rashi, the Ramban, the Ibn
+Ezra and the Sforno. Each book takes its turn, so one long commentary can't crowd out the others
+(`web/lib/library/link-order.ts`). The board reviews the order and the core premises' wording.
+
 ### 4. Enforcement and oversight
 
 - **Retrieval whitelist.** Only works with `status: approved` and a cleared license go into

@@ -1,5 +1,6 @@
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { Passage } from "../library/types";
+import { codeOf } from "../library/link-order";
 import { parseRef, sectionOf, type TestingStore } from "../library/testing";
 import {
   allowedLookup,
@@ -52,6 +53,11 @@ export const LOOKUP_LIMITS = {
   perRef: 6,
   /** Commentaries and parallel passages followed from the first places. */
   linked: 8,
+  /**
+   * The same, when a place opened is a seif of the Shulchan Aruch or a halacha of the Mishneh
+   * Torah: a ruling is read with the commentaries printed around it and the sources it rests on.
+   */
+  halachaLinked: 12,
   /** Full-text search results. */
   searched: 8,
   /** All texts sent to the model. */
@@ -82,9 +88,24 @@ Acharonim a question is discussed, and you name those places precisely.
 Name only places in the books listed below, using exactly the names given there, in the form
 "Book chapter:verse" or "Tractate daf:line", for example "Genesis 1:1", "Shabbat 21b:5",
 "Mishnah Berakhot 1:1", "Shulchan Arukh, Orach Chayim 671:2", "Mishneh Torah, Repentance 2:1".
-A chapter or daf alone ("Berakhot 2a", "Genesis 1") opens its first lines. Prefer the central
-places: the primary text first, then the code that rules on it. If you are not sure of the
-exact line, give the chapter or the daf.
+A chapter, siman or daf alone ("Berakhot 2a", "Genesis 1", "Arukh HaShulchan, Orach Chaim 671")
+opens the lines in it that hold your phrases, or its first lines. Prefer the central places: the
+primary text first, then the code that rules on it. If you are not sure of the exact line, give
+the chapter, siman or daf.
+
+For a question of halacha, name the places the way a posek opens them:
+- the seif of the Shulchan Aruch, which holds the Rema's gloss too ("Shulchan Arukh, Yoreh
+  De'ah 87:1"). The commentaries printed with it (the Mishnah Berurah, the Magen Avraham, the
+  Taz, the Shach and the rest) and the Gemara it rests on are opened with it, so you need not
+  name them;
+- the same siman in the Tur ("Tur, Orach Chayim 671") and in the Beit Yosef ("Beit Yosef, Orach
+  Chayim 671"), and in the Arukh HaShulchan, which spells Orach Chayim "Orach Chaim" ("Arukh
+  HaShulchan, Orach Chaim 671"; "Arukh HaShulchan, Yoreh De'ah 87");
+- the halacha in the Rambam's Mishneh Torah ("Mishneh Torah, Sabbath 1:1"); its commentaries
+  (the Maggid Mishneh, the Kessef Mishneh, the Ra'avad) come with it;
+- the Gemara the ruling comes from, when you know the line;
+- for an everyday practical question, also the Kitzur Shulchan Arukh's siman ("Kitzur Shulchan
+  Arukh 139"); for Sephardic practice, the Kaf HaChayim and the Ben Ish Hai.
 
 Questions about everyday life count too. When someone asks about anger, an argument, grief,
 worry, a hard decision, honesty, gratitude, money, or raising children, name the places the
@@ -256,7 +277,7 @@ export async function retrieveFromTesting(
   const lookingOnline = kind && opts.research ? lookOnline(question, plan.queries, kind, opts.research) : null;
 
   const [opened, searched, articles] = await Promise.all([
-    store.lookup(refs, LOOKUP_LIMITS.perRef),
+    store.lookup(refs, LOOKUP_LIMITS.perRef, phrases),
     store.search(phrases, LOOKUP_LIMITS.searched),
     store.articles(phrases, LOOKUP_LIMITS.articles).catch((err) => {
       console.warn("[rabai] article search failed:", err instanceof Error ? err.message : err);
@@ -264,15 +285,16 @@ export async function retrieveFromTesting(
     }),
   ]);
   // Follow cross-references from the places opened: the commentaries on a verse, the Mishnah
-  // behind a Gemara, the Gemara behind a halacha. Every line asked for by name is followed; a
-  // whole chapter or daf is followed from its first line.
+  // behind a Gemara, the commentaries printed around a seif and the Gemara behind it, in the
+  // order a learner opens them (link-order.ts). Every line asked for by name is followed; a
+  // whole chapter, siman or daf is followed from its first line opened.
   const asked = new Set(refs.map((r) => parseRef(r).start));
   const anchors: string[] = [];
   for (const p of opened) {
     if (anchors.length >= 4) break;
     if (asked.has(p.ref) || !anchors.some((a) => sectionOf(a) === p.section)) anchors.push(p.ref);
   }
-  const linked = await store.linked(anchors, LOOKUP_LIMITS.linked);
+  const linked = await store.linked(anchors, anchors.some((a) => codeOf(a)) ? LOOKUP_LIMITS.halachaLinked : LOOKUP_LIMITS.linked);
 
   const out = new Map<string, Passage>();
   const add = (ps: Passage[], cap: number) => {

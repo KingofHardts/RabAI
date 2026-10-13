@@ -11,6 +11,8 @@ import { abbreviationOf, hebrewNumber } from "../lib/library/word-parts";
 import {
   createTestingStore,
   dbFrom,
+  focusedRefs,
+  focusWords,
   ftsQuery,
   wordReadings,
   rootGuesses,
@@ -182,6 +184,127 @@ test("dictionary links are kept apart from commentaries and parallels", async ()
   const store = await storePromise;
   const linked = await store.linked(["Genesis 1:1"], 10);
   assert.ok(!linked.some((p) => p.ref.startsWith("Jastrow")), "a dictionary entry is not a parallel passage");
+});
+
+/**
+ * A small halacha library: a seif of the Shulchan Aruch with the commentaries printed around it,
+ * linked the way the library links them, and a halacha of the Mishneh Torah whose commentaries
+ * have no links at all and are found by their refs. Short test lines, not an edition.
+ */
+async function halachaStore() {
+  const client = createClient({ url: ":memory:" });
+  await client.executeMultiple(schema);
+  const titles: Array<[number, string, string]> = [
+    [1, "Shulchan Arukh, Orach Chayim", "sa"],
+    [2, "Mishnah Berurah", "mb"],
+    [3, "Magen Avraham", "ma"],
+    [4, "Kaf HaChayim on Shulchan Arukh, Orach Chayim", "kh"],
+    [5, "Be'er HaGolah on Shulchan Arukh, Orach Chayim", "bh"],
+    [6, "Shabbat", "bavli"],
+    [7, "Mishneh Torah, Sabbath", "mt"],
+    [8, "Kessef Mishneh on Mishneh Torah, Sabbath", "km"],
+    [9, "Maggid Mishneh on Mishneh Torah, Sabbath", "mm"],
+    [10, "Arukh HaShulchan", "ah"],
+  ];
+  const lines: Array<[string, number, string]> = [
+    ["Shulchan Arukh, Orach Chayim 671:2", 1, "מצוה להניחו על פתח הסמוך לרשות הרבים"],
+    ["Mishnah Berurah 671:4", 2, "סמוך לרשות הרבים משום פרסומי ניסא"],
+    ["Mishnah Berurah 671:5", 2, "ואם יש לו פתח אחר"],
+    ["Magen Avraham 671:1", 3, "מצוה להניחו"],
+    ["Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:6:1", 4, "פתח הסמוך"],
+    ["Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:7:1", 4, "לרשות הרבים"],
+    ["Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:8:1", 4, "בטפח הסמוך לפתח"],
+    ["Be'er HaGolah on Shulchan Arukh, Orach Chayim 671:2", 5, "שבת כא"],
+    ["Shabbat 21b:5", 6, "נר חנוכה מצוה להניחה על פתח ביתו מבחוץ"],
+    ["Mishneh Torah, Sabbath 1:1", 7, "שביתה ממלאכה ביום השביעי מצות עשה"],
+    ["Mishneh Torah, Sabbath 1:2", 7, "העושה מלאכה בשבת ברצונו בזדון"],
+    ["Kessef Mishneh on Mishneh Torah, Sabbath 1:1:1", 8, "שביתה ממלאכה. מפורש בתורה"],
+    ["Maggid Mishneh on Mishneh Torah, Sabbath 1:1:1", 9, "שביתה ממלאכה. בפרק כלל גדול"],
+    ["Maggid Mishneh on Mishneh Torah, Sabbath 1:2:1", 9, "העושה מלאכה. משנה בכריתות"],
+    ["Arukh HaShulchan, Orach Chaim 671:1", 10, "כמה נרות מדליקין בחנוכה"],
+    ["Arukh HaShulchan, Orach Chaim 671:2", 10, "שיעור הנר שיהא בו שמן"],
+    ["Arukh HaShulchan, Orach Chaim 671:3", 10, "ומצוה להניחו בטפח הסמוך לפתח משמאל"],
+  ];
+  const sql = [
+    `INSERT INTO works (id, title, category, streams) VALUES ${titles.map(([, t, w]) => `('${w}', '${t.replace(/'/g, "''")}', 'halacha', '[]')`).join(", ")};`,
+    `INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES ${titles
+      .map(([id, t, w]) => `(${id}, '${t.replace(/'/g, "''")}', '', '${w}', '[]', 2, '[]')`)
+      .join(", ")};`,
+    `INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES ${titles.map(([id, , w]) => `(${id}, '${w}', 'Test ${w}', 'he', 0, 0)`).join(", ")};`,
+    "INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');",
+    `INSERT INTO links VALUES
+      ('Shulchan Arukh, Orach Chayim 671:2', 'Be''er HaGolah on Shulchan Arukh, Orach Chayim 671:2', 'commentary'),
+      ('Shulchan Arukh, Orach Chayim 671:2', 'Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:6:1', 'commentary'),
+      ('Shulchan Arukh, Orach Chayim 671:2', 'Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:7:1', 'commentary'),
+      ('Shulchan Arukh, Orach Chayim 671:2', 'Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:8:1', 'commentary'),
+      ('Shulchan Arukh, Orach Chayim 671:2', 'Shabbat 21b:5', 'ein mishpat / ner mitsvah'),
+      ('Mishnah Berurah 671:5', 'Shulchan Arukh, Orach Chayim 671:2', 'commentary'),
+      ('Mishnah Berurah 671:4', 'Shulchan Arukh, Orach Chayim 671:2', 'commentary'),
+      ('Magen Avraham 671:1', 'Shulchan Arukh, Orach Chayim 671:2', 'commentary');`,
+  ];
+  await client.executeMultiple(sql.join("\n"));
+  let id = 1;
+  for (const [ref, title, text] of lines) {
+    await client.execute({ sql: "INSERT INTO passages VALUES (?, ?, ?, ?, ?, ?, ?)", args: [id, ref, title, title, 1, id, text] });
+    await client.execute({ sql: "INSERT INTO passages_fts (rowid, plain) VALUES (?, ?)", args: [id, plainForSearch(text)] });
+    id++;
+  }
+  return createTestingStore(dbFrom(client));
+}
+
+test("halacha: a seif opens the Mishnah Berurah and Magen Avraham before Kaf HaChayim's many lines, and the Be'er HaGolah last", async () => {
+  const store = await halachaStore();
+  const linked = await store.linked(["Shulchan Arukh, Orach Chayim 671:2"], 6);
+  assert.deepEqual(linked.map((p) => p.ref), [
+    "Mishnah Berurah 671:4",
+    "Magen Avraham 671:1",
+    "Mishnah Berurah 671:5",
+    "Shabbat 21b:5",
+    "Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:6:1",
+    "Kaf HaChayim on Shulchan Arukh, Orach Chayim 671:7:1",
+  ]);
+});
+
+test("halacha: the Rambam's commentaries are found by their refs, and shown under their own halacha", async () => {
+  const store = await halachaStore();
+  const linked = await store.linked(["Mishneh Torah, Sabbath 1:1"], 4);
+  assert.deepEqual(linked.map((p) => p.ref), ["Maggid Mishneh on Mishneh Torah, Sabbath 1:1:1", "Kessef Mishneh on Mishneh Torah, Sabbath 1:1:1"]);
+  const chapter = await store.section("Mishneh Torah, Sabbath 1");
+  assert.deepEqual(
+    chapter?.commentaries.get("Mishneh Torah, Sabbath 1:1")?.map((c) => c.ref),
+    ["Maggid Mishneh on Mishneh Torah, Sabbath 1:1:1", "Kessef Mishneh on Mishneh Torah, Sabbath 1:1:1"],
+  );
+  assert.deepEqual(chapter?.commentaries.get("Mishneh Torah, Sabbath 1:2")?.map((c) => c.ref), ["Maggid Mishneh on Mishneh Torah, Sabbath 1:2:1"]);
+  const seif = await store.section("Shulchan Arukh, Orach Chayim 671");
+  assert.equal(seif?.commentaries.get("Shulchan Arukh, Orach Chayim 671:2")?.[0]?.ref, "Mishnah Berurah 671:4", "the reader shows the Mishnah Berurah first");
+});
+
+test("a whole siman opened with the question's words gives the seifim that hold them", async () => {
+  const store = await halachaStore();
+  const plain = await store.lookup(["Arukh HaShulchan, Orach Chaim 671"], 1);
+  assert.deepEqual(plain.map((p) => p.ref), ["Arukh HaShulchan, Orach Chaim 671:1"], "without words, its first seif");
+  const focused = await store.lookup(["Arukh HaShulchan, Orach Chaim 671"], 1, ["בטפח הסמוך לפתח", "Chanukah lights"]);
+  assert.deepEqual(focused.map((p) => p.ref), ["Arukh HaShulchan, Orach Chaim 671:3"]);
+  const exact = await store.lookup(["Arukh HaShulchan, Orach Chaim 671:2"], 1, ["בטפח הסמוך לפתח"]);
+  assert.deepEqual(exact.map((p) => p.ref), ["Arukh HaShulchan, Orach Chaim 671:2"], "a line asked for by name is that line");
+});
+
+test("focus words: Hebrew without vowels, English without common words, whole phrases kept", () => {
+  const f = focusWords(["נֵר חֲנוּכָּה", "the Chanukah lights", "שבת"]);
+  assert.ok(f.words.includes("נר") && f.words.includes("חנוכה") && f.words.includes("שבת"));
+  assert.ok(f.words.includes("chanukah") && f.words.includes("lights"));
+  assert.ok(!f.words.includes("the"));
+  assert.deepEqual(f.phrases, ["נר חנוכה", "the chanukah lights"]);
+  const refs = focusedRefs(
+    [
+      { ref: "A 1:1", text: "שלום עליכם" },
+      { ref: "A 1:2", text: "נר חנוכה" },
+      { ref: "A 1:3", text: "חנוכה" },
+    ],
+    2,
+    f,
+  );
+  assert.deepEqual(refs, ["A 1:2", "A 1:3"], "the best lines, in reading order");
 });
 
 test("word forms: the word, without its front letters, without a common ending", () => {
