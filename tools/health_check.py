@@ -13,9 +13,11 @@ summary:
      collection reports its article count);
    - the Anthropic key answers a one-word request (a fraction of a cent).
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
-   the articles' sections (with how many paragraphs the first articles of each open with), and one
-   real question is answered (about the cost of one question in the app). Only whether each step
-   worked is printed, never the answer, and never an article's title or words (only counts).
+   the articles' sections (with how many paragraphs the first articles of each open with), and two
+   real questions are answered: one from the library, and one practical halacha question that
+   RabAI looks up online on the trusted Orthodox sites (together about the cost of three questions
+   in the app). Only whether each step worked is printed, never the answer, and never an article's
+   title or words (only counts; for the lookup, the names of the trusted sites it used).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -45,6 +47,8 @@ SETTINGS = (
     "RABAI_PUBLIC",
     "RABAI_MODEL",
     "RABAI_LOOKUP_MODEL",
+    "RABAI_ONLINE",
+    "RABAI_RESEARCH_MODEL",
     "TURSO_DATABASE_URL",
     "TURSO_AUTH_TOKEN",
     "TRANSLATIONS_DATABASE_URL",
@@ -57,6 +61,8 @@ SETTINGS = (
     "RABAI_COLLECTION_DB_URLS",
 )
 QUESTION = "What is the first word of the Torah, and what does it mean?"
+# A practical question the classic books don't name directly: RabAI should look it up online.
+PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
 
 problems: list[str] = []
 
@@ -436,33 +442,59 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         problem(f"\"Show the flow\" answered HTTP {status} with something that isn't JSON "
                 f"(after {seen.get('seconds', 0):.0f} seconds, x-vercel-error = {h.get('x-vercel-error', 'none')}).")
 
-    # The app asks for a live (streamed) answer: one JSON object per line.
-    status, raw = fetch("/api/ask", {"question": QUESTION, "stream": True}, timeout=240)
-    h = seen.get("headers", {})
-    if status != 200:
-        problem(f"Asking a question answered HTTP {status}.")
+    def live_answer(question: str, label: str) -> dict | None:
+        """Ask for a live (streamed) answer: one JSON object per line. Returns the checked result."""
+        seen.pop("cut", None)
+        status, raw = fetch("/api/ask", {"question": question, "stream": True}, timeout=300)
+        h = seen.get("headers", {})
+        if status != 200:
+            problem(f"Asking {label} answered HTTP {status}.")
+            return None
+        events = []
+        for line in raw.decode("utf-8", "replace").splitlines():
+            try:
+                events.append(json.loads(line))
+            except ValueError:
+                continue
+        done = next((e for e in events if isinstance(e, dict) and e.get("type") == "done"), None)
+        statuses = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "status")
+        pieces = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "text")
+        if not done:
+            summary(f"  - Answer details: {len(raw):,} bytes in {seen.get('seconds', 0):.0f} seconds, "
+                    f"content-type = {h.get('content-type', '?')}, x-vercel-error = {h.get('x-vercel-error', 'none')}"
+                    + (f", cut off ({seen['cut']})" if seen.get("cut") else ""))
+            problem(f"{label[0].upper()}{label[1:]} never finished ({statuses} status lines, {pieces} pieces of text).")
+            return None
+        r = done.get("result", {})
+        summary(f"- {label[0].upper()}{label[1:]}: status = {plain(r.get('status'))}, {len(r.get('sources') or [])} sources cited, "
+                f"{len(r.get('retrieved') or [])} passages read, {statuses} status lines, {pieces} pieces of text, "
+                f"{seen.get('seconds', 0):.0f} seconds.")
+        if r.get("status") not in ("answered",):
+            problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+        return r
+
+    live_answer(QUESTION, "a live answer")
+
+    # A practical question: RabAI should look it up on the trusted Orthodox sites, open the texts
+    # the pages rely on, and show the note to ask one's rav. Only counts and the sites' names
+    # (from canon/lookup-sites.yaml) are printed.
+    r = live_answer(PRACTICAL_QUESTION, "a practical question")
+    if r is None:
         return
-    events = []
-    for line in raw.decode("utf-8", "replace").splitlines():
-        try:
-            events.append(json.loads(line))
-        except ValueError:
-            continue
-    done = next((e for e in events if isinstance(e, dict) and e.get("type") == "done"), None)
-    statuses = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "status")
-    pieces = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "text")
-    if not done:
-        summary(f"  - Answer details: {len(raw):,} bytes in {seen.get('seconds', 0):.0f} seconds, "
-                f"content-type = {h.get('content-type', '?')}, x-vercel-error = {h.get('x-vercel-error', 'none')}"
-                + (f", cut off ({seen['cut']})" if seen.get("cut") else ""))
-        problem(f"A live answer never finished ({statuses} status lines, {pieces} pieces of text).")
-        return
-    r = done.get("result", {})
-    summary(f"- A live answer: status = {plain(r.get('status'))}, {len(r.get('sources') or [])} sources cited, "
-            f"{len(r.get('retrieved') or [])} passages read, {statuses} status lines, {pieces} pieces of text, "
-            f"{seen.get('seconds', 0):.0f} seconds.")
-    if r.get("status") not in ("answered",):
-        problem(f"A live answer ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+    online = r.get("online") if isinstance(r.get("online"), dict) else None
+    pages = (online or {}).get("pages") or []
+    sites = sorted({plain(p.get("site")) for p in pages if isinstance(p, dict)})
+    used = sum(1 for p in pages if isinstance(p, dict) and p.get("used"))
+    summary(f"  - Practical: {'yes' if r.get('practical') else 'no'}; looked up online: "
+            + (f"{plain(online.get('kind'))}, {plain(online.get('status'))}, {len(pages)} pages ({used} used)"
+               f"{' from ' + ', '.join(sites) if sites else ''}, {len((online or {}).get('checked') or [])} texts checked"
+               if online else "no"))
+    if not r.get("practical"):
+        problem("The lookup step didn't mark a practical halacha question as practical, so no note to ask a rav was shown.")
+    if not online:
+        problem("RabAI didn't look a practical halacha question up online (is RABAI_ONLINE off, or the app public?).")
+    elif online.get("status") == "failed":
+        problem("The online lookup failed. Check that web search is allowed in the Anthropic organization's settings.")
 
 
 def check_browser(code: str | None, articles: bool = False) -> None:

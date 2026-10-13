@@ -313,7 +313,8 @@ Open items:
   texts the pages rely on in the library, checks the pages against them, and shows an "ask your
   rav" note under practical halacha answers. The sites list, the core premises' "Looking things
   up" and the note's wording wait for the board (open questions 9 and 17). It needs web search
-  allowed in the maintainer's Anthropic organization (on unless someone turned it off).
+  allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
+  RabAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
