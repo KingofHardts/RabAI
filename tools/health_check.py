@@ -13,11 +13,13 @@ summary:
      collection reports its article count);
    - the Anthropic key answers a one-word request (a fraction of a cent).
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
-   the articles' sections (with how many paragraphs the first articles of each open with), and two
-   real questions are answered: one from the library, and one practical halacha question that
-   RabAI looks up online on the trusted Orthodox sites (together about the cost of three questions
-   in the app). Only whether each step worked is printed, never the answer, and never an article's
-   title or words (only counts; for the lookup, the names of the trusted sites it used).
+   the articles' sections (with how many paragraphs the first articles of each open with), the
+   Sources page opens, and three real questions are answered: one from the library, one about
+   RabAI's own sources (which books it uses and leaves out), and one practical halacha question
+   that RabAI looks up online on the trusted Orthodox sites (together about the cost of four
+   questions in the app). Only whether each step worked is printed, never the answer, and never
+   an article's title or words (only counts; for the lookup, the names of the trusted sites it
+   used).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -61,6 +63,8 @@ SETTINGS = (
     "RABAI_COLLECTION_DB_URLS",
 )
 QUESTION = "What is the first word of the Torah, and what does it mean?"
+# A question about RabAI's own library: RabAI should answer it from its sources list.
+SOURCES_QUESTION = "Which books do you use for halacha, and which do you leave out?"
 # A practical question the classic books don't name directly: RabAI should look it up online.
 PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
 
@@ -398,6 +402,16 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     except ValueError:
         problem(f"The library list answered HTTP {status} with something that isn't JSON.")
 
+    # The Sources page: every book RabAI reads, what waits for the board, and what it leaves out.
+    # Only counts are printed.
+    status, raw = fetch("/sources")
+    page = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else ""
+    entries = page.count('class="src-work"')
+    summary(f"- The Sources page: HTTP {status}, {entries:,} entries"
+            + (", with its search box." if 'id="sources-find-input"' in page else ", without its search box."))
+    if status != 200 or not entries:
+        problem(f"The Sources page answered HTTP {status} with {entries} entries.")
+
     status, raw = fetch("/api/account")
     summary(f"- The account check: HTTP {status}.")
 
@@ -474,6 +488,15 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         return r
 
     live_answer(QUESTION, "a live answer")
+
+    # A question about RabAI's own library: the lookup step should mark it, so RabAI answers from
+    # its sources list (and the app links to the Sources page). Only yes or no is printed.
+    r = live_answer(SOURCES_QUESTION, "a question about RabAI's own sources")
+    if r is not None:
+        summary(f"  - Answered from RabAI's sources list: {'yes' if r.get('aboutLibrary') else 'no'}.")
+        if not r.get("aboutLibrary"):
+            problem("A question about which books RabAI uses wasn't recognized as one about its own library, "
+                    "so RabAI wasn't given its sources list.")
 
     # A practical question: RabAI should look it up on the trusted Orthodox sites, open the texts
     # the pages rely on, and show the note to ask one's rav. Only counts and the sites' names

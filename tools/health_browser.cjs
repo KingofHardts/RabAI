@@ -51,6 +51,30 @@ async function walkArticles(page, name) {
   say("OK", `${name}: Learn shows Articles (${n} sections); a section listed ${listed}; an article opened with its credit line and ${lines} paragraphs.`);
 }
 
+// The Sources page: search it for a book, and check nothing is wider than the screen. Only counts
+// are printed.
+async function checkSources(page, name) {
+  await page.goto(`${APP}/sources`, { waitUntil: "networkidle", timeout: 60000 });
+  const box = page.locator("#sources-find-input");
+  await box.waitFor({ timeout: 30000 });
+  const all = await page.locator("li.src-work").count();
+  // Typing before the page has finished loading can be undone when it does; type again if so.
+  let counted = false;
+  for (let attempt = 0; attempt < 3 && !counted; attempt++) {
+    await box.fill("");
+    await box.fill("Mishnah Berurah");
+    counted = await page
+      .waitForFunction(() => /match/.test(document.querySelector(".sources-find [aria-live]")?.textContent || ""), null, { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+  }
+  const shown = await page.locator("li.src-work:not([hidden])").count();
+  if (!counted || shown === 0) say("PROBLEM", `${name}: searching the Sources page for "Mishnah Berurah" found nothing.`);
+  else say("OK", `${name}: the Sources page lists ${all} entries; searching it for "Mishnah Berurah" found ${shown}.`);
+  const wider = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (wider > 1) say("PROBLEM", `${name}: the Sources page is ${wider}px wider than the screen.`);
+}
+
 async function run(name, options, ask) {
   const browser = await chromium.launch();
   const context = await browser.newContext(options);
@@ -94,6 +118,11 @@ async function run(name, options, ask) {
       } else {
         say("PROBLEM", `${name}: a question got no answer and no notice within ${seconds} seconds.`);
       }
+    }
+    try {
+      await checkSources(page, name);
+    } catch (e) {
+      say("PROBLEM", `${name}: the Sources page: ${e.message.split("\n")[0]}`);
     }
   } catch (e) {
     say("PROBLEM", `${name}: ${e.message.split("\n")[0]}`);
