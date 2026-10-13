@@ -38,6 +38,16 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - Run `python3 tools/validate.py` before every commit. CI runs it too.
 - Keep the docs in step with the data: a new tag value goes in `canon/vocabulary.yaml`, and a
   new decision goes in `docs/founding-spec.md`.
+- After changing `canon/canon.yaml`, `canon/excluded.yaml`, `canon/reading-order.yaml` (the order
+  RabAI opens the commentaries in) or `canon/lookup-sites.yaml`, run
+  `python3 tools/validate.py --write` and commit what it regenerates: the sources list the board
+  reviews (`docs/sources-for-review.md`) and the app's copies
+  (`web/lib/sources/sources.generated.ts`, `web/lib/library/reading-order.generated.ts`,
+  `web/lib/engine/lookup-sites.generated.ts`). The validator fails when one is out of date.
+- RabAI's manner is described by qualities, never by a person: never name a living rabbi in the
+  model's instructions, never have RabAI speak in a real rabbi's name or say what one would
+  think, and never quote one unless a source it was given has the words
+  (`docs/character-notes.md`).
 
 ## The app (`web/`)
 
@@ -155,16 +165,22 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   online"): for anything about Torah, halacha or belief, the search reaches only the trusted
   sites in `canon/lookup-sites.yaml`; for everyday facts, the wider web minus that file's
   `not_for_web` sites. The list is `status: proposed` until the board approves it. After editing
-  it, run `python3 tools/validate.py --write-sites` and commit the regenerated
-  `web/lib/engine/lookup-sites.generated.ts` (the validator fails if they differ). A page reaches
-  the model only as its own words (the cited sentences and a little around them), never the
-  search model's summary, and is never kept. A page is never a source: the texts it relies on
-  are opened in the library and are what confirm a point, and the app lists pages under their
-  own heading (`OnlineNotes`), never among the texts. `onlineSetting` turns lookups off when
+  it, run `python3 tools/validate.py --write` and commit what it regenerates (the validator fails
+  if they differ). A page reaches the model only as its own words (the cited sentences and a
+  little around them), never the search model's summary, and is never kept. A page is never a
+  source: the texts it relies on are opened in the library and are what confirm a point, and the
+  app lists pages under their own heading (`OnlineNotes`), never among the texts. `onlineSetting` turns lookups off when
   `RABAI_PUBLIC=true`; keep that guard. A line action in the reader never looks anything up.
 - An answer to a practical halacha question (`practical` in the lookup plan) always shows the
   note to ask one's rav (`RavNote`). Never remove it; its wording is the board's (open
   question 9).
+- What RabAI says about its own sources comes only from the generated sources list
+  (`web/lib/sources`). When the lookup plan marks a question as about RabAI's library
+  (`library`, or `asksAboutLibrary` without the planner), RabAI is given the list
+  (`libraryOverview`, the same for every such question, so it is cached) and the books the
+  question names (`libraryDetails`), and the app links to the Sources page (`app/sources`) under
+  the answer. Never import `lib/sources/index.ts` into a client component: the list is large, and
+  the page's search box uses only `lib/sources/fold.ts`.
 - Before committing app changes: `cd web && npm test && npm run typecheck`.
 - **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
   `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
@@ -220,7 +236,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-11)
+## Where things stand (2026-10-13)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -236,6 +252,18 @@ Moving RabAI off Senior Stylist:
 - Vercel: the Vercel connector holds one account (Senior Stylist's), so RabAI uses a personal
   Vercel token stored on the RabAI environment as an API credential for `api.vercel.com`.
   Sessions call the Vercel API with `curl` and never see the token.
+
+Done 2026-10-13, at Josh's request:
+- The library expanded: 67 more works in the canon as proposed, 13 more entries in
+  `excluded.yaml` with the reasons. They enter the testing library at the next rebuild.
+- Halacha answers read a seif with the commentaries printed around it, in the order in
+  `canon/reading-order.yaml` (proposed, for the board).
+- The sources list for the rabbis (`docs/sources-for-review.md`, also published as a private
+  page and a PDF for Josh to share), made from the canon and checked on every commit. RabAI can
+  answer "what sources do you use, and what do you leave out?", and the app has a Sources page
+  (the gear, then "RabAI's sources").
+- A draft character section for the board, "The kind of teacher you are", inspired by Rav
+  Yitzchak Berkovits as Josh asked (`docs/character-notes.md`, open question 18).
 
 Open items:
 - The testing library on Turso was rebuilt 2026-10-11 with overages on: 3,031,757 passages,

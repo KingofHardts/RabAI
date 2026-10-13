@@ -517,6 +517,20 @@ function RavNote() {
   );
 }
 
+/**
+ * Under an answer about RabAI's own library: the full list, with what waits for the rabbinic
+ * board and what is left out, and why (app/sources).
+ */
+function LibraryNote() {
+  return (
+    <p className="library-note">
+      <a href="/sources" target="_blank" rel="noopener">
+        See RabAI&apos;s sources: every book it reads, what waits for the rabbinic board, and what it leaves out
+      </a>
+    </p>
+  );
+}
+
 /** What RabAI is doing while it works: each step as it happens, the earlier ones checked off. */
 function WorkingSteps({ steps }: { steps: string[] }) {
   const shown = steps.length ? steps : ["Thinking it through"];
@@ -2974,6 +2988,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </span>
                   </button>
                 )}
+                <a className="settings-row" href="/sources" target="_blank" rel="noopener">
+                  <strong>RabAI&apos;s sources</strong>
+                  <span className="muted">Every book it reads, what waits for the rabbinic board, and what it leaves out</span>
+                </a>
                 <div className="settings-about">
                   <p>RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                   {libraryMode === "testing" && (
@@ -3100,6 +3118,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
                       )}
                       {m.result?.status === "answered" && m.result.practical && <RavNote />}
+                      {m.result?.status === "answered" && m.result.aboutLibrary && <LibraryNote />}
                       {m.result?.status === "answered" && (
                         <TeacherNotes sources={m.result.sources ?? []} onOpen={(r) => void openReader(r)} />
                       )}

@@ -377,7 +377,7 @@ test("a library that stores each book's first passage lists books from it, witho
 });
 
 test("the planner's reply is read safely", () => {
-  const none = { practical: false, online: "", queries: [] };
+  const none = { practical: false, online: "", queries: [], library: false };
   assert.deepEqual(parseLookupPlan('Sure: {"refs": ["Genesis 1:1", 3], "hebrew": ["בראשית"], "english": []}'), {
     refs: ["Genesis 1:1"],
     hebrew: ["בראשית"],

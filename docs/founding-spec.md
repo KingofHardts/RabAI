@@ -35,6 +35,16 @@ and it answers as a Torah Jew who is deeply learned and deeply kind would. In pr
 
 The wording lives in the core premises ("Talking about anything"), for the board to review.
 
+**Its manner. Josh's direction (2026-10-13), pending the board:** RabAI should carry some of the
+essence of Rav Berkovits (we took this to mean Rav Yitzchak Berkovits, Rosh Yeshiva of Aish
+HaTorah) and of other rabbis like him: deeply kind and caring, truly learned, and wise in
+difficult situations. The core premises describe the qualities, not a person ("The kind of
+teacher you are"): learned and clear, listening first, seeing everyone in a situation, calm,
+practical and honest, humble about its limits, and looking to responsibility rather than blame.
+RabAI never claims to be him or any rabbi, never speaks in a real rabbi's name, and never says
+what a living rabbi would think. What the section was drawn from, with the public sources, is in
+[`character-notes.md`](character-notes.md) (open question 18).
+
 ## The first principle: the integrity of the mesorah
 
 **Decided (Josh, 2026-10-06).** The most important thing RabAI does is keep faith with the
@@ -93,6 +103,25 @@ The library is a whitelist ([`canon/canon.yaml`](../canon/canon.yaml)). Every wo
 - the specific editions and translations allowed, each marked Orthodox or not, with its
   license status
 
+**Growing the library. Josh's direction (2026-10-13):** expand the library as much as possible,
+organized the Orthodox way. That day 67 works were added to the canon as proposed, among them
+commentaries on Tanakh, the Ramban on Iyov, midrash collections, halacha works such as Nishmat
+HaBayit and Sefer Puah, and works of hashkafah, mussar and Kabbalah, with 13 more translations
+and works listed in `excluded.yaml` with the reasons. Works whose author or edition raises a
+question wait for the board (`orthodox: review`), and nothing enters the testing library unless
+its license allows it.
+
+**The sources list for the board. Josh's direction (2026-10-13):** the rabbis should be able to
+check what RabAI uses and what it leaves out, and RabAI should be able to say so when asked.
+[`docs/sources-for-review.md`](sources-for-review.md) lists, from the canon: the works kept with
+a caution, the editions waiting for the board, what is left out and why, the order RabAI opens
+the commentaries in, the websites it may search, what isn't in the library yet, the earlier
+questions for the board, and the whole library book by book, shelved the way a beit midrash is
+(Tanakh, Mishnah and Talmud, halacha, thought, Kabbalah, prayer, then dictionaries). It is made by
+`python3 tools/validate.py --write` and checked on every commit, so it never drifts from the
+canon. The app shows the same list on its Sources page, and when someone asks RabAI which books it
+uses, the app gives it the list (core premises, "Your own library").
+
 **Translations and commentary come only from Orthodox sources** (Koren, ArtScroll/Mesorah,
 Feldheim, Chabad/Kehot, Moznaim, and others the board approves).
 
@@ -119,8 +148,10 @@ Taz; on Even HaEzer the Chelkat Mechokek and Beit Shmuel; on Choshen Mishpat the
 then the Gemara and the Rambam the ruling rests on, then the later commentaries. A halacha of the
 Rambam opens with the Maggid Mishneh, the Kessef Mishneh and the Ra'avad; a line of Gemara with
 Rashi and Tosafot and the codes that rule on it; a verse with Onkelos, Rashi, the Ramban, the Ibn
-Ezra and the Sforno. Each book takes its turn, so one long commentary can't crowd out the others
-(`web/lib/library/link-order.ts`). The board reviews the order and the core premises' wording.
+Ezra and the Sforno. Each book takes its turn, so one long commentary can't crowd out the others.
+The order is written down for the board in [`canon/reading-order.yaml`](../canon/reading-order.yaml)
+(proposed), and the app reads it from there. The board reviews the order and the core premises'
+wording.
 
 ### 4. Enforcement and oversight
 
@@ -413,3 +444,8 @@ These need a decision before launch. Each one changes behavior.
     public app look things up, and should the board review sample answers that used pages found
     online before launch? Josh decided that RabAI looks things up and checks them against the
     library (see "Looking things up online"); the board decides the boundaries.
+18. **RabAI's manner.** Josh asked that RabAI carry some of the essence of Rav Berkovits and of
+    rabbis like him (see "Its manner" above, and [`character-notes.md`](character-notes.md)).
+    Does the section "The kind of teacher you are" in the core premises capture that manner, and
+    is it right for RabAI? Should the Rav's name appear anywhere outside the reviewers' notes? We
+    suggest not, unless the Rav or the Jerusalem Kollel is asked and agrees.

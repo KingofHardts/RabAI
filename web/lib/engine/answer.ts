@@ -7,8 +7,9 @@ import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from 
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
 import { testingStore, type TestingStore } from "../library/testing";
-import { retrieveFromTesting } from "./lookup";
+import { asksAboutLibrary, retrieveFromTesting } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
+import { libraryDetails, libraryOverview } from "../sources";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -68,6 +69,11 @@ export interface AskResult {
   practical?: boolean;
   /** What RabAI looked up online for this answer, when it did. */
   online?: OnlineReport;
+  /**
+   * A question about RabAI's own library (which books it reads, what it leaves out). The app
+   * shows a link to the full sources list under the answer.
+   */
+  aboutLibrary?: boolean;
 }
 
 /** The pages RabAI looked up online for an answer, shown apart from the texts. */
@@ -335,6 +341,8 @@ export interface LookupNotes {
   online?: OnlineFindings;
   /** The library's texts opened because a page found online relies on them. */
   checked?: string[];
+  /** The person asks about RabAI's own library: RabAI is given the sources list (lib/sources). */
+  library?: boolean;
 }
 
 /** The settings lines for a practical question and an online lookup. */
@@ -417,9 +425,13 @@ export function planRequest(
       : lib.mode === "testing"
         ? "Library: the private testing library. Published Orthodox editions, not yet approved by the rabbinic board."
         : "Library: approved editions.",
-    documents.length === 0
+    documents.length === 0 && !notes.library
       ? "No passages were found in the library for this question. For a Torah question, say so; for everyday conversation, answer without them and do not mention it."
       : "",
+    notes.library
+      ? "This question is about RabAI's own library: answer it from \"RabAI's own library\" above, unless the person is really asking something else."
+      : "",
+    notes.library ? libraryDetails(lib.mode, query) : "",
     connections && input.word ? wordStudyNote(input.word, input.focusRef, connections.label, related, documents) : "",
     retrieved && input.action === "word" && input.word
       ? `Word study: the person asked about ${input.word}${input.focusRef ? ` in ${input.focusRef}` : ""}. Other passages that contain this exact word were searched for and are attached if found; the library has no root index yet, so do not claim other places its root appears.`
@@ -471,6 +483,9 @@ export function planRequest(
     system: [
       { type: "text", text: CORE_PREMISES },
       { type: "text", text: APP_INSTRUCTIONS, cache_control: { type: "ephemeral" } },
+      // The sources list, when the person asks about RabAI's library: the same for every such
+      // question, so it is cached too.
+      ...(notes.library ? [{ type: "text" as const, text: libraryOverview(lib.mode), cache_control: { type: "ephemeral" as const } }] : []),
       { type: "text", text: settings },
     ],
     messages,
@@ -516,7 +531,7 @@ export async function ask(
       });
       retrieved = found.documents;
       lookedUp = found.plan.refs;
-      notes = { practical: found.plan.practical, online: found.online, checked: found.checked };
+      notes = { practical: found.plan.practical, online: found.online, checked: found.checked, library: found.plan.library };
     } catch (err) {
       console.error("[rabai] library lookup failed:", err instanceof Error ? err.message : err);
       return {
@@ -532,6 +547,10 @@ export async function ask(
     }
   }
 
+  // Without the lookup step (the development and approved libraries), a plainly worded question
+  // about RabAI's own library still gets the sources list. A line action is about its line.
+  if (lib.mode !== "testing" && !input.action && asksAboutLibrary(buildQuestion(input))) notes.library = true;
+
   const plan = planRequest(input, lib, engineConfig(), retrieved, notes);
   const base = {
     blocks: [] as AnswerBlock[],
@@ -544,6 +563,7 @@ export async function ask(
     ...(lookedUp ? { lookedUp } : {}),
     ...(notes.practical ? { practical: true } : {}),
     ...(notes.online ? { online: onlineReport(notes, plan.documents, []) } : {}),
+    ...(notes.library ? { aboutLibrary: true } : {}),
   };
 
   if (!client) {

@@ -284,6 +284,41 @@ p.muted { margin: 0; }
 .unlock-card .brand.signin h1 { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
 @media (max-width: 559px) { .privacy { padding: 0; } .privacy-card { border-radius: 0; border: 0; box-shadow: none; padding: 16px; } }
 
+/* ---------- RabAI's sources (app/sources) ---------- */
+.sources-card { max-width: 760px; }
+.sources-card h2 { font-size: 20px; margin: 28px 0 8px; }
+.sources-card h3 { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--muted); margin: 18px 0 6px; }
+.sources-glance { list-style: none; padding: 0; margin: 16px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-family: var(--font-ui); font-size: 14px; }
+.sources-glance li { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.sources-glance strong { display: block; font-size: 22px; color: var(--accent); }
+.sources-find { position: sticky; top: 0; z-index: 1; background: var(--surface); padding: 10px 0 2px; margin-bottom: 4px; font-family: var(--font-ui); }
+.sources-find label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.sources-find input { width: 100%; min-height: 44px; font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.sources-find p { min-height: 1.5em; margin: 4px 0 0 !important; font-size: 13px; }
+.src-area { border: 1px solid var(--line); border-radius: 12px; margin: 8px 0; background: var(--surface); }
+.src-area > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 14px; cursor: pointer; font-family: var(--font-ui); font-weight: 600; font-size: 15px; min-height: 44px; }
+.src-area > summary .muted { font-weight: 400; font-size: 13px; white-space: nowrap; }
+.src-area[open] > summary { border-bottom: 1px solid var(--line); }
+.src-area > section, .src-area > .src-area-about { padding-inline: 14px; }
+.src-area-about { font-family: var(--font-ui); font-size: 13.5px; margin: 10px 0 0 !important; }
+.src-list { list-style: none; padding: 0; margin: 0 0 8px !important; }
+.src-work { margin: 0 !important; padding: 10px 0; border-bottom: 1px solid var(--line); font-family: var(--font-ui); font-size: 14px; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+.src-list > .src-work:last-child { border-bottom: 0; }
+.src-work p { margin: 2px 0 0 !important; }
+.src-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 !important; font-size: 15px; }
+.src-he { font-size: 17px; }
+.src-about, .src-eds { color: var(--muted); font-size: 13.5px; }
+.src-label { font-weight: 600; color: var(--ink); }
+.src-not-yet { font-style: italic; }
+.src-caution { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 6px 10px; margin-top: 6px !important; }
+.src-steps { margin: 6px 0 0 !important; padding-inline-start: 22px; color: var(--muted); }
+.src-steps li { margin: 2px 0; }
+.sources-foot { margin-top: 24px !important; font-family: var(--font-ui); font-size: 14px; }
+.sources-foot a { color: var(--accent); }
+.library-note { margin-top: 12px; font-family: var(--font-ui); font-size: 14.5px; }
+.library-note a { color: var(--accent); }
+a.settings-row { text-decoration: none; }
+
 /* ---------- learn: the library home and its screens ---------- */
 .thread.learn-home { max-width: 1120px; gap: 0; }
 .learn-screen { gap: 12px; }
@@ -907,7 +942,7 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 /* An answer that was written live is already on screen: it stays put, and only what comes with it rises. */
 .msg-ai.settled { animation: none; }
 .msg-ai.live .body > p, .steps li { animation: fade-in .25s ease both; }
-.msg-ai .body > .rav-note, .msg-ai .body > .teachers, .msg-ai .body > .online-notes, .msg-ai .body > .follow, .msg-ai .body > .helpful { animation: rise .4s var(--ease-out) .06s both; }
+.msg-ai .body > .rav-note, .msg-ai .body > .library-note, .msg-ai .body > .teachers, .msg-ai .body > .online-notes, .msg-ai .body > .follow, .msg-ai .body > .helpful { animation: rise .4s var(--ease-out) .06s both; }
 .starter { animation: rise .4s var(--ease-out) both; }
 .starter:nth-child(2) { animation-delay: .04s; }
 .starter:nth-child(3) { animation-delay: .08s; }

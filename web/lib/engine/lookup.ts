@@ -39,6 +39,11 @@ export interface LookupPlan {
   online: OnlineNeed;
   /** Searches for the online lookup, as a person would type them. */
   queries: string[];
+  /**
+   * The person asks about RabAI's own library: which books it reads, whether a book is in it,
+   * what it leaves out and why. RabAI is then given the sources list (lib/sources).
+   */
+  library: boolean;
 }
 
 export interface LookupClient {
@@ -129,9 +134,15 @@ Then say what kind of question it is, and whether RabAI should also look online:
 - "queries": for an online lookup, one to three short searches, the way a person would type
   them into a search engine (for example "using a microwave on Shabbat", "Star-K dishwasher
   Shabbos").
+- "library": true when the person asks about RabAI itself and its own library: which books,
+  editions, translations or commentaries it uses, whether a book is in its library, what it
+  leaves out and why, which websites it searches, or how it chooses its sources ("what sources
+  do you use?", "do you have the Zohar?", "why don't you use that translation?"). False when they
+  ask what the sources say about a topic ("what are the sources for lighting candles?"). A
+  library question needs no refs or phrases, unless they also ask what a book says.
 
 Reply with JSON only, in this form:
-{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": []}
+{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false}
 At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases, ${LOOKUP_LIMITS.english} English phrases and ${LOOKUP_LIMITS.queries} queries.
 For a message that needs no sources (a greeting, small talk, a question about the app, or a
 practical task with no Torah side, such as a recipe or a math problem), reply with empty lists
@@ -178,6 +189,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
       practical: json.practical === true,
       online,
       queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
+      library: json.library === true,
     };
   } catch {
     return null;
@@ -186,7 +198,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
 
 /** A plan that opens nothing and looks nothing up. */
 export function emptyPlan(): LookupPlan {
-  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [] };
+  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [], library: false };
 }
 
 /** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
@@ -207,7 +219,28 @@ export function fallbackPlan(question: string): LookupPlan {
   const english = (question.match(/[A-Za-z][A-Za-z'-]*/g) ?? [])
     .filter((w) => w.length > 3 && !STOP_WORDS.has(w.toLowerCase()))
     .slice(0, 4);
-  return { ...emptyPlan(), hebrew, english };
+  return { ...emptyPlan(), hebrew, english, library: asksAboutLibrary(question) };
+}
+
+const SOURCE_WORDS = "sources?|books?|seforim|sefarim|texts?|editions?|translations?|commentar(?:y|ies)|meforshim|websites?|sites?|library";
+
+/**
+ * Whether a question plainly asks about RabAI's own library ("what sources do you use?", "is the
+ * Kuzari in your library?", "what do you leave out?"). Used when the planner isn't available; the
+ * planner itself decides otherwise. Asking for sources on a topic ("do you have a source for
+ * waiting six hours?") is not a library question.
+ */
+export function asksAboutLibrary(question: string): boolean {
+  const t = question.slice(0, 600);
+  if (new RegExp(`\\byour\\s+(?:own\\s+)?(?:${SOURCE_WORDS}|canon|bookshelf|whitelist|list)\\b`, "i").test(t)) return true;
+  if (/\brabai'?s\s+(?:own\s+)?(?:library|sources|books|canon|bookshelf)\b/i.test(t)) return true;
+  if (new RegExp(`\\b(?:which|what)\\s+(?:${SOURCE_WORDS})\\s+(?:do|does|did|will|can|are)\\s+(?:you|rabai)\\b`, "i").test(t)) return true;
+  if (/\b(?:leave|leaves|left)\s+out\b|\bexclud(?:e|es|ed|ing)\b/i.test(t) && /\b(?:you|your|rabai)\b/i.test(t)) return true;
+  if (/\bsources?\s+(?:for|on|about|that)\b/i.test(t)) return false;
+  return new RegExp(
+    `\\b(?:do|does|did|can)\\s+(?:you|rabai)\\s+(?:use|have|include|read|rely on|trust|search|quote|cite|consult|open)\\b[^?.!]{0,60}\\b(?:${SOURCE_WORDS})\\b`,
+    "i",
+  ).test(t);
 }
 
 export async function planLookups(question: string, store: TestingStore, client: LookupClient | null): Promise<LookupPlan> {
