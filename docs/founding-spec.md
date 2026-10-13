@@ -30,6 +30,8 @@ and it answers as a Torah Jew who is deeply learned and deeply kind would. In pr
 - Everything else still holds: Torah, halacha and belief come from the library's sources;
   halacha l'maaseh goes to the person's rav; safety comes first. For everyday subjects it may
   use general knowledge, but it names or quotes a source only when it was given that source.
+- When the library doesn't have what a question needs, RabAI may look it up online and check
+  what it finds against the library's texts (see "Looking things up online" below).
 
 The wording lives in the core premises ("Talking about anything"), for the board to review.
 
@@ -243,6 +245,35 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
   `vowels_only` in the canon: it is kept in its own table, never searched or quoted, and its
   points are laid on the library's own words letter by letter, so each word keeps its letters and
   its place on the page. A word the copy spells differently is shown without vowels.
+- **Looking things up online.** **Decided (Josh, 2026-10-13):** RabAI should be able to answer
+  any question, including a practical halacha question or one its library doesn't cover, by
+  looking it up, checking what it finds against the library's Orthodox texts, and then answering;
+  and for a practical question it always tells the person to ask their rav. How it works:
+  - A quick planning step decides whether a question needs a lookup, and whether it is a
+    practical halacha question (what to do in a real situation). Every practical question is
+    looked up on the trusted sites.
+  - For anything about Torah, halacha or Jewish belief, the search reaches only the trusted
+    Orthodox websites listed in [`canon/lookup-sites.yaml`](../canon/lookup-sites.yaml)
+    (proposed, for the board): organizations such as the OU, Chabad.org, Aish.com, Ohr Somayach,
+    Torah.org, Yeshivat Har Etzion and the kashrus agencies, and established poskim's sites. For
+    everyday facts with no Torah side (news, a place, a schedule), it may search the wider web,
+    never the sites listed there as not for the web: non-Orthodox movements, academic Bible
+    criticism, Christian and missionary sites, and anonymous question-and-answer forums.
+  - A page reaches RabAI only as its own words: the sentences the search cited, with a little of
+    the page around them. The search's own summary never reaches the answer, and pages are not
+    kept.
+  - The classic texts a page relies on (the Shulchan Aruch, the Mishnah Berurah, a teshuva) are
+    opened in RabAI's own library, so the page can be checked against them. As with articles,
+    only the texts confirm a point: if a text says the same, RabAI cites the text; if none does,
+    it says the point comes from that site and that it couldn't confirm it from the texts. A
+    page is never one of the sources behind an answer.
+  - Under the answer the app lists the pages under their own heading, with links to the sites
+    ("explanations, not sources"), and the texts they were checked against. For a practical
+    question it shows a note to ask one's rav (open question 9).
+  - Lookups cost money (each search, and the reading), so one runs only when the planner asks for
+    it: at most three searches and two pages read per question. The private app has them on;
+    `RABAI_ONLINE=torah` keeps them to the trusted sites, and a public app looks nothing up until
+    the board approves the list (open question 17).
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
@@ -322,7 +353,9 @@ These need a decision before launch. Each one changes behavior.
 6. **Shabbos and Yom Tov.** Should the service be available on Shabbos and Yom Tov?
 7. **Women's voices.** Should Orthodox women teachers be included as hashkafah sources?
 8. **Topics the assistant refers out immediately** rather than discussing at all.
-9. **Disclaimer wording** at the top of halachic answers.
+9. **Disclaimer wording** at the top of halachic answers. Draft (2026-10-13): under an answer to
+   a practical halacha question, the app shows "For your own situation, ask your rav. RabAI
+   explains what the sources say, but it is not a rav and can't decide for you."
 10. **Audience and tone.** Decided by Josh (2026-10-06): one warm voice, like a kind rebbe,
     for everyone, adapting to each person's level. The board reviews the voice rules in the
     core premises.
@@ -363,3 +396,9 @@ These need a decision before launch. Each one changes behavior.
     before launch, review book by book before a book's translations are shown publicly, keep
     the label, or turn the feature off until an Orthodox translation of those texts can be
     licensed?
+17. **Looking things up online.** Approve, add to, or remove from the trusted sites in
+    `canon/lookup-sites.yaml`, and the sites never searched. Should everyday lookups on the
+    wider web be allowed at all, or only the trusted sites (`RABAI_ONLINE=torah`)? Should a
+    public app look things up, and should the board review sample answers that used pages found
+    online before launch? Josh decided that RabAI looks things up and checks them against the
+    library (see "Looking things up online"); the board decides the boundaries.

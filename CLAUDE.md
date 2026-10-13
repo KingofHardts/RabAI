@@ -151,6 +151,20 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   database; a person's rows go only when they delete their account. "Was this helpful?" feedback
   is never linked to a person or a profile, and changes nothing by itself: people read it and
   decide. Emailed links point only at the app's own address (`appUrl` in `config.ts`).
+- Looking things up online (`web/lib/engine/online.ts`, founding spec "Looking things up
+  online"): for anything about Torah, halacha or belief, the search reaches only the trusted
+  sites in `canon/lookup-sites.yaml`; for everyday facts, the wider web minus that file's
+  `not_for_web` sites. The list is `status: proposed` until the board approves it. After editing
+  it, run `python3 tools/validate.py --write-sites` and commit the regenerated
+  `web/lib/engine/lookup-sites.generated.ts` (the validator fails if they differ). A page reaches
+  the model only as its own words (the cited sentences and a little around them), never the
+  search model's summary, and is never kept. A page is never a source: the texts it relies on
+  are opened in the library and are what confirm a point, and the app lists pages under their
+  own heading (`OnlineNotes`), never among the texts. `onlineSetting` turns lookups off when
+  `RABAI_PUBLIC=true`; keep that guard. A line action in the reader never looks anything up.
+- An answer to a practical halacha question (`practical` in the lookup plan) always shows the
+  note to ask one's rav (`RavNote`). Never remove it; its wording is the board's (open
+  question 9).
 - Before committing app changes: `cd web && npm test && npm run typecheck`.
 - **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
   `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
@@ -270,9 +284,6 @@ Open items:
   2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
   what the build reads; its daily database backup shows a new label first. The backup of
   2026-10-11 had no label changes yet.
-- Waiting on the maintainer's yes or no: an outside check that compares a claim against the
-  library. Proposed design: automatic lookups only on trusted Orthodox sites; the open web
-  only for a claim the person brings; outside content is never treated as a source.
 - For the board: the core premises, including "Talking about anything" (open question 14 in
   the founding spec).
 - Aish.com and Chabad.org couldn't send exports, so their articles are copied from their
@@ -297,6 +308,12 @@ Open items:
   lists in the browser (`tools/site_map.py`, "Map a source's website"). Nothing is copied yet:
   the plan is a "Shiurim on this daf" list (title, speaker, date, a link that plays on
   TorahAnytime), best from a data feed TorahAnytime could send.
+- Looking things up online (Josh's direction, 2026-10-13) is built: RabAI searches the trusted
+  Orthodox sites in `canon/lookup-sites.yaml` (or the wider web for everyday facts), opens the
+  texts the pages rely on in the library, checks the pages against them, and shows an "ask your
+  rav" note under practical halacha answers. The sites list, the core premises' "Looking things
+  up" and the note's wording wait for the board (open questions 9 and 17). It needs web search
+  allowed in the maintainer's Anthropic organization (on unless someone turned it off).
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.

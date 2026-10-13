@@ -27,6 +27,8 @@ export interface AnswerCitation {
   quote: string;
   /** The passage is an article by today's teachers (a website collection), not one of the texts. */
   article?: boolean;
+  /** The passage is a page RabAI looked up online for this answer, not one of the texts. */
+  online?: boolean;
 }
 
 export interface AnswerBlock {
@@ -43,6 +45,11 @@ export interface AnswerSource {
    * shows these under their own heading, apart from the texts.
    */
   article?: { site: string; title: string; author?: string };
+  /**
+   * A page RabAI looked up online for this answer (lib/engine/online.ts): never a source. The app
+   * shows these apart from the texts, with a link to the page.
+   */
+  online?: { site: string; title: string; url: string; kind: "torah" | "general" };
 }
 
 /** Whether a passage is an article from a website collection, and how to name it. */
@@ -97,10 +104,15 @@ export function mapAnswer(content: ResponseBlock[], documents: Passage[], docume
         continue;
       }
       const article = articleOf(passage);
-      if (!citations.some((x) => x.ref === passage.ref)) citations.push({ ref: passage.ref, quote: quote.trim(), ...(article ? { article: true } : {}) });
+      const online = passage.online
+        ? { site: passage.online.site, title: passage.online.title, url: passage.online.url, kind: passage.online.kind }
+        : undefined;
+      if (!citations.some((x) => x.ref === passage.ref)) {
+        citations.push({ ref: passage.ref, quote: quote.trim(), ...(article ? { article: true } : {}), ...(online ? { online: true } : {}) });
+      }
       if (!seen.has(passage.ref)) {
         seen.add(passage.ref);
-        sources.push({ ref: passage.ref, label: passage.label, work: passage.work, ...(article ? { article } : {}) });
+        sources.push({ ref: passage.ref, label: passage.label, work: passage.work, ...(article ? { article } : {}), ...(online ? { online } : {}) });
       }
     }
 

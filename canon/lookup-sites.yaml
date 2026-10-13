@@ -1,0 +1,226 @@
+# Websites RabAI may search when a question isn't covered by its library, or when someone asks
+# a practical halacha question (founding spec, "Looking things up online"; core premises, "Looking
+# things up"). Josh's direction (2026-10-13), pending the board, which decides the lists.
+#
+# A page found online is never a source. RabAI opens the texts the page relies on in its own
+# library, checks the page against them, and rests its answer on the texts. The app shows the
+# pages under their own heading, apart from the texts. Nothing found online is stored.
+#
+# trusted:     the only sites RabAI searches for anything about Torah, halacha or Jewish belief.
+# not_for_web: never searched, even when RabAI looks up an everyday fact on the open web.
+#
+# A domain covers its subdomains. Write bare domains: no https://, no paths, ASCII only.
+# After editing, run: python3 tools/validate.py --write-sites
+# (it regenerates web/lib/engine/lookup-sites.generated.ts, which the app reads).
+
+status: proposed
+
+trusted:
+
+  # Halacha questions and answers, and summaries with their sources
+  - domain: dinonline.org
+    name: Din Online
+    streams: [litvish]
+    offers: Rabbis' answers to halacha questions, with sources
+
+  - domain: halachipedia.com
+    name: Halachipedia
+    streams: [shared]
+    offers: Summaries of halacha topics with their sources
+
+  - domain: torah.org
+    name: Torah.org
+    streams: [shared]
+    offers: Halacha series and Torah articles (Project Genesis)
+
+  - domain: ohr.edu
+    name: Ohr Somayach
+    streams: [litvish, kiruv]
+    offers: Ask the Rabbi, halacha and Torah articles
+
+  - domain: rabbikaganoff.com
+    name: Rabbi Yirmiyohu Kaganoff
+    streams: [litvish]
+    offers: Halacha articles with sources
+
+  - domain: dafyomi.co.il
+    name: Kollel Iyun HaDaf
+    streams: [shared]
+    offers: Daf Yomi insights, summaries and questions
+
+  # Organizations
+  - domain: ou.org
+    name: Orthodox Union
+    streams: [modern_orthodox]
+    offers: Halacha, kashrus and Torah articles
+
+  - domain: outorah.org
+    name: OU Torah
+    streams: [modern_orthodox]
+    offers: Halacha and Torah articles
+
+  - domain: yutorah.org
+    name: YU Torah
+    streams: [modern_orthodox]
+    offers: Shiurim and articles from Yeshiva University's rabbis
+
+  - domain: torahweb.org
+    name: TorahWeb
+    streams: [modern_orthodox]
+    offers: Articles by roshei yeshiva of Yeshiva University
+
+  - domain: aish.com
+    name: Aish
+    streams: [kiruv, litvish]
+    offers: Ask the Rabbi, Torah and Jewish thought (written permission, canon/permissions.yaml)
+
+  - domain: chabad.org
+    name: Chabad.org
+    streams: [chabad, chassidish]
+    offers: Halacha, Torah, customs and zmanim (written permission, canon/permissions.yaml)
+
+  - domain: asktherav.com
+    name: Ask the Rav
+    streams: [chabad, chassidish]
+    offers: Chabad rabbis' answers to halacha questions
+
+  - domain: shulchanaruchharav.com
+    name: Shulchan Aruch HaRav (Rabbi Yaakov Goldstein)
+    streams: [chabad]
+    offers: Halacha summaries following the Alter Rebbe's Shulchan Aruch
+
+  - domain: etzion.org.il
+    name: Yeshivat Har Etzion
+    streams: [religious_zionist]
+    offers: Shiurim and articles (the Virtual Beit Midrash)
+
+  - domain: yeshiva.org.il
+    name: Yeshiva.org.il
+    streams: [religious_zionist]
+    offers: Halacha questions and answers, in Hebrew
+
+  - domain: yeshiva.co
+    name: Yeshiva.co
+    streams: [religious_zionist]
+    offers: Halacha questions and answers, in English
+
+  # Sephardi halacha
+  - domain: dailyhalacha.com
+    name: Daily Halacha (Rabbi Eli Mansour)
+    streams: [sephardi]
+    offers: Sephardi halacha
+
+  - domain: halachayomit.co.il
+    name: Halacha Yomit
+    streams: [sephardi]
+    offers: Halacha following the rulings of Rav Ovadia Yosef
+
+  # Kashrus and the calendar
+  - domain: star-k.org
+    name: Star-K
+    streams: [shared]
+    offers: Kashrus guidance and halacha articles
+
+  - domain: oukosher.org
+    name: OU Kosher
+    streams: [shared]
+    offers: Kashrus guidance and product questions
+
+  - domain: crcweb.org
+    name: Chicago Rabbinical Council
+    streams: [shared]
+    offers: Kashrus guidance
+
+  - domain: askcrc.org
+    name: AskCRC
+    streams: [shared]
+    offers: Kashrus questions and answers
+
+  - domain: kof-k.org
+    name: Kof-K
+    streams: [shared]
+    offers: Kashrus guidance
+
+  - domain: ok.org
+    name: OK Kosher
+    streams: [shared]
+    offers: Kashrus guidance
+
+  - domain: myzmanim.com
+    name: MyZmanim
+    streams: [shared]
+    offers: Zmanim (halachic times) for a place and date
+
+not_for_web:
+
+  - domain: thetorah.com
+    name: TheTorah.com
+    reason: Academic Bible criticism
+
+  - domain: reformjudaism.org
+    name: Union for Reform Judaism
+    reason: A non-Orthodox movement
+
+  - domain: huc.edu
+    name: Hebrew Union College
+    reason: A non-Orthodox movement's seminary
+
+  - domain: rabbinicalassembly.org
+    name: The Rabbinical Assembly
+    reason: A non-Orthodox movement
+
+  - domain: uscj.org
+    name: United Synagogue of Conservative Judaism
+    reason: A non-Orthodox movement
+
+  - domain: jtsa.edu
+    name: Jewish Theological Seminary
+    reason: A non-Orthodox movement's seminary
+
+  - domain: reconstructingjudaism.org
+    name: Reconstructing Judaism
+    reason: A non-Orthodox movement
+
+  - domain: aleph.org
+    name: ALEPH
+    reason: A non-Orthodox movement
+
+  - domain: myjewishlearning.com
+    name: My Jewish Learning
+    reason: Presents every movement's views side by side
+
+  - domain: sefaria.org
+    name: Sefaria
+    reason: Hosts non-Orthodox editions and community source sheets; RabAI reads its whitelisted editions through the library instead
+
+  - domain: judaism.stackexchange.com
+    name: Mi Yodeya
+    reason: Anonymous community answers
+
+  - domain: bibleodyssey.org
+    name: Bible Odyssey
+    reason: Academic Bible criticism
+
+  - domain: gotquestions.org
+    name: Got Questions
+    reason: Christian teaching about the Bible
+
+  - domain: biblegateway.com
+    name: Bible Gateway
+    reason: Christian Bible translations
+
+  - domain: biblehub.com
+    name: Bible Hub
+    reason: Christian Bible commentary
+
+  - domain: blueletterbible.org
+    name: Blue Letter Bible
+    reason: Christian Bible commentary
+
+  - domain: jewsforjesus.org
+    name: Jews for Jesus
+    reason: Christian missionary organization
+
+  - domain: oneforisrael.org
+    name: One for Israel
+    reason: Christian missionary organization

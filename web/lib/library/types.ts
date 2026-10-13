@@ -49,6 +49,21 @@ export interface Passage {
   keywords?: string[];
   /** Where a testing-library passage came from: the canon editions and Sefaria versions. */
   source?: PassageSource;
+  /**
+   * A page found online for this one answer (lib/engine/online.ts): never stored, and never a
+   * source. RabAI checks it against the library's texts, and the app shows it apart from them.
+   */
+  online?: OnlineSource;
+}
+
+export interface OnlineSource {
+  /** "torah": one of the trusted Orthodox sites (canon/lookup-sites.yaml). "general": the open web, for everyday facts. */
+  kind: "torah" | "general";
+  url: string;
+  /** The page's own title. */
+  title: string;
+  /** The site's name from the list ("Star-K"), or its address when it isn't on the list. */
+  site: string;
 }
 
 export interface PassageSource {

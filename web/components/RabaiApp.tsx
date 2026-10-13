@@ -79,6 +79,8 @@ interface ChatMessage {
   role: "user" | "ai";
   text?: string;
   result?: AskResult;
+  /** The answer was written live, so it is already on screen: it doesn't slide in again. */
+  streamed?: boolean;
 }
 
 interface ReaderCommentary extends Passage {
@@ -387,8 +389,9 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
     });
     const current = paragraphs[paragraphs.length - 1];
     for (const c of block.citations) {
-      // An article is shown under its own heading below the answer (TeacherNotes), apart from the texts.
-      if (c.article) continue;
+      // Articles and pages found online are shown under their own headings below the answer
+      // (TeacherNotes, OnlineNotes), apart from the texts.
+      if (c.article || c.online) continue;
       current.push(" ");
       current.push(
         <button key={`c${key++}`} type="button" className="cite" onClick={() => onOpen(c.ref)} title={`Open ${c.ref}`}>
@@ -418,7 +421,7 @@ function TeacherNotes({ sources, onOpen }: { sources: AnswerSource[]; onOpen: (r
   return (
     <div className="teachers">
       <p className="label-sm">From today&apos;s teachers: explanations, not sources</p>
-      {articles.length === sources.length && (
+      {!sources.some((s) => !s.article && !s.online) && (
         <p className="note">None of the texts was cited for this answer. Check it against the texts, or ask your rav.</p>
       )}
       <div className="follow">
@@ -430,6 +433,110 @@ function TeacherNotes({ sources, onOpen }: { sources: AnswerSource[]; onOpen: (r
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * The pages RabAI looked up online for an answer, under their own heading: from the trusted
+ * Orthodox sites (canon/lookup-sites.yaml) or, for everyday facts, the web. Never sources: each
+ * opens on its own site, and the texts they were checked against open in the reader.
+ */
+function OnlineNotes({ result, onOpen }: { result: AskResult; onOpen: (ref: string) => void }) {
+  const o = result.online;
+  // A saved chat is read back from storage, so check the shape before showing it.
+  if (!o || !Array.isArray(o.pages) || !Array.isArray(o.checked)) return null;
+  const where = o.kind === "torah" ? "trusted Orthodox websites" : "the web";
+  const pages = o.pages.filter((p) => typeof p.url === "string" && /^https?:\/\//.test(p.url));
+  if (o.status !== "found" || !pages.length) {
+    return (
+      <p className="online-quiet">
+        {o.status === "failed" ? `RabAI couldn't look this up on ${where} just now.` : `RabAI looked on ${where} and found nothing more to add.`}
+      </p>
+    );
+  }
+  const used = pages.filter((p) => p.used);
+  const others = pages.filter((p) => !p.used);
+  // Pages from the trusted sites are checked against the texts; say so when none confirmed them.
+  const textCited = result.sources.some((s) => !s.article && !s.online);
+  const checked = o.checked.filter((r) => result.retrieved.includes(r));
+  return (
+    <div className="online-notes">
+      <p className="label-sm">
+        {o.kind === "torah" ? "Looked up on trusted Orthodox websites: explanations, not sources" : "Looked up on the web, for everyday facts"}
+      </p>
+      {o.kind === "torah" && used.length > 0 && !textCited && (
+        <p className="note">None of the texts confirmed this, so it rests on the websites alone. Ask your rav before relying on it.</p>
+      )}
+      <ul className="online-pages">
+        {[...used, ...others].map((page) => (
+          <li key={page.ref} className={page.used ? "used" : undefined}>
+            <a href={page.url} target="_blank" rel="noopener noreferrer">
+              <span className="site">{page.site}</span>
+              <span className="title">{page.title}</span>
+              <span className="out" aria-hidden="true">
+                ↗
+              </span>
+              <span className="sr-only"> (opens the website)</span>
+            </a>
+            {!page.used && <span className="unused">found, not used</span>}
+          </li>
+        ))}
+      </ul>
+      {o.kind === "torah" && checked.length > 0 && (
+        <div className="checked">
+          <p className="label-sm">Checked against</p>
+          <div className="follow">
+            {checked.map((r) => (
+              <button key={r} type="button" className="cite" onClick={() => onOpen(r)} title={`Open ${r}`}>
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Under a practical halacha answer: RabAI explains, a rav decides (core premises, "Practical
+ * halacha"). The wording is a draft for the rabbinic board (founding spec, open question 9).
+ */
+function RavNote() {
+  return (
+    <aside className="rav-note" aria-label="A note about practical halacha">
+      <svg className="rav-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 5h16v11H10l-5 4v-4H4z" />
+        <path d="M10 9.2a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M12 14.2h0" />
+      </svg>
+      <p>
+        <strong>For your own situation, ask your rav.</strong> RabAI explains what the sources say, but it is not a rav and
+        can&apos;t decide for you.
+      </p>
+    </aside>
+  );
+}
+
+/** What RabAI is doing while it works: each step as it happens, the earlier ones checked off. */
+function WorkingSteps({ steps }: { steps: string[] }) {
+  const shown = steps.length ? steps : ["Thinking it through"];
+  return (
+    <ol className="steps" aria-label="What RabAI is doing">
+      {shown.map((step, i) => {
+        const current = i === shown.length - 1;
+        return (
+          <li key={`${i}-${step}`} className={current ? "current" : "done"} aria-current={current ? "step" : undefined}>
+            <span className="tick" aria-hidden="true">
+              {current ? "" : "✓"}
+            </span>
+            <span>
+              {step}
+              {current && <span className="dots" />}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -514,8 +621,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  /** The answer being written right now, shown live. */
-  const [live, setLive] = useState<{ status: string; text: string } | null>(null);
+  /** The answer being written right now, shown live, with the steps RabAI has taken so far. */
+  const [live, setLive] = useState<{ steps: string[]; text: string } | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [speechOk, setSpeechOk] = useState(false);
@@ -1007,6 +1114,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     return () => window.removeEventListener("keydown", onKey);
   }, [dafRef, dafPick, dafMenu, flowStep]);
 
+  /** The person has scrolled up from the newest message (a button brings them back). */
+  const [awayFromLatest, setAwayFromLatest] = useState(false);
+  const onThreadScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) setAwayFromLatest(el.scrollHeight - el.scrollTop - el.clientHeight > 240);
+  }, []);
+  const toLatest = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const still = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: still ? "auto" : "smooth" });
+  }, []);
+
   // Follow the conversation as it grows, unless the person has scrolled up to read.
   useEffect(() => {
     const el = scrollRef.current;
@@ -1056,17 +1176,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       setMode("chat");
       setPending(true);
       notice({ kind: "question" });
-      setLive({ status: "Thinking it through", text: "" });
+      setLive({ steps: [], text: "" });
+      let streamed = false;
       try {
         const result = await postAsk(
           { question: q, history, growth, deep: opts.deep === true, profile: profileRef.current.remember ? profileRef.current : undefined },
           {
-            onStatus: (text) => setLive((l) => (l ? { ...l, status: text } : l)),
-            onText: (delta) => setLive((l) => (l ? { ...l, text: l.text + delta } : l)),
+            onStatus: (text) => setLive((l) => (l && l.steps[l.steps.length - 1] !== text ? { ...l, steps: [...l.steps, text] } : l)),
+            onText: (delta) => {
+              streamed = true;
+              setLive((l) => (l ? { ...l, text: l.text + delta } : l));
+            },
           },
         );
         const id = nextId.current++;
-        setMessages((prev) => [...prev, { id, role: "ai", result }]);
+        setMessages((prev) => [...prev, { id, role: "ai", result, ...(streamed && result.blocks.length ? { streamed: true } : {}) }]);
         // A question asked out loud gets its answer read aloud.
         if (opts.spoken && result.status === "answered" && canSpeak()) listen(`m${id}`, plainAnswer(result));
       } catch (err) {
@@ -2882,7 +3006,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </aside>
           )}
           <div className="convo-main">
-        <div className="scroll" ref={scrollRef}>
+        <div className="scroll" ref={scrollRef} onScroll={onThreadScroll}>
           {mode === "chat" && chatsOpen && !chatsColumn ? (
             renderChatsPanel()
           ) : mode === "chat" ? (
@@ -2969,14 +3093,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     {m.text}
                   </div>
                 ) : (
-                  <div key={m.id} className="msg-ai bare">
+                  <div key={m.id} className={`msg-ai bare${m.streamed ? " settled" : ""}`}>
                     <div className="body" data-askable="chat">
                       {m.result && <SafetyCard result={m.result} />}
                       {m.result && m.result.blocks.length > 0 && (
                         <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
                       )}
+                      {m.result?.status === "answered" && m.result.practical && <RavNote />}
                       {m.result?.status === "answered" && (
                         <TeacherNotes sources={m.result.sources ?? []} onOpen={(r) => void openReader(r)} />
+                      )}
+                      {m.result && (m.result.status === "answered" || m.result.status === "no_key") && (
+                        <OnlineNotes result={m.result} onOpen={(r) => void openReader(r)} />
                       )}
                       {m.result?.notice && <p className="note">{m.result.notice}</p>}
                       {m.result?.status === "no_key" && m.result.retrieved.length > 0 && (
@@ -3021,16 +3149,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
 
               {pending && (
-                <div className="msg-ai bare">
+                <div className="msg-ai bare live">
                   <div className="body">
-                    {live?.text ? (
-                      <LiveText text={live.text} />
-                    ) : (
-                      <p className="thinking">
-                        {live?.status ?? "Thinking it through"}
-                        <span className="dots" />
-                      </p>
-                    )}
+                    {live?.text ? <LiveText text={live.text} /> : <WorkingSteps steps={live?.steps ?? []} />}
                   </div>
                 </div>
               )}
@@ -3174,6 +3295,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   }
                 />
               )}
+            </div>
+          )}
+          {mode === "chat" && !(chatsOpen && !chatsColumn) && awayFromLatest && messages.length > 0 && (
+            <div className="jump-wrap">
+              <button type="button" className="jump-latest" onClick={toLatest}>
+                <span aria-hidden="true">↓</span> {pending ? "Back to the answer" : "Back to the latest"}
+              </button>
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { createClient } from "@libsql/client";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { ask, type ModelClient } from "../lib/engine/answer";
 import { fallbackPlan, parseLookupPlan, retrieveFromTesting, type LookupClient } from "../lib/engine/lookup";
+import type { ResearchClient } from "../lib/engine/online";
 import { libraryMode, loadLibrary } from "../lib/library/index";
 import { abbreviationOf, hebrewNumber } from "../lib/library/word-parts";
 import {
@@ -20,6 +21,7 @@ import {
   testingStore,
   wordForms,
 } from "../lib/library/testing";
+import { PAGE_URL, shemaLookup } from "./online-fixture";
 
 /*
  * A tiny copy of the testing library, built from the same schema as the real one
@@ -252,17 +254,34 @@ test("a library that stores each book's first passage lists books from it, witho
 });
 
 test("the planner's reply is read safely", () => {
+  const none = { practical: false, online: "", queries: [] };
   assert.deepEqual(parseLookupPlan('Sure: {"refs": ["Genesis 1:1", 3], "hebrew": ["בראשית"], "english": []}'), {
     refs: ["Genesis 1:1"],
     hebrew: ["בראשית"],
     english: [],
+    ...none,
   });
-  assert.deepEqual(parseLookupPlan("no json here"), { refs: [], hebrew: [], english: [] });
+  assert.deepEqual(parseLookupPlan("no json here"), { refs: [], hebrew: [], english: [], ...none });
   assert.deepEqual(fallbackPlan("What does בראשית ברא mean for creation?"), {
     refs: [],
     hebrew: ["בראשית ברא"],
     english: ["mean", "creation"],
+    ...none,
   });
+});
+
+test("the planner says whether a question is practical, and whether to look online", () => {
+  const plan = parseLookupPlan(
+    '{"refs": [], "hebrew": [], "english": [], "practical": true, "online": "torah", "queries": ["dishwasher on Shabbat", "", 4, "dishwasher on Shabbat"]}',
+  );
+  assert.equal(plan.practical, true);
+  assert.equal(plan.online, "torah");
+  assert.deepEqual(plan.queries, ["dishwasher on Shabbat"]);
+  // Anything but the two kinds of lookup means none; "practical" must be true itself, not truthy.
+  const odd = parseLookupPlan('{"refs": [], "practical": "yes", "online": "everywhere", "queries": ["x"]}');
+  assert.equal(odd.practical, false);
+  assert.equal(odd.online, "");
+  assert.deepEqual(odd.queries, [], "no lookup, no searches");
 });
 
 function planner(reply: string): LookupClient & { calls: number } {
@@ -372,6 +391,96 @@ test("without a planner, retrieval still searches the question's own words", asy
   assert.ok(found.documents.some((p) => p.ref === "Berakhot 2a:1"));
 });
 
+/** A planner that gives its replies in turn, and keeps what it was asked. */
+function plannerInTurn(replies: string[]): LookupClient & { asked: string[] } {
+  const c = {
+    asked: [] as string[],
+    async create(params: MessageCreateParamsNonStreaming) {
+      c.asked.push(String(params.messages[0].content));
+      return { content: [{ type: "text", text: replies[c.asked.length - 1] ?? "{}" }] };
+    },
+  };
+  return c;
+}
+
+/** A lookup online that finds the test pages (tests/online-fixture.ts), counting its calls. */
+function researcher(): ResearchClient & { calls: number; asked: string[] } {
+  const c = {
+    calls: 0,
+    asked: [] as string[],
+    async create(params: MessageCreateParamsNonStreaming) {
+      c.calls++;
+      c.asked.push(String(params.messages[0].content));
+      return { content: shemaLookup() as never, stop_reason: "end_turn" as const };
+    },
+  };
+  return c;
+}
+
+const ONLINE_PLAN = JSON.stringify({ refs: [], hebrew: [], english: [], practical: true, online: "torah", queries: ["evening Shema time"] });
+
+test("an online lookup runs beside the library's, the texts its pages rely on are opened, and the pages come last", async () => {
+  const store = await storePromise;
+  const client = plannerInTurn([ONLINE_PLAN, JSON.stringify({ refs: ["Berakhot 2a", "Mishnah Berakhot 1:1"], hebrew: [], english: [] })]);
+  const research = researcher();
+  const statuses: string[] = [];
+  const found = await retrieveFromTesting("Until when may I say the evening Shema?", store, client, {
+    research,
+    online: "on",
+    onStatus: (s) => statuses.push(s),
+  });
+  assert.equal(found.plan.practical, true);
+  assert.deepEqual(statuses, ["Searching trusted Orthodox sites", "Opening the texts those pages rely on"]);
+  assert.match(research.asked[0], /evening Shema time/, "the planner's searches go to the lookup");
+  // The texts the pages name are found in the library by the same planner, asked plainly.
+  assert.match(client.asked[1], /^This is not the person's question/);
+  assert.match(client.asked[1], /- Berakhot 2a\n- Mishnah Berakhot 1:1/);
+  assert.equal(found.online?.status, "found");
+  assert.deepEqual(found.checked, ["Berakhot 2a:1"], "only texts the library has count as checked");
+  const refs = found.documents.map((p) => p.ref);
+  assert.equal(refs[0], "Berakhot 2a:1");
+  assert.ok(refs.includes("Jastrow, אֵימָתַי"), "a text with no English still brings its dictionary entries");
+  assert.deepEqual(refs.slice(-2), [
+    "Found online: Torah.org, The Evening Shema (test page)",
+    "Found online: Din Online, Saying Shema Again (test page)",
+  ]);
+  const [page] = found.documents.filter((p) => p.online);
+  assert.equal(page.online?.url, PAGE_URL);
+  assert.equal(page.he, "");
+  assert.ok(page.en.includes("The evening Shema may be read from the time the kohanim go in to eat their terumah"));
+  assert.ok(!page.en.includes("Torah.org says"), "the lookup's own report never reaches the answer");
+});
+
+test("nothing is looked up online when the setting is off, or allows only Torah sites for an everyday question", async () => {
+  const store = await storePromise;
+  const research = researcher();
+  const off = await retrieveFromTesting("Until when may I say the evening Shema?", store, planner(ONLINE_PLAN), { research, online: "off" });
+  assert.equal(off.online, undefined);
+  const everyday = JSON.stringify({ refs: [], hebrew: [], english: [], online: "general", queries: ["Baltimore weather Tuesday"] });
+  await retrieveFromTesting("Will it rain in Baltimore on Tuesday?", store, planner(everyday), { research, online: "torah" });
+  const noClient = await retrieveFromTesting("Until when may I say the evening Shema?", store, planner(ONLINE_PLAN), { online: "on" });
+  assert.equal(noClient.online, undefined);
+  assert.equal(research.calls, 0);
+});
+
+test("a failed lookup leaves the library's texts and says so, without opening anything more", async () => {
+  const store = await storePromise;
+  const client = plannerInTurn([JSON.stringify({ refs: ["Berakhot 2a"], hebrew: [], english: [], online: "torah", queries: ["x"] })]);
+  const failing: ResearchClient = {
+    async create() {
+      throw new Error("web search is not enabled for this organization");
+    },
+  };
+  const statuses: string[] = [];
+  const found = await retrieveFromTesting("When is the evening Shema?", store, client, { research: failing, online: "on", onStatus: (s) => statuses.push(s) });
+  assert.equal(found.online?.status, "failed");
+  assert.deepEqual(found.checked, []);
+  assert.deepEqual(statuses, ["Searching trusted Orthodox sites"]);
+  assert.equal(client.asked.length, 1, "no texts to open");
+  assert.ok(found.documents.some((p) => p.ref === "Berakhot 2a:1"));
+  assert.ok(!found.documents.some((p) => p.online));
+});
+
 test("library mode: the testing library switches on when its database is set", () => {
   assert.equal(libraryMode({}), "development");
   assert.equal(libraryMode({ RABAI_LIBRARY_DB_URL: "file:test.db" }), "testing");
@@ -460,6 +569,103 @@ test("ask: a dictionary by an author outside Orthodoxy is sent as a word tool on
   assert.match(jastrow!.context ?? "", /only for what words mean, never for history or belief/);
   const line = docs.find((d) => d.title === "Jerusalem Talmud Berakhot 1:1:1");
   assert.match(line!.context ?? "", /no English translation/);
+});
+
+test("ask: a practical question looked up online is checked against the texts, and the pages are shown apart", async () => {
+  const store = await storePromise;
+  const calls: MessageCreateParamsNonStreaming[] = [];
+  const statuses: string[] = [];
+  const PAGE_REF = "Found online: Torah.org, The Evening Shema (test page)";
+  const client: ModelClient = {
+    async create(params) {
+      calls.push(params);
+      const system = (params.system as Array<{ text: string }>)[0].text;
+      if (system.startsWith("You find sources")) {
+        const asked = String(params.messages[0].content);
+        const text = asked.startsWith("This is not the person's question") ? '{"refs": ["Berakhot 2a"]}' : ONLINE_PLAN;
+        return { content: [{ type: "text", text, citations: null }] } as unknown as BetaMessage;
+      }
+      if (system.startsWith("You look things up")) {
+        return { content: shemaLookup(), stop_reason: "end_turn" } as unknown as BetaMessage;
+      }
+      const last = params.messages[params.messages.length - 1];
+      const docs = (last.content as Array<{ type: string; title?: string }>).filter((b) => b.type === "document");
+      const cite = (title: string, quote: string) => ({
+        type: "char_location",
+        cited_text: quote,
+        document_index: docs.findIndex((d) => d.title === title),
+        document_title: title,
+        start_char_index: 0,
+        end_char_index: 1,
+        file_id: null,
+      });
+      return {
+        id: "msg_test",
+        type: "message",
+        role: "assistant",
+        model: "claude-opus-5-5",
+        stop_reason: "end_turn",
+        content: [
+          { type: "text", text: "The Mishnah asks from when the evening Shema may be read.", citations: [cite("Berakhot 2a:1", "מאימתי קורין את שמע בערבית")] },
+          {
+            type: "text",
+            text: " Torah.org explains that the time begins when the kohanim eat their terumah.",
+            citations: [cite(PAGE_REF, "The evening Shema may be read from the time the kohanim go in to eat their terumah")],
+          },
+          { type: "text", text: " For your own case, ask your rav.", citations: null },
+        ],
+      } as unknown as BetaMessage;
+    },
+  };
+  const result = await ask({ question: "Until when may I say the evening Shema?" }, client, loadLibrary("testing"), store, {
+    onStatus: (s) => statuses.push(s),
+  });
+  assert.equal(result.status, "answered");
+  assert.equal(result.practical, true, "the app shows a note to ask one's rav");
+  assert.equal(result.online?.kind, "torah");
+  assert.equal(result.online?.status, "found");
+  assert.deepEqual(result.online?.checked, ["Berakhot 2a:1"]);
+  assert.deepEqual(
+    result.online?.pages.map((p) => [p.site, p.used]),
+    [
+      ["Torah.org", true],
+      ["Din Online", false],
+    ],
+  );
+  assert.ok(!result.retrieved.some((r) => r.startsWith("Found online")), "a page found online never opens in the reader");
+  assert.ok(result.sources.some((s) => s.ref === "Berakhot 2a:1" && !s.online));
+  assert.equal(result.sources.find((s) => s.online)?.online?.url, PAGE_URL);
+  assert.deepEqual(statuses, [
+    "Looking in the library",
+    "Searching trusted Orthodox sites",
+    "Opening the texts those pages rely on",
+    "Checking what I found against the texts",
+  ]);
+
+  const answer = calls[calls.length - 1];
+  const settings = (answer.system as Array<{ text: string }>).map((b) => b.text).join("\n");
+  assert.match(settings, /This is a practical halacha question/);
+  assert.match(settings, /The texts they rely on were opened in the library and are attached: Berakhot 2a:1/);
+  const last = answer.messages[answer.messages.length - 1];
+  const pageDoc = (last.content as Array<{ type: string; title?: string; context?: string }>).find((b) => b.title === PAGE_REF);
+  assert.match(pageDoc?.context ?? "", /an explanation, not a source/);
+});
+
+test("ask: a line action in the reader never looks anything up online", async () => {
+  const store = await storePromise;
+  const systems: string[] = [];
+  const client: ModelClient = {
+    async create(params) {
+      const system = (params.system as Array<{ text: string }>)[0].text;
+      systems.push(system);
+      const text = system.startsWith("You find sources") ? ONLINE_PLAN : "An explanation.";
+      return { id: "m", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: "end_turn", content: [{ type: "text", text, citations: null }] } as unknown as BetaMessage;
+    },
+  };
+  const result = await ask({ question: "", focusRef: "Berakhot 2a:1", action: "explain" }, client, loadLibrary("testing"), store);
+  assert.equal(result.status, "answered");
+  assert.equal(result.online, undefined);
+  assert.ok(!systems.some((s) => s.startsWith("You look things up")));
 });
 
 test("ask: without the library database, RabAI says so instead of answering from memory", async () => {

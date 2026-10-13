@@ -119,6 +119,33 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .teachers .note { margin: 0 0 8px; }
 .teachers .follow { margin-top: 6px; }
 .cite.article { background: var(--surface); border-color: var(--line); color: var(--ink); text-align: start; }
+/* Pages RabAI looked up online (lib/engine/online.ts): links to their own sites, apart from the texts. */
+.online-notes { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line); }
+.online-notes .label-sm { margin-top: 10px; }
+.online-notes .note { margin: 0 0 8px; }
+.online-pages { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; font-family: var(--font-ui); }
+.online-pages li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.online-pages a { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; min-height: 40px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; font-size: 13.5px; line-height: 1.4; }
+.online-pages .site { font-weight: 600; color: var(--accent); flex: none; }
+.online-pages .title { min-width: 0; overflow-wrap: anywhere; }
+.online-pages .out { color: var(--muted); flex: none; }
+.online-pages li:not(.used) a { border-style: dashed; color: var(--muted); }
+.online-pages .unused { font-size: 12px; color: var(--muted); }
+.online-notes .checked .label-sm { margin: 10px 0 4px; }
+.online-notes .checked .follow { margin-top: 0; }
+.msg-ai .body .online-quiet { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+/* Under a practical halacha answer: ask your rav. */
+.rav-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--tint); border-inline-start: 4px solid var(--accent); font-family: var(--font-ui); font-size: 14.5px; line-height: 1.5; color: var(--ink); }
+.rav-note .rav-icon { color: var(--accent); flex: none; margin-top: 1px; }
+.msg-ai .body .rav-note p { margin: 0; }
+.rav-note strong { color: var(--accent); }
+/* What RabAI is doing while it works: each step as it happens, the earlier ones checked off. */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--font-voice); font-size: 16px; }
+.steps li { display: flex; align-items: baseline; gap: 8px; }
+.steps .tick { width: 18px; flex: none; display: inline-grid; place-items: center; color: var(--accent); font-family: var(--font-ui); font-size: 14px; font-weight: 700; }
+.steps li.done { color: var(--muted); }
+.steps li.current { color: var(--ink); font-style: italic; }
+.steps li.current .tick::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); border-inline-end-color: transparent; animation: spin .8s linear infinite; }
 /* The same secondary button as .btn, kept for the many places that use this name. */
 .chip-btn { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-family: var(--font-ui); font-size: 14.5px; font-weight: 500; min-height: 44px; text-align: start; }
 .label-sm { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
@@ -864,4 +891,66 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
   color: var(--warn-ink);
   font: 600 11px/1.6 var(--font-ui);
   white-space: nowrap;
+}
+
+/* ---------- motion: new things slide up into place and fade in; a press gives way a little ---------- */
+:root { --ease-out: cubic-bezier(.2, .8, .2, 1); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.scroll > * { animation: fade-in .2s ease both; }
+.msg-user { animation: rise .3s var(--ease-out) both; }
+.msg-ai { animation: rise .36s var(--ease-out) both; }
+/* An answer that was written live is already on screen: it stays put, and only what comes with it rises. */
+.msg-ai.settled { animation: none; }
+.msg-ai.live .body > p, .steps li { animation: fade-in .25s ease both; }
+.msg-ai .body > .rav-note, .msg-ai .body > .teachers, .msg-ai .body > .online-notes, .msg-ai .body > .follow, .msg-ai .body > .helpful { animation: rise .4s var(--ease-out) .06s both; }
+.starter { animation: rise .4s var(--ease-out) both; }
+.starter:nth-child(2) { animation-delay: .04s; }
+.starter:nth-child(3) { animation-delay: .08s; }
+.starter:nth-child(n + 4) { animation-delay: .12s; }
+.chats-panel { animation: rise .3s var(--ease-out) both; }
+.settings-menu { animation: pop-in .18s var(--ease-out) both; transform-origin: top right; }
+.rb-menu, .chat-tools { animation: pop-in .18s var(--ease-out) both; }
+.about-view, .scrim { animation: fade-in .2s ease both; }
+.about-card { animation: pop-in .24s var(--ease-out) both; }
+@media (max-width: 559px) { .about-card { animation: sheet-up .32s var(--ease-out) both; } }
+.wc-sheet { animation: sheet-up .3s var(--ease-out) both; }
+.jump-latest { animation: rise .25s var(--ease-out) both; }
+
+.btn, .send, .mic, .starter, .cite, .chip-btn, .icon-btn, .settings-row, .chat-open, .wc-step, .wc-asks button, .online-pages a, .jump-latest, .mode-switch button {
+  transition: transform .12s ease, background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.btn:active:not(:disabled), .send:active:not(:disabled), .mic:active, .starter:active:not(:disabled), .cite:active, .chip-btn:active:not(:disabled),
+.icon-btn:active, .settings-row:active, .chat-open:active, .wc-step:active, .wc-asks button:active, .online-pages a:active, .jump-latest:active {
+  transform: scale(.97);
+}
+.composer textarea { transition: border-color .15s ease, box-shadow .15s ease; }
+/* The text box shows focus with its own border and a soft halo, instead of a second ring. */
+.composer textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+@media (hover: hover) {
+  .online-pages a:hover { border-color: var(--accent); }
+  .starter:hover:not(:disabled) { border-color: var(--accent); }
+}
+
+/* Back to the newest message, when the person has scrolled up to read: it rides the bottom of the
+   conversation (sticky, taking no room) instead of covering the composer. */
+.jump-wrap { position: sticky; bottom: 12px; height: 0; display: flex; justify-content: center; pointer-events: none; z-index: 5; }
+.jump-latest {
+  pointer-events: auto; translate: 0 -100%;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--accent);
+  font-size: 14px; font-weight: 600; box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll > *, .msg-user, .msg-ai, .msg-ai .body > *, .steps li, .starter, .chats-panel, .settings-menu, .rb-menu, .chat-tools,
+  .about-view, .scrim, .about-card, .wc-sheet, .jump-latest { animation: none !important; }
+  .steps li.current .tick::before { animation: none; border-inline-end-color: var(--accent); }
+  .btn, .send, .mic, .starter, .cite, .chip-btn, .icon-btn, .settings-row, .chat-open, .wc-step, .wc-asks button, .online-pages a, .jump-latest { transition: none; }
+  .btn:active, .send:active, .mic:active, .starter:active, .cite:active, .chip-btn:active, .icon-btn:active, .settings-row:active,
+  .chat-open:active, .wc-step:active, .wc-asks button:active, .online-pages a:active, .jump-latest:active { transform: none; }
 }

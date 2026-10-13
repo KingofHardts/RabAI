@@ -8,6 +8,7 @@ import { getWork, loadLibrary, search, type Library, type LibraryMode, type Pass
 import { connectionsFor } from "../library/language";
 import { testingStore, type TestingStore } from "../library/testing";
 import { retrieveFromTesting } from "./lookup";
+import { onlineContext, type OnlineFindings } from "./online";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -60,12 +61,29 @@ export interface AskResult {
   notice?: string;
   /** In the testing library: the places the lookup step chose to open. */
   lookedUp?: string[];
+  /**
+   * A practical halacha question (what to do in a real situation). The app shows a note to ask
+   * one's rav under the answer.
+   */
+  practical?: boolean;
+  /** What RabAI looked up online for this answer, when it did. */
+  online?: OnlineReport;
+}
+
+/** The pages RabAI looked up online for an answer, shown apart from the texts. */
+export interface OnlineReport {
+  /** "torah": trusted Orthodox sites only. "general": the open web, for everyday facts. */
+  kind: "torah" | "general";
+  status: "found" | "none" | "failed";
+  pages: Array<{ url: string; title: string; site: string; ref: string; used: boolean }>;
+  /** The library's texts opened because a page relies on them. */
+  checked: string[];
 }
 
 /** The one call the engine makes. Injected so tests never touch the network. */
 export interface ModelClient {
-  /** `onText` receives the answer's text as it is written. */
-  create(params: MessageCreateParamsNonStreaming, onText?: (delta: string) => void): Promise<BetaMessage>;
+  /** `onText` receives the answer's text as it is written; `signal` cancels the call. */
+  create(params: MessageCreateParamsNonStreaming, onText?: (delta: string) => void, options?: { signal?: AbortSignal }): Promise<BetaMessage>;
 }
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
@@ -96,8 +114,8 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelCl
   if (!apiKey) return null;
   const client = new Anthropic({ apiKey });
   return {
-    create: (params, onText) => {
-      const stream = client.beta.messages.stream(params);
+    create: (params, onText, options) => {
+      const stream = client.beta.messages.stream(params, options?.signal ? { signal: options.signal } : undefined);
       if (onText) stream.on("text", (delta) => onText(delta));
       return stream.finalMessage();
     },
@@ -137,6 +155,12 @@ Sources:
   was not written by an Orthodox author: use it only for what a word means, never for history
   or belief, and where the Aruch, Rashi, the Targum or the Radak explain a word differently,
   follow them.
+- Documents titled "Found online: ..." are pages RabAI looked up for this question: from a
+  trusted Orthodox website on RabAI's list or, for an everyday fact, from the open web. Each holds
+  only the page's own words. They are not sources. Follow "Looking things up" in your
+  instructions: rest your answer on the texts, check each page's points against them, and say
+  plainly what you couldn't confirm. Cite a page where you use its words; the app lists the pages
+  under their own heading, with links, apart from the texts.
 
 Shape of an answer:
 - Write so that anyone can follow: someone new to learning, a teenager, or someone reading in
@@ -246,6 +270,7 @@ export function articleContext(s: NonNullable<Passage["source"]>): string {
 }
 
 function documentContext(passage: Passage, lib: Library): string {
+  if (passage.online) return onlineContext(passage.online);
   if (passage.source?.library === "testing") return testingContext(passage);
   const work = getWork(lib, passage.work);
   const parts = [
@@ -302,6 +327,49 @@ export interface RequestPlan {
   documentTexts: string[];
 }
 
+/** What the lookup step learned about the question, beyond its passages. */
+export interface LookupNotes {
+  /** A practical halacha question. */
+  practical?: boolean;
+  /** What the online lookup found, when one ran. */
+  online?: OnlineFindings;
+  /** The library's texts opened because a page found online relies on them. */
+  checked?: string[];
+}
+
+/** The settings lines for a practical question and an online lookup. */
+export function lookupSettings(notes: LookupNotes): string[] {
+  const lines: string[] = [];
+  if (notes.practical) {
+    lines.push(
+      "This is a practical halacha question (halacha l'maaseh). Follow \"Practical halacha\": explain the mainstream positions and what the answer depends on, and give no final ruling for the person's own situation. End with one short, warm sentence telling them to ask their rav, and what to tell the rav. The app also shows a note to ask a rav under your answer.",
+    );
+  }
+  const o = notes.online;
+  if (!o) return lines;
+  const where = o.kind === "torah" ? "trusted Orthodox websites" : "the web";
+  if (o.status === "failed") {
+    lines.push(
+      `RabAI tried to look this up on ${where}, but the search didn't work just now. If the texts you were given don't cover the question, say that you couldn't check online right now.`,
+    );
+  } else if (o.status === "none") {
+    lines.push(`RabAI looked this up on ${where} and found nothing useful. Answer from the texts you were given, or say that you don't have a source.`);
+  } else if (o.kind === "torah") {
+    const checked = notes.checked ?? [];
+    lines.push(
+      `Looked up online: ${o.pages.length} ${o.pages.length === 1 ? "page" : "pages"} from trusted Orthodox websites, attached as documents titled "Found online". ` +
+        (checked.length
+          ? `The texts they rely on were opened in the library and are attached: ${checked.join("; ")}. Check each page's points against these texts.`
+          : "None of the texts they rely on could be opened in the library, so say which points you couldn't confirm from the texts."),
+    );
+  } else {
+    lines.push(
+      `Looked up on the web: ${o.pages.length} ${o.pages.length === 1 ? "page" : "pages"}, attached as documents titled "Found online", for everyday facts only.`,
+    );
+  }
+  return lines;
+}
+
 /** What to search with: the question and the last thing the person said before it, so a
  * follow-up like "and what does the Ramban say?" still finds the right text. */
 export function searchQuery(input: AskInput): string {
@@ -314,7 +382,13 @@ export function searchQuery(input: AskInput): string {
  * @param retrieved Passages already found in the testing library. Without them, the in-memory
  *   library is searched.
  */
-export function planRequest(input: AskInput, lib: Library, config = engineConfig(), retrieved?: Passage[]): RequestPlan {
+export function planRequest(
+  input: AskInput,
+  lib: Library,
+  config = engineConfig(),
+  retrieved?: Passage[],
+  notes: LookupNotes = {},
+): RequestPlan {
   const question = buildQuestion(input);
   const history = (input.history ?? []).slice(-LIMITS.historyTurns);
   const lastUser = [...history].reverse().find((t) => t.role === "user")?.text ?? "";
@@ -350,6 +424,7 @@ export function planRequest(input: AskInput, lib: Library, config = engineConfig
     retrieved && input.action === "word" && input.word
       ? `Word study: the person asked about ${input.word}${input.focusRef ? ` in ${input.focusRef}` : ""}. Other passages that contain this exact word were searched for and are attached if found; the library has no root index yet, so do not claim other places its root appears.`
       : "",
+    ...lookupSettings(notes),
     safety.concern ? safetyInstruction(safety.concern) : "",
     input.profile ? profileSummary(input.profile) : "",
   ]
@@ -416,6 +491,7 @@ export async function ask(
 
   let retrieved: Passage[] | undefined;
   let lookedUp: string[] | undefined;
+  let notes: LookupNotes = {};
   if (lib.mode === "testing") {
     if (!store) {
       return {
@@ -434,9 +510,13 @@ export async function ask(
       const found = await retrieveFromTesting(searchQuery(input), store, client, {
         focusRef: input.focusRef,
         extraPhrases: input.action === "word" && input.word ? [input.word] : [],
+        // A line action on the reader is about that line; it never needs the web.
+        research: input.action ? null : client,
+        onStatus: hooks.onStatus,
       });
       retrieved = found.documents;
       lookedUp = found.plan.refs;
+      notes = { practical: found.plan.practical, online: found.online, checked: found.checked };
     } catch (err) {
       console.error("[rabai] library lookup failed:", err instanceof Error ? err.message : err);
       return {
@@ -452,15 +532,18 @@ export async function ask(
     }
   }
 
-  const plan = planRequest(input, lib, engineConfig(), retrieved);
+  const plan = planRequest(input, lib, engineConfig(), retrieved, notes);
   const base = {
     blocks: [] as AnswerBlock[],
     sources: [] as AnswerSource[],
-    retrieved: plan.documents.map((p) => p.ref),
+    // Pages found online open on their own sites, not in the reader.
+    retrieved: plan.documents.filter((p) => !p.online).map((p) => p.ref),
     safety: notice,
     libraryMode: lib.mode,
     droppedCitations: 0,
     ...(lookedUp ? { lookedUp } : {}),
+    ...(notes.practical ? { practical: true } : {}),
+    ...(notes.online ? { online: onlineReport(notes, plan.documents, []) } : {}),
   };
 
   if (!client) {
@@ -472,8 +555,13 @@ export async function ask(
     };
   }
 
+  const texts = plan.documents.filter((p) => !p.online).length;
   hooks.onStatus?.(
-    plan.documents.length ? `Reading ${plan.documents.length} ${plan.documents.length === 1 ? "source" : "sources"}` : "Thinking it through",
+    notes.online?.status === "found" && notes.online.kind === "torah"
+      ? "Checking what I found against the texts"
+      : texts
+        ? `Reading ${texts} ${texts === 1 ? "source" : "sources"}`
+        : "Thinking it through",
   );
   let message: BetaMessage;
   try {
@@ -511,5 +599,18 @@ export async function ask(
     sources: mapped.sources,
     droppedCitations: mapped.dropped,
     model: message.model,
+    ...(notes.online ? { online: onlineReport(notes, plan.documents, mapped.sources) } : {}),
   };
+}
+
+/** The pages looked up online, each marked with whether the answer used it. */
+export function onlineReport(notes: LookupNotes, documents: Passage[], sources: AnswerSource[]): OnlineReport {
+  const o = notes.online!;
+  const cited = new Set(sources.map((s) => s.ref));
+  const pages = documents
+    .filter((p) => p.online)
+    .map((p) => ({ url: p.online!.url, title: p.online!.title, site: p.online!.site, ref: p.ref, used: cited.has(p.ref) }));
+  // The pages the answer used come first.
+  pages.sort((a, b) => Number(b.used) - Number(a.used));
+  return { kind: o.kind, status: o.status, pages, checked: notes.checked ?? [] };
 }

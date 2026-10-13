@@ -117,13 +117,29 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
    its words (Jastrow, the Radak's Sefer HaShorashim), so RabAI can translate it and say the
    translation is its own. With
    the development texts, `lib/library/index.ts` searches them in memory, up to 10 passages.
-3. **The model** (`lib/engine/answer.ts`) runs under the core premises from
+3. **Looking things up online** (`lib/engine/online.ts`). When the lookup step decides a question
+   needs it (every practical halacha question, and anything the classic books don't name: a
+   product, a hechsher, today's calendar, a recent posek's ruling), a second quick call (Claude
+   Sonnet 5.5 with Anthropic's web search and web fetch) searches, at the same time as the
+   library: only the trusted Orthodox sites in
+   [`../canon/lookup-sites.yaml`](../canon/lookup-sites.yaml) for anything about Torah, halacha
+   or belief, or the wider web, never the sites listed there as not for the web, for everyday
+   facts. It reports what the pages say, citing them, and names the classic texts they rely on.
+   Only the pages' own words go on: the cited sentences, with a little of the page around them.
+   The lookup step then finds those texts in the library, and they are opened so RabAI can check
+   the pages against them. The pages go to the model last, as documents titled "Found online",
+   and the app lists them under the answer, apart from the texts. Nothing found online is kept.
+   A lookup gives up after 45 seconds, and the answer goes on without it. A line action in the
+   reader never looks anything up.
+4. **The model** (`lib/engine/answer.ts`) runs under the core premises from
    [`../prompts/core-premises.md`](../prompts/core-premises.md), copied into
    `lib/engine/core-premises.generated.ts` by `npm run sync:prompt`. Each passage is sent as a
    document with citations turned on.
-4. **Citation check** (`lib/engine/citations.ts`). A citation is shown only if it points at a
+5. **Citation check** (`lib/engine/citations.ts`). A citation is shown only if it points at a
    passage that was actually sent and its quoted words really appear there. Anything else is
-   dropped.
+   dropped. Citations of articles and of pages found online are shown under their own headings,
+   never among the texts. Under an answer to a practical halacha question, the app shows a note
+   to ask one's rav.
 
 Model settings: Claude Opus 5.5, adaptive thinking, effort `medium` for everyday answers and
 `high` when the person taps "Tell me more". The answer streams to the screen as it is written
@@ -190,10 +206,18 @@ Optional settings:
 | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |
 | `RABAI_COLLECTION_DB_URLS` | none | The website collections' databases (Aish.com and the like), comma-separated. The collections workflow sets it. Read only beside the testing library, never on a public app. `RABAI_COLLECTION_DB_TOKEN` is their read token; without it the testing library's token is used (one Turso group-wide read-only token reads both). |
 | `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
+| `RABAI_ONLINE` | `on` | Looking things up online: `on`, `torah` (only the trusted Orthodox sites, never the wider web), or `off`. A public app (`RABAI_PUBLIC=true`) looks nothing up until the board approves the sites list. |
+| `RABAI_RESEARCH_MODEL` | `claude-sonnet-5-5` | The model that looks things up online. |
 | `RABAI_OUTLINE_FIXTURE` | none | On your computer only: a file holding a saved outline reply, used in place of the model for "Show the flow" (`{section}` in the name stands for the page, as in `/tmp/outline-{section}.txt`). The reply is checked exactly like a real one. Ignored on Vercel and in a production build. |
 
-Answers can take 20 to 60 seconds at `high`. The ask route allows up to 120 seconds, which
-needs Vercel's Fluid compute; `vercel.json` turns it on.
+Answers can take 20 to 60 seconds at `high`, and a lookup online adds up to 45. The ask route
+allows up to 300 seconds, which needs Vercel's Fluid compute; `vercel.json` turns it on.
+
+Looking things up uses Anthropic's web search and web fetch. They work unless someone turned
+them off in the Anthropic Console's organization settings; if they are off, a lookup fails, and
+RabAI answers from its library and says it couldn't check online. A search costs a cent, and
+reading the pages costs more: with the defaults, a lookup costs roughly 10 to 30 cents. Lookups
+run only when the lookup step asks for one, with at most three searches and two pages read.
 
 ## Connecting the testing library
 

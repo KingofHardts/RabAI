@@ -1,6 +1,15 @@
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { Passage } from "../library/types";
 import { parseRef, sectionOf, type TestingStore } from "../library/testing";
+import {
+  allowedLookup,
+  lookOnline,
+  onlineDocuments,
+  onlineSetting,
+  type OnlineFindings,
+  type OnlineSetting,
+  type ResearchClient,
+} from "./online";
 
 /*
  * Finding sources the way a lamdan does: first think where the answer lives (the Gemara on
@@ -13,10 +22,22 @@ import { parseRef, sectionOf, type TestingStore } from "../library/testing";
  * finds nothing. The model that writes the answer sees only what was found.
  */
 
+/**
+ * Whether to look online as well, and where: "torah" searches only the trusted Orthodox sites
+ * (canon/lookup-sites.yaml); "general" searches the open web, for everyday facts with no Torah
+ * side, never the sites barred there.
+ */
+export type OnlineNeed = "" | "torah" | "general";
+
 export interface LookupPlan {
   refs: string[];
   hebrew: string[];
   english: string[];
+  /** A practical halacha question: what to do in a real situation (halacha l'maaseh). */
+  practical: boolean;
+  online: OnlineNeed;
+  /** Searches for the online lookup, as a person would type them. */
+  queries: string[];
 }
 
 export interface LookupClient {
@@ -42,6 +63,12 @@ export const LOOKUP_LIMITS = {
    * themselves so they never take a primary source's place.
    */
   articles: 4,
+  /** Searches for an online lookup. */
+  queries: 3,
+  /** Places opened in the library because a page found online relies on them. */
+  checked: 8,
+  /** Lines taken from each of those places. */
+  perChecked: 3,
 };
 
 export function lookupModel(env: Record<string, string | undefined> = process.env): string {
@@ -67,11 +94,27 @@ Chaim, the works on bitachon (trust in HaShem).
 Also give a few short phrases (two to four words) likely to appear in the sources: Hebrew or
 Aramaic without vowels, and English as the translations would put it.
 
+Then say what kind of question it is, and whether RabAI should also look online:
+- "practical": true when the person asks what to do in a real situation, theirs or someone's
+  (may I, can I, is it allowed, what do I do if, which blessing, how long do I wait, is this
+  product kosher, what time is candle lighting). False for learning questions ("why does the
+  Gemara say", "what is the reason for"), even about halacha.
+- "online": "torah" when RabAI should also check what trusted Orthodox websites say: for every
+  practical question; for anything the classic books won't name directly (electricity and
+  technology, medicine, a product or brand, a hechsher, today's customs and calendar, a
+  contemporary posek's ruling, a recent rabbi, an organization or an event); or when the person
+  asks to look it up. "general" when the question needs current or specific facts with no Torah
+  side (news, a place, a product, a schedule, recent science). Otherwise "".
+- "queries": for an online lookup, one to three short searches, the way a person would type
+  them into a search engine (for example "using a microwave on Shabbat", "Star-K dishwasher
+  Shabbos").
+
 Reply with JSON only, in this form:
-{"refs": ["..."], "hebrew": ["..."], "english": ["..."]}
-At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases and ${LOOKUP_LIMITS.english} English phrases.
+{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": []}
+At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases, ${LOOKUP_LIMITS.english} English phrases and ${LOOKUP_LIMITS.queries} queries.
 For a message that needs no sources (a greeting, small talk, a question about the app, or a
-practical task with no Torah side, such as a recipe or a math problem), reply with empty lists.
+practical task with no Torah side, such as a recipe or a math problem), reply with empty lists
+of refs and phrases; it may still need an everyday lookup online.
 
 The books in the library:
 `;
@@ -106,19 +149,28 @@ export function readLookupPlan(text: string): LookupPlan | null {
   try {
     const json = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
     if (!json || typeof json !== "object" || !("refs" in json || "hebrew" in json || "english" in json)) return null;
+    const online: OnlineNeed = json.online === "torah" || json.online === "general" ? json.online : "";
     return {
       refs: strings(json.refs, LOOKUP_LIMITS.refs, 100),
       hebrew: strings(json.hebrew, LOOKUP_LIMITS.hebrew, 60),
       english: strings(json.english, LOOKUP_LIMITS.english, 60),
+      practical: json.practical === true,
+      online,
+      queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
     };
   } catch {
     return null;
   }
 }
 
+/** A plan that opens nothing and looks nothing up. */
+export function emptyPlan(): LookupPlan {
+  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [] };
+}
+
 /** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
 export function parseLookupPlan(text: string): LookupPlan {
-  return readLookupPlan(text) ?? { refs: [], hebrew: [], english: [] };
+  return readLookupPlan(text) ?? emptyPlan();
 }
 
 /** Common English words that make poor search terms. */
@@ -134,7 +186,7 @@ export function fallbackPlan(question: string): LookupPlan {
   const english = (question.match(/[A-Za-z][A-Za-z'-]*/g) ?? [])
     .filter((w) => w.length > 3 && !STOP_WORDS.has(w.toLowerCase()))
     .slice(0, 4);
-  return { refs: [], hebrew, english };
+  return { ...emptyPlan(), hebrew, english };
 }
 
 export async function planLookups(question: string, store: TestingStore, client: LookupClient | null): Promise<LookupPlan> {
@@ -152,9 +204,39 @@ export async function planLookups(question: string, store: TestingStore, client:
   }
 }
 
+/**
+ * The library's places for texts a page found online relies on ("Shulchan Aruch O.C. 318:4"),
+ * named by the same planner with the same cached catalog, so RabAI can open them and check the
+ * page against them.
+ */
+export async function placesForTexts(texts: string[], store: TestingStore, client: LookupClient | null): Promise<string[]> {
+  if (!client || !texts.length) return [];
+  const request = [
+    "This is not the person's question. A trusted Orthodox website relies on the texts below. Name each one as a place in the library, exactly as the library names it, so RabAI can open it and check the website against it.",
+    ...texts.map((t) => `- ${t}`),
+    'Fill in "refs" only. Leave the phrase lists and "queries" empty, "practical" false, and "online" "".',
+  ].join("\n");
+  return (await planLookups(request, store, client)).refs;
+}
+
 export interface Retrieved {
   plan: LookupPlan;
   documents: Passage[];
+  /** What the online lookup found, when one ran. */
+  online?: OnlineFindings;
+  /** Places opened in the library because a page found online relies on them. */
+  checked?: string[];
+}
+
+export interface RetrieveOptions {
+  focusRef?: string;
+  extraPhrases?: string[];
+  /** The client for an online lookup; without one, nothing is looked up online. */
+  research?: ResearchClient | null;
+  /** RABAI_ONLINE, read from the environment unless given. */
+  online?: OnlineSetting;
+  /** A short note on what is happening, for a live screen. */
+  onStatus?: (text: string) => void;
 }
 
 /** Open the planned places, follow their links, and search; the line in focus comes first. */
@@ -162,11 +244,16 @@ export async function retrieveFromTesting(
   question: string,
   store: TestingStore,
   client: LookupClient | null,
-  opts: { focusRef?: string; extraPhrases?: string[] } = {},
+  opts: RetrieveOptions = {},
 ): Promise<Retrieved> {
   const plan = await planLookups(question, store, client);
   const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
+
+  // An online lookup runs beside the library's, when the plan asks for one and the setting allows.
+  const kind = opts.research ? allowedLookup(plan.online, opts.online ?? onlineSetting()) : "";
+  if (kind) opts.onStatus?.(kind === "torah" ? "Searching trusted Orthodox sites" : "Searching the web");
+  const lookingOnline = kind && opts.research ? lookOnline(question, plan.queries, kind, opts.research) : null;
 
   const [opened, searched, articles] = await Promise.all([
     store.lookup(refs, LOOKUP_LIMITS.perRef),
@@ -195,6 +282,25 @@ export async function retrieveFromTesting(
   add(linked, LOOKUP_LIMITS.documents);
   add(searched, LOOKUP_LIMITS.documents);
 
+  // What the online lookup found, and the texts its pages rely on, opened in the library so the
+  // pages can be checked against them.
+  let online: OnlineFindings | undefined;
+  let checked: string[] = [];
+  if (lookingOnline) {
+    online = await lookingOnline;
+    if (online.texts.length) {
+      opts.onStatus?.("Opening the texts those pages rely on");
+      try {
+        const places = await placesForTexts(online.texts, store, client);
+        const found = await store.lookup(places.slice(0, LOOKUP_LIMITS.checked), LOOKUP_LIMITS.perChecked);
+        add(found, out.size + LOOKUP_LIMITS.checked * LOOKUP_LIMITS.perChecked);
+        checked = [...new Set(found.map((p) => p.ref))].filter((r) => out.has(r));
+      } catch (err) {
+        console.warn("[rabai] opening the texts a page relies on failed:", err instanceof Error ? err.message : err);
+      }
+    }
+  }
+
   // Passages with no English (much of the Yerushalmi, the Rishonim, the Acharonim) are
   // translated by RabAI itself. Give it the dictionaries' entries for their words: first the
   // entries that cite these very lines, then entries whose headword matches a word.
@@ -202,12 +308,14 @@ export async function retrieveFromTesting(
   if (untranslated.length) {
     try {
       const entries = await store.dictionary(untranslated, LOOKUP_LIMITS.dictionary);
-      add(entries, LOOKUP_LIMITS.documents + LOOKUP_LIMITS.dictionary);
+      add(entries, out.size + LOOKUP_LIMITS.dictionary);
     } catch (err) {
       console.warn("[rabai] dictionary lookup failed:", err instanceof Error ? err.message : err);
     }
   }
   // Contemporary articles last: they explain and point to the texts, and never replace them.
   add(articles, out.size + LOOKUP_LIMITS.articles);
-  return { plan, documents: [...out.values()] };
+  // Pages found online come after everything from the library, marked as found online.
+  if (online?.pages.length) add(onlineDocuments(online), out.size + online.pages.length);
+  return { plan, documents: [...out.values()], ...(online ? { online, checked } : {}) };
 }

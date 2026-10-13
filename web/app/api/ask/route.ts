@@ -6,8 +6,9 @@ import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type AskResu
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Thoughtful answers can take a while; the model call streams internally.
-export const maxDuration = 120;
+// Thoughtful answers can take a while: an online lookup (up to 45 seconds, lib/engine/online.ts),
+// then the answer, which streams. The project runs on Fluid compute, which allows 300 seconds.
+export const maxDuration = 300;
 
 function parse(body: unknown): AskInput | string {
   if (!body || typeof body !== "object") return "Send a JSON body.";
