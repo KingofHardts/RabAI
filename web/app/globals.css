@@ -920,6 +920,9 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 @media (max-width: 559px) { .about-card { animation: sheet-up .32s var(--ease-out) both; } }
 .wc-sheet { animation: sheet-up .3s var(--ease-out) both; }
 .jump-latest { animation: rise .25s var(--ease-out) both; }
+/* On a computer a text opens beside the answer: it fades in (no movement, so nothing inside it
+   is thrown off while it settles). */
+@media (min-width: 980px) { .app.with-reader .reader { animation: fade-in .25s ease both; } }
 
 .btn, .send, .mic, .starter, .cite, .chip-btn, .icon-btn, .settings-row, .chat-open, .wc-step, .wc-asks button, .online-pages a, .jump-latest, .mode-switch button {
   transition: transform .12s ease, background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
@@ -948,7 +951,7 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 
 @media (prefers-reduced-motion: reduce) {
   .scroll > *, .msg-user, .msg-ai, .msg-ai .body > *, .steps li, .starter, .chats-panel, .settings-menu, .rb-menu, .chat-tools,
-  .about-view, .scrim, .about-card, .wc-sheet, .jump-latest { animation: none !important; }
+  .about-view, .scrim, .about-card, .wc-sheet, .jump-latest, .app.with-reader .reader { animation: none !important; }
   .steps li.current .tick::before { animation: none; border-inline-end-color: var(--accent); }
   .btn, .send, .mic, .starter, .cite, .chip-btn, .icon-btn, .settings-row, .chat-open, .wc-step, .wc-asks button, .online-pages a, .jump-latest { transition: none; }
   .btn:active, .send:active, .mic:active, .starter:active, .cite:active, .chip-btn:active, .icon-btn:active, .settings-row:active,
