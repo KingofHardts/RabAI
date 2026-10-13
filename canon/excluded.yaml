@@ -443,3 +443,128 @@ excluded:
       - "Zohar : Volume 1 : Daf 33b"
       - "user27343"
       - "Français [fr]"
+
+  # The entries below come from the pass over every openly licensed Sefaria title not yet in
+  # the canon (2026-10-13; Josh asked to "expand our library as much as we can"). Version
+  # names are exactly as Sefaria lists them. A version name that other books also use (such as
+  # "Warsaw, 1894") is not listed, since listing it would bar those books too; the entry still
+  # writes the intent down.
+
+  - id: torah-womens-commentary
+    title: "The Torah: A Women's Commentary (CCAR Press and Women of Reform Judaism, 2008)"
+    reason: Published by the Reform movement's rabbinical association and its women's organization. Not Orthodox.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "CCAR Press and Women of Reform Judaism, 2008"
+
+  - id: shinan-pirkei-avot
+    title: "A New Israeli Commentary on Pirkei Avot, by Avigdor Shinan (2009)"
+    reason: >-
+      An academic commentary by a university professor, written to connect the text with
+      Israeli culture rather than to explain it within the tradition.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "Pirke Avot, a New Israeli Commentary, by Avigdor Shinan; Jerusalem, 2009"
+
+  - id: ginzberg-legends-of-the-jews
+    title: "The Legends of the Jews, by Louis Ginzberg (1909-1938)"
+    reason: >-
+      A retelling of midrashim by Professor Louis Ginzberg of the Jewish Theological Seminary
+      (Conservative). It is not itself a source; the library holds the midrashim.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "The Legends of the Jews by Louis Ginzberg [1909]"
+
+  - id: dirshuni
+    title: "Dirshuni I and II (new midrash by Israeli women writers, 2009 and 2018)"
+    reason: >-
+      New midrashim written today by writers from across the denominations, many on feminist
+      themes. Not part of the tradition's texts.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Dirshuni, Israeli Women Writing Midrash. Tel Aviv, 2009"
+      - "Dirshuni, Israeli Women Writing Midrash. Tel Aviv, 2018"
+
+  - id: kol-dodi-dofek-reconstructed-hebrew
+    title: "Kol Dodi Dofek, Hebrew \"reconstructed from the English\""
+    reason: >-
+      Not Rav Soloveitchik's own Hebrew (which is copyrighted) but a translation back into
+      Hebrew from an English translation. The canon lists David Z. Gordon's English instead
+      (rav-soloveitchik).
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Kol Dodi Dofek, Reconstructed Hebrew from the English (The Original is Copyrighted)"
+
+  - id: wartime-chaplains-responsa
+    title: "Responsa in Wartime (1947) and Responsa to Chaplains (1953)"
+    reason: >-
+      Answers from an interdenominational committee of Reform, Conservative and Orthodox rabbis
+      for Jewish chaplains in the U.S. armed forces (to confirm the committee's members). Of
+      historical interest, but not a source of halacha.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "Responsa in Wartime"
+      - "Responsa to Chaplains"
+
+  - id: improvement-of-moral-qualities-wise
+    title: "The Improvement of the Moral Qualities (Ibn Gabirol), translated by Stephen S. Wise (1902)"
+    reason: The translator was a leading Reform rabbi.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "The Improvement of the Moral Qualities, Stephen S. Wise, 1902"
+
+  - id: sefer-hayashar-midrash-browne
+    title: "Sefer HaYashar (the midrash), translated by Edward B. M. Browne (1876)"
+    reason: The translator was a Reform rabbi in America (to confirm). The canon lists the Hebrew (sefer-hayashar-midrash).
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Sefer ha-Yashar,  trans. Edward B.M. Browne, New York, 1876"
+
+  - id: brody-ezra-of-gerona
+    title: "Rabbi Ezra of Gerona on Shir HaShirim, translated by Seth Brody (Western Michigan University, 1999)"
+    reason: An academic translation, from a university series. Its notes and choices are not from inside the mesorah.
+    board_may_reconsider: true
+    sefaria_versions:
+      - "Translated, and annotated by Seth Brody. Western Michigan University, Kalamazoo, Mich. 1999"
+
+  - id: cassel-targum-sheni
+    title: "Targum Sheni on Esther, translated by Paulus Cassel (1888)"
+    reason: >-
+      Translated with notes by Paulus Cassel, who left Judaism for Christianity; his book also
+      discusses Mithra and Zoroaster. Not from inside the mesorah.
+    board_may_reconsider: false
+    sefaria_versions:
+      - "Cassel, Paulus, 'An explanatory commentary on Esther: with four appendices consisting of the second Targum translated from the Aramaic with notes, Mithra, the winged bulls of Persepolis, and Zoroaster,' 1888"
+
+  - id: krochmal-moreh-nevukhei-hazeman
+    title: "Moreh Nevukhei HaZeman, by Nachman Krochmal (1851)"
+    reason: >-
+      A philosophy of Jewish history by a leading thinker of the Haskalah, who accepted the
+      critical dating of parts of Tanakh, such as a later author for the second half of
+      Yeshayahu and psalms from the time of the Chashmona'im (to confirm the passages).
+    board_may_reconsider: true
+    notes: >-
+      On Sefaria as "Warsaw, 1894", a version name too common to list here without barring other
+      books.
+
+  - id: wessely-divrei-shalom-veemet
+    title: "Divrei Shalom VeEmet (Words of Peace and Truth), by Naftali Hertz Wessely (1782)"
+    reason: >-
+      A pamphlet of the Berlin Haskalah urging changes in Jewish education, which the leading
+      rabbis of its day, among them Rabbi Yechezkel Landau (the Noda BiYehuda), condemned (to
+      confirm).
+    board_may_reconsider: true
+    notes: >-
+      The Hebrew is on Sefaria as "Warsaw, 1886", a version name too common to list here. The
+      same author's Gan Naul, a study of Hebrew words, is held for the board in canon.yaml
+      (gan-naul-wessely).
+    sefaria_versions:
+      - "Divrei Shalom v'Emet, tanslated by M. Bohnen, 2020"
+
+  - id: lieberman-sifrei-zuta
+    title: "Sifrei Zuta: Midrashah shel Lod, by Saul Lieberman (1968)"
+    reason: >-
+      An academic study by Professor Saul Lieberman of the Jewish Theological Seminary
+      (Conservative), like his Tosefta Kifshutah, which the canon also leaves out.
+    board_may_reconsider: true
+    notes: On Sefaria as "New York, 1968", a version name too common to list here.

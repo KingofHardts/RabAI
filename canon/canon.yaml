@@ -231,7 +231,7 @@ works:
     streams: [shared]
     status: draft
     sefaria:
-      re: "^Ibn Ezra on "
+      re: "^(Ibn Ezra on |Ibn Ezra HaKatzar on Exodus$)"
       root: "Tanakh"
     editions:
       - name: Hebrew text, standard Mikraot Gedolot
@@ -292,12 +292,20 @@ works:
             license: "Public Domain"
           - version: "Kol Sason, Krotoschin, 1840"
             license: "Public Domain"
+          - version: "Prague, 1840"
+            license: "Public Domain"
+            note: >-
+              Ibn Ezra's short commentary on Exodus (Ibn Ezra HaKatzar), proposed 2026-10-13. The
+              Piotrkow printing above covers it too.
       - name: Ibn Ezra's Commentary on the Pentateuch, translated by H. Norman Strickman and Arthur M. Silver
         language: en
         publisher: Menorah
         orthodox: review
         status: draft
         license: verify
+        notes: >-
+          On the founding list for the board to confirm the translators before their English is
+          used.
     notes: >-
       Ibn Ezra's comment on Devarim 1:2 ("the secret of the twelve") is often quoted by
       Bible critics. Later commentators discuss how to understand it. The board decides how
@@ -647,6 +655,9 @@ works:
         orthodox: review
         status: draft
         license: verify
+        notes: >-
+          On the founding list for the board to confirm. Published by an academic press, with the
+          translator's own edition of the Hebrew/Aramaic text, which waits for the board too.
       - name: Schottenstein Edition Talmud Yerushalmi
         language: en
         publisher: ArtScroll/Mesorah
@@ -764,6 +775,9 @@ works:
         orthodox: review
         status: draft
         license: verify
+        notes: >-
+          On the founding list for the board to confirm the translators before their English is
+          used.
       - name: "Sifra, Sifrei and Mechilta, translated by Rabbi Shraga Silverstein"
         language: en
         publisher: "Sefaria digital edition"
@@ -1604,7 +1618,22 @@ works:
     kind: philosophy
     streams: [modern_orthodox]
     status: draft
+    sefaria:
+      re: "^Kol Dodi Dofek$"
     editions:
+      - name: "Kol Dodi Dofek, translated by David Z. Gordon (Yeshiva University, 2006)"
+        language: en
+        publisher: "Yeshiva University"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Proposed 2026-10-13. Published by Yeshiva University, edited by Rabbi Jeffrey Woolf
+          (to confirm). The Hebrew on Sefaria is a translation back from the English, not the
+          Rav's own words, and is in excluded.yaml.
+        sefaria_versions:
+          - version: "Kol Dodi Dofek, Joseph B. Soloveitchik, translated by David Z. Gordon, 2006"
+            license: "CC-BY"
       - name: The Lonely Man of Faith
         language: en
         publisher: Doubleday / Maggid
@@ -6093,7 +6122,7 @@ works:
   # Tanakh: Targumim, Rishonim and Acharonim
 
   - id: targum-ketuvim
-    title: "Targum on Ketuvim (Psalms, Proverbs, Job and the five megillot)"
+    title: "Targum on Ketuvim (Psalms, Proverbs, Job, the five megillot and Chronicles)"
     hebrew: תרגום
     dates: "written c. 0-600"
     era: amoraim
@@ -6102,7 +6131,7 @@ works:
     streams: [shared]
     status: proposed
     sefaria:
-      re: "^Aramaic Targum to "
+      re: "^(Aramaic Targum to |Targum of (I|II) Chronicles$)"
       root: "Tanakh"
     editions:
       - name: "Aramaic text, Mikraot Gedolot"
@@ -6112,6 +6141,19 @@ works:
         license: verify
         sefaria_versions:
           - version: "Mikraot Gedolot"
+            license: "Public Domain"
+      - name: "Aramaic text of the Targum on Chronicles (Hebrew Wikisource)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: >-
+          Proposed 2026-10-13. The Targum on Chronicles was not printed in the early Mikraot
+          Gedolot; it was first printed in the 17th and 18th centuries from manuscripts by
+          Christian scholars (to confirm). Which edition Hebrew Wikisource typed is not stated,
+          so it waits for the board (library question 9).
+        sefaria_versions:
+          - version: "Wikisource Aramaic Targum to Chronicles"
             license: "Public Domain"
 
   - id: targum-yonatan-torah
@@ -19589,6 +19631,2093 @@ works:
           - version: "Warsaw, 1878-1882"
             license: "Public Domain"
             printed: 1882
+
+  # ------------------------------------------------------------------------------------------
+  # Proposed to widen the library (Josh, 2026-10-13: "expand our library as much as we can").
+  # Every title on Sefaria with an open license or a public-domain printing that no canon work
+  # covered was checked one by one (about 300 titles). What came of it:
+  # - Works whose editions are marked orthodox: true enter the private testing library, labeled
+  #   as not yet approved by the board, like everything else in it.
+  # - Editions marked orthodox: review wait for the board and stay out until then: modern
+  #   scholars' editions of old texts (library question 9), translators whose background we
+  #   don't know (library question 12), and modern books whose approach the board should weigh
+  #   first. Each says why in its notes.
+  # - Non-Orthodox books found in the same pass are listed in canon/excluded.yaml.
+  # - Sefaria Community Translations, the Sefaria Responsa Anthology and other unnamed
+  #   translations stay out, as excluded.yaml already says.
+  # Unless a work says otherwise, its author and dates come from Sefaria's index records and are
+  # for reviewers to confirm.
+  # ------------------------------------------------------------------------------------------
+
+  # Tanakh and its commentaries
+
+  - id: ramban-on-job
+    title: "Ramban on Job"
+    hebrew: רמב״ן על איוב
+    author: "Rabbi Moshe ben Nachman (Ramban)"
+    dates: "1194-1270"
+    region: "Spain"
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Ramban on Job$"
+    editions:
+      - name: "Hebrew text (Rabbi Chaim Dov Chavel's edition, Mossad Harav Kook)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          From the Ramban's writings as Rabbi Chavel edited them (Mossad Harav Kook, Jerusalem,
+          1963), as Sefaria's version title says (to confirm).
+        sefaria_versions:
+          - version: "Mossad Harav Kook, Jerusalem 1963"
+            license: "CC-BY-NC"
+
+  - id: ezra-of-gerona-on-shir-hashirim
+    title: "Commentary on Shir HaShirim by Rabbi Ezra of Gerona (printed as the Ramban's)"
+    hebrew: פירוש שיר השירים
+    author: "Rabbi Ezra ben Shlomo of Gerona"
+    dates: "13th century"
+    region: "Gerona, Spain"
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Ezra ben Solomon on Song of Songs$"
+    editions:
+      - name: "Hebrew text, from Chamesh Megillot (Warsaw, 1875)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Chamesh Megillot, Warsaw 1875"
+            license: "Public Domain"
+    notes: >-
+      A kabbalistic commentary. Older printings give it as the Ramban's commentary on Shir
+      HaShirim; it is now generally credited to Rabbi Ezra of Gerona, a kabbalist of the Ramban's
+      circle (to confirm). Seth Brody's English (an academic translation) is in excluded.yaml.
+
+  - id: rabbi-avraham-remer-on-nach
+    title: "Rabbi Avraham Remer's commentaries on Joshua, Judges and Samuel (MeAvur HaAretz, Ish Leshivto, Ish Kilvavo)"
+    hebrew: מעבור הארץ; איש לשבטו; איש כלבבו
+    author: "Rabbi Avraham Remer"
+    dates: "published 1995-2006"
+    region: "Beit El, Eretz Yisrael"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^(MeAvur HaAretz; on Joshua|Ish Leshivto; on Judges|Ish Kilvavo; on Samuel)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Rabbi Avraham Remer, Bet El, 1995"
+            license: "CC-BY-NC"
+          - version: "Rabbi Avraham Remer, Bet El, 1998"
+            license: "CC-BY-NC"
+          - version: "Rabbi Avraham Remer, Bet El, 2006"
+            license: "CC-BY-NC"
+
+  - id: birkat-asher-on-torah
+    title: "Birkat Asher on the Torah"
+    hebrew: ברכת אשר
+    author: "Rabbi Asher Wassertheil"
+    dates: "published 2010-2012"
+    region: "Jerusalem"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Birkat Asher on Torah$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Birkat Asher, Asher Vasertil, Jerusalem 2010-2012"
+            license: "CC-BY"
+    notes: >-
+      A commentary on the Torah that concentrates on explaining Rashi. Sefaria describes the
+      author as an editor of Shemirat Shabbat KeHilchatah (to confirm).
+
+  - id: rabbi-chaim-jachter-on-tanakh
+    title: "Rabbi Chaim Jachter's books on Tanakh (Yonah, Ruth, Daniel and Melachim)"
+    author: "Rabbi Chaim Jachter (with Binyamin Jachter on Yonah)"
+    dates: "published 2018-2022"
+    region: "Teaneck, New Jersey"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^(Depths of Yonah|From David to Destruction|Megillat Ruth; From Chaos to Kingship|Sefer Daniel; Opportunity in Exile)$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Jachter teaches Tanakh and halacha at the Torah Academy of Bergen County and
+          serves on a beit din (to confirm).
+        sefaria_versions:
+          - version: "The Depths of Yonah, Rabbi Chaim & Binyamin Jachter. Teaneck, NJ, 2018"
+            license: "CC-BY"
+          - version: "From David to Destruction, Teaneck, NJ, 2019"
+            license: "CC-BY"
+          - version: "Rabbi Chaim Jachter. Teaneck, NJ, 2022"
+            license: "CC-BY-NC"
+          - version: "Rabbi Chaim Jachter, Kol Torah Publications, Teaneck, NJ, 2021"
+            license: "CC-BY"
+
+  - id: redeeming-relevance
+    title: "Redeeming Relevance in the Torah (Genesis, Exodus, Deuteronomy)"
+    author: "Rabbi Francis Nataf"
+    dates: "published 2006-2015"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^Redeeming Relevance; (Genesis|Exodus|Deuteronomy)$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: Essays on the Torah. The canon already treats Rabbi Nataf's translations as Orthodox.
+        sefaria_versions:
+          - version: "Redeeming Relevance -- Genesis"
+            license: "CC-BY"
+          - version: "Redeeming Relevance -- Exodus"
+            license: "CC-BY"
+          - version: "Redeeming Relevance -- Deuteronomy"
+            license: "CC-BY"
+
+  # Tanakh: waiting for the board
+
+  - id: shadal-on-tanakh
+    title: "Shadal on the Torah and Isaiah, and his Ohev Ger on Targum Onkelos"
+    hebrew: שד״ל
+    author: "Rabbi Shmuel David Luzzatto (Shadal)"
+    dates: "1800-1865"
+    region: "Padua, Italy"
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Shadal on (Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Isaiah)|Ohev Ger)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Shadal 1st Edition"
+            license: "Public Domain"
+          - version: "Shadal first edition, Padua 1871"
+            license: "Public Domain"
+          - version: "Padova, 1867"
+            license: "Public Domain"
+          - version: "Ohev Ger, Philoxenus sive de Onkelosi, Vienna, 1830"
+            license: "Public Domain"
+    notes: >-
+      For the board. Shadal taught at the rabbinical college of Padua and defended the Torah's
+      divine origin against the Bible critics of his day, but he also took positions that drew
+      strong objections: he denied that the Zohar is ancient and opposed the study of Kabbalah,
+      sharply criticized the philosophy of the Rambam and Ibn Ezra, and engaged the critical
+      scholarship of his time, especially in his commentary on Isaiah (all to confirm). Ohev Ger
+      is a scholarly study of Targum Onkelos and its variant readings. Options: leave him out,
+      take him in as a debated author with a caution, or take in only the Torah commentary.
+
+  - id: em-lamikra
+    title: "Em LaMikra (Rabbi Eliyahu Benamozegh's commentary on the Torah)"
+    hebrew: אם למקרא
+    author: "Rabbi Eliyahu Benamozegh"
+    dates: "printed 1862-1863"
+    region: "Livorno, Italy"
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Em LaMikra$"
+    editions:
+      - name: "Hebrew text (Livorno, 1862-1863)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Livorno, 1862-1863"
+            license: "Public Domain"
+    notes: >-
+      For the board. Rabbi Benamozegh was a rabbi and kabbalist in Livorno. His commentary drew on
+      philology, archaeology and history, and on non-Jewish sources; the rabbis of Aleppo ordered
+      copies of it burned, and the rabbis of Damascus followed them, while rabbis in Jerusalem
+      agreed with the criticism but not with the burning. He answered his critics in a separate
+      book, Tzori Gilead (all to confirm). Options: leave it out, or take it in as a debated work
+      with a caution.
+
+  - id: reggio-on-torah
+    title: "Rabbi Isaac Samuel Reggio's commentary on the Torah"
+    author: "Rabbi Isaac Samuel Reggio (Yashar)"
+    dates: "printed 1821"
+    region: "Gorizia, Italy"
+    era: acharonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Reggio on Torah$"
+    editions:
+      - name: "Hebrew text (Vienna, 1821)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Vienna, 1821"
+            license: "Public Domain"
+    notes: >-
+      For the board. Reggio was an Italian rabbi and scholar who belonged to the Haskalah, and
+      Sefaria describes his commentary as "scientifically oriented" (to confirm his standing).
+
+  - id: gevia-kesef
+    title: "Gevia Kesef (Rabbi Yosef ibn Kaspi)"
+    hebrew: גביע כסף
+    author: "Rabbi Yosef ibn Kaspi"
+    dates: "written c. 1330-1340"
+    region: "Provence"
+    era: rishonim
+    category: mikra_meforshim
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Gevia Kesef$"
+    editions:
+      - name: "English, translated by Basil Herring (Ktav, 1982)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Trans. by Basil Herring, New York, Ktav, 1982"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board. Ibn Kaspi was a philosophical commentator in the Rambam's school whose
+      rationalist views were criticized in his own time (to confirm). Rabbi Basil Herring, the
+      translator, later served as executive vice president of the Rabbinical Council of America
+      (to confirm). Sefaria's Hebrew has no license listed.
+
+  - id: immanuel-of-rome-on-tanakh
+    title: "Immanuel of Rome on Proverbs and Esther"
+    author: "Immanuel ben Shlomo of Rome"
+    dates: "13th-14th century"
+    region: "Rome"
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Immanuel of Rome on (Proverbs|Esther)$"
+    editions:
+      - name: "Hebrew text (Proverbs from the Naples printing of 1487; Esther from a Parma manuscript)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Naples, 1487"
+            license: "Public Domain"
+            printed: 1487
+          - version: "BP Parma 2843 (De Rossi 615)"
+            license: "Public Domain"
+    notes: >-
+      For the board. Immanuel of Rome is best known as a poet, and the Shulchan Aruch (Orach
+      Chayim 307:16) names his book of poems among the books one may not read (to confirm). His
+      commentary on Proverbs was among the first Hebrew books printed in Naples; his commentaries
+      are not among those usually learned.
+
+  - id: zerahiah-hen-on-proverbs-and-job
+    title: "Rabbi Zerachiah ben Shealtiel Chen on Proverbs (Imrei Da'at) and Job (Tikvat Enosh)"
+    author: "Rabbi Zerachiah ben Shealtiel Chen (Gracian)"
+    dates: "written in Rome, late 13th century"
+    region: "Barcelona and Rome"
+    era: rishonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Imrei Da'at on Proverbs|Tikvat Enosh on Job)$"
+    editions:
+      - name: "Hebrew text (Berlin, 1868, and Vienna, 1871)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Vienna, 1871"
+            license: "Public Domain"
+            printed: 1871
+          - version: "Berlin, 1868"
+            license: "Public Domain"
+            printed: 1868
+    notes: >-
+      For the board (library question 9). Philosophical commentaries in the Rambam's school,
+      first printed from manuscripts by nineteenth-century scholars (editors to confirm).
+      Sefaria lists no license; the printings are public domain by age.
+
+  - id: saadia-gaon-on-ezra-nehemiah
+    title: "The commentary on Ezra and Nehemiah attributed to Rav Saadia Gaon"
+    author: "Attributed to Rav Saadia Gaon"
+    era: geonim
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Saadia Gaon on (Ezra|Nehemiah)$"
+    editions:
+      - name: "Hebrew text (Oxford, 1882)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Commentary on Ezra and Nehemiah, Oxford : Clarendon Press, 1882"
+            license: "Public Domain"
+    notes: >-
+      For the board (library question 9). A scholar's edition, printed in Oxford in 1882 from a
+      manuscript. It was long attributed to Rav Saadia Gaon, but Sefaria notes that scholars now
+      credit it to someone else (to confirm).
+
+  - id: tafsir-rasag
+    title: "Tafsir Rasag (Rav Saadia Gaon's Arabic translation of the Torah)"
+    author: "Rav Saadia Gaon"
+    dates: "882-942"
+    region: "Babylonia"
+    era: geonim
+    category: mikra_meforshim
+    kind: targum
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Tafsir Rasag$"
+    editions:
+      - name: "Judeo-Arabic text in Hebrew letters (Paris, 1893)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Tafsir al-Torah bi-al-Arabiya, Paris, 1893"
+            license: "Public Domain"
+    notes: >-
+      For the board (library question 9). Joseph Derenbourg's scholarly edition, from the same
+      editor as the Rambam's introduction to Seder Tahorot that the canon already holds back (to
+      confirm). Arabic, not Hebrew, so RabAI could quote it only with care.
+
+  - id: targum-sheni-on-esther
+    title: "Targum Sheni on Esther"
+    hebrew: תרגום שני
+    era: amoraim
+    category: mikra_meforshim
+    kind: targum
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Targum Sheni on Esther$"
+    editions:
+      - name: "Aramaic text (Berlin, 1898)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Berlin, 1898"
+            license: "Public Domain"
+            printed: 1898
+    notes: >-
+      For the board (library question 9). The second Aramaic targum on Esther, printed in the
+      Mikraot Gedolot, but on Sefaria only in a scholar's edition (Berlin, 1898; editor to
+      confirm). Sefaria lists no license; the printing is public domain by age. Paulus Cassel's
+      English is in excluded.yaml.
+
+  - id: footnotes-to-kohelet-heitler
+    title: "Footnotes to Kohelet, by Bruce Heitler"
+    author: "Bruce Heitler"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Footnotes to Kohelet by Bruce Heitler$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Footnotes to Kohelet by Bruce Heitler"
+            license: "CC-BY"
+    notes: For the board. We could not learn who the author is.
+
+  - id: karati-bekhol-lev
+    title: "Karati Bekhol Lev (Rabbanit Dr. Michal Tikochinsky)"
+    hebrew: קראתי בכל לב
+    author: "Rabbanit Dr. Michal Tikochinsky"
+    dates: "published 2022"
+    region: "Eretz Yisrael"
+    era: contemporary
+    category: mikra_meforshim
+    kind: commentary
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^Karati Bekhol Lev$"
+    editions:
+      - name: "Hebrew text (Koren, 2022)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Koren Edition 2022"
+            license: "CC-BY-NC"
+          - version: "Sefaria Edition 2022"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board. Essays on the weekly parasha that, as Sefaria describes them, draw on a wide
+      range of Jewish and general sources. The board should confirm the author's standing.
+
+  - id: tribal-lands
+    title: "Tribal Lands (the twelve tribes in their territories)"
+    author: "Tamar Weissman"
+    dates: "published 2015-2019"
+    era: contemporary
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Tribal Lands$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Jerusalem, 2019"
+            license: "CC-BY-NC"
+    notes: For the board. We could not confirm the author's background.
+
+  - id: malbim-ayelet-hashachar-english
+    title: "The Malbim's Ayelet HaShachar, in English"
+    author: "Rabbi Meir Leibush Weiser (Malbim)"
+    era: acharonim
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Malbim Ayelet HaShachar$"
+    editions:
+      - name: "English, translated by Betzalel Avraham Feinstein (2021)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Ayelet Hashachar, translated by Betzalel Avraham Feinstein, 2021"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board (library question 12). The Malbim's 613 rules by which the Sages read the
+      Torah, the introduction to his commentary on the Sifra. We don't know the translator, who
+      has also put English of the Malbim on Nach on Sefaria. Sefaria's Hebrew has no license
+      listed.
+
+  # Mishnah, Talmud and Midrash
+
+  - id: steinsaltz-hebrew-explanation-of-the-talmud
+    title: "Rabbi Adin Even-Israel Steinsaltz's Hebrew explanation of the Talmud, and his introductions to the Talmud and the Mishneh Torah"
+    hebrew: ביאור הרב שטיינזלץ
+    author: "Rabbi Adin Even-Israel Steinsaltz"
+    dates: "1937-2020"
+    region: "Jerusalem"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Steinsaltz on (Berakhot|Shabbat|Eruvin|Pesachim|Rosh Hashanah|Yoma|Sukkah|Beitzah|Taanit|Megillah|Moed Katan|Chagigah|Yevamot|Ketubot|Nedarim|Nazir|Sotah|Gittin|Kiddushin|Bava Kamma|Bava Metzia|Bava Batra|Sanhedrin|Makkot|Shevuot|Avodah Zarah|Horayot|Zevachim|Menachot|Chullin|Bekhorot|Arakhin|Temurah|Keritot|Meilah|Tamid|Niddah)|Introductions to the Babylonian Talmud|Steinsaltz Introductions to Mishneh Torah)$"
+    editions:
+      - name: "Hebrew (the William Davidson digital edition, Koren)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          His explanation of every line of the Gemara in plain Hebrew, his introductions to each
+          tractate and chapter, and his introductions to the books of the Mishneh Torah. The
+          canon already uses his English translation of the Talmud (the William Davidson
+          Edition).
+        sefaria_versions:
+          - version: "William Davidson Edition - Hebrew"
+            license: "CC-BY-NC"
+          - version: "Mishneh Torah with Commentary by Rabbi Adin Even-Israel Steinsaltz, Koren Publishers"
+            license: "CC-BY-NC"
+      - name: "English introductions to the Talmud (the William Davidson digital edition, Koren)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "William Davidson Edition - English"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board to know: in 1989 some leading Charedi rabbis criticized several of Rabbi
+      Steinsaltz's books, and some Charedi communities do not use his Talmud edition (which books,
+      and what was said, to confirm). His Talmud commentary is widely used in yeshivot and
+      schools, and the canon already holds his translation.
+
+  - id: rabbi-hartman-notes-on-the-maharal
+    title: "Rabbi Yehoshua Hartman's notes on the works of the Maharal"
+    hebrew: הערות הרב יהושע הרטמן על ספרי המהר״ל
+    author: "Rabbi Yehoshua David Hartman"
+    dates: "published 1997-2023"
+    region: "Jerusalem"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Notes by Rabbi Yehoshua Hartman on "
+    editions:
+      - name: "Hebrew text (Machon Yerushalayim)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The footnotes of Machon Yerushalayim's editions of the Maharal, which the canon already
+          uses for the Maharal's own words (maharal). They trace his sources and explain him at
+          length. Those on Netzach Yisrael, the Derashat Shabbat HaGadol, the Derush al HaTorah
+          and the second part of Gevurot Hashem have no license listed on Sefaria yet and stay out
+          until they do.
+        sefaria_versions:
+          - version: "Derech Chaim, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2005-2010"
+            license: "CC-BY-NC"
+          - version: "Be'er HaGolah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2002"
+            license: "CC-BY-NC"
+          - version: "Gevurot Hashem, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2015-2020 Part I"
+            license: "CC-BY-NC"
+          - version: "Ner Mitzvah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2012"
+            license: "CC-BY-NC"
+          - version: "Netivot Olam, Netiv Hateshuva, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 1997"
+            license: "CC-BY-NC"
+          - version: "Netivot Olam, Netiv Hatorah, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2012"
+            license: "CC-BY-NC"
+          - version: "Ohr Chadash, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2014"
+            license: "CC-BY-NC"
+          - version: "Tiferet Yisrael, with footnotes and annotations by Rabbi Yehoshua D. Hartman, Machon Yerushalyim, 2010"
+            license: "CC-BY-NC"
+
+  - id: abraham-cohen-notes-on-berakhot
+    title: "Rabbi Abraham Cohen's notes to his English translation of Berakhot (Cambridge, 1921)"
+    author: "Rabbi Abraham Cohen"
+    dates: "1887-1957"
+    region: "England"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Abraham Cohen Footnotes to the English Translation of Masechet Berakhot$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbi Abraham Cohen, author of Everyman's Talmud, also directed the Soncino
+          translation of the minor tractates that the canon already lists (to confirm).
+        sefaria_versions:
+          - version: "Tractate Berakot by A. Cohen, Cambridge University Press, 1921"
+            license: "Public Domain"
+
+  - id: mishnat-eretz-yisrael
+    title: "Mishnat Eretz Yisrael (a commentary on the Mishnah)"
+    hebrew: משנת ארץ ישראל
+    author: "Shmuel Safrai, Ze'ev Safrai and Chana Safrai"
+    dates: "published 2008-2023"
+    region: "Eretz Yisrael"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Mishnat Eretz Yisrael"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Mishnat Eretz Yisrael, Seder Zeraim, Tel Aviv, 2008-2016"
+            license: "CC-BY"
+          - version: "Mishnat Eretz Yisrael, Seder Moed, Jerusalem, 2008-2012"
+            license: "CC-BY"
+          - version: "Mishnat Eretz Yisrael, Seder Nashim, Jerusalem, 2013-2019"
+            license: "CC-BY"
+          - version: "Mishnat Eretz Yisrael, Seder Nezikin, Jerusalem, 2013"
+            license: "CC-BY-NC"
+          - version: "Mishnat Eretz Yisrael, Tamid-Middot, Elon Shvut, 2020"
+            license: "CC-BY"
+          - version: "Mishnat Eretz Yisrael, Nidah, Elon Shvut, 2019"
+            license: "CC-BY"
+          - version: "Alon Shevut, 2023"
+            license: "CC-BY"
+    notes: >-
+      For the board. A modern commentary by university scholars that, as Sefaria describes it,
+      combines traditional explanation with academic history, set against life in Eretz Yisrael
+      in the time of the Mishnah. The board should weigh its historical method before RabAI uses
+      it (library question 9).
+
+  - id: guggenheimer-notes-on-yerushalmi
+    title: "Heinrich Guggenheimer's notes on the Jerusalem Talmud"
+    author: "Heinrich W. Guggenheimer"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Notes by Heinrich Guggenheimer on Jerusalem Talmud$"
+    editions:
+      - name: "English notes (De Gruyter, 1999-2015)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "The Jerusalem Talmud, translation and commentary by Heinrich W. Guggenheimer. Berlin, De Gruyter, 1999-2015"
+            license: "CC-BY"
+    notes: >-
+      Held for the board together with the same scholar's translation and Hebrew text of the
+      Yerushalmi (talmud-yerushalmi), which the canon already holds back.
+
+  - id: sefer-hayashar-midrash
+    title: "Sefer HaYashar (the midrash on Bereishit to Shoftim)"
+    hebrew: ספר הישר
+    author: "Unknown"
+    dates: "first printed in Venice, 1625"
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Sefer HaYashar retells the history from Creation to the time of the Judges and presents
+      itself as the "Book of the Upright" that the books of Joshua and Samuel mention. Who wrote
+      it, and when, is unknown; it was first printed in 1625, and most scholars date it to the
+      Middle Ages or later. Its stories carry less weight than the midrashim of the Sages.
+    sefaria:
+      re: "^Sefer HaYashar \\(midrash\\)$"
+    editions:
+      - name: "Hebrew text (Livorno, 1870)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer HaYashar, Livorno 1870"
+            license: "Public Domain"
+    notes: >-
+      Not the mussar book of the same name (sefer-hayashar-mussar). Edward B. M. Browne's English (1876)
+      is in excluded.yaml.
+
+  - id: otzar-midrashim
+    title: "Otzar Midrashim (J. D. Eisenstein's collection of shorter midrashim)"
+    hebrew: אוצר מדרשים
+    author: "Collected by Judah David Eisenstein"
+    dates: "printed in New York, 1915"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      A collection of about two hundred shorter midrashim, gathered by J. D. Eisenstein and
+      printed in 1915. Some are early and widely quoted; many are later works whose authors and
+      dates are unknown, so a teaching found only here carries less weight than the midrashim of
+      the Sages.
+    sefaria:
+      re: "^Otzar Midrashim$"
+    editions:
+      - name: "Hebrew text (New York, 1915)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Otzar Midrashim, New York, 1915"
+            license: "Public Domain"
+    notes: >-
+      Eisenstein also compiled the encyclopedia Otzar Yisrael and Otzar Dinim UMinhagim. The
+      board may prefer to take in only some of the midrashim in the collection.
+
+  - id: yalkut-shimoni-on-nach-english
+    title: "Yalkut Shimoni on Nach, in English (selections)"
+    hebrew: ילקוט שמעוני
+    era: rishonim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Yalkut Shimoni on Nach$"
+    editions:
+      - name: "English, translated by Rabbi Mike Feuer (Jerusalem Anthology)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          A few passages only. Rabbi Mike Feuer also translated the Olat Re'iyah the canon lists
+          (rav-kook). Sefaria's Hebrew of Yalkut Shimoni on Nach has no license listed.
+        sefaria_versions:
+          - version: "Rabbi Mike Feuer, Jerusalem Anthology"
+            license: "CC-BY"
+
+  # Midrash: waiting for the board (scholars' editions, library question 9)
+
+  - id: midrash-scholars-editions
+    title: "Midrashim found on Sefaria only in a modern scholar's edition (Sifrei Zuta, Ruth Rabbah, Yalkut Talmud Torah, Mishnat Rabbi Eliezer)"
+    era: tannaim
+    category: torah_shebaal_peh
+    kind: text
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Sifrei Zuta|Ruth Rabbah \\(Lerner\\)|Midrash Yelamdenu, Selections from Yalkut Talmud Torah|Mishnat Rabbi Eliezer)$"
+    editions:
+      - name: "Hebrew text, scholars' editions"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Leipzig, 1917"
+            license: "Public Domain"
+          - version: "Midrash Ruth Rabbah, edited by Prof. Meron Bialik Lerner, 1971"
+            license: "Public Domain"
+          - version: "Yalkut Talmud Torah. Cincinnati, 1940"
+            license: "Public Domain"
+          - version: "New York, 1934"
+            license: "Public Domain"
+    notes: >-
+      For the board (library question 9), like the Pesikta DeRav Kahana and Avot DeRabbi Natan B
+      the canon already holds back. Sifrei Zuta (on Bamidbar) is rebuilt from quotations in
+      later books (Leipzig, 1917, edited by H. S. Horovitz, to confirm). Ruth Rabbah here is
+      Professor Myron Lerner's critical edition (1971); the canon already has the traditional
+      Ruth Rabbah. The Yalkut Talmud Torah selections (Midrash Yelamdenu) were printed in
+      Cincinnati in 1940 (editor to confirm). Mishnat Rabbi Eliezer, the midrash of the 32 rules,
+      was printed in New York in 1934 by H. G. Enelow, a Reform rabbi (to confirm). The works
+      themselves are ancient or medieval; the question is only about these editions.
+
+  # Halacha
+
+  - id: peirush-on-mishneh-torah
+    title: "The Peirush on the Mishneh Torah (Hilchot Yesodei HaTorah and Hilchot Teshuvah)"
+    hebrew: פירוש על משנה תורה
+    author: "Unknown"
+    era: rishonim
+    category: halacha
+    kind: commentary
+    minhag: both
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Peirush on Mishneh Torah, (Foundations of the Torah|Repentance)$"
+    editions:
+      - name: "Hebrew text (Torat Emet)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The commentary of unknown authorship printed beside these sections of the Mishneh
+          Torah (era and authorship to confirm). Sefaria lists no license; the text is Torat
+          Emet's, in by their written permission (canon/permissions.yaml).
+        sefaria_versions:
+          - version: "ToratEmet"
+            license: "Permission"
+            permission: torat-emet
+
+  - id: gray-matter
+    title: "Gray Matter (Rabbi Chaim Jachter on contemporary halachic questions)"
+    author: "Rabbi Chaim Jachter"
+    dates: "published 2000-2012"
+    region: "Teaneck, New Jersey"
+    era: contemporary
+    category: halacha
+    kind: practical_halacha
+    minhag: ashkenazi
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^Gray Matter (I|II|III|IV)$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Essays that review the halachic literature on questions of the day. Volume IV has no
+          license listed on Sefaria yet and stays out until it does. Practical questions still go
+          to a person's own rav.
+        sefaria_versions:
+          - version: "Gray Matter, by Chaim Jachter. Teaneck, N.J, 2000-2012"
+            license: "CC-BY"
+
+  - id: rabbinic-authority-warburg
+    title: "Rabbinic Authority: The Vision and the Reality (Rabbi A. Yehuda Warburg)"
+    author: "Rabbi A. Yehuda Warburg"
+    dates: "published 2013"
+    era: contemporary
+    category: halacha
+    kind: reference
+    minhag: both
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^Rabbinic Authority (I|II|III|IV|V)$"
+    editions:
+      - name: "English text (Urim, 2013)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          On the scope of a rabbi's and a beit din's authority, by a dayan (to confirm). Only
+          the first volume has a license listed on Sefaria; the others stay out until they do.
+        sefaria_versions:
+          - version: "Rabbinic Authority: The Vision and the Reality, Urim Publications. Jerusalem, 2013"
+            license: "CC-BY-NC"
+
+  - id: sefer-puah
+    title: "Sefer Puah (halacha and medicine: family life, family purity and fertility)"
+    hebrew: ספר פוע״ה
+    author: "Rabbi Gavriel Goldman and Rabbi Menachem Burstein (Machon Puah)"
+    dates: "published 2014-2024"
+    region: "Jerusalem"
+    era: contemporary
+    category: halacha
+    kind: practical_halacha
+    minhag: both
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Sefer Puah$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Jerusalem, 2014-2024"
+            license: "CC-BY-NC"
+    notes: >-
+      From Machon Puah, which advises couples on fertility questions according to halacha (to
+      confirm). On these questions RabAI always sends a person to their rav.
+
+  - id: nishmat-habayit
+    title: "Nishmat HaBayit (responsa on family purity and women's health)"
+    hebrew: נשמת הבית
+    author: "The Yoatzot Halacha of Nishmat"
+    dates: "published 2017"
+    region: "Jerusalem"
+    era: contemporary
+    category: halacha
+    kind: responsa
+    minhag: both
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^Nishmat HaBayit$"
+    editions:
+      - name: "Hebrew text (Maggid, 2017)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Maggid. Jerusalem, 2017"
+            license: "CC-BY-NC"
+    notes: >-
+      Answers written by Nishmat's halachic advisers, reviewed by rabbis who supervise the
+      program (to confirm who). Some poskim do not accept women serving as halachic advisers; the
+      board may want to note that.
+
+  - id: rabbi-yehuda-herzl-henkin
+    title: "Rabbi Yehuda Herzl Henkin's Responsa Benei Banim and Chibbah Yeteirah on the Torah"
+    hebrew: שו״ת בני בנים; חבה יתרה
+    author: "Rabbi Yehuda Herzl Henkin"
+    dates: "published 1981-2005"
+    region: "Jerusalem"
+    era: contemporary
+    category: halacha
+    kind: responsa
+    minhag: ashkenazi
+    streams: [modern_orthodox, religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^(Responsa Benei Banim|Chibbah Yeteirah on Torah)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Responsa Benei Banim, Jerusalem 1981-2005"
+            license: "CC-BY-NC"
+      - name: "Responsa on Contemporary Jewish Women's Issues (the author's own English, Ktav, 2003)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Responsa on contemporary Jewish women's issues. Yehuda Henkin, Ktav 2003"
+            license: "CC-BY-NC"
+    notes: >-
+      Rabbi Henkin, a grandson of Rabbi Yosef Eliyahu Henkin, was a posek in Jerusalem. Some of
+      his rulings on women's questions were disputed by other poskim (which, to confirm).
+      Chibbah Yeteirah, his comments on the Torah, is printed with Benei Banim.
+
+  - id: badei-haaron-sheviit
+    title: "Badei HaAron on Shevi'it (Rabbi Re'em HaCohen's responsa on the shemittah year)"
+    hebrew: בדי הארון, שביעית
+    author: "Rabbi Re'em HaCohen"
+    dates: "published 2015"
+    region: "Otniel, Eretz Yisrael"
+    era: contemporary
+    category: halacha
+    kind: responsa
+    minhag: both
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^Badei HaAron; Sheviit$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: Rabbi Re'em HaCohen is rosh yeshiva of Yeshivat Otniel (to confirm).
+        sefaria_versions:
+          - version: "Responsa Badei HaAron, Otniel, 2015"
+            license: "CC-BY-NC"
+
+  - id: iggeret-hashabbat
+    title: "Iggeret HaShabbat (Ibn Ezra's Sabbath Epistle)"
+    hebrew: אגרת השבת
+    author: "Rabbi Avraham ibn Ezra"
+    dates: "written 1158-1159"
+    region: "London"
+    era: rishonim
+    category: halacha
+    kind: responsa
+    minhag: both
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^The Sabbath Epistle$"
+    editions:
+      - name: "Hebrew text (Ktav, 2009)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Iggeret haShabbat, KTAV Publishing House, 2009"
+            license: "CC-BY"
+      - name: "English (Ktav, 2009)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: >-
+          The translator is not named on Sefaria; it may be Rabbi H. Norman Strickman, whose
+          translation of Ibn Ezra on the Torah the canon also holds for review (to confirm).
+        sefaria_versions:
+          - version: "The Sabbath epistle of Ibn Ezra, KTAV Publishing House, 2009"
+            license: "CC-BY"
+    notes: >-
+      Ibn Ezra's defense of the tradition that the day, and Shabbat, begins in the evening,
+      against a commentary that read the Torah otherwise.
+
+  - id: rabbi-eliezer-berkovits-on-halacha
+    title: "Rabbi Eliezer Berkovits on halacha and its renewal (HaHalakhah Kochah VeTafkidah, Tenai BeNissuin UVeGet, Jewish Women in Time and Torah, and on conversion)"
+    author: "Rabbi Eliezer Berkovits"
+    dates: "1908-1992"
+    region: "Berlin, London, Sydney, Boston, Chicago and Jerusalem"
+    era: contemporary
+    category: halacha
+    kind: philosophy
+    minhag: both
+    streams: [modern_orthodox]
+    status: proposed
+    standing: debated
+    caution_kinds: [criticized_views]
+    caution: >-
+      Rabbi Eliezer Berkovits was an Orthodox rabbi and philosopher, a student of the Seridei Esh.
+      In these books he argued that halacha can and should respond to new circumstances, and he
+      proposed solutions, such as a condition in the marriage to free women whose husbands refuse
+      a get, and changes in women's roles, that most poskim did not accept. Present his proposals
+      as his own, together with the reasons other poskim gave for rejecting them.
+    sefaria:
+      re: "^(HaHalakhah; Kochah VeTafkidah|Tenai BeNissuin Uveget|Jewish Women in Time and Torah|Conversion \"According to Halakhah\"; What Is It)$"
+    editions:
+      - name: "Hebrew text (Mossad Harav Kook)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Mossad Harav kook; Jerusalem, 2006"
+            license: "CC-BY-NC"
+          - version: "Mossad Harav Kook; Jerusalem, 2008"
+            license: "CC-BY-NC"
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Hoboken, N.J, Ktav Pub. House, 1990"
+            license: "CC-BY-NC"
+          - version: "Conversion \"According to Halakhah\" - What Is It: Judaism 23 (Fall 1974): 467-78"
+            license: "CC-BY-NC"
+    notes: >-
+      Rabbi Berkovits studied under Rabbi Yechiel Yaakov Weinberg (the Seridei Esh) (to
+      confirm). Debated: his halachic proposals were not accepted by most poskim of his time; the
+      board decides whether to keep these in the library with this caution or leave them out.
+      His books of philosophy are a separate entry (rabbi-eliezer-berkovits).
+
+  # Hashkafah, mussar and Chassidus
+
+  - id: ralbag-milchamot-hashem
+    title: "Milchamot HaShem (the Ralbag's Wars of the Lord)"
+    hebrew: מלחמות השם לרלב״ג
+    author: "Rabbi Levi ben Gershom (Ralbag)"
+    dates: "1288-1344"
+    region: "Provence, France"
+    era: rishonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    standing: debated
+    caution_kinds: [criticized_views]
+    caution: >-
+      The Ralbag was a great Rishon whose commentary on Tanakh is printed in Mikraot Gedolot. In
+      this book of philosophy he held, among other things, that God knows the events of the world
+      through their general order rather than each one as it happens, and that the world was
+      formed from a matter that had always existed. Later authorities sharply rejected these
+      views. Present them as his, together with the answers other Rishonim gave.
+    sefaria:
+      re: "^The Wars of the Lord$"
+    editions:
+      - name: "Hebrew text (Leipzig, 1866)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Milhamot Hashem, Leipzig, 1866"
+            license: "Public Domain"
+    notes: >-
+      Not Rabbi Yichya Qafih's Milchamot HaShem (milchamot-hashem-qafih). Debated like the Ralbag's commentary (ralbag-on-tanakh, library question
+      4). Among those who answered his views were Rabbi Chasdai Crescas and Don Yitzchak
+      Abarbanel (to confirm).
+
+  - id: kol-hator
+    title: "Kol HaTor"
+    hebrew: קול התור
+    author: "Attributed to Rabbi Hillel Rivlin of Shklov, recording the Vilna Gaon's teaching"
+    dates: "first published in the 20th century"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Kol HaTor presents itself as the Vilna Gaon's teaching about the redemption and the return
+      to Eretz Yisrael, written down by his student Rabbi Hillel of Shklov. It was first
+      published in the twentieth century, and historians and rabbis disagree about whether it
+      faithfully records the Gaon's words. Present what it says as the book's claims, not as the
+      Gaon's settled teaching.
+    sefaria:
+      re: "^Kol HaTor$"
+    editions:
+      - name: "Hebrew text (Hebrew Wikisource)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Kol HaTor"
+            license: "CC-BY-SA"
+          - version: "Kol HaTor: Chapter 3"
+            license: "CC-BY-SA"
+    notes: >-
+      Library question 8 (works whose author is uncertain). Among those who questioned its
+      authenticity is the historian Immanuel Etkes (to confirm). The English on Sefaria names no
+      translator and is left out.
+
+  - id: nishmat-chayyim
+    title: "Nishmat Chayim (Rabbi Menashe ben Yisrael on the soul)"
+    hebrew: נשמת חיים
+    author: "Rabbi Menashe ben Yisrael"
+    dates: "1604-1657"
+    region: "Amsterdam"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Nishmat Chayyim$"
+    editions:
+      - name: "Hebrew text (Warsaw, 1876)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Warsaw, 1876"
+            license: "Public Domain"
+    notes: On the soul and its survival after death, from the sources of the Sages and the kabbalists.
+
+  - id: tov-halevanon-on-duties-of-the-heart
+    title: "Tov HaLevanon (on Chovot HaLevavot)"
+    hebrew: טוב הלבנון
+    author: "Rabbi Yisrael ben Moshe HaLevi of Zamosc"
+    dates: "written c. 1730-1770"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Tov haLevanon$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Chovat Halevavot, Warsaw 1875"
+            license: "Public Domain"
+      - name: "English, from Rabbi Yosef Sebag's Duties of the Heart"
+        language: en
+        publisher: "dafyomireview.com"
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          The passages of this commentary that Rabbi Yosef Sebag translated alongside his
+          Duties of the Heart, as for Pat Lechem (pat-lechem-on-duties-of-the-heart).
+        sefaria_versions:
+          - version: "Duties of the Heart, trans. Rabbi Yosef Sebag"
+            license: "CC-BY"
+
+  - id: rabbi-sacks-more-books
+    title: "More books of Rabbi Jonathan Sacks (in English, and in Hebrew translation)"
+    author: "Rabbi Lord Jonathan Sacks"
+    dates: "1948-2020"
+    region: "United Kingdom"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^(Arguments for the Sake of Heaven|Ceremony and Celebration Family Edition, The Hagim|Community of Faith|Crisis and Covenant; Jewish Thought after the Holocaust|Faith in the Future|One People\\? Tradition, Modernity, and Jewish Unity|Tradition in an Untraditional Age|Will We Have Jewish Grandchildren\\? Jewish Continuity and How to Achieve It|Lessons in Leadership; Hebrew Edition|Future Tense; A Vision for Jews and Judaism in the Global Culture|Morality; Restoring the Common Good in Divided Times|Not in God's Name; Confronting Religious Violence|Radical Then, Radical Now|The Dignity of Difference; How to Avoid the Clash of Civilizations|The Great Partnership; God, Science, and the Search for Meaning|The Home We Build Together; Recreating Society|To Heal a Fractured World; The Ethics of Responsibility)$"
+    editions:
+      - name: "English text (Maggid)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Arguments for the Sake of Heaven, Maggid Books, 2023"
+            license: "CC-BY-NC"
+          - version: "Ceremony & Celebration Family Edition, Maggid Books, 2023"
+            license: "CC-BY-NC"
+          - version: "Maggid Books, 2024"
+            license: "CC-BY-NC"
+          - version: "Crisis and Covenant, Maggid Books, 2023"
+            license: "CC-BY-NC"
+          - version: "Tradition in an Untraditional Age, Maggid Books, 2023"
+            license: "CC-BY-NC"
+      - name: "Hebrew translations (Maggid and others)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Translated into Hebrew, most by Tsur Ehrlich. Radical Then, Radical Now was published
+          in Hebrew by the Shalem Center (2007; translator to confirm).
+        sefaria_versions:
+          - version: "Shiurim BeManhigut, trans. by Tsur Ehrlich, Maggid Book, 2023"
+            license: "CC-BY-NC"
+          - version: "Bilshon Atid, trans. by Tsur Ehrlich, Maggid Book, 2021"
+            license: "CC-BY-NC"
+          - version: "Musariut, trans. by Tsur Ehrlich, Maggid Books, 2023"
+            license: "CC-BY-NC"
+          - version: "Lo beshem hael, trans. by Tsur Ehrlich, Maggid Book, 2016"
+            license: "CC-BY-NC"
+          - version: "Jerusalem, Shalem Center, 2007"
+            license: "CC-BY-NC"
+          - version: "Likhvod hashoni, trans. by Tsur Ehrlich, Maggid Book, 2018"
+            license: "CC-BY-NC"
+          - version: "HaShutafut HaGedolah, trans. by Tsur Ehrlich, Maggid Book, 2019"
+            license: "CC-BY-NC"
+          - version: "Trans. by Bruria Ben Baruch, Maggid Books, 2024"
+            license: "CC-BY-NC"
+          - version: "Lerape olam shavur, trans. by Tsur Ehrlich, Maggid Book, 2010"
+            license: "CC-BY-NC"
+    notes: >-
+      Rabbi Sacks's books that the earlier entry (rabbi-sacks-covenant-conversation) doesn't
+      cover. For the board: when The Dignity of Difference first appeared in English (2002), some
+      Charedi rabbis objected to passages about other faiths, and Rabbi Sacks rewrote them for
+      the second edition (2003). Which edition this Hebrew translation follows is to confirm.
+
+  - id: rabbi-eliezer-berkovits
+    title: "Books of Jewish thought by Rabbi Eliezer Berkovits"
+    author: "Rabbi Eliezer Berkovits"
+    dates: "1908-1992"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^(A Jewish Critique of the Philosophy of Martin Buber|Between Yesterday and Tomorrow|Crisis and Faith|Judaism; Fossil or Ferment|Major Themes in Modern Philosophies of Judaism|Man and God|The Scientific and the Religious World View|Towards Historic Judaism|Unity in Judaism|What is the Talmud|With God in Hell|Torat HaHiggayon BaHalakhah)$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "New York: Yeshiva University, 1962"
+            license: "CC-BY-NC"
+          - version: "Oxford: The East and West library, 1945"
+            license: "CC-BY-NC"
+          - version: "New York: Sanhedrin Press, c1976"
+            license: "CC-BY-NC"
+          - version: "New York: Philosophical Library, 1956"
+            license: "CC-BY-NC"
+          - version: "Ktav Pub. House, NY, 1974"
+            license: "CC-BY-NC"
+          - version: "Detroit: Wayne State University Press, 1969"
+            license: "CC-BY-NC"
+          - version: "The Scientific and the Religious World View"
+            license: "CC-BY-NC"
+          - version: "Oxford: East and West Library, 1943"
+            license: "CC-BY-NC"
+          - version: "Jewish perspectives, Jewish communal Affairs Department, NY. 1986"
+            license: "CC-BY-NC"
+          - version: "Translated from German by Ruth Morris, Jerusalem, 2013"
+            license: "CC-BY-NC"
+          - version: "New York: Sanhedrin Press, c1979"
+            license: "CC-BY-NC"
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Mossad Harav Kook; Jerusalem, 1986"
+            license: "CC-BY-NC"
+          - version: "Translated from the English by Avraham Berkovits, Jerusalem, 2013"
+            license: "CC-BY-NC"
+    notes: >-
+      Philosophy and theology, among them his books on faith in the face of the Holocaust (With
+      God in Hell) and the crises of his time (Crisis and Faith), his critique of the non-Orthodox thinkers of his day (Major
+      Themes in Modern Philosophies of Judaism, and on Martin Buber), and his study of logic in
+      halacha (Torat HaHiggayon BaHalakhah). His proposals for changing halachic practice are a
+      separate, debated entry (rabbi-eliezer-berkovits-on-halacha).
+
+  - id: dr-erica-brown
+    title: "Books of Dr. Erica Brown (on the Three Weeks, the Days of Awe, and leadership in Bamidbar)"
+    author: "Dr. Erica Brown"
+    dates: "published 2011-2013"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [modern_orthodox]
+    status: proposed
+    sefaria:
+      re: "^(In the Narrow Places; Daily Inspiration for the Three Weeks|Return; Daily Inspiration for the Days of Awe|Leadership in the Wilderness; Authority and Anarchy in the Book of Numbers)$"
+    editions:
+      - name: "English text (Maggid)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: Dr. Brown directs a center at Yeshiva University named for Rabbi Sacks (to confirm).
+        sefaria_versions:
+          - version: "In the narrow places, Erica Brown. New Milford, CT. Maggid Books, 2011"
+            license: "CC-BY-NC"
+          - version: "Return, daily inspiration for the Days of Awe, Erica Brown. Jerusalem, Maggid Books, 2012"
+            license: "CC-BY-NC"
+          - version: "Jerusalem. Maggid Books, 2013"
+            license: "CC-BY-NC"
+
+  - id: rav-kook-more-works
+    title: "Rav Kook's introduction to Shabbat HaAretz, and selections from Shemonah Kevatzim in English"
+    hebrew: הרב קוק
+    author: "Rabbi Avraham Yitzchak HaKohen Kook"
+    dates: "1865-1935"
+    region: "Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^(Shabbat HaAretz|Shemonah Kevatzim)$"
+    editions:
+      - name: "Hebrew, the introduction to Shabbat HaAretz"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rav Kook's introduction to his book on the laws of shemittah, as published by Hazon
+          (New York, 2014). The rest of Shabbat HaAretz on Sefaria (Jerusalem, 1937) has no
+          license listed.
+        sefaria_versions:
+          - version: "Rav Kook’s Introduction to Shabbat Ha’aretz, Hazon, NY 2014"
+            license: "CC-BY-NC"
+      - name: "Shemonah Kevatzim (selections), translated by Rabbi Mike Feuer"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: Translated by the same Rabbi Mike Feuer as the Olat Re'iyah in rav-kook.
+        sefaria_versions:
+          - version: "Rabbi Mike Feuer, 2019"
+            license: "CC-BY"
+
+  - id: yeshivat-otniel-shemittah
+    title: "Yeshivat Otniel on the shemittah year (Adam Min HaAdamah; Penei Shevi'it Nekabelah)"
+    author: "Yeshivat Otniel; Rabbi Elchanan Cherlow"
+    dates: "published 2008-2014"
+    region: "Otniel, Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^(Adam Min HaAdamah|Penei Sheviit Nekabelah)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Adam min ha'adamah, Otniel 2008"
+            license: "CC-BY-NC"
+          - version: "Otniel, 2014"
+            license: "CC-BY-NC"
+    notes: Essays on the meaning of shemittah and the Jubilee year, from the yeshiva's rabbis and students.
+
+  - id: zakhor-veshamor
+    title: "Zakhor VeShamor (Rabbi Yoel Bin-Nun on the Jewish calendar)"
+    hebrew: זכור ושמור
+    author: "Rabbi Yoel Bin-Nun"
+    dates: "published 2015"
+    region: "Alon Shevut, Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^Zakhor VeShamor$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Alon Shevut, 2015"
+            license: "CC-BY-NC"
+    notes: >-
+      On the festivals and the calendar, between nature and history. Some rabbis have criticized
+      Rabbi Bin-Nun's approach to Tanakh study (to confirm); this book is on the calendar.
+
+  - id: flames-of-faith
+    title: "Flames of Faith (an introduction to Chassidic thought)"
+    author: "Rabbi Zev Reichman"
+    dates: "published 2014"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^Flames of Faith$"
+    editions:
+      - name: "English text (Kodesh Press, 2014)"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Flames of Faith, New York: Kodesh Press, 2014"
+            license: "CC-BY"
+
+  # Hashkafah, mussar and Chassidus: waiting for the board
+
+  - id: sefer-haikkarim
+    title: "Sefer HaIkkarim (Rabbi Yosef Albo)"
+    hebrew: ספר העיקרים
+    author: "Rabbi Yosef Albo"
+    dates: "written 1425"
+    region: "Spain"
+    era: rishonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Sefer HaIkkarim$"
+    editions:
+      - name: "Hebrew text (Isaac Husik's edition, Jewish Publication Society, 1929-1930)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer Ha-'ikkarim"
+            license: "CC-BY"
+      - name: "English, translated by Isaac Husik (Jewish Publication Society, 1929-1930)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer Ha-ikkarim, Jewish Publication Society of America, 1929"
+            license: "CC-BY"
+    notes: >-
+      For the board, and worth deciding soon: a classic Rishon on the principles of faith (the
+      Torah's divine origin, God's existence, reward and punishment), close to the Thirteen
+      Ikkarim the core premises rely on. On Sefaria it exists only in Isaac Husik's edition and
+      translation; Husik was a university scholar (library questions 9 and 11; edition details
+      to confirm). One option is to take in the Hebrew text without the editor's notes.
+
+  - id: narboni-on-the-guide
+    title: "Rabbi Moshe Narboni's commentary on the Guide for the Perplexed"
+    author: "Rabbi Moshe Narboni"
+    dates: "written c. 1354-1362"
+    region: "Provence and Spain"
+    era: rishonim
+    category: hashkafah_mussar
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Narboni on Guide for the Perplexed$"
+    editions:
+      - name: "Hebrew text (Vienna, 1852)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Vienna, 1852"
+            license: "PD"
+    notes: >-
+      For the board. Narboni read the Rambam through the philosophy of Ibn Rushd, and some of his
+      readings were criticized as going far beyond the Rambam (to confirm). Whether the canon
+      should hold the other commentaries printed with the Guide (Efodi, Shem Tov, Asher Crescas)
+      first is a related question.
+
+  - id: shadal-yesodei-hatorah
+    title: "Sefer Yesodei HaTorah (Shadal on the foundations of belief)"
+    hebrew: יסודי התורה לשד״ל
+    author: "Rabbi Shmuel David Luzzatto (Shadal)"
+    dates: "written 1842 (printed 1880)"
+    region: "Padua, Italy"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Sefer Yesodei HaTorah$"
+    editions:
+      - name: "Hebrew text (Lemberg, 1880)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer Yesodei haTorah, Lemberg, 1880"
+            license: "Public Domain"
+      - name: "English, translated by Rabbi Shraga Silverstein"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Translated by R. Shraga Silverstein"
+            license: "CC-BY"
+    notes: For the board, together with Shadal's commentaries (shadal-on-tanakh).
+
+  - id: gan-naul-wessely
+    title: "Gan Naul (Naftali Hertz Wessely on Hebrew synonyms)"
+    hebrew: גן נעול
+    author: "Naftali Hertz Wessely"
+    dates: "1725-1805"
+    era: acharonim
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Gan Naul$"
+    editions:
+      - name: "Hebrew text (Rishon LeZion, 2016)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Gan Na'ul, Rishon Letzion, 2016"
+            license: "CC-BY"
+          - version: "Gan Na'ul, Rishon Letzion, 2016. Version B"
+            license: "CC-BY"
+    notes: >-
+      For the board. A study of Hebrew roots and words of the same meaning in Tanakh. Its author
+      was a leader of the Berlin Haskalah whose pamphlet Divrei Shalom VeEmet was condemned by
+      the leading rabbis of his day (that pamphlet is in excluded.yaml).
+
+  - id: menashe-ben-yisrael-on-resurrection
+    title: "Rabbi Menashe ben Yisrael on the resurrection of the dead (in translation)"
+    author: "Rabbi Menashe ben Yisrael"
+    dates: "written 1636"
+    region: "Amsterdam"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^On Resurrection of the Dead$"
+    editions:
+      - name: "English, translated by Walter Hilliger (2021)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "On Resurrection of the Dead, English translation by Walter Hilliger. Shehakol Inc., 2021"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board (library question 12). The book was written in Spanish; we don't know the
+      translator. His Hebrew Nishmat Chayim is in the canon (nishmat-chayyim).
+
+  - id: rav-shagar
+    title: "Books of Rav Shimon Gershon Rosenberg (Rav Shagar)"
+    author: "Rabbi Shimon Gershon Rosenberg (Rav Shagar)"
+    dates: "1949-2007"
+    region: "Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: philosophy
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^(Ahevukha Ad Mavet|Panekha Avakesh|Al Kapot HaMan'ul; Homilies for the Days of Awe|Pur Hu HaGoral; Homilies for Purim|Talmud Series; Shemitah|Zikaron leYom Rishon)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Efrat, 2004"
+            license: "CC-BY-NC"
+          - version: "Allon Shevut, 2008"
+            license: "CC-BY-NC"
+          - version: "Allon Shevut, 2011"
+            license: "CC-BY"
+          - version: "Efrat, 2005"
+            license: "CC-BY"
+          - version: "Allon Shevut, 2015"
+            license: "CC-BY"
+          - version: "Efrat, 2007"
+            license: "CC-BY"
+    notes: >-
+      For the board. Rav Shagar was a rosh yeshiva and a thinker in the Religious Zionist world
+      whose engagement with postmodern philosophy is debated; the board should decide whether,
+      and how, RabAI uses his books.
+
+  - id: polonsky-on-arpilei-tohar
+    title: "Pinchas Polonsky's commentary on selected paragraphs of Rav Kook's Arpilei Tohar"
+    author: "Pinchas Polonsky"
+    dates: "published 2012"
+    region: "Beit El, Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: commentary
+    streams: [religious_zionist]
+    status: proposed
+    sefaria:
+      re: "^Commentary on Selected Paragraphs of Arpilei Tohar$"
+    editions:
+      - name: "English text"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Selected Paragraphs from Arfilei Tohar, comm. Pinchas Polonsky"
+            license: "CC-BY-NC"
+    notes: For the board. A modern explanation of Rav Kook; the board should confirm the author's standing.
+
+  - id: from-sinai-to-ethiopia
+    title: "From Sinai to Ethiopia (Rabbi Dr. Sharon Shalom on the tradition of Ethiopian Jewry)"
+    author: "Rabbi Dr. Sharon Shalom"
+    dates: "published 2012 (English, 2016)"
+    region: "Eretz Yisrael"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: history
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^From Sinai to Ethiopia$"
+    editions:
+      - name: "English, translated by Jessica Setbon (Gefen, 2016)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "From Sinai to Ethiopia, the halakhic and conceptual world of Ethiopian Jewry. Dr. Sharon Shalom. Trans. by Jessica Setbon. Jerusalem, Gefen, 2016"
+            license: "CC-BY-NC"
+    notes: >-
+      For the board. A study of the customs of Beta Israel, kept apart from the rabbinic tradition
+      for centuries, with a section setting them out as a code. Useful for describing that
+      tradition; the board should decide how RabAI presents it beside halacha.
+
+  - id: jewish-spiritual-heroes
+    title: "The Jewish Spiritual Heroes (Gershom Bader's lives of the Tannaim and Amoraim)"
+    author: "Gershom Bader"
+    dates: "published 1940"
+    region: "New York"
+    era: contemporary
+    category: torah_shebaal_peh
+    kind: history
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^The Jewish Spiritual Heroes$"
+    editions:
+      - name: "English text (New York, 1940)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "The Jewish spiritual heroes, by Gershom Bader. New York, N.Y. 1940"
+            license: "Public Domain"
+    notes: >-
+      For the board. Biographies of the Sages, drawn mainly from the Talmud and midrash. We could
+      not confirm the author's background.
+
+  - id: izhbitz-in-english
+    title: "The Mei HaShiloach and the introduction to the Beit Yaakov (Izhbitz and Radzin), in English"
+    author: "Rabbi Mordechai Yosef Leiner of Izhbitz; Rabbi Gershon Chanokh Leiner of Radzin"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^(Mei HaShiloach|Sha'ar HaEmunah VeYesod HaChasidut)$"
+    editions:
+      - name: "English, translated by Betsalel Philip Edwards"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Living waters, the Mei HaShiloach. Trans. and edited by Betsalel Philip Edwards, Jerusalem, J. Aronson 2001 [Revised digital edition, 2021]"
+            license: "CC-BY-NC"
+          - version: "The Introduction to the Beit Yaakov, Translated and Annotated by Betzalel Edwards"
+            license: "CC-BY"
+    notes: >-
+      For the board (library question 12), and on the work itself: the Mei HaShiloach is a
+      classic of Chassidus whose teaching on free will and on the sins of great people was
+      controversial (to confirm), and the Radziner Rebbe's tekhelet books are already a debated
+      entry. Sefaria's Hebrew of both has no license listed.
+
+  - id: bepardes-hachasidut-vehakabbalah
+    title: "BePardes HaChasidut VeHaKabbalah (Hillel Zeitlin)"
+    hebrew: בפרדס החסידות והקבלה
+    author: "Hillel Zeitlin"
+    dates: "1871-1942"
+    region: "Warsaw"
+    era: contemporary
+    category: hashkafah_mussar
+    kind: chassidus
+    streams: [chassidish]
+    status: proposed
+    sefaria:
+      re: "^BePardes HaChasidut VeHakabbalah$"
+    editions:
+      - name: "Hebrew text (Tel Aviv, 1997)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Tel Aviv, 1997"
+            license: "Public Domain"
+    notes: >-
+      For the board. Essays introducing Chassidus and Kabbalah to modern readers, by a writer
+      who returned to religious life and was murdered in the Warsaw ghetto (to confirm).
+      Sefaria describes him as an early neo-Chassidic thinker.
+
+  - id: mussar-scholars-editions
+    title: "Mussar works found on Sefaria only in a modern scholar's edition (Menorat HaMaor of Rabbi Yisrael Alnaqua, Shekel HaKodesh, Yesod HaYirah, Mivchar HaPeninim)"
+    era: rishonim
+    category: hashkafah_mussar
+    kind: mussar
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Menorat HaMaor|Shekel HaKodesh|Yesod HaYirah|Mivchar HaPeninim)$"
+      root: "Musar"
+    editions:
+      - name: "Hebrew text, scholars' editions"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Menorat HaMaor, Alnakawa, H.G. Enelow ed. N.Y. 1929-1934"
+            license: "Public Domain"
+          - version: "Shekel Hakodesh, London 1919"
+            license: "Public Domain"
+          - version: "Yesod hayirah, London 1919"
+            license: "Public Domain"
+          - version: "Mivchar Hapeninim, London 1859"
+            license: "Public Domain"
+      - name: "English translations by the same editors"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Shekel Hakodesh, trans. Hermann Gollancz, London 1919"
+            license: "Public Domain"
+          - version: "Yesod hayirah, trans. Hermann Gollancz, London 1919"
+            license: "Public Domain"
+          - version: "A Choice of Pearls, English translation by B.H. Ascher, London 1859"
+            license: "Public Domain"
+    notes: >-
+      For the board (library questions 9 and 12). Rabbi Yisrael Alnaqua's Menorat HaMaor (14th
+      century; not Rabbi Yitzchak Aboab's better-known book of that name) exists on Sefaria only
+      in H. G. Enelow's edition, and Enelow was a Reform rabbi (to confirm). Shekel HaKodesh (by
+      Rabbi Yosef Kimchi, as Sefaria says) and Yesod HaYirah were edited and translated by Rabbi
+      Sir Hermann Gollancz, whose background the board was already asked about. Mivchar
+      HaPeninim, a book of maxims attributed to Rabbi Shlomo ibn Gabirol, was edited and
+      translated by B. H. Ascher (background to confirm).
+
+  - id: keter-malkhut-hebrew
+    title: "Keter Malkhut (Rabbi Shlomo ibn Gabirol), Hebrew text"
+    hebrew: כתר מלכות
+    author: "Rabbi Shlomo ibn Gabirol"
+    dates: "c. 1021-1058"
+    region: "Spain"
+    era: rishonim
+    category: hashkafah_mussar
+    kind: liturgy
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Keter Malkhut$"
+    editions:
+      - name: "Hebrew text (Israel Davidson's edition, Philadelphia, 1923)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Mahberet miShire Kodesh, I. Davidson. JPS, Philadelphia, 1923"
+            license: "Public Domain"
+    notes: >-
+      For the board (library question 9). Said on Yom Kippur in many communities. On Sefaria the
+      Hebrew is Israel Davidson's scholarly edition (he taught at the Jewish Theological Seminary,
+      to confirm); a machzor's text would be better. Israel Zangwill's English is already in
+      excluded.yaml.
+
+  - id: megillat-eifah
+    title: "Megillat Eifah (the Shach's account of the massacres of 1648)"
+    hebrew: מגילת עיפה
+    author: "Rabbi Shabbetai HaKohen (the Shach)"
+    dates: "written 1648-1651"
+    era: acharonim
+    category: hashkafah_mussar
+    kind: history
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Megillat Eifah$"
+    editions:
+      - name: "Hebrew text (printed with Shevet Yehudah, Hanover, 1855)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Shevet Yehudah, Hanover, 1855"
+            license: "Public Domain"
+            printed: 1855
+    notes: >-
+      For the board (library question 9): the Shach's own words, but printed as an appendix to a
+      scholar's edition of Shevet Yehudah (Hanover, 1855; editor to confirm). Sefaria lists no
+      license; the printing is public domain by age.
+
+  - id: ginzei-mitzrayim-hilkhot-sefer-torah
+    title: "Hilchot Sefer Torah from the Cairo Genizah (Ginzei Mitzrayim)"
+    author: "Unknown (once attributed to Rabbi Yehuda ben Barzilai of Barcelona)"
+    era: rishonim
+    category: halacha
+    kind: code
+    minhag: both
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Ginzei Mitzrayim, Hilkhot Sefer Torah$"
+    editions:
+      - name: "Hebrew text (Oxford, 1897)"
+        language: he
+        orthodox: review
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Oxford, 1897"
+            license: "Public Domain"
+    notes: >-
+      For the board (library question 9). A medieval work on writing a Torah scroll and other
+      holy books, first printed from a Genizah manuscript by Elkan Adler in 1897, as Sefaria says
+      (to confirm). Its author is uncertain.
+
+  # Kabbalah
+
+  - id: ashlag-talmud-eser-hasefirot
+    title: "Talmud Eser HaSefirot with Ohr Penimi, and Matan Torah (Rabbi Yehuda Ashlag)"
+    hebrew: תלמוד עשר הספירות; אור פנימי; מתן תורה
+    author: "Rabbi Yehuda Leib HaLevi Ashlag (the Baal HaSulam)"
+    dates: "1885-1954"
+    region: "Jerusalem"
+    era: contemporary
+    category: kabbalah
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^(Talmud Eser HaSefirot|Ohr Penimi on Talmud Eser HaSefirot|Giving; The Essential Teaching of the Kabbalah)$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Talmud Eser HaSefirot explains the Arizal's teaching from Etz Chaim, with Rabbi Ashlag's
+          own commentary Ohr Penimi. Sefaria lists the Jerusalem printing (1956-1966) as public
+          domain although it is less than 95 years old; that is enough for private testing, but
+          worth confirming before any public use. Matan Torah is his short essays on the giving of
+          the Torah and on love of one's fellow Jew.
+        sefaria_versions:
+          - version: "Jerusalem, 1956-1966"
+            license: "Public Domain"
+          - version: "Sefer Matan Torah, ed. Zohar HaSulam, 2019"
+            license: "CC-BY-NC"
+    notes: >-
+      The author of the Sulam commentary on the Zohar (zohar). The English translations on
+      Sefaria (the Sefaria Sulam, Vital Transformation, and others) are not listed; their
+      translators would need the board's view (library question 12).
+
+  - id: sefer-hakanah
+    title: "Sefer HaKanah"
+    hebrew: ספר הקנה
+    author: "Attributed to Rabbi Nechunya ben HaKanah"
+    era: rishonim
+    category: kabbalah
+    kind: commentary
+    streams: [shared]
+    status: proposed
+    standing: debated
+    caution_kinds: [uncertain_author]
+    caution: >-
+      Sefer HaKanah explains the mitzvot according to Kabbalah and is traditionally attributed to
+      the Tanna Rabbi Nechunya ben HaKanah, but most scholars hold that it was written much later,
+      in the Middle Ages, by an author whose name is unknown. Present its claims about its own
+      origin as claims.
+    sefaria:
+      re: "^Sefer HaKanah$"
+    editions:
+      - name: "Hebrew text"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer HaKana"
+            license: "Public Domain"
+    notes: >-
+      Library question 8 (works whose author is uncertain), like Sefer HaBahir, which is
+      attributed to the same Tanna. Which printing Sefaria's text copies is to confirm.
+
+  - id: klalei-hatchalat-hachochmah
+    title: "Klalei Hatchalat HaChochmah (an introduction to Kabbalah)"
+    hebrew: כללי התחלת החכמה
+    author: "Rabbi Aryeh Leib Lipkin"
+    dates: "written c. 1887-1893 (as Sefaria gives)"
+    era: acharonim
+    category: kabbalah
+    kind: reference
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^The Beginning of Wisdom$"
+    editions:
+      - name: "Hebrew text (Hebrew Wikisource)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Klalei Hatchalat HaChochmah, Jerusalem 2018"
+            license: "CC-BY-SA"
+      - name: "The Beginning of Wisdom, translated by Rabbi Amiram Markel and Michoel Tzvi Wolkenfeld"
+        language: en
+        orthodox: true
+        status: proposed
+        license: verify
+        notes: >-
+          Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic and kabbalistic
+          classics into English; the canon already lists several of their translations.
+        sefaria_versions:
+          - version: "The Beginning of Wisdom, trans. by Rabbi Amiram Markel and Michoel Tzvi Wolkenfeld, 2022"
+            license: "CC-BY"
+    notes: >-
+      Sefaria gives the author as Aryeh Leib Lifkin; who he was, and when he wrote, is to
+      confirm.
+
+  # Language
+
+  - id: sefer-habachur
+    title: "Sefer HaBachur (Rabbi Eliyahu Bachur's Hebrew grammar)"
+    hebrew: ספר הבחור
+    author: "Rabbi Eliyahu Bachur (Elia Levita)"
+    dates: "1469-1549"
+    region: "Italy and Germany"
+    era: rishonim
+    category: mikra_meforshim
+    kind: reference
+    streams: [shared]
+    status: proposed
+    sefaria:
+      re: "^Sefer HaBachur$"
+    editions:
+      - name: "Hebrew text (Isny, 1542, and Mantua, 1556)"
+        language: he
+        orthodox: true
+        status: proposed
+        license: verify
+        sefaria_versions:
+          - version: "Sefer haBahur, Isny 1542-Mantua, 1556."
+            license: "Public Domain"
+          - version: "Sefer ha-Bahur, Prague, 1789."
+            license: "Public Domain"
+      - name: "English, translated by Betzalel Avraham Feinstein (2026)"
+        language: en
+        orthodox: review
+        status: proposed
+        license: verify
+        notes: For the board (library question 12); see malbim-ayelet-hashachar-english.
+        sefaria_versions:
+          - version: "Trans. Betzalel Avraham Feinstein, 2026"
+            license: "CC-BY-NC"
+    notes: >-
+      A classic grammar of Hebrew, for teaching people to read the texts. Its author also taught
+      Hebrew to Christian scholars, for which some rabbis of his time criticized him (to
+      confirm).
 
   # ---------------------------------------------------------------------------
   # Articles from organizations' websites (maintainer's direction, 2026-10-10)

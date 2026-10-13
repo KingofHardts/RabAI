@@ -1,0 +1,149 @@
+# The order in which RabAI opens the commentaries printed around a text: the main ones first,
+# the way a learner opens the books (Josh's direction, 2026-10-13: halacha answers should look at
+# the right sources and their commentaries, the Shulchan Aruch above all; founding spec, "Reading
+# a ruling the way a posek reads it"). A draft for the board, which decides which commentaries
+# are named as the main ones for each part.
+#
+# For each kind of text, the commentaries printed with it, by rank:
+#   main   opened first;
+#   next   opened after the main ones;
+#   later  opened after those and after the sources a ruling rests on.
+# Within a rank, in the order given. Each book gives a line or two before the next book is
+# opened, so one long commentary can't crowd out the others. A commentary not listed comes after
+# these, and one on a different place (another siman or verse) is a cross-reference.
+#
+# On a code (the four parts of the Shulchan Aruch, the Mishneh Torah), the sources of the ruling
+# come between `next` and `later`: the Gemara, the Rambam, the Tur and the Beit Yosef, the
+# Yerushalmi and the Rif. On the Gemara, the codes that rule on the line (the Ein Mishpat: the
+# Rambam, the Tur, the Shulchan Aruch) and the mishnah it explains come between `main` and
+# `next`.
+#
+# Names are as the library names the books (Sefaria's titles). Where the library adds the part a
+# commentary explains, so does this list: "Turei Zahav on Shulchan Arukh, Orach Chayim" is the
+# Taz on Orach Chayim. On the Mishneh Torah, the Torah, Nach, the Mishnah and the Gemara, a name
+# is the commentator's alone ("Ramban" for "Ramban on Genesis").
+#
+# After editing, run: python3 tools/validate.py --write
+# (it regenerates web/lib/library/reading-order.generated.ts, which the app reads, and the
+# sources list for the board, docs/sources-for-review.md).
+
+status: proposed
+
+# The name a learner calls a commentary by, for the list the board reads. Only where the
+# library's name is not the one people use.
+known_as:
+  Turei Zahav: the Taz
+  Siftei Kohen: the Shach
+  "Me'irat Einayim": the Sma
+  Beur HaGra: the Vilna Gaon's commentary
+  "Hasagot HaRa'avad": "the Ra'avad's glosses"
+  Chidushei Halachot: the Maharsha
+  Chidushei Agadot: the Maharsha
+  Haamek Davar: the Netziv
+  Yachin: Tiferet Yisrael
+  Boaz: Tiferet Yisrael
+  Targum Jonathan: Targum Yonatan
+  Kitzur Ba'al HaTurim: the Ba'al HaTurim
+
+texts:
+
+  - id: orach_chayim
+    title: "A seif of the Shulchan Aruch, Orach Chayim"
+    main: [Mishnah Berurah, Biur Halacha]
+    next: [Magen Avraham, "Turei Zahav on Shulchan Arukh, Orach Chayim"]
+    later:
+      - "Beur HaGra on Shulchan Arukh, Orach Chayim"
+      - "Sha'arei Teshuvah on Shulchan Arukh, Orach Chayim"
+      - "Rabbi Akiva Eiger on Shulchan Arukh, Orach Chayim"
+      - "Kaf HaChayim on Shulchan Arukh, Orach Chayim"
+      - "Machatzit HaShekel on Orach Chayim"
+      - "Peri Megadim on Orach Chayim"
+
+  - id: yoreh_deah
+    title: "A seif of the Shulchan Aruch, Yoreh De'ah"
+    main: ["Siftei Kohen on Shulchan Arukh, Yoreh De'ah", "Turei Zahav on Shulchan Arukh, Yoreh De'ah"]
+    next:
+      - "Pitchei Teshuva on Shulchan Arukh, Yoreh De'ah"
+      - "Rabbi Akiva Eiger on Shulchan Arukh, Yoreh De'ah"
+      - "Beur HaGra on Shulchan Arukh, Yoreh De'ah"
+    later:
+      - "Nekudot HaKesef on Shulchan Arukh, Yoreh De'ah"
+      - "Peri Megadim on Yoreh De'ah"
+      - "Kaf HaChayim on Shulchan Arukh, Yoreh De'ah"
+      - "Kereti on Shulchan Arukh, Yoreh De'ah"
+      - "Peleti on Shulchan Arukh, Yoreh De'ah"
+
+  - id: even_haezer
+    title: "A seif of the Shulchan Aruch, Even HaEzer"
+    main: [Chelkat Mechokek, Beit Shmuel]
+    next:
+      - "Turei Zahav on Shulchan Arukh, Even HaEzer"
+      - "Pitchei Teshuva on Shulchan Arukh, Even HaEzer"
+      - "Beur HaGra on Shulchan Arukh, Even HaEzer"
+    later:
+      - "Rabbi Akiva Eiger on Shulchan Arukh, Even HaEzer"
+      - "Beit Meir on Shulchan Arukh, Even HaEzer"
+      - "Ezer MiKodesh on Shulchan Arukh, Even HaEzer"
+
+  - id: choshen_mishpat
+    title: "A seif of the Shulchan Aruch, Choshen Mishpat"
+    main: ["Me'irat Einayim on Shulchan Arukh, Choshen Mishpat", "Siftei Kohen on Shulchan Arukh, Choshen Mishpat"]
+    next:
+      - "Ketzot HaChoshen on Shulchan Arukh, Choshen Mishpat"
+      - "Netivot HaMishpat, Beurim on Shulchan Arukh, Choshen Mishpat"
+      - "Netivot HaMishpat, Hidushim on Shulchan Arukh, Choshen Mishpat"
+      - "Turei Zahav on Shulchan Arukh, Choshen Mishpat"
+      - "Pitchei Teshuva on Shulchan Arukh, Choshen Mishpat"
+      - "Beur HaGra on Shulchan Arukh, Choshen Mishpat"
+    later:
+      - "Urim VeTumim, Urim"
+      - "Urim VeTumim, Tumim"
+      - "Rabbi Akiva Eiger on Shulchan Arukh, Choshen Mishpat"
+      - "Chatam Sofer on Shulchan Arukh, Choshen Mishpat"
+
+  - id: mishneh_torah
+    title: "A halacha of the Rambam's Mishneh Torah"
+    main: [Maggid Mishneh, Kessef Mishneh, "Hasagot HaRa'avad"]
+    next: [Lechem Mishneh, Mishneh LaMelech, Migdal Oz, Commentary of Mahari Kurkus and Radbaz]
+    later: [Ohr Sameach, "Sha'ar HaMelekh", "Even Ha'azel", "Tzafnat Pa'neach", Avodat HaMelekh, Kiryat Sefer]
+
+  - id: gemara
+    title: "A line of the Gemara (Talmud Bavli)"
+    main: [Rashi, Tosafot]
+    next:
+      - Rabbeinu Chananel
+      - Chiddushei Ramban
+      - Rashba
+      - Ritva
+      - Ran
+      - Rosh
+      - Tosafot HaRosh
+      - Meiri
+      - Shita Mekubetzet
+    later: [Chidushei Halachot, Chidushei Agadot, Maharam, Penei Yehoshua, Rashash]
+
+  - id: mishnah
+    title: "A mishnah"
+    main: [Bartenura, Rambam, Tosafot Yom Tov]
+    next: [Yachin, Boaz, Melekhet Shelomoh, Tosafot Rabbi Akiva Eiger, Ikar Tosafot Yom Tov]
+
+  - id: torah
+    title: "A verse of the Torah"
+    main: [Onkelos, Rashi, Ramban, Ibn Ezra, Sforno]
+    next:
+      - Rashbam
+      - Or HaChaim
+      - Kli Yakar
+      - "Kitzur Ba'al HaTurim"
+      - Haamek Davar
+      - Chizkuni
+      - Rabbeinu Bahya
+      - Siftei Chakhamim
+      - Targum Jonathan
+      - Malbim
+      - Radak
+
+  - id: nach
+    title: "A verse of Nevi'im or Ketuvim"
+    main: [Rashi, Radak, Metzudat David, Metzudat Zion]
+    next: [Malbim, Ibn Ezra, Ralbag, Abarbanel]

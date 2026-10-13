@@ -17,7 +17,19 @@
  * commentary on this line, and waits with the rest.
  *
  * Pure: the library store hands it the links, and it says which to open.
+ *
+ * Which commentaries are named, and in what order, comes from canon/reading-order.yaml, a draft
+ * for the rabbinic board (reading-order.generated.ts, made by tools/validate.py --write).
  */
+
+import {
+  BAVLI_ORDER,
+  MISHNAH_ORDER,
+  MISHNEH_TORAH_ORDER,
+  NACH_ORDER,
+  SHULCHAN_ARUKH_ORDER,
+  TORAH_ORDER,
+} from "./reading-order.generated";
 
 /** A link from a line RabAI opened (the anchor) to another line. */
 export interface LinkPair {
@@ -133,120 +145,25 @@ export function codeOf(ref: string): Code | null {
  * the main ones, the next ones, then later ones. A commentary on this part that isn't listed
  * comes after these; one on a different siman is a cross-reference.
  */
-const SHULCHAN_ARUKH: Record<Exclude<Code, "mt">, string[][]> = {
-  oc: [
-    ["Mishnah Berurah", "Biur Halacha"],
-    ["Magen Avraham", "Turei Zahav on Shulchan Arukh, Orach Chayim"],
-    [
-      "Beur HaGra on Shulchan Arukh, Orach Chayim",
-      "Sha'arei Teshuvah on Shulchan Arukh, Orach Chayim",
-      "Rabbi Akiva Eiger on Shulchan Arukh, Orach Chayim",
-      "Kaf HaChayim on Shulchan Arukh, Orach Chayim",
-      "Machatzit HaShekel on Orach Chayim",
-      "Peri Megadim on Orach Chayim",
-    ],
-  ],
-  yd: [
-    ["Siftei Kohen on Shulchan Arukh, Yoreh De'ah", "Turei Zahav on Shulchan Arukh, Yoreh De'ah"],
-    [
-      "Pitchei Teshuva on Shulchan Arukh, Yoreh De'ah",
-      "Rabbi Akiva Eiger on Shulchan Arukh, Yoreh De'ah",
-      "Beur HaGra on Shulchan Arukh, Yoreh De'ah",
-    ],
-    [
-      "Nekudot HaKesef on Shulchan Arukh, Yoreh De'ah",
-      "Peri Megadim on Yoreh De'ah",
-      "Kaf HaChayim on Shulchan Arukh, Yoreh De'ah",
-      "Kereti on Shulchan Arukh, Yoreh De'ah",
-      "Peleti on Shulchan Arukh, Yoreh De'ah",
-    ],
-  ],
-  eh: [
-    ["Chelkat Mechokek", "Beit Shmuel"],
-    [
-      "Turei Zahav on Shulchan Arukh, Even HaEzer",
-      "Pitchei Teshuva on Shulchan Arukh, Even HaEzer",
-      "Beur HaGra on Shulchan Arukh, Even HaEzer",
-    ],
-    [
-      "Rabbi Akiva Eiger on Shulchan Arukh, Even HaEzer",
-      "Beit Meir on Shulchan Arukh, Even HaEzer",
-      "Ezer MiKodesh on Shulchan Arukh, Even HaEzer",
-    ],
-  ],
-  cm: [
-    ["Me'irat Einayim on Shulchan Arukh, Choshen Mishpat", "Siftei Kohen on Shulchan Arukh, Choshen Mishpat"],
-    [
-      "Ketzot HaChoshen on Shulchan Arukh, Choshen Mishpat",
-      "Netivot HaMishpat, Beurim on Shulchan Arukh, Choshen Mishpat",
-      "Netivot HaMishpat, Hidushim on Shulchan Arukh, Choshen Mishpat",
-      "Turei Zahav on Shulchan Arukh, Choshen Mishpat",
-      "Pitchei Teshuva on Shulchan Arukh, Choshen Mishpat",
-      "Beur HaGra on Shulchan Arukh, Choshen Mishpat",
-    ],
-    [
-      "Urim VeTumim, Urim",
-      "Urim VeTumim, Tumim",
-      "Rabbi Akiva Eiger on Shulchan Arukh, Choshen Mishpat",
-      "Chatam Sofer on Shulchan Arukh, Choshen Mishpat",
-    ],
-  ],
-};
+const SHULCHAN_ARUKH: Record<Exclude<Code, "mt">, string[][]> = SHULCHAN_ARUKH_ORDER;
 
 /** Commentators on the Mishneh Torah, by rank. Their books are named "<name> on Mishneh Torah, <book>". */
-export const MISHNEH_TORAH_COMMENTATORS: string[][] = [
-  ["Maggid Mishneh", "Kessef Mishneh", "Hasagot HaRa'avad"],
-  ["Lechem Mishneh", "Mishneh LaMelech", "Migdal Oz", "Commentary of Mahari Kurkus and Radbaz"],
-  ["Ohr Sameach", "Sha'ar HaMelekh", "Even Ha'azel", "Tzafnat Pa'neach", "Avodat HaMelekh", "Kiryat Sefer"],
-];
+export const MISHNEH_TORAH_COMMENTATORS: string[][] = MISHNEH_TORAH_ORDER;
 
 /** Commentators on the Torah, by rank, as the library names them ("Ramban on Genesis"). */
-const TORAH_COMMENTATORS: string[][] = [
-  ["Onkelos", "Rashi", "Ramban", "Ibn Ezra", "Sforno"],
-  [
-    "Rashbam",
-    "Or HaChaim",
-    "Kli Yakar",
-    "Kitzur Ba'al HaTurim",
-    "Haamek Davar",
-    "Chizkuni",
-    "Rabbeinu Bahya",
-    "Siftei Chakhamim",
-    "Targum Jonathan",
-    "Malbim",
-    "Radak",
-  ],
-];
+const TORAH_COMMENTATORS: string[][] = TORAH_ORDER;
 
 /** Commentators on the Prophets and Writings, by rank. */
-const NACH_COMMENTATORS: string[][] = [
-  ["Rashi", "Radak", "Metzudat David", "Metzudat Zion"],
-  ["Malbim", "Ibn Ezra", "Ralbag", "Abarbanel"],
-];
+const NACH_COMMENTATORS: string[][] = NACH_ORDER;
 
 /** Commentators on the Mishnah, by rank ("Bartenura on Mishnah Berakhot"). */
-const MISHNAH_COMMENTATORS: string[][] = [
-  ["Bartenura", "Rambam", "Tosafot Yom Tov"],
-  ["Yachin", "Boaz", "Melekhet Shelomoh", "Tosafot Rabbi Akiva Eiger", "Ikar Tosafot Yom Tov"],
-];
+const MISHNAH_COMMENTATORS: string[][] = MISHNAH_ORDER;
 
-/** Commentators on the Gemara, by rank ("Rashi on Berakhot"). */
-const BAVLI_COMMENTATORS: string[][] = [
-  ["Rashi", "Tosafot"],
-  [],
-  [
-    "Rabbeinu Chananel",
-    "Chiddushei Ramban",
-    "Rashba",
-    "Ritva",
-    "Ran",
-    "Rosh",
-    "Tosafot HaRosh",
-    "Meiri",
-    "Shita Mekubetzet",
-  ],
-  ["Chidushei Halachot", "Chidushei Agadot", "Maharam", "Penei Yehoshua", "Rashash"],
-];
+/**
+ * Commentators on the Gemara, by rank ("Rashi on Berakhot"). Rank 1 is empty: the codes that
+ * rule on the line (the Ein Mishpat) stand there.
+ */
+const BAVLI_COMMENTATORS: string[][] = BAVLI_ORDER;
 
 type Family = Exclude<Code, "mt"> | "mt" | "bavli" | "mishnah" | "torah" | "tanakh" | "plain";
 

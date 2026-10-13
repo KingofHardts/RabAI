@@ -5,10 +5,21 @@ Usage:
     python3 tools/validate.py              # check everything and print a summary
     python3 tools/validate.py --whitelist  # print only the whitelist, as JSON
     python3 tools/validate.py --testing    # print only the private testing list, as JSON
-    python3 tools/validate.py --write-sites  # check, then regenerate the app's copy of
-                                             # canon/lookup-sites.yaml
+    python3 tools/validate.py --write        # check, then regenerate the files made from the
+                                             # canon (--write-sites does the same)
+
+The files made from the canon, which this check fails on when they are out of date:
+    web/lib/engine/lookup-sites.generated.ts    canon/lookup-sites.yaml, for the app
+    web/lib/library/reading-order.generated.ts  canon/reading-order.yaml, for the app
+    web/lib/sources/sources.generated.ts        the sources list, for the app's Sources page
+    docs/sources-for-review.md                  the sources list, for the rabbinic board
+                                                (tools/review_list.py)
 
 Exits with status 1 if any check fails.
+
+canon/reading-order.yaml lists the commentaries RabAI opens with each kind of text, main ones
+first (a seif of the Shulchan Aruch with the Mishnah Berurah, the Taz, the Shach; a verse with
+Onkelos and Rashi), pending the board.
 
 canon/lookup-sites.yaml lists the websites RabAI may search when its library doesn't cover a
 question (Josh's direction, 2026-10-13, pending the board): `trusted` sites, the only ones it
@@ -99,6 +110,20 @@ LOOKUP_STATUS = {"proposed", "approved"}
 TRUSTED_SITE_KEYS = {"domain", "name", "streams", "offers"}
 BARRED_SITE_KEYS = {"domain", "name", "reason"}
 SITES_TS = "web/lib/engine/lookup-sites.generated.ts"
+READING_TS = "web/lib/library/reading-order.generated.ts"
+# canon/reading-order.yaml: each kind of text RabAI opens commentaries for, and its code in the app.
+READING_TEXTS = {
+    "orach_chayim": "oc",
+    "yoreh_deah": "yd",
+    "even_haezer": "eh",
+    "choshen_mishpat": "cm",
+    "mishneh_torah": "mt",
+    "gemara": "bavli",
+    "mishnah": "mishnah",
+    "torah": "torah",
+    "nach": "nach",
+}
+READING_TEXT_KEYS = {"id", "title", "main", "next", "later"}
 
 
 def printed_ok(value) -> bool:
@@ -539,18 +564,98 @@ def sites_module(sites: dict) -> str:
     )
 
 
-def check_sites_module(sites: dict, write: bool) -> None:
-    expected = sites_module(sites)
-    target = ROOT / SITES_TS
+def check_reading_order() -> dict:
+    """canon/reading-order.yaml, checked: the commentaries opened with each kind of text, by rank."""
+    data = load("canon/reading-order.yaml") or {}
+    where = "reading-order.yaml"
+    check_value(where, "status", data.get("status"), LOOKUP_STATUS)
+    check_approval(where, data)
+    known = data.get("known_as") or {}
+    if not isinstance(known, dict) or not all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in known.items()):
+        fail(f"{where}: known_as must map a book's name to the name people call it by")
+    texts = data.get("texts") or []
+    seen = set()
+    for index, text in enumerate(texts):
+        tid = text.get("id") if isinstance(text, dict) else None
+        here = f"{where} text {tid or f'#{index + 1}'}"
+        if not isinstance(text, dict) or tid not in READING_TEXTS:
+            fail(f"{here}: id must be one of {sorted(READING_TEXTS)}")
+            continue
+        if tid in seen:
+            fail(f"{here}: listed twice")
+        seen.add(tid)
+        for extra in sorted(set(text) - READING_TEXT_KEYS):
+            fail(f"{here}: unknown field '{extra}'")
+        if not str(text.get("title") or "").strip():
+            fail(f"{here}: missing title")
+        names = []
+        for rank in ("main", "next", "later"):
+            value = text.get(rank, [])
+            if rank == "main" and not value:
+                fail(f"{here}: needs the main commentaries")
+            if not isinstance(value, list) or not all(isinstance(n, str) and n.strip() for n in value):
+                fail(f"{here}: {rank} must be a list of the library's names for the books")
+                continue
+            names.extend(value)
+        for name in sorted({n for n in names if names.count(n) > 1}):
+            fail(f"{here}: '{name}' is listed twice")
+    for tid in sorted(set(READING_TEXTS) - seen):
+        fail(f"{where}: missing the text '{tid}'")
+    return data
+
+
+def reading_order_module(data: dict) -> str:
+    """The app's copy of canon/reading-order.yaml (web/lib/library/reading-order.generated.ts).
+
+    Each table lists the ranks in the order the app reads them. On a code, the sources of a
+    ruling come between `next` and `later`, which link-order.ts places by rank number; on the
+    Gemara, the codes that rule on the line are rank 1, so the table leaves that rank empty.
+    """
+    texts = {t["id"]: t for t in data.get("texts") or [] if isinstance(t, dict)}
+
+    def ranks(tid: str) -> list:
+        text = texts.get(tid, {})
+        out = [list(text.get("main") or []), list(text.get("next") or []), list(text.get("later") or [])]
+        if tid == "gemara":
+            out.insert(1, [])
+        while out and not out[-1]:
+            out.pop()
+        return out
+
+    def dump(value) -> str:
+        return json.dumps(value, ensure_ascii=False, indent=2)
+
+    codes = {READING_TEXTS[t]: ranks(t) for t in ("orach_chayim", "yoreh_deah", "even_haezer", "choshen_mishpat")}
+    return (
+        "// Generated by tools/validate.py --write from canon/reading-order.yaml. Do not edit by hand.\n"
+        "// The commentaries RabAI opens with each kind of text, by rank (link-order.ts).\n"
+        f"export const READING_ORDER_STATUS = {dump(data.get('status'))};\n"
+        f'export const SHULCHAN_ARUKH_ORDER: Record<"oc" | "yd" | "eh" | "cm", string[][]> = {dump(codes)};\n'
+        f"export const MISHNEH_TORAH_ORDER: string[][] = {dump(ranks('mishneh_torah'))};\n"
+        f"export const BAVLI_ORDER: string[][] = {dump(ranks('gemara'))};\n"
+        f"export const MISHNAH_ORDER: string[][] = {dump(ranks('mishnah'))};\n"
+        f"export const TORAH_ORDER: string[][] = {dump(ranks('torah'))};\n"
+        f"export const NACH_ORDER: string[][] = {dump(ranks('nach'))};\n"
+    )
+
+
+def check_generated(files: dict, write: bool) -> None:
+    """Regenerate the files made from the canon, or fail when one differs from what it would be."""
     if write:
         if errors:
             return
-        target.write_text(expected, encoding="utf-8")
-        print(f"Wrote {SITES_TS}")
+        for relative, expected in files.items():
+            target = ROOT / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists() or target.read_text(encoding="utf-8") != expected:
+                target.write_text(expected, encoding="utf-8")
+                print(f"Wrote {relative}")
         return
-    current = target.read_text(encoding="utf-8") if target.exists() else ""
-    if current != expected:
-        fail(f"{SITES_TS} is out of date with canon/lookup-sites.yaml. Run: python3 tools/validate.py --write-sites")
+    for relative, expected in files.items():
+        target = ROOT / relative
+        current = target.read_text(encoding="utf-8") if target.exists() else ""
+        if current != expected:
+            fail(f"{relative} is out of date with the canon. Run: python3 tools/validate.py --write")
 
 
 def whitelist(canon_ids: dict) -> list:
@@ -637,10 +742,23 @@ def main() -> int:
     questions = check_questions(vocab, load("evals/questions.yaml"), canon_ids)
     partners = check_partners(vocab, load("canon/partners.yaml"))
     sites = check_lookup_sites(vocab)
-    check_sites_module(sites, "--write-sites" in sys.argv)
+    reading = check_reading_order()
     permissions = load_permissions()
     allowed = whitelist(canon_ids)
     test_list = testing(canon_ids, barred)
+    if not errors:
+        import review_list
+
+        review = review_list.build(vocab, canon_ids, test_list, allowed, load("canon/excluded.yaml"), sites, reading)
+        check_generated(
+            {
+                SITES_TS: sites_module(sites),
+                READING_TS: reading_order_module(reading),
+                review_list.SOURCES_TS: review_list.ts_module(review),
+                review_list.REVIEW_MD: review_list.markdown(review),
+            },
+            write=bool({"--write", "--write-sites"} & set(sys.argv)),
+        )
 
     for flag, listing in (("--whitelist", allowed), ("--testing", test_list)):
         if flag in sys.argv:
