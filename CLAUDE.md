@@ -236,7 +236,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-13)
+## Where things stand (2026-10-14)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -255,7 +255,9 @@ Moving RabAI off Senior Stylist:
 
 Done 2026-10-13, at Josh's request:
 - The library expanded: 67 more works in the canon as proposed, 13 more entries in
-  `excluded.yaml` with the reasons. They enter the testing library at the next rebuild.
+  `excluded.yaml` with the reasons. 37 of the works (45 editions) entered the testing library with
+  the rebuild of 2026-10-14; the other 30 wait for the board, a publisher's agreement, or a copy
+  we may use.
 - Halacha answers read a seif with the commentaries printed around it, in the order in
   `canon/reading-order.yaml` (proposed, for the board).
 - The sources list for the rabbis (`docs/sources-for-review.md`, also published as a private
@@ -266,19 +268,23 @@ Done 2026-10-13, at Josh's request:
   Yitzchak Berkovits as Josh asked (`docs/character-notes.md`, open question 18).
 
 Open items:
-- The testing library on Turso was rebuilt 2026-10-11 with overages on: 3,031,757 passages,
-  5,470 books, 768 editions, 4,212 MB, with the editions that were waiting for it (Torat Emet's
-  texts, Milchamot HaShem and Rabbi Yosef ibn Yahya). The "Is RabAI working?" check passed
-  everything afterwards (library, articles, Gemara page, words, translations, answers, on a phone
-  and a computer). The "Make the printed-page layouts" workflow ran on 2026-10-11 for all of
-  Shas: 5,206 amudim have a layout, 4,436 place every word (drawn as printed), and 2,115 of those
-  have no estimated word. Sefaria has no scans of Niddah, and files Nazir's under "Nazit"
-  (`SCAN_ALIASES` in `tools/daf_layout.py`).
+- The testing library on Turso was rebuilt 2026-10-14 from canon commit 7156d8d: 3,277,762
+  passages, 5,599 books, 813 editions, 4,432 MB (on 2026-10-11 it was 3,031,757 passages, 5,470
+  books, 768 editions, 4,212 MB). The canon lists 815 editions for it besides the website
+  sections; the two Koren Yerushalmi editions are skipped until Sefaria's Shekalim file lists a
+  license. The "Is RabAI working?" check passed everything afterwards (library, articles, Sources
+  page, Gemara page, words, translations, the flow, three answers including "which books do you
+  use?" answered from the sources list, on a phone and a computer). Its one problem was the
+  expected storage overage (below). The "Make the printed-page layouts" workflow ran on
+  2026-10-11 for all of Shas: 5,206 amudim have a layout, 4,436 place every word (drawn as
+  printed), and 2,115 of those have no estimated word; the rebuild kept all of them. Sefaria has
+  no scans of Niddah, and files Nazir's under "Nazit" (`SCAN_ALIASES` in `tools/daf_layout.py`).
 - **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages on since
   2026-10-11** (about $0.75 per GB over 9 GB in a month), so going past 9 GB costs money but no
   longer blocks writes. Storage counts every database used in the month, deleted ones included;
-  the period runs to 2026-11-01. Batch canon changes into one rebuild, and check a collection's
-  estimated size before writing it.
+  the period runs to 2026-11-01. After the rebuild of 2026-10-14 this period's storage is 12.6 GB
+  (about 3.6 GB over, roughly $2.70); a library rebuild adds about 4.5 GB each time. Batch canon
+  changes into one rebuild, and check a collection's estimated size before writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
 - Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
