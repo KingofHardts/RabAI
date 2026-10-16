@@ -13,6 +13,10 @@ import type { FeedbackRecord } from "./feedback";
  * What it never holds: an email address (only an HMAC of it, see crypto.ts), a sign-in or session
  * token (only a hash), or anything linking feedback to a person. It is never deleted as a whole;
  * a person's rows are deleted when they delete their account.
+ *
+ * It also keeps answers while they are being written (table answer_jobs, lib/answer-jobs.ts), so
+ * a person can leave the page and come back to them. Those are linked to no one and kept a day at
+ * most.
  */
 
 export const PEOPLE_SCHEMA = [
@@ -176,7 +180,7 @@ export function createPeopleStore(exec: Exec): PeopleStore {
 
   const liveChats = async (personId: string) => {
     const rows = await exec.run("SELECT id, data FROM chats WHERE person_id = ? AND deleted = 0", [personId]);
-    return parseChats(rows.map((r) => parseJson(r.data)).filter(Boolean));
+    return parseChats(rows.map((r) => parseJson(r.data)).filter(Boolean), "account");
   };
 
   return {
@@ -300,7 +304,7 @@ export function createPeopleStore(exec: Exec): PeopleStore {
         `SELECT data FROM chats WHERE person_id = ? AND deleted = 0 AND id IN (${wanted.map(() => "?").join(",")})`,
         [personId, ...wanted],
       );
-      return parseChats(rows.map((r) => parseJson(r.data)).filter(Boolean));
+      return parseChats(rows.map((r) => parseJson(r.data)).filter(Boolean), "account");
     },
 
     async saveChats(personId, upsert, remove, now = Date.now()) {
@@ -308,7 +312,7 @@ export function createPeopleStore(exec: Exec): PeopleStore {
       let saved = 0;
       let skipped = 0;
       const writes: Array<{ sql: string; args: InValue[] }> = [];
-      for (const chat of parseChats(upsert)) {
+      for (const chat of parseChats(upsert, "account")) {
         const fitted = chatIdShape(chat.id) ? fitChat(chat, MAX_CHAT_BYTES) : null;
         if (!fitted) {
           skipped++;
@@ -442,19 +446,33 @@ export function peopleDbUrl(env: Record<string, string | undefined> = process.en
   return env.PEOPLE_DATABASE_URL || env.RABAI_PEOPLE_DB_URL || null;
 }
 
+let cachedExec: { url: string; exec: Exec } | null = null;
 let cached: { url: string; store: PeopleStore } | null = null;
 
-/** The people database, or null when the app isn't connected to one. */
-export function peopleStore(env: Record<string, string | undefined> = process.env): PeopleStore | null {
+/**
+ * The connection to the people database, or null when the app isn't connected to one. Shared by
+ * the people store and the answers kept while they are written (lib/answer-jobs.ts).
+ */
+export function peopleExec(env: Record<string, string | undefined> = process.env): Exec | null {
   const url = peopleDbUrl(env);
   if (!url) return null;
-  if (cached?.url === url) return cached.store;
+  if (cachedExec?.url === url) return cachedExec.exec;
   const authToken = env.PEOPLE_AUTH_TOKEN || env.RABAI_PEOPLE_DB_TOKEN || undefined;
   const remote = /^(libsql|https?):\/\//.test(url);
   const client: Promise<Client> = remote
     ? Promise.resolve(createHttpClient({ url: url.replace(/^libsql:\/\//, "https://"), authToken }))
     : import("@libsql/client").then((m) => m.createClient({ url, authToken }));
-  const store = createPeopleStore(execFrom(client));
+  cachedExec = { url, exec: execFrom(client) };
+  return cachedExec.exec;
+}
+
+/** The people database, or null when the app isn't connected to one. */
+export function peopleStore(env: Record<string, string | undefined> = process.env): PeopleStore | null {
+  const url = peopleDbUrl(env);
+  const exec = peopleExec(env);
+  if (!url || !exec) return null;
+  if (cached?.url === url) return cached.store;
+  const store = createPeopleStore(exec);
   cached = { url, store };
   return store;
 }

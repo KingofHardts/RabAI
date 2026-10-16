@@ -4,6 +4,8 @@ import type { AskResult } from "../lib/engine/answer";
 import {
   addRecent,
   categoriesFor,
+  chatForAccount,
+  pendingAnswers,
   groupByCategory,
   MAX_CHATS,
   parseChats,
@@ -117,4 +119,104 @@ test("recent reading keeps one place per section, newest first", () => {
     ["Berakhot 2a:5", "Genesis 1:1"],
   );
   assert.deepEqual(parseRecent([{ ref: 1 }, ...list]).length, 2);
+});
+
+const PREVIEW = `data:image/jpeg;base64,${"A".repeat(400)}`;
+const JOB = "abcdefghijklmnopqrstuvwxyz012345";
+
+test("a question keeps its picture previews on the device, and only their count in the account", () => {
+  const raw = [
+    {
+      id: "p1",
+      title: "",
+      category: "",
+      createdAt: 1,
+      updatedAt: 1,
+      messages: [
+        { role: "user", text: "", pictures: [{ src: PREVIEW, w: 240, h: 180 }] },
+        { role: "ai", result: answer("It is the first line of Berakhot.") },
+      ],
+    },
+  ];
+  const [onDevice] = parseChats(raw);
+  assert.equal(onDevice.messages[0].pictures?.length, 1);
+  assert.equal(onDevice.title, "A picture");
+  const [inAccount] = parseChats(raw, "account");
+  assert.equal(inAccount.messages[0].pictures, undefined);
+  assert.equal(inAccount.messages[0].pictureCount, 1);
+});
+
+test("only small picture previews of a known kind are kept", () => {
+  const raw = [
+    {
+      id: "p2",
+      updatedAt: 1,
+      messages: [
+        {
+          role: "user",
+          text: "What is this?",
+          pictures: [
+            { src: "https://example.com/x.jpg", w: 1, h: 1 },
+            { src: "data:image/svg+xml;base64,PHN2Zz4=", w: 1, h: 1 },
+            { src: `data:image/jpeg;base64,${"A".repeat(70_000)}`, w: 1, h: 1 },
+            { src: PREVIEW, w: 10.4, h: 20.6 },
+          ],
+        },
+      ],
+    },
+  ];
+  const [c] = parseChats(raw);
+  assert.deepEqual(c.messages[0].pictures, [{ src: PREVIEW, w: 10, h: 21 }]);
+});
+
+test("an answer still being written is kept on the device, and never in the account", () => {
+  const raw = [
+    {
+      id: "w1",
+      updatedAt: 5,
+      messages: [
+        { role: "user", text: "Why do we say Shema twice a day?" },
+        { role: "ai", pending: { id: JOB, at: 1000 } },
+      ],
+    },
+  ];
+  const [onDevice] = parseChats(raw);
+  assert.deepEqual(onDevice.messages[1], { role: "ai", pending: { id: JOB, at: 1000 } });
+  assert.deepEqual(pendingAnswers([onDevice]), [{ chatId: "w1", pending: { id: JOB, at: 1000 } }]);
+  const forAccount = chatForAccount(onDevice);
+  assert.equal(forAccount.messages.length, 1, "the account copy has the question only");
+  assert.equal(parseChats(raw, "account")[0].messages.length, 1);
+  // A malformed answer id is dropped, not trusted.
+  const bad = parseChats([{ id: "w2", updatedAt: 1, messages: [{ role: "user", text: "q" }, { role: "ai", pending: { id: "../x", at: 1 } }] }]);
+  assert.equal(bad[0].messages.length, 1);
+});
+
+test("saving a chat keeps the question's pictures and the answer's place", () => {
+  const next = upsertChat([], {
+    id: "s1",
+    title: "",
+    category: "",
+    createdAt: 1,
+    updatedAt: 2,
+    messages: [
+      { role: "user", text: "", pictures: [{ src: PREVIEW, w: 240, h: 180 }] },
+      { role: "ai", pending: { id: JOB, at: 2 } },
+    ],
+  });
+  assert.equal(next[0].messages.length, 2);
+  assert.equal(next[0].messages[0].pictures?.length, 1);
+  assert.deepEqual(next[0].messages[1].pending, { id: JOB, at: 2 });
+  assert.equal(next[0].title, "A picture");
+});
+
+test("waiting answers are listed newest first, across chats", () => {
+  const chats = parseChats([
+    { id: "a", updatedAt: 1, messages: [{ role: "user", text: "q" }, { role: "ai", pending: { id: JOB, at: 10 } }] },
+    { id: "b", updatedAt: 2, messages: [{ role: "user", text: "q" }, { role: "ai", pending: { id: `${JOB}x`, at: 20 } }] },
+    { id: "c", updatedAt: 3, messages: [{ role: "user", text: "q" }, { role: "ai", result: answer("done") }] },
+  ]);
+  assert.deepEqual(
+    pendingAnswers(chats).map((p) => p.chatId),
+    ["b", "a"],
+  );
 });

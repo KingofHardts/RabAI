@@ -1,5 +1,6 @@
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import type { Passage } from "../library/types";
+import type { QuestionPicture } from "../pictures";
 import { codeOf } from "../library/link-order";
 import { parseRef, sectionOf, type TestingStore } from "../library/testing";
 import {
@@ -141,6 +142,12 @@ Then say what kind of question it is, and whether RabAI should also look online:
   ask what the sources say about a topic ("what are the sources for lighting candles?"). A
   library question needs no refs or phrases, unless they also ask what a book says.
 
+When the person sends pictures, read them first. A picture of a page from a sefer (a daf of
+Gemara, a page of Chumash, a siddur, a Mishnah Berurah) shows where to look: name that place in
+the library, and the phrases printed on it. A picture of a label, a sign or a letter tells you
+what the question is about; plan for that question. If you can't tell what a picture shows, plan
+from the words of the question alone.
+
 Reply with JSON only, in this form:
 {"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false}
 At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases, ${LOOKUP_LIMITS.english} English phrases and ${LOOKUP_LIMITS.queries} queries.
@@ -151,13 +158,28 @@ of refs and phrases; it may still need an everyday lookup online.
 The books in the library:
 `;
 
-export function lookupRequest(question: string, catalog: string, model = lookupModel()): MessageCreateParamsNonStreaming {
+export function lookupRequest(
+  question: string,
+  catalog: string,
+  model = lookupModel(),
+  pictures: QuestionPicture[] = [],
+): MessageCreateParamsNonStreaming {
   return {
     model,
     max_tokens: 800,
     output_config: { effort: "low" },
     system: [{ type: "text", text: LOOKUP_INSTRUCTIONS + catalog, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: question }],
+    messages: [
+      {
+        role: "user",
+        content: pictures.length
+          ? [
+              ...pictures.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } })),
+              { type: "text" as const, text: question },
+            ]
+          : question,
+      },
+    ],
   };
 }
 
@@ -243,11 +265,16 @@ export function asksAboutLibrary(question: string): boolean {
   ).test(t);
 }
 
-export async function planLookups(question: string, store: TestingStore, client: LookupClient | null): Promise<LookupPlan> {
+export async function planLookups(
+  question: string,
+  store: TestingStore,
+  client: LookupClient | null,
+  pictures: QuestionPicture[] = [],
+): Promise<LookupPlan> {
   if (!client || !question.trim()) return fallbackPlan(question);
   try {
     const catalog = await store.catalog();
-    const reply = await client.create(lookupRequest(question, catalog));
+    const reply = await client.create(lookupRequest(question, catalog, lookupModel(), pictures));
     const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
     // An empty plan is a choice: small talk or a practical task needs no sources, and searching
     // anyway only slows the answer and hands the model passages that don't help.
@@ -284,6 +311,8 @@ export interface Retrieved {
 
 export interface RetrieveOptions {
   focusRef?: string;
+  /** Pictures the person sent with the question: the planner reads them too. */
+  pictures?: QuestionPicture[];
   extraPhrases?: string[];
   /** The client for an online lookup; without one, nothing is looked up online. */
   research?: ResearchClient | null;
@@ -300,7 +329,7 @@ export async function retrieveFromTesting(
   client: LookupClient | null,
   opts: RetrieveOptions = {},
 ): Promise<Retrieved> {
-  const plan = await planLookups(question, store, client);
+  const plan = await planLookups(question, store, client, opts.pictures ?? []);
   const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
 

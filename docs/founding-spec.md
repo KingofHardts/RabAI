@@ -316,6 +316,29 @@ wording.
     it: at most three searches and two pages read per question. The private app has them on;
     `RABAI_ONLINE=torah` keeps them to the trusted sites, and a public app looks nothing up until
     the board approves the list (open question 17).
+- **Pictures with a question.** **Decided (Josh, 2026-10-16):** a person can attach pictures to
+  a question (a photo of a page of a sefer, a screenshot, a note) and RabAI reads them. How it
+  works:
+  - Up to four pictures go with a question. The app shrinks each one on the person's device
+    before sending it, and the server checks that each really is a picture (JPEG, PNG, WebP or
+    GIF).
+  - RabAI reads them with the question, and its quick planning step reads them too, so it can
+    open the texts a picture shows. A picture is never a source and never cited: when it shows a
+    text the library has, the answer rests on the library's text (core premises, "Pictures the
+    person sends", for the board).
+  - A picture is sent again with the next few questions in the same chat, so RabAI can still see
+    it, for as long as the page stays open.
+  - The server never keeps a picture. The person's device keeps a small preview with the saved
+    chat; the person's account, when they are signed in, keeps only how many pictures a question
+    had.
+- **Answers that wait for you.** **Decided (Josh, 2026-10-16):** leaving the page, reloading it,
+  or losing the connection never loses an answer. A question is saved on the device the moment it
+  is asked, with a place kept for its answer. The server keeps writing the answer after the page
+  goes away, and keeps its progress and the finished answer (never the question or the pictures)
+  in the people database under a random number only the asking device knows. When the person
+  comes back, the app picks up the answer, finished or still being written, and puts it in its
+  place; the copy on the server is then deleted, and anything left is deleted after a day. Stop
+  stops an answer and keeps nothing of it.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
@@ -449,3 +472,8 @@ These need a decision before launch. Each one changes behavior.
     Does the section "The kind of teacher you are" in the core premises capture that manner, and
     is it right for RabAI? Should the Rav's name appear anywhere outside the reviewers' notes? We
     suggest not, unless the Rav or the Jerusalem Kollel is asked and agrees.
+19. **Pictures the person sends.** People can now send pictures with a question (see "Pictures
+    with a question"). Does the core premises' section "Pictures the person sends" set the right
+    limits? In particular: how should RabAI speak about a photo of a kosher symbol or a label
+    (the draft says it names the symbol and sends the person to the agency or their rav, and
+    never says a product is kosher), and should a public app accept pictures at all?

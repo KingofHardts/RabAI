@@ -154,6 +154,19 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
   What the microphone hears goes into the text box and is never sent without the person
   pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied box.
+- Pictures with a question (`web/lib/pictures.ts`, founding spec "Pictures with a question"): at
+  most four, made smaller on the device, and checked by their own bytes on the server (never by
+  the kind they claim). The server never keeps a picture: not in the answer store, not in an
+  account (which keeps only how many there were), never in a log. A picture is never a source,
+  and RabAI never identifies people in one (core premises, "Pictures the person sends").
+- Answers that wait for you (`web/lib/answer-jobs.ts`, `/api/ask/job`, founding spec "Answers
+  that wait for you"): `/api/ask` keeps writing an answer after the page leaves (`after()`), and
+  keeps only its progress and the checked answer, under a hash of a random id the asking device
+  chose. Never the question, a picture, or anything about the person. It is deleted when the page
+  has the answer, or after a day. A stopped answer keeps nothing. The page saves the question with
+  a placeholder the moment it is asked, and an answer picked up later is the checked answer
+  exactly as kept (the same rule as restoring a saved chat). The id stays on the device: never put
+  it in an account copy of a chat (`chatForAccount` strips it).
 - Accounts (`web/lib/account/`, people database `rabai-people`) carry a person's profile and
   chats between devices; setup is in `web/README.md`, "Accounts". Never store an email address
   (only `emailCheck`), a sign-in link or a session token (only their hashes). Never change
@@ -236,7 +249,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-14)
+## Where things stand (2026-10-16)
 
 Moving RabAI off Senior Stylist:
 - The maintainer is creating a RabAI cloud environment (Custom network access with the default
@@ -252,6 +265,17 @@ Moving RabAI off Senior Stylist:
 - Vercel: the Vercel connector holds one account (Senior Stylist's), so RabAI uses a personal
   Vercel token stored on the RabAI environment as an API credential for `api.vercel.com`.
   Sessions call the Vercel API with `curl` and never see the token.
+
+Done 2026-10-16, at Josh's request:
+- Pictures with a question: RabAI reads up to four (photo, paste, or drag), and the planning step
+  reads them too. The core premises' "Pictures the person sends" and open question 19 are for the
+  board.
+- Answers that wait for you: leaving, reloading or closing the page no longer loses an answer.
+  The server keeps writing it and the app picks it up when it comes back. Stop stops it on the
+  server too and puts the question back in the box.
+- A pass over how the chat feels, written up with its sources in `docs/ui-feel.md`: the question
+  stays at the top while the answer is written, Copy and Try again, a "you can leave" note, chats
+  that show "Answering" and "New answer", a New chat button on phones, and tidier bars.
 
 Done 2026-10-13, at Josh's request:
 - The library expanded: 67 more works in the canon as proposed, 13 more entries in

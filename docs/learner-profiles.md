@@ -58,7 +58,10 @@ switch to turn it off), and "Was this helpful?" now.
 - **The people database**, `rabai-people` on Turso, its own database beside the testing library
   (`web/lib/account/people.ts`). It holds no email address (only a keyed check of it), no token
   (only hashes), each person's profile and saved chats, and feedback that is never linked to a
-  person.
+  person. It also holds answers still being written (`answer_jobs`, 2026-10-16), so a person who
+  leaves the page gets the answer when they come back: only the progress and the checked answer,
+  under a hash of an id only the asking device has, deleted once the page has it or after a day.
+  Never the question, a picture, or anything about the person.
 - **First sign-in on a device:** what the device learned before is added to the account once;
   after that each change goes to the account and to the person's other devices. For chats, the
   copy changed last wins, and a deletion reaches every device. Forgetting, and turning

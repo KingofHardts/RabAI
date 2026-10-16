@@ -13,7 +13,22 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   anything else) and learning texts. The text panel appears only once a source is opened.
 - **Ask.** RabAI answers from the passages it finds in the library, and every passage it relies
   on becomes a button. Answers are short and plain; "Tell me more" asks for a fuller one, and
-  "Say it more simply" for a simpler one. The answer appears as it is written.
+  "Say it more simply" for a simpler one. The answer appears as it is written, with the question
+  held at the top of the screen; nothing moves while it is written. Ask turns into Stop, which
+  puts the question back in the box. Every answer has Copy, and an answer that failed has Try
+  again.
+- **Answers that wait for you.** Leaving the page, reloading it or closing it doesn't lose an
+  answer: the server keeps writing it, and the app picks it up when it comes back ("Answered
+  while you were away"). The list of chats shows which are still answering and which have a new
+  answer. The server keeps only the answer's progress and the checked answer, under a hash of a
+  random id the asking device chose, and deletes it once the page has it, or after a day
+  (`lib/answer-jobs.ts`, `/api/ask/job`).
+- **Pictures.** Up to four pictures with a question: the picture button, paste, or drag one in.
+  Each is made smaller on the device (sharp enough for small print), checked by its own bytes on
+  the server, and read with the question by RabAI and by its planning step. It is sent again with
+  the next few questions while the page is open. The server never keeps a picture; the chat
+  keeps a small preview on the device, and an account keeps only the number of pictures
+  (`lib/pictures.ts`).
 - **Talk.** The microphone button types what you say into the box (the browser's own speech
   recognition); you read it and press Ask. A question asked out loud gets its answer read
   aloud, and every answer has a Listen button (the browser's own voices). Nothing is recorded
@@ -78,9 +93,9 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   printed page, but lines break where the screen breaks them. A link like `/?daf=Berakhot 2a`
   opens a page directly. (`/api/daf?ref=` and `/api/daf/outline`; the layout method is ported
   from the MIT-licensed daf-renderer, see `THIRD-PARTY-NOTICES.md`.)
-- **Your chats.** Every conversation is saved as it goes, on this device only (there are no
-  accounts yet). On a computer they are a column beside the conversation; on a phone the Chats
-  button lists them. They are grouped by category, with the person's own categories (Gemara,
+- **Your chats.** Every conversation is saved as it goes (the question as soon as it is asked), on
+  this device, and in the person's account when they are signed in. On a computer they are a
+  column beside the conversation; on a phone the chats button (a list) shows them. They are grouped by category, with the person's own categories (Gemara,
   Halacha, or anything they name), each in its own color. Open one to pick it up, rename it,
   move it, or delete it (one at a time or all at once); the open chat's name and a ⋯ menu for the
   same sit at the top of the conversation. A saved answer is the same checked answer the person
@@ -143,8 +158,11 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
 
 Model settings: Claude Opus 5.5, adaptive thinking, effort `medium` for everyday answers and
 `high` when the person taps "Tell me more". The answer streams to the screen as it is written
-(`/api/ask` with `"stream": true` sends one JSON object per line: `status`, `text`, then
-`done` with the checked answer); citations appear only after the check. When the lookup step
+(`/api/ask` with `"stream": true` sends one JSON object per line: `status`, `text`, `wait` every
+15 seconds while it is quiet, then `done` with the checked answer, or `stopped`); citations appear
+only after the check. With a `job` id, the answer is kept while it is written, and
+`/api/ask/job?id=` returns its progress and, when done, the checked answer (POST
+`{"id", "action": "stop"}` stops it, DELETE removes it). When the lookup step
 decides a message needs no sources (small talk, a practical task), nothing is searched. **Server-side fallback is
 on** (`fallbacks: "default"`): if the model declines a request, Anthropic re-runs it on its
 recommended fallback model inside the same call. If the whole chain declines, the person sees a
@@ -355,6 +373,10 @@ What the people database (`rabai-people`, on Turso) keeps, and what it never kee
 - "Was this helpful?" feedback: the question, the answer, the sources it cited and the reason
   given. It is never linked to a person or a profile. It changes nothing by itself: the
   maintainer and the board read it and decide (docs/learner-profiles.md, phase 3).
+- Answers still being written (`answer_jobs`): the progress notes, the answer's text and the
+  checked answer, under a hash of an id only the asking device has. Never the question, a
+  picture, or anything about the person. Removed when the page has the answer, or after a day.
+  (Without the people database, these live in the server's memory instead.)
 
 Setting it up once:
 

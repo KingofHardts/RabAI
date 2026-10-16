@@ -18,13 +18,18 @@ import {
   groupByCategory,
   parseChats,
   parseRecent,
+  pendingAnswers,
   RECENT_KEY,
   serializeChats,
   upsertChat,
   whenLabel,
+  type PendingAnswer,
   type RecentReading,
   type SavedChat,
+  type SavedMessage,
+  type SavedPicture,
 } from "@/lib/saved-chats";
+import { PICTURE_LIMITS, questionForPictures, type QuestionPicture } from "@/lib/pictures";
 import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
@@ -81,7 +86,67 @@ interface ChatMessage {
   result?: AskResult;
   /** The answer was written live, so it is already on screen: it doesn't slide in again. */
   streamed?: boolean;
+  /** On a question: previews of the pictures sent with it. */
+  pictures?: SavedPicture[];
+  /** On a question whose previews stayed on another device. */
+  pictureCount?: number;
+  /** On an answer still being written (lib/answer-jobs.ts). */
+  pending?: PendingAnswer;
+  /** The answer was finished while the person was away from the page. */
+  away?: boolean;
 }
+
+/** A picture in the box, ready to send: what RabAI reads, and the preview the chat keeps. */
+interface Attached {
+  key: string;
+  full: QuestionPicture;
+  preview: SavedPicture;
+  /** The picture as chosen, while it is in the box, to make it smaller if several don't fit together. */
+  file?: File;
+}
+
+/** An answer being written, as far as this page knows it. */
+interface LiveJob {
+  steps: string[];
+  text: string;
+  /** Picked up again after the person left the page and came back. */
+  resumed?: boolean;
+}
+
+/** What a chat keeps of a message (the rest is for this screen only). */
+function toSaved(m: ChatMessage): SavedMessage {
+  if (m.role === "ai") return m.result ? { role: "ai", result: m.result } : { role: "ai", pending: m.pending };
+  return { role: "user", text: m.text ?? "", ...(m.pictures?.length ? { pictures: m.pictures } : m.pictureCount ? { pictureCount: m.pictureCount } : {}) };
+}
+
+/** A short signature of a chat's messages, to tell whether anything was added or changed. */
+function chatSignature(ms: SavedMessage[]): string {
+  return ms
+    .map((m) =>
+      m.role === "user"
+        ? `u${(m.text ?? "").length}.${m.pictures?.length ?? m.pictureCount ?? 0}`
+        : m.pending
+          ? `p${m.pending.id}`
+          : `a${m.result?.status}.${m.result?.blocks.length}.${m.result?.blocks[0]?.text.length ?? 0}`,
+    )
+    .join("|");
+}
+
+/** A long random id for an answer, made on the device (lib/answer-jobs.ts). */
+function newAnswerId(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** How long a page keeps checking on an answer it left before calling it lost. */
+const ANSWER_GIVE_UP_MS = 8 * 60 * 1000;
+/** The chat open in this tab, so a reload comes back to it. */
+const OPEN_CHAT_KEY = "rabai_open_chat";
+/** Said when an answer couldn't be picked up again. */
+const LOST_NOTICE = "This answer didn't finish. Please try again.";
 
 interface ReaderCommentary extends Passage {
   author: string;
@@ -324,26 +389,26 @@ interface LiveHooks {
   onText?: (delta: string) => void;
 }
 
+/** A request RabAI refused before it began (too long, a picture it can't read, the app locked). */
+class AskRefused extends Error {}
+
 /**
- * Ask RabAI. The answer arrives live: progress notes, then the text as it is written, then the
- * checked answer with its sources.
+ * Read a live answer: progress notes, then the text as it is written, then the checked answer
+ * with its sources (or word that it was stopped). Returns what the stream ended with; null when
+ * it ended early, as when the connection dropped.
  */
-async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Promise<AskResult> {
-  const res = await fetch("/api/ask", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, stream: true }),
-  });
+async function readLive(res: Response, hooks: LiveHooks = {}): Promise<{ result: AskResult } | { stopped: true } | null> {
   if (!(res.headers.get("content-type") ?? "").includes("ndjson") || !res.body) {
     const json = (await res.json().catch(() => null)) as (AskResult & { error?: string }) | null;
+    if (res.status === 413) throw new AskRefused("Those pictures are too large together. Please send fewer, or smaller ones.");
     if (!json) throw new Error("RabAI didn't answer. Please try again.");
-    if (json.error && !json.status) throw new Error(json.error);
-    return json;
+    if (json.error && !json.status) throw new AskRefused(json.error);
+    return { result: json };
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let result: AskResult | null = null;
+  let end: { result: AskResult } | { stopped: true } | null = null;
   const handle = (line: string) => {
     if (!line.trim()) return;
     let event: { type?: string; text?: string; result?: AskResult };
@@ -354,7 +419,8 @@ async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Pr
     }
     if (event.type === "status" && event.text) hooks.onStatus?.(event.text);
     else if (event.type === "text" && event.text) hooks.onText?.(event.text);
-    else if (event.type === "done" && event.result) result = event.result;
+    else if (event.type === "done" && event.result) end = { result: event.result };
+    else if (event.type === "stopped") end = { stopped: true };
   };
   for (;;) {
     const { done, value } = await reader.read();
@@ -367,8 +433,107 @@ async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Pr
     }
   }
   handle(buffer + decoder.decode());
-  if (!result) throw new Error("The answer was cut off. Please try again.");
-  return result;
+  return end;
+}
+
+/**
+ * Ask RabAI about a line in the reader: a short answer, shown live, not kept if the page goes away.
+ */
+async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Promise<AskResult> {
+  const res = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, stream: true }),
+  });
+  const end = await readLive(res, hooks);
+  if (!end || !("result" in end)) throw new Error("The answer was cut off. Please try again.");
+  return end.result;
+}
+
+/**
+ * A picture the person chose, made ready to send: turned upright, at most 1568 pixels on its
+ * longest side (as much as RabAI reads), as a JPEG small enough to send, and a small preview for
+ * the chat. Pictures with transparent parts get a white background.
+ */
+async function preparePicture(file: File, targetChars = PICTURE_LIMITS.targetChars): Promise<{ full: QuestionPicture; preview: SavedPicture }> {
+  const source = await loadPicture(file);
+  const draw = (scale: number, quality: number) => {
+    const w = Math.max(1, Math.round(source.width * scale));
+    const h = Math.max(1, Math.round(source.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("This picture couldn't be prepared on this device.");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(source.image, 0, 0, w, h);
+    return { url: canvas.toDataURL("image/jpeg", quality), w, h };
+  };
+  const longest = Math.max(source.width, source.height);
+  // As large as RabAI can read it (small print needs it), and no larger.
+  let scale = Math.min(1, PICTURE_LIMITS.longSide / longest, Math.sqrt(PICTURE_LIMITS.maxPixels / (source.width * source.height)));
+  let quality = 0.86;
+  let full: ReturnType<typeof draw>;
+  let small: ReturnType<typeof draw>;
+  try {
+    full = draw(scale, quality);
+    // Within its share of the request: a little less quality first (text stays sharp), then smaller.
+    for (let i = 0; i < 10 && full.url.length > targetChars; i++) {
+      if (quality > 0.7) quality -= 0.08;
+      else scale *= 0.85;
+      full = draw(scale, quality);
+    }
+    small = draw(Math.min(1, PICTURE_LIMITS.previewSide / longest), 0.6);
+  } finally {
+    source.close();
+  }
+  return {
+    full: { mediaType: "image/jpeg", data: full.url.slice(full.url.indexOf(",") + 1) },
+    preview: { src: small.url, w: small.w, h: small.h },
+  };
+}
+
+/**
+ * The pictures in the box, fitted together into one request: when they are too large together,
+ * each is made a little smaller from the original the person chose.
+ */
+async function fitPictures(list: Attached[]): Promise<Attached[]> {
+  const budget = Math.floor(PICTURE_LIMITS.totalChars * 0.92);
+  const total = list.reduce((n, a) => n + a.full.data.length, 0);
+  if (total <= budget) return list;
+  const share = Math.floor(budget / list.length);
+  return Promise.all(
+    list.map(async (a) => {
+      if (a.full.data.length <= share || !a.file) return a;
+      const ready = await preparePicture(a.file, share);
+      return { ...a, full: ready.full };
+    }),
+  );
+}
+
+async function loadPicture(file: File): Promise<{ image: CanvasImageSource; width: number; height: number; close: () => void }> {
+  if (!file.type.startsWith("image/") && !/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(file.name)) {
+    throw new Error("That file isn't a picture. Please choose a photo or a screenshot.");
+  }
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return { image: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+  } catch {
+    // Some browsers read more kinds of pictures through an image element.
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+    await img.decode();
+    return { image: img, width: img.naturalWidth, height: img.naturalHeight, close: () => URL.revokeObjectURL(url) };
+  } catch {
+    URL.revokeObjectURL(url);
+    throw new Error("This picture can't be opened here. A screenshot of it, or a JPEG, will work.");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -585,6 +750,103 @@ function LiveText({ text }: { text: string }) {
   );
 }
 
+/** How long an answer has been on its way before the page says it's fine to leave. */
+const LEAVE_HINT_MS = 7000;
+
+/**
+ * An answer still being written: what RabAI is doing, then the words as they come. After a few
+ * seconds it says the person can leave; the answer will be here when they come back.
+ */
+function PendingView({ job, at }: { job?: LiveJob; at: number }) {
+  const [canLeave, setCanLeave] = useState(() => Date.now() - at > LEAVE_HINT_MS);
+  useEffect(() => {
+    if (canLeave) return;
+    const t = setTimeout(() => setCanLeave(true), Math.max(0, LEAVE_HINT_MS - (Date.now() - at)));
+    return () => clearTimeout(t);
+  }, [at, canLeave]);
+  return (
+    <>
+      {job?.text ? <LiveText text={job.text} /> : <WorkingSteps steps={job?.steps ?? []} />}
+      <div className="pending-foot">
+        {(canLeave || job?.resumed) && (
+          <p className="leave-hint">
+            {job?.resumed
+              ? "Still writing this answer. It will appear here when it's ready."
+              : "You can leave this page. The answer will be here when you come back."}
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** The pictures sent with a question, small, as the chat keeps them. */
+function SentPictures({ pictures, count, onOpen }: { pictures?: SavedPicture[]; count?: number; onOpen: (p: SavedPicture) => void }) {
+  if (pictures?.length)
+    return (
+      <div className={`sent-pics n${Math.min(pictures.length, 4)}`}>
+        {pictures.map((p, i) => (
+          <button key={i} type="button" className="sent-pic" aria-label={`Picture ${i + 1} you sent, larger`} onClick={() => onOpen(p)}>
+            {/* A data URL kept with the chat: next/image adds nothing here. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.src} alt="" width={p.w} height={p.h} />
+          </button>
+        ))}
+      </div>
+    );
+  if (count)
+    return (
+      <p className="sent-pics-note">
+        <PictureIcon /> {count === 1 ? "Sent with a picture" : `Sent with ${count} pictures`} (on another device)
+      </p>
+    );
+  return null;
+}
+
+/** Copy an answer's words, for a note or a message to a friend. */
+function CopyAnswer({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setDone(false), 2000);
+    return () => clearTimeout(t);
+  }, [done]);
+  if (typeof navigator === "undefined" || !navigator.clipboard) return null;
+  return (
+    <button
+      type="button"
+      className="btn quiet"
+      onClick={() =>
+        void navigator.clipboard
+          .writeText(text)
+          .then(() => setDone(true))
+          .catch(() => undefined)
+      }
+    >
+      <CopyIcon /> {done ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+function PictureIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m21 16-5-5-8 8" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+    </svg>
+  );
+}
+
 function MicIcon() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -597,8 +859,16 @@ function MicIcon() {
 function ChatsIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 5h16v10H9l-5 4z" />
-      <path d="M8 9h8M8 12h5" />
+      <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  );
+}
+
+function NewChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7" />
+      <path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z" />
     </svg>
   );
 }
@@ -634,9 +904,25 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [mode, setMode] = useState<Mode>("chat");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [pending, setPending] = useState(false);
-  /** The answer being written right now, shown live, with the steps RabAI has taken so far. */
-  const [live, setLive] = useState<{ steps: string[]; text: string } | null>(null);
+  /** This chat is waiting for an answer (another chat may be too; they don't block each other). */
+  const pending = messages.some((m) => !!m.pending);
+  /** Answers being written, by their id: the steps RabAI has taken and the text so far. */
+  const [liveJobs, setLiveJobs] = useState<Record<string, LiveJob>>({});
+  /** Pictures in the box, ready to send, and how many are still being prepared. */
+  const [attached, setAttached] = useState<Attached[]>([]);
+  const [preparing, setPreparing] = useState(0);
+  /** Several pictures are being fitted into one request, just before sending. */
+  const [fitting, setFitting] = useState(false);
+  /** A short note under the box: a picture that couldn't be added, or an answer stopped. */
+  const [composerNote, setComposerNote] = useState<string | null>(null);
+  /** Chats whose answer arrived while another chat was open. */
+  const [freshChats, setFreshChats] = useState<Set<string>>(() => new Set());
+  const pictureInputRef = useRef<HTMLInputElement>(null);
+  /** A sent picture shown large. */
+  const [pictureView, setPictureView] = useState<SavedPicture | null>(null);
+  /** A picture is being dragged over the chat. */
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [speechOk, setSpeechOk] = useState(false);
@@ -757,6 +1043,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const readerHeadRef = useRef<HTMLDivElement>(null);
   /** On a phone the reader's bar slides away while reading down, and comes back on the way up. */
   const [barHidden, setBarHidden] = useState(false);
+  /** Until when the reader is scrolling by itself (to a cited line), so the bar stays. */
+  const autoScrollUntil = useRef(0);
   const [headHeight, setHeadHeight] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
@@ -853,11 +1141,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const signedIn = account.state.status === "signed-in";
   const accountsOn = account.state.status !== "off" && account.state.status !== "loading";
 
-  // Save the conversation as it goes: after each answer, never mid-answer.
+  // Save the conversation as it goes: the question the moment it is asked (with a place kept for
+  // its answer, so leaving the page never loses it), and the answer when it comes.
   useEffect(() => {
-    if (pending || !chatId || !messages.length) return;
+    if (!chatId || !messages.length) return;
+    const saved = messages.map(toSaved);
     const existing = chatsRef.current.find((c) => c.id === chatId);
-    if (existing && existing.messages.length === messages.length) return;
+    if (existing && chatSignature(existing.messages) === chatSignature(saved)) return;
     const now = Date.now();
     saveChats(
       upsertChat(chatsRef.current, {
@@ -866,45 +1156,77 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         category: existing?.category ?? "",
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
-        messages: messages.map(({ role, text, result }) => ({ role, text, result })),
+        messages: saved,
       }),
     );
-  }, [messages, pending, chatId, saveChats]);
+  }, [messages, chatId, saveChats]);
+
+  /** The chat on screen, for answers that arrive later (they belong to the chat that asked). */
+  const chatIdRef = useRef<string | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  /** The chat this tab had open is read once, when the app opens (until then it isn't touched). */
+  const openChatRead = useRef(false);
+  useEffect(() => {
+    chatIdRef.current = chatId;
+    if (!openChatRead.current) return;
+    // A reload of this tab comes back to the chat that was open.
+    try {
+      if (chatId) window.sessionStorage.setItem(OPEN_CHAT_KEY, chatId);
+      else window.sessionStorage.removeItem(OPEN_CHAT_KEY);
+    } catch {
+      /* storage can be unavailable */
+    }
+  }, [chatId]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+  /** Where to bring the conversation after it changes: a question just asked, or a chat just opened. */
+  const scrollTarget = useRef<number | "top" | null>("top");
 
   const updateChat = (id: string, change: Partial<Pick<SavedChat, "title" | "category">>) =>
     saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change, changedAt: Date.now() } : c)));
 
-  const startNewChat = () => {
-    if (pending) return;
+  const showChat = (id: string | null, list: ChatMessage[]) => {
     dictation.cancel();
     stopSpeaking();
     setSpeaking(null);
-    setMessages([]);
-    setChatId(null);
+    chatIdRef.current = id;
+    setChatId(id);
+    setMessages(list);
     setInput("");
+    setAttached([]);
+    setComposerNote(null);
     setChatsOpen(false);
     setChatTools(null);
+    // A chat opens at its last question, so the person sees it and the start of its answer.
+    const lastQuestion = [...list].reverse().find((m) => m.role === "user");
+    scrollTarget.current = lastQuestion ? lastQuestion.id : "top";
+    if (id)
+      setFreshChats((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     chooseMode("chat");
   };
 
-  const openChat = (chat: SavedChat) => {
-    if (pending) return;
-    dictation.cancel();
-    stopSpeaking();
-    setSpeaking(null);
-    setMessages(chat.messages.map((m) => ({ id: nextId.current++, ...m })));
-    setChatId(chat.id);
-    setInput("");
-    setChatsOpen(false);
-    setChatTools(null);
-    chooseMode("chat");
-  };
+  const startNewChat = () => showChat(null, []);
+
+  const openChat = (chat: SavedChat) =>
+    showChat(
+      chat.id,
+      chat.messages.map((m) => ({ id: nextId.current++, ...m })),
+    );
 
   const deleteChat = (id: string) => {
+    // An answer still being written for this chat isn't needed any more.
+    for (const m of chatsRef.current.find((c) => c.id === id)?.messages ?? []) if (m.pending) cancelJob(m.pending.id);
     saveChats(chatsRef.current.filter((c) => c.id !== id));
     setConfirmDelete(null);
     setChatTools(null);
     if (id === chatId) {
+      chatIdRef.current = null;
       setMessages([]);
       setChatId(null);
     }
@@ -1128,26 +1450,84 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     return () => window.removeEventListener("keydown", onKey);
   }, [dafRef, dafPick, dafMenu, flowStep]);
 
-  /** The person has scrolled up from the newest message (a button brings them back). */
+  const tailRef = useRef<HTMLDivElement>(null);
+  /**
+   * The person has moved away from the newest part of the chat (a button brings them back): while
+   * an answer is written, its place is off the screen; otherwise the end of the chat is well below.
+   */
   const [awayFromLatest, setAwayFromLatest] = useState(false);
-  const onThreadScroll = useCallback(() => {
+  const measureAway = useCallback(() => {
     const el = scrollRef.current;
-    if (el) setAwayFromLatest(el.scrollHeight - el.scrollTop - el.clientHeight > 240);
+    const tail = tailRef.current;
+    if (!el || !tail) return;
+    const view = el.getBoundingClientRect();
+    const live = el.querySelector<HTMLElement>(".msg-ai.live");
+    let away: boolean;
+    if (live) {
+      const r = live.getBoundingClientRect();
+      away = r.bottom < view.top + 40 || r.top > view.bottom - 40;
+    } else away = tail.getBoundingClientRect().top - view.bottom > 240;
+    setAwayFromLatest((prev) => (prev === away ? prev : away));
   }, []);
+  const onThreadScroll = measureAway;
   const toLatest = useCallback(() => {
     const el = scrollRef.current;
+    const tail = tailRef.current;
     if (!el) return;
     const still = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo({ top: el.scrollHeight, behavior: still ? "auto" : "smooth" });
+    const view = el.getBoundingClientRect();
+    const questions = el.querySelectorAll<HTMLElement>("[data-msg-user]");
+    const last = questions[questions.length - 1];
+    let top: number;
+    // While an answer is written, its question goes back to the top, as when it was asked.
+    if (el.querySelector(".msg-ai.live") && last) top = el.scrollTop + last.getBoundingClientRect().top - view.top - 12;
+    else if (tail) top = el.scrollTop + tail.getBoundingClientRect().top - view.bottom + 24;
+    else top = el.scrollHeight;
+    el.scrollTo({ top: Math.max(0, top), behavior: still ? "auto" : "smooth" });
   }, []);
 
-  // Follow the conversation as it grows, unless the person has scrolled up to read.
-  useEffect(() => {
+  /**
+   * Room below the last question, so it can sit at the top of the screen with its answer growing
+   * underneath, as in a book: the person reads from the start of the answer, and the screen never
+   * moves under them while it is written.
+   */
+  const [tailRoom, setTailRoom] = useState(0);
+  useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
-    if (nearBottom || !live) el.scrollTo({ top: el.scrollHeight, behavior: live ? "auto" : "smooth" });
-  }, [messages, pending, live]);
+    const tail = tailRef.current;
+    if (!el || !tail || mode !== "chat") return;
+    const questions = el.querySelectorAll<HTMLElement>("[data-msg-user]");
+    const last = questions[questions.length - 1];
+    if (!last) {
+      if (tailRoom) setTailRoom(0);
+      return;
+    }
+    const top = last.getBoundingClientRect().top;
+    const end = tail.getBoundingClientRect().top;
+    const room = Math.max(0, Math.round(el.clientHeight - (end - top) - 24));
+    if (Math.abs(room - tailRoom) > 2) setTailRoom(room);
+    measureAway();
+  });
+
+  // Bring the conversation where it should be: a question just asked to the top, a chat just
+  // opened at its last question, a new chat at the top. Nothing moves while an answer is written.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const want = scrollTarget.current;
+    if (!el || want === null || mode !== "chat") return;
+    if (want === "top") {
+      scrollTarget.current = null;
+      el.scrollTo({ top: 0 });
+      return;
+    }
+    const node = el.querySelector<HTMLElement>(`[data-msg="${want}"]`);
+    if (!node) return;
+    scrollTarget.current = null;
+    const top = node.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 12;
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // After the room below is made (the effect above), so the question can reach the top.
+    requestAnimationFrame(() => el.scrollTo({ top: Math.max(0, top), behavior: still ? "auto" : "smooth" }));
+  }, [messages, mode, chatsOpen, tailRoom]);
 
   // ---- reading aloud ----
   const speakingRef = useRef<string | null>(null);
@@ -1171,74 +1551,447 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     [setSpeaking],
   );
 
-  // ---- asking ----
+  // ---- asking (answers keep being written when the page goes away: lib/answer-jobs.ts) ----
+  const controllers = useRef(new Map<string, AbortController>());
+  const watchers = useRef(new Map<string, ReturnType<typeof setTimeout> | null>());
+  const settledJobs = useRef(new Set<string>());
+  const spokenJobs = useRef(new Set<string>());
+  /** The pictures sent during this visit, by their preview: sent again with follow-up questions. */
+  const sentPictures = useRef(new Map<string, QuestionPicture>());
+
+  const dropLive = (jobId: string) =>
+    setLiveJobs((prev) => {
+      if (!(jobId in prev)) return prev;
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+
+  const stopWatching = (jobId: string) => {
+    const t = watchers.current.get(jobId);
+    if (t) clearTimeout(t);
+    watchers.current.delete(jobId);
+  };
+
+  /** Put something in place of a chat's placeholder for an answer (or remove it, with null). */
+  const settleInChat = useCallback(
+    (chat: string, jobId: string, make: (m: ChatMessage) => ChatMessage | null) => {
+      if (chatIdRef.current === chat) {
+        setMessages((prev) => prev.flatMap((m) => (m.pending?.id === jobId ? (make(m) ?? []) : [m])));
+        return;
+      }
+      const saved = chatsRef.current.find((c) => c.id === chat);
+      if (!saved || !saved.messages.some((m) => m.pending?.id === jobId)) return;
+      const messages = saved.messages.flatMap((m) => {
+        if (m.pending?.id !== jobId) return [m];
+        const made = make({ id: 0, role: "ai", pending: m.pending });
+        return made ? [toSaved(made)] : [];
+      });
+      saveChats(upsertChat(chatsRef.current, { ...saved, updatedAt: Date.now(), messages }));
+    },
+    [saveChats],
+  );
+
+  const errorResult = useCallback(
+    (notice: string): AskResult => ({ status: "error", blocks: [], sources: [], retrieved: [], safety: null, libraryMode, droppedCitations: 0, notice }),
+    [libraryMode],
+  );
+
+  /** An answer arrived: it takes its place in the chat that asked for it, open or not. */
+  const finishJob = useCallback(
+    (jobId: string, chat: string, result: AskResult, how: { streamed?: boolean; away?: boolean } = {}) => {
+      if (settledJobs.current.has(jobId)) return;
+      settledJobs.current.add(jobId);
+      stopWatching(jobId);
+      controllers.current.delete(jobId);
+      dropLive(jobId);
+      const open = chatIdRef.current === chat;
+      const placeholder = open ? messagesRef.current.find((m) => m.pending?.id === jobId) : undefined;
+      settleInChat(chat, jobId, (m) => ({
+        id: m.id,
+        role: "ai",
+        result,
+        ...(how.streamed && result.blocks.length ? { streamed: true } : {}),
+        ...(how.away ? { away: true } : {}),
+      }));
+      if (!open) setFreshChats((prev) => new Set(prev).add(chat));
+      // The page has it now: nothing more is kept on the server.
+      void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
+      // A question asked out loud gets its answer read aloud.
+      if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) listen(`m${placeholder.id}`, plainAnswer(result));
+      if (document.hidden) document.title = "Answered · RabAI";
+    },
+    [settleInChat, listen],
+  );
+
+  const failJob = useCallback(
+    (jobId: string, chat: string, notice: string) => {
+      if (settledJobs.current.has(jobId)) return;
+      settledJobs.current.add(jobId);
+      stopWatching(jobId);
+      controllers.current.delete(jobId);
+      dropLive(jobId);
+      spokenJobs.current.delete(jobId);
+      settleInChat(chat, jobId, (m) => ({ id: m.id, role: "ai", result: errorResult(notice) }));
+    },
+    [settleInChat, errorResult],
+  );
+
+  /** Put a question back in the box, with its pictures, to change or ask again. */
+  const restoreToBox = (q: ChatMessage) => {
+    setInput(q.text ?? "");
+    const pics = (q.pictures ?? []).flatMap((p, i) => {
+      const full = sentPictures.current.get(p.src);
+      return full ? [{ key: `r${Date.now()}${i}`, full, preview: p }] : [];
+    });
+    setAttached(pics);
+  };
+
+  /** Take a question and its unanswered placeholder out of the open chat. */
+  const takeBack = (jobId: string): ChatMessage | null => {
+    const list = messagesRef.current;
+    const i = list.findIndex((m) => m.pending?.id === jobId);
+    if (i < 0) return null;
+    const q = i > 0 && list[i - 1].role === "user" ? list[i - 1] : null;
+    const rest = list.filter((_, k) => k !== i && !(q && k === i - 1));
+    setMessages(rest);
+    const chat = chatIdRef.current;
+    if (!rest.length && chat) {
+      saveChats(chatsRef.current.filter((c) => c.id !== chat));
+      chatIdRef.current = null;
+      setChatId(null);
+    }
+    return q;
+  };
+
+  /** RabAI turned the request down before starting (too long, a picture it can't read). */
+  const refuseJob = useCallback(
+    (jobId: string, chat: string, message: string) => {
+      if (chatIdRef.current !== chat) return failJob(jobId, chat, message);
+      settledJobs.current.add(jobId);
+      stopWatching(jobId);
+      dropLive(jobId);
+      spokenJobs.current.delete(jobId);
+      const q = takeBack(jobId);
+      if (q) restoreToBox(q);
+      setComposerNote(message);
+    },
+    // takeBack and restoreToBox read refs and setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [failJob],
+  );
+
+  /** Stop writing an answer that is no longer wanted. Nothing of it is kept. */
+  const cancelJob = (jobId: string) => {
+    settledJobs.current.add(jobId);
+    stopWatching(jobId);
+    controllers.current.get(jobId)?.abort();
+    controllers.current.delete(jobId);
+    spokenJobs.current.delete(jobId);
+    dropLive(jobId);
+    void fetch("/api/ask/job", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: jobId, action: "stop" }) })
+      .catch(() => undefined)
+      .finally(() => void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined));
+  };
+
+  /** Another tab of this app may have finished an answer: take the chat as it saved it. */
+  const settledInStorage = (chat: string, jobId: string): boolean => {
+    try {
+      const stored = parseChats(JSON.parse(window.localStorage.getItem(CHATS_KEY) ?? "[]")).find((c) => c.id === chat);
+      if (!stored || stored.messages.some((m) => m.pending?.id === jobId)) return false;
+      settledJobs.current.add(jobId);
+      stopWatching(jobId);
+      dropLive(jobId);
+      setChatsLocal(chatsRef.current.some((c) => c.id === chat) ? chatsRef.current.map((c) => (c.id === chat ? stored : c)) : [stored, ...chatsRef.current]);
+      if (chatIdRef.current === chat) setMessages(stored.messages.map((m) => ({ id: nextId.current++, ...m })));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /**
+   * Check on an answer the page isn't hearing live any more (the page was reloaded or closed, or
+   * the connection dropped): its progress shows while it is written, and it takes its place when
+   * it is done.
+   */
+  const watchJob = useCallback(
+    (jobId: string, chat: string, at: number) => {
+      if (watchers.current.has(jobId) || settledJobs.current.has(jobId)) return;
+      watchers.current.set(jobId, null);
+      let misses = 0;
+      const again = (ms: number) => {
+        if (watchers.current.has(jobId)) watchers.current.set(jobId, setTimeout(tick, ms));
+      };
+      const tick = async () => {
+        if (!watchers.current.has(jobId) || settledJobs.current.has(jobId)) return;
+        let res: Response;
+        try {
+          res = await fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+        } catch {
+          return again(document.hidden ? 15_000 : 4000); // offline for now
+        }
+        if (res.status === 404) {
+          if (settledInStorage(chat, jobId)) return;
+          // Just asked, and not written down yet; or lost.
+          if (++misses < 4 && Date.now() - at < 60_000) return again(2000);
+          return failJob(jobId, chat, LOST_NOTICE);
+        }
+        if (!res.ok) return again(5000);
+        const v = (await res.json().catch(() => null)) as { status?: string; steps?: string[]; text?: string; result?: AskResult } | null;
+        if (!v) return again(5000);
+        if (v.status === "running") {
+          if (Date.now() - at > ANSWER_GIVE_UP_MS) return failJob(jobId, chat, LOST_NOTICE);
+          setLiveJobs((prev) => ({ ...prev, [jobId]: { steps: v.steps ?? [], text: v.text ?? "", resumed: true } }));
+          return again(document.hidden ? 6000 : 1200);
+        }
+        if (v.status === "done" && v.result) return finishJob(jobId, chat, v.result, { away: true });
+        if (v.status === "stopped") return failJob(jobId, chat, "This answer was stopped. You can ask again.");
+        return failJob(jobId, chat, LOST_NOTICE);
+      };
+      void tick();
+    },
+    // settledInStorage reads refs and setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [failJob, finishJob],
+  );
+
+  /** Ask for an answer and hear it live; if the connection drops, keep checking on it. */
+  const streamJob = useCallback(
+    async (jobId: string, chat: string, at: number, body: Record<string, unknown>) => {
+      const ctrl = new AbortController();
+      controllers.current.set(jobId, ctrl);
+      setLiveJobs((prev) => ({ ...prev, [jobId]: { steps: [], text: "" } }));
+      let streamed = false;
+      const update = (change: (j: LiveJob) => LiveJob) =>
+        setLiveJobs((prev) => (prev[jobId] && !settledJobs.current.has(jobId) ? { ...prev, [jobId]: change(prev[jobId]) } : prev));
+      try {
+        const res = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, stream: true, job: jobId }),
+          signal: ctrl.signal,
+        });
+        const end = await readLive(res, {
+          onStatus: (text) => update((j) => (j.steps[j.steps.length - 1] === text ? j : { ...j, steps: [...j.steps, text] })),
+          onText: (delta) => {
+            streamed = true;
+            update((j) => ({ ...j, text: j.text + delta }));
+          },
+        });
+        if (end && "result" in end) finishJob(jobId, chat, end.result, { streamed });
+        else if (!end && !ctrl.signal.aborted) watchJob(jobId, chat, at); // cut off: the answer goes on
+      } catch (err) {
+        if (ctrl.signal.aborted) return;
+        if (err instanceof AskRefused) return refuseJob(jobId, chat, err.message);
+        watchJob(jobId, chat, at);
+      } finally {
+        controllers.current.delete(jobId);
+      }
+    },
+    [finishJob, watchJob, refuseJob],
+  );
+
+  // When the app opens: pick up the answers that were still being written when it was last open.
+  // A reload of this tab returns to the chat it had open; otherwise a chat waiting for an answer
+  // opens by itself, so the person sees it arrive.
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current) return;
+    resumed.current = true;
+    const waiting = pendingAnswers(chatsRef.current);
+    for (const w of waiting) watchJob(w.pending.id, w.chatId, w.pending.at);
+    let reopen: string | null = null;
+    try {
+      reopen = window.sessionStorage.getItem(OPEN_CHAT_KEY);
+    } catch {
+      /* storage can be unavailable */
+    }
+    openChatRead.current = true;
+    const chat =
+      chatsRef.current.find((c) => c.id === reopen) ??
+      (waiting.length && Date.now() - waiting[0].pending.at < ANSWER_GIVE_UP_MS ? chatsRef.current.find((c) => c.id === waiting[0].chatId) : undefined);
+    if (chat) openChat(chat);
+    // Runs once, after the saved chats are read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chats]);
+
+  // Coming back to the page: answers whose connection may have been dropped while it was away are
+  // checked on (a phone often cuts a hidden page's connections), and the title is itself again.
+  useEffect(() => {
+    const onShow = () => {
+      if (document.hidden) return;
+      if (document.title !== "RabAI") document.title = "RabAI";
+      for (const m of messagesRef.current) if (m.pending && !watchers.current.has(m.pending.id)) watchJob(m.pending.id, chatIdRef.current ?? "", m.pending.at);
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, [watchJob]);
+
+  /**
+   * Ask a question. It is saved with its chat at once, with a place kept for the answer, which is
+   * written whether or not the page stays open.
+   *
+   * @param opts.pictures Pictures from the box, sent with the question.
+   * @param opts.fresh Start a new chat for it.
+   * @param opts.base The conversation to ask in, when not the one on screen (Try again).
+   */
   const send = useCallback(
-    async (question: string, opts: { deep?: boolean; spoken?: boolean } = {}) => {
+    (question: string, opts: { deep?: boolean; spoken?: boolean; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {}): boolean => {
       const q = question.trim();
-      if (!q || pending) return;
+      const pics = opts.pictures ?? [];
+      if (!q && !pics.length) return false;
+      const base = opts.fresh ? [] : (opts.base ?? messages);
+      if (base.some((m) => m.pending)) return false; // this chat is still waiting for its answer
       dictation.cancel();
       stopSpeaking();
       setSpeaking(null);
-      const history = messages
-        .map((m) => ({ role: m.role === "user" ? "user" : "assistant", text: m.role === "user" ? (m.text ?? "") : plainAnswer(m.result) }))
-        .filter((t) => t.text.trim());
-      setMessages((prev) => [...prev, { id: nextId.current++, role: "user", text: q }]);
-      if (!chatId) setChatId(`c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
+      setComposerNote(null);
+
+      // Earlier turns, with the most recent pictures sent again while this visit still has them.
+      let room = PICTURE_LIMITS.inHistory;
+      let size = pics.reduce((n, p) => n + p.full.data.length, 0);
+      const history: Array<{ role: "user" | "assistant"; text: string; pictures?: QuestionPicture[] }> = [];
+      const earlier = base.filter((m) => !m.pending).slice(-12);
+      for (let i = earlier.length - 1; i >= 0; i--) {
+        const m = earlier[i];
+        if (m.role === "ai") {
+          const t = plainAnswer(m.result);
+          if (t.trim()) history.unshift({ role: "assistant", text: t });
+          continue;
+        }
+        const count = m.pictures?.length ?? m.pictureCount ?? 0;
+        let text = m.text?.trim() || (count ? questionForPictures(count) : "");
+        const pictures: QuestionPicture[] = [];
+        for (const p of m.pictures ?? []) {
+          const full = sentPictures.current.get(p.src);
+          if (!full || room <= 0 || size + full.data.length > PICTURE_LIMITS.totalChars * 0.95) continue;
+          pictures.push(full);
+          room--;
+          size += full.data.length;
+        }
+        if (count > pictures.length) {
+          text += `\n\n(${count === 1 ? "A picture was" : `${count} pictures were`} sent with this question${pictures.length ? "" : `; ${count === 1 ? "it isn't" : "they aren't"} available any more`}.)`;
+        }
+        if (text.trim() || pictures.length) history.unshift({ role: "user", text, ...(pictures.length ? { pictures } : {}) });
+      }
+
+      const jobId = newAnswerId();
+      const at = Date.now();
+      const chat = (!opts.fresh && chatIdRef.current) || `c${at.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      for (const p of pics) sentPictures.current.set(p.preview.src, p.full);
+      const asked: ChatMessage = { id: nextId.current++, role: "user", text: q, ...(pics.length ? { pictures: pics.map((p) => p.preview) } : {}) };
+      const placeholder: ChatMessage = { id: nextId.current++, role: "ai", pending: { id: jobId, at } };
+      chatIdRef.current = chat;
+      setChatId(chat);
+      setMessages([...base, asked, placeholder]);
+      scrollTarget.current = asked.id;
       setChatsOpen(false);
       setInput("");
+      if (opts.pictures) setAttached([]);
       spokenInput.current = false;
       setMode("chat");
-      setPending(true);
       notice({ kind: "question" });
-      setLive({ steps: [], text: "" });
-      let streamed = false;
-      try {
-        const result = await postAsk(
-          { question: q, history, growth, deep: opts.deep === true, profile: profileRef.current.remember ? profileRef.current : undefined },
-          {
-            onStatus: (text) => setLive((l) => (l && l.steps[l.steps.length - 1] !== text ? { ...l, steps: [...l.steps, text] } : l)),
-            onText: (delta) => {
-              streamed = true;
-              setLive((l) => (l ? { ...l, text: l.text + delta } : l));
-            },
-          },
-        );
-        const id = nextId.current++;
-        setMessages((prev) => [...prev, { id, role: "ai", result, ...(streamed && result.blocks.length ? { streamed: true } : {}) }]);
-        // A question asked out loud gets its answer read aloud.
-        if (opts.spoken && result.status === "answered" && canSpeak()) listen(`m${id}`, plainAnswer(result));
-      } catch (err) {
-        const notice = err instanceof Error ? err.message : "Something went wrong. Please try again.";
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextId.current++,
-            role: "ai",
-            result: { status: "error", blocks: [], sources: [], retrieved: [], safety: null, libraryMode, droppedCitations: 0, notice },
-          },
-        ]);
-      } finally {
-        setPending(false);
-        setLive(null);
-      }
+      if (opts.spoken) spokenJobs.current.add(jobId);
+      void streamJob(jobId, chat, at, {
+        question: q,
+        ...(pics.length ? { pictures: pics.map((p) => p.full) } : {}),
+        history,
+        growth,
+        deep: opts.deep === true,
+        profile: profileRef.current.remember ? profileRef.current : undefined,
+      });
+      return true;
     },
-    [messages, pending, growth, libraryMode, dictation, setSpeaking, listen, chatId, notice],
+    [messages, growth, dictation, setSpeaking, notice, streamJob],
   );
+
+  /** Stop the answer being written in this chat; the question goes back in the box. */
+  const stopAnswer = () => {
+    const placeholder = messages.find((m) => m.pending);
+    if (!placeholder?.pending) return;
+    const jobId = placeholder.pending.id;
+    cancelJob(jobId);
+    const q = takeBack(jobId);
+    if (q) restoreToBox(q);
+    setComposerNote("Stopped. Your question is back in the box, to change or ask again.");
+    textareaRef.current?.focus();
+  };
+
+  /** Ask a question again, in place of an answer that didn't come. */
+  const retry = (answer: ChatMessage) => {
+    if (pending) return;
+    const i = messages.indexOf(answer);
+    const q = i > 0 && messages[i - 1].role === "user" ? messages[i - 1] : null;
+    if (!q) return;
+    const rest = messages.filter((_, k) => k !== i && k !== i - 1);
+    const pictures = (q.pictures ?? []).flatMap((p, n) => {
+      const full = sentPictures.current.get(p.src);
+      return full ? [{ key: `t${Date.now()}${n}`, full, preview: p }] : [];
+    });
+    send(q.text ?? "", { base: rest, pictures });
+  };
+
+  // ---- the box: words, the microphone and pictures ----
+  const addPictures = async (files: File[]) => {
+    const room = PICTURE_LIMITS.perQuestion - attached.length - preparing;
+    const chosen = files.filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(f.name));
+    if (!chosen.length) {
+      if (files.length) setComposerNote("That file isn't a picture. Please choose a photo or a screenshot.");
+      return;
+    }
+    if (room <= 0) {
+      setComposerNote(`You can send up to ${PICTURE_LIMITS.perQuestion} pictures with one question.`);
+      return;
+    }
+    if (chosen.length > room) setComposerNote(`Only ${PICTURE_LIMITS.perQuestion} pictures fit with one question, so the first ${room} ${room === 1 ? "was" : "were"} added.`);
+    else setComposerNote(null);
+    const take = chosen.slice(0, room);
+    setPreparing((n) => n + take.length);
+    for (const file of take) {
+      try {
+        const ready = await preparePicture(file);
+        setAttached((prev) => (prev.length < PICTURE_LIMITS.perQuestion ? [...prev, { key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...ready, file }] : prev));
+      } catch (err) {
+        setComposerNote(err instanceof Error ? err.message : "That picture couldn't be added.");
+      } finally {
+        setPreparing((n) => Math.max(0, n - 1));
+      }
+    }
+  };
+
+  const submitBox = async () => {
+    if (pending || preparing || fitting) return;
+    let pictures = attached;
+    if (pictures.length > 1) {
+      setFitting(true);
+      try {
+        pictures = await fitPictures(pictures);
+      } catch {
+        setComposerNote("Those pictures are too large together. Please send fewer at a time.");
+        return;
+      } finally {
+        setFitting(false);
+      }
+    }
+    send(input, { spoken: spokenInput.current, pictures });
+  };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void send(input, { spoken: spokenInput.current });
+    void submitBox();
   };
   const onComposerKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      void send(input, { spoken: spokenInput.current });
+      void submitBox();
     }
   };
   const onComposerChange = (value: string) => {
     // Typing takes over from the microphone.
     if (listening) dictation.cancel();
     spokenInput.current = false;
+    if (composerNote) setComposerNote(null);
     setInput(value);
   };
   const toggleMic = () => {
@@ -1322,6 +2075,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     if (!reader?.focus || readerLoading) return;
     const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-ref="${CSS.escape(reader.focus)}"]`);
+    autoScrollUntil.current = Date.now() + 1200;
+    setBarHidden(false);
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
     if (window.matchMedia("(max-width: 979px)").matches) closeRef.current?.focus();
   }, [reader, readerLoading]);
@@ -1395,6 +2150,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     let last = body.scrollTop;
     const onScroll = () => {
       const y = body.scrollTop;
+      if (Date.now() < autoScrollUntil.current) {
+        last = y;
+        return;
+      }
       if (y < 40 || last - y > 6) setBarHidden(false);
       else if (y - last > 6) setBarHidden(true);
       last = y;
@@ -1546,7 +2305,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (highlight.where === "reader" && highlight.ref) {
       void askLine(highlight.ref, "ask", `What does this part mean: “${quote}”?`);
     } else {
-      void send(`Can you explain this part: “${quote}”?`);
+      const q = `Can you explain this part: “${quote}”?`;
+      if (pending) {
+        setInput(q);
+        setComposerNote("Your question is in the box. Ask it when this answer is done.");
+      } else void send(q);
     }
   };
 
@@ -2286,7 +3049,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         <div className="chats-head">
           <h2>{column ? "Chats" : "Your chats"}</h2>
           <div className="follow tight">
-            <button type="button" className="btn primary" onClick={startNewChat} disabled={pending}>
+            <button type="button" className="btn primary" onClick={startNewChat}>
               + New chat
             </button>
             {!column && (
@@ -2340,12 +3103,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   return (
                     <li key={c.id} className={`chat-row${c.id === chatId ? " current" : ""}`}>
                       <div className="chat-row-main">
-                        <button type="button" className="chat-open" onClick={() => openChat(c)} disabled={pending}>
+                        <button type="button" className="chat-open" onClick={() => openChat(c)}>
                           <span className="chat-title">{c.title}</span>
                           <span className="chat-sub">
                             {whenLabel(c.updatedAt)} · {questions} {questions === 1 ? "question" : "questions"}
                             {c.id === chatId ? " · open now" : ""}
                           </span>
+                          {c.messages.some((m) => m.pending) ? (
+                            <span className="chat-flag working">Answering</span>
+                          ) : freshChats.has(c.id) ? (
+                            <span className="chat-flag fresh">New answer</span>
+                          ) : null}
                         </button>
                         <button
                           type="button"
@@ -2924,8 +3692,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               }}
             >
               <ChatsIcon />
-              <span className="chats-label">Chats</span>
+              <span className="chats-label">Your chats</span>
+              {freshChats.size > 0 && <span className="fresh-dot" aria-label="A new answer is waiting" />}
             </button>
+            {mode === "chat" && messages.length > 0 && !(chatsOpen && !chatsColumn) && (
+              <button type="button" className="icon-btn new-chat-top" aria-label="New chat" title="New chat" onClick={startNewChat}>
+                <NewChatIcon />
+              </button>
+            )}
             <div className="mode-switch" role="group" aria-label="Chat or learn">
               <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
                 Chat
@@ -3023,7 +3797,33 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               {renderChatsPanel(true)}
             </aside>
           )}
-          <div className="convo-main">
+          <div
+            className={`convo-main${dragging ? " dragging" : ""}`}
+            onDragEnter={(e) => {
+              if (mode !== "chat" || !e.dataTransfer.types.includes("Files")) return;
+              dragDepth.current++;
+              setDragging(true);
+            }}
+            onDragOver={(e) => {
+              if (mode === "chat" && e.dataTransfer.types.includes("Files")) e.preventDefault();
+            }}
+            onDragLeave={() => {
+              dragDepth.current = Math.max(0, dragDepth.current - 1);
+              if (!dragDepth.current) setDragging(false);
+            }}
+            onDrop={(e) => {
+              if (mode !== "chat" || !e.dataTransfer.types.includes("Files")) return;
+              e.preventDefault();
+              dragDepth.current = 0;
+              setDragging(false);
+              void addPictures(Array.from(e.dataTransfer.files));
+            }}
+          >
+            {dragging && (
+              <div className="drop-here" aria-hidden="true">
+                <PictureIcon /> Drop the picture to add it to your question
+              </div>
+            )}
         <div className="scroll" ref={scrollRef} onScroll={onThreadScroll}>
           {mode === "chat" && chatsOpen && !chatsColumn ? (
             renderChatsPanel()
@@ -3048,34 +3848,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     >
                       ⋯
                     </button>
-                    <button type="button" className="btn quiet new-chat" onClick={startNewChat} disabled={pending}>
+                    <button type="button" className="btn quiet new-chat" onClick={startNewChat}>
                       + New chat
                     </button>
                   </div>
                   {chatTools === HEAD_TOOLS && <div className="chat-tools">{chatToolsFor(currentChat)}</div>}
                 </div>
               )}
-              <div className="msg-ai">
-                <div className="mark" aria-hidden="true">
-                  ר
-                </div>
-                <div className="body">
-                  <p>
-                    Shalom! I’m RabAI, an AI Torah teacher. Ask me anything, about Torah or about life.
-                    {dictation.supported ? " Type, or tap the microphone and talk." : ""}
-                  </p>
-                  {libraryMode === "testing" && (
-                    <p className="welcome-tag">
-                      <span className="tag-gray">Testing library</span> Sources are not yet approved by the rabbinic board.
-                    </p>
-                  )}
-                  {!connected && (
-                    <p className="note">
-                      This build isn’t connected to its AI model yet, so I can find sources but can’t answer. The setup
-                      steps are in web/README.md.
-                    </p>
-                  )}
-                  <p className="welcome-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+              {(account.state.justSignedIn && signedIn) || (account.state.ended && account.state.status === "signed-out") ? (
+                <div className="account-notes">
                   {account.state.justSignedIn && signedIn && (
                     <p className="account-note" role="status">
                       You’re signed in. Your chats and what RabAI knows about you now follow you to your other devices.
@@ -3089,30 +3870,67 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </button>
                     </p>
                   )}
-                  {messages.length === 0 &&
-                    STARTERS.map((g) => (
+                </div>
+              ) : null}
+
+              {messages.length === 0 && (
+                <div className="msg-ai welcome">
+                  <div className="mark" aria-hidden="true">
+                    ר
+                  </div>
+                  <div className="body">
+                    <p className="welcome-hi">Shalom! I’m RabAI, an AI Torah teacher.</p>
+                    <p>
+                      Ask me anything, about Torah or about life. You can type, {dictation.supported ? "talk, " : ""}or send a
+                      picture of a page.
+                    </p>
+                    {libraryMode === "testing" && (
+                      <p className="welcome-tag">
+                        <span className="tag-gray">Testing library</span> Sources are not yet approved by the rabbinic board.
+                      </p>
+                    )}
+                    {!connected && (
+                      <p className="note">
+                        This build isn’t connected to its AI model yet, so I can find sources but can’t answer. The setup
+                        steps are in web/README.md.
+                      </p>
+                    )}
+                    <p className="welcome-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                    {STARTERS.map((g) => (
                       <div key={g.label} className="starters">
                         <p className="label-sm">{g.label}</p>
                         <div className="starter-grid">
                           {g.items.map((q) => (
-                            <button key={q} type="button" className="starter" onClick={() => void send(q)} disabled={pending}>
+                            <button key={q} type="button" className="starter" onClick={() => void send(q)}>
                               {q}
                             </button>
                           ))}
                         </div>
                       </div>
                     ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {messages.map((m) =>
+              {messages.length > 0 && (
+                <p className="chat-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+              )}
+              {messages.map((m, i) =>
                 m.role === "user" ? (
-                  <div key={m.id} className="msg-user">
-                    {m.text}
+                  <div key={m.id} className="msg-user" data-msg={m.id} data-msg-user="">
+                    <SentPictures pictures={m.pictures} count={m.pictureCount} onOpen={setPictureView} />
+                    {m.text ? <div className="msg-user-text">{m.text}</div> : null}
+                  </div>
+                ) : m.pending ? (
+                  <div key={m.id} className="msg-ai bare live" data-msg={m.id} aria-busy="true">
+                    <div className="body">
+                      <PendingView job={liveJobs[m.pending.id]} at={m.pending.at} />
+                    </div>
                   </div>
                 ) : (
-                  <div key={m.id} className={`msg-ai bare${m.streamed ? " settled" : ""}`}>
+                  <div key={m.id} className={`msg-ai bare${m.streamed ? " settled" : ""}`} data-msg={m.id}>
                     <div className="body" data-askable="chat">
+                      {m.away && m.result?.status === "answered" && <p className="away-note">Answered while you were away</p>}
                       {m.result && <SafetyCard result={m.result} />}
                       {m.result && m.result.blocks.length > 0 && (
                         <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
@@ -3135,8 +3953,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           ))}
                         </div>
                       )}
-                      {m.result?.status === "answered" && (
+                      {(m.result?.status === "error" || m.result?.status === "refused") && i === messages.length - 1 && i > 0 && messages[i - 1].role === "user" && (
                         <div className="follow">
+                          <button type="button" className="btn" disabled={pending} onClick={() => retry(m)}>
+                            Try again
+                          </button>
+                        </div>
+                      )}
+                      {m.result?.status === "answered" && (
+                        <div className="follow answer-tools">
                           {speechOk && (
                             <button
                               type="button"
@@ -3147,12 +3972,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
                             </button>
                           )}
-                          <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "deeper" }); void send("Tell me more.", { deep: true }); }}>
-                            Tell me more
-                          </button>
-                          <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
-                            Say it more simply
-                          </button>
+                          <CopyAnswer text={plainAnswer(m.result)} />
+                          {i === messages.length - 1 && (
+                            <span className="follow-more">
+                              <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "deeper" }); void send("Tell me more.", { deep: true }); }}>
+                                Tell me more
+                              </button>
+                              <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
+                                Say it more simply
+                              </button>
+                            </span>
+                          )}
                         </div>
                       )}
                       {m.result?.status === "answered" && account.state.feedback && (
@@ -3166,14 +3996,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                 ),
               )}
-
-              {pending && (
-                <div className="msg-ai bare live">
-                  <div className="body">
-                    {live?.text ? <LiveText text={live.text} /> : <WorkingSteps steps={live?.steps ?? []} />}
-                  </div>
-                </div>
-              )}
+              <div ref={tailRef} className="tail" style={tailRoom ? { minHeight: tailRoom } : undefined} aria-hidden="true" />
             </div>
           ) : learnView === "articles" ? (
             <ArticleShelves shelves={articleShelves} onRead={(ref) => void openReader(ref)} onBack={() => setLearnView("library")} />
@@ -3270,12 +4093,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   books={catalogBooks}
                   label={libraryMode === "testing" ? TESTING_LABEL : undefined}
                   recent={recent}
-                  pending={pending}
+                  pending={false}
                   onRead={(ref) => void openReader(ref)}
                   onPage={(ref) => void openDaf(ref)}
                   onLearn={(title) =>
                     void send(
                       `Let's learn ${title} together. Start at the beginning, one line at a time, and ask me what I think before you explain.`,
+                      { fresh: true },
                     )
                   }
                   extras={
@@ -3327,7 +4151,50 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
         {mode === "chat" && (!chatsOpen || chatsColumn) && (
           <div className="composer">
+            {(attached.length > 0 || preparing > 0) && (
+              <ul className="attach-row" aria-label="Pictures to send">
+                {attached.map((a, i) => (
+                  <li key={a.key} className="attach">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.preview.src} alt={`Picture ${i + 1}`} width={a.preview.w} height={a.preview.h} />
+                    <button
+                      type="button"
+                      className="attach-x"
+                      aria-label={`Remove picture ${i + 1}`}
+                      onClick={() => setAttached((prev) => prev.filter((x) => x.key !== a.key))}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+                {Array.from({ length: preparing }, (_, i) => (
+                  <li key={`p${i}`} className="attach loading" aria-label="Getting a picture ready" />
+                ))}
+              </ul>
+            )}
             <form onSubmit={onSubmit}>
+              <input
+                ref={pictureInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  void addPictures(files);
+                }}
+              />
+              <button
+                type="button"
+                className="pic-btn"
+                aria-label="Add a picture"
+                title="Add a picture"
+                disabled={attached.length + preparing >= PICTURE_LIMITS.perQuestion}
+                onClick={() => pictureInputRef.current?.click()}
+              >
+                <PictureIcon />
+              </button>
               {dictation.supported && (
                 <button
                   type="button"
@@ -3350,14 +4217,50 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 value={input}
                 onChange={(e) => onComposerChange(e.target.value)}
                 onKeyDown={onComposerKey}
-                placeholder={listening ? "Listening… speak your question" : "Ask anything…"}
+                onPaste={(e) => {
+                  const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+                  if (!files.length) return;
+                  e.preventDefault();
+                  void addPictures(files);
+                }}
+                placeholder={
+                  listening
+                    ? "Listening… speak your question"
+                    : attached.length
+                      ? attached.length > 1
+                        ? "Ask about the pictures…"
+                        : "Ask about the picture…"
+                      : "Ask anything…"
+                }
                 maxLength={2000}
                 autoComplete="off"
               />
-              <button className="send" type="submit" disabled={pending || !input.trim()}>
-                Ask
-              </button>
+              {/* Two different buttons (keys), so the click that stops an answer can never also send the
+                  question again: a reused button would become "submit" while the click is handled. */}
+              {pending ? (
+                <button
+                  key="stop"
+                  type="button"
+                  className="send stop"
+                  aria-label="Stop the answer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    stopAnswer();
+                  }}
+                >
+                  <span className="stop-sq" aria-hidden="true" /> Stop
+                </button>
+              ) : (
+                <button key="ask" className="send" type="submit" disabled={preparing > 0 || fitting || (!input.trim() && !attached.length)}>
+                  Ask
+                </button>
+              )}
             </form>
+            {composerNote && !listening && (
+              <p className="voice-note" role="status">
+                {composerNote}
+              </p>
+            )}
             {(dictation.error || listening) && (
               <p className="voice-note" role={dictation.error ? "alert" : "status"}>
                 {dictation.error ?? "Listening. Tap the microphone when you’re done, then press Ask."}
@@ -3369,6 +4272,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           </div>
         </div>
       </section>
+
+      {pictureView && (
+        <div className="pic-view" role="dialog" aria-modal="true" aria-label="Picture you sent" onClick={() => setPictureView(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={(() => {
+              const full = sentPictures.current.get(pictureView.src);
+              return full ? `data:${full.mediaType};base64,${full.data}` : pictureView.src;
+            })()}
+            alt="The picture you sent"
+          />
+          <button type="button" className="pic-view-x" aria-label="Close the picture" autoFocus onClick={() => setPictureView(null)}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {dafRef && renderDafView()}
 

@@ -418,7 +418,7 @@ export default function LibraryShelves({
           className="book-filter"
           type="search"
           value={query}
-          placeholder={`Find a book: Berakhot, Rashi on Bereishis, משנה ברורה…`}
+          placeholder="Find a book: Berakhot, משנה ברורה…"
           onChange={(e) => {
             setQuery(e.target.value);
             setPage(null);

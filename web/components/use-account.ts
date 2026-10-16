@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseProfile, type LearnerProfile } from "@/lib/learner-profile";
-import { parseChats, type SavedChat } from "@/lib/saved-chats";
+import { chatForAccount, parseChats, type SavedChat } from "@/lib/saved-chats";
 import { chatStamp, jsonBytes, mergeChatLists, mergeProfiles, profileToSend, reconcileChats, type ChatIndexEntry } from "@/lib/account/merge";
 
 /*
@@ -156,7 +156,8 @@ export function useAccount(host: AccountHost): { state: AccountState; api: Accou
 
   /** Send chats and deletions. */
   const pushChats = useCallback(async (upsert: SavedChat[], remove: string[], deleteAll = false) => {
-    const groups = batches(upsert);
+    // The account keeps no picture previews and no answer still being written (saved-chats.ts).
+    const groups = batches(upsert.map(chatForAccount));
     if (!groups.length) groups.push([]);
     for (let i = 0; i < groups.length; i++) {
       const first = i === 0;
@@ -332,7 +333,10 @@ export function useAccount(host: AccountHost): { state: AccountState; api: Accou
       if (!ids.length && !removed.length && !dirty) return;
       // keepalive lets a small request finish after the page is gone; anything bigger waits for next time.
       if (dirty) void postJson("/api/account/profile", { profile: profileToSend(hostRef.current.getProfile()) }, true).catch(() => undefined);
-      const chats = hostRef.current.getChats().filter((c) => ids.includes(c.id));
+      const chats = hostRef.current
+        .getChats()
+        .filter((c) => ids.includes(c.id))
+        .map(chatForAccount);
       if ((chats.length || removed.length) && jsonBytes(chats) < 60_000) {
         void postJson("/api/account/chats", { upsert: chats, delete: removed }, true).catch(() => undefined);
       }

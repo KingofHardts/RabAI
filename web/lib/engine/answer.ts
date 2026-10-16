@@ -10,6 +10,7 @@ import { testingStore, type TestingStore } from "../library/testing";
 import { asksAboutLibrary, retrieveFromTesting } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
+import type { QuestionPicture } from "../pictures";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -20,6 +21,8 @@ export const LINE_ACTIONS: readonly LineAction[] = ["explain", "words", "comment
 export interface Turn {
   role: "user" | "assistant";
   text: string;
+  /** Pictures the person sent with this earlier question, sent again so RabAI can still see them. */
+  pictures?: QuestionPicture[];
 }
 
 export interface AskInput {
@@ -36,6 +39,8 @@ export interface AskInput {
   deep?: boolean;
   /** What the person told RabAI about themselves and what they have been learning (checked). */
   profile?: LearnerProfile;
+  /** Pictures the person attached to the question (lib/pictures.ts), already checked. */
+  pictures?: QuestionPicture[];
 }
 
 /** Progress reports while an answer is being made, for a live screen. */
@@ -44,6 +49,8 @@ export interface AskHooks {
   onStatus?: (text: string) => void;
   /** Each new piece of the answer's text as the model writes it. */
   onText?: (delta: string) => void;
+  /** Aborted when the person stops the answer. */
+  signal?: AbortSignal;
 }
 
 export interface AskResult {
@@ -167,6 +174,15 @@ Sources:
   instructions: rest your answer on the texts, check each page's points against them, and say
   plainly what you couldn't confirm. Cite a page where you use its words; the app lists the pages
   under their own heading, with links, apart from the texts.
+
+Pictures:
+- The person may attach pictures to a question: a page of a sefer, a sign, a label, a letter,
+  a handwritten note. They come at the end of the person's message, after the documents,
+  introduced as the picture or pictures the person sent. Pictures from earlier in the chat may
+  come again with a follow-up question.
+- Follow "Pictures the person sends" in your instructions. A picture is never a source and never
+  becomes a citation: cite only the documents. When the documents hold the text shown in a
+  picture, rest your answer on the documents and cite them.
 
 Shape of an answer:
 - Write so that anyone can follow: someone new to learning, a teenager, or someone reading in
@@ -386,6 +402,17 @@ export function searchQuery(input: AskInput): string {
   return `${buildQuestion(input)}\n${lastUser}`.trim();
 }
 
+/** The person's pictures, introduced so RabAI knows they are the person's and not documents. */
+export function picturesContent(pictures: QuestionPicture[]) {
+  const image = (p: QuestionPicture) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } });
+  if (pictures.length === 1) return [{ type: "text" as const, text: "The picture the person sent:" }, image(pictures[0])];
+  // Each picture labeled, so RabAI can say which one it means ("in your second picture").
+  return [
+    { type: "text" as const, text: `The pictures the person sent (${pictures.length}):` },
+    ...pictures.flatMap((p, i) => [{ type: "text" as const, text: `Picture ${i + 1}:` }, image(p)]),
+  ];
+}
+
 /**
  * @param retrieved Passages already found in the testing library. Without them, the in-memory
  *   library is searched.
@@ -443,21 +470,25 @@ export function planRequest(
     .filter(Boolean)
     .join("\n");
 
-  const messages: MessageCreateParamsNonStreaming["messages"] = [];
+  type Content = Exclude<MessageCreateParamsNonStreaming["messages"][number]["content"], string>;
+  const messages: Array<{ role: "user" | "assistant"; content: Content }> = [];
   for (const turn of history) {
     const text = turn.text.slice(0, LIMITS.historyChars).trim();
-    if (!text) continue;
+    const pictures = turn.role === "user" ? (turn.pictures ?? []) : [];
+    if (!text && !pictures.length) continue;
+    const content: Content = [
+      ...(pictures.length ? picturesContent(pictures) : []),
+      ...(text ? [{ type: "text" as const, text }] : []),
+    ];
     const prev = messages[messages.length - 1];
     // The API needs alternating roles; join any repeats.
-    if (prev && prev.role === turn.role && typeof prev.content === "string") {
-      prev.content = `${prev.content}\n\n${text}`;
-    } else {
-      messages.push({ role: turn.role, content: text });
-    }
+    if (prev && prev.role === turn.role) prev.content.push(...content);
+    else messages.push({ role: turn.role, content });
   }
   if (messages[0]?.role === "assistant") messages.shift();
   if (messages[messages.length - 1]?.role === "user") messages.pop();
 
+  const pictures = input.pictures ?? [];
   messages.push({
     role: "user",
     content: [
@@ -468,6 +499,9 @@ export function planRequest(
         context: documentContext(p, lib),
         citations: { enabled: true },
       })),
+      // The person's pictures come after the documents, so a citation's document number still
+      // points at the same document (citations.ts).
+      ...(pictures.length ? picturesContent(pictures) : []),
       { type: "text" as const, text: question },
     ],
   });
@@ -524,6 +558,7 @@ export async function ask(
     try {
       const found = await retrieveFromTesting(searchQuery(input), store, client, {
         focusRef: input.focusRef,
+        pictures: input.pictures,
         extraPhrases: input.action === "word" && input.word ? [input.word] : [],
         // A line action on the reader is about that line; it never needs the web.
         research: input.action ? null : client,
@@ -585,7 +620,7 @@ export async function ask(
   );
   let message: BetaMessage;
   try {
-    message = await client.create(plan.params, hooks.onText);
+    message = await client.create(plan.params, hooks.onText, hooks.signal ? { signal: hooks.signal } : undefined);
   } catch (err) {
     console.error("[rabai] model call failed:", err instanceof Error ? err.message : err);
     return {

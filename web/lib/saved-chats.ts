@@ -9,10 +9,30 @@
 
 import type { AskResult } from "./engine/answer";
 
+/** A small preview of a picture sent with a question, kept with the chat on the device only. */
+export interface SavedPicture {
+  /** A small JPEG, as a data URL. */
+  src: string;
+  w: number;
+  h: number;
+}
+
+/** An answer still being written (lib/answer-jobs.ts): its id and when it was asked for. */
+export interface PendingAnswer {
+  id: string;
+  at: number;
+}
+
 export interface SavedMessage {
   role: "user" | "ai";
   text?: string;
   result?: AskResult;
+  /** On a question: previews of the pictures sent with it (on this device). */
+  pictures?: SavedPicture[];
+  /** On a question whose previews stayed on another device: how many pictures it had. */
+  pictureCount?: number;
+  /** On an answer still being written. Kept on the device only, never in the account. */
+  pending?: PendingAnswer;
 }
 
 export interface SavedChat {
@@ -34,6 +54,10 @@ export const MAX_MESSAGES_PER_CHAT = 80;
 export const MAX_STORED_BYTES = 3_000_000;
 export const MAX_TITLE = 70;
 export const MAX_CATEGORY = 30;
+/** A picture preview, in data-URL characters, and how many one question may keep. */
+export const MAX_PREVIEW_CHARS = 60_000;
+export const MAX_PREVIEWS = 4;
+const ANSWER_ID = /^[A-Za-z0-9_-]{22,64}$/;
 
 /** Categories offered before the person makes their own. */
 export const SUGGESTED_CATEGORIES = ["Gemara", "Chumash", "Halacha", "Life questions"];
@@ -41,7 +65,7 @@ export const SUGGESTED_CATEGORIES = ["Gemara", "Chumash", "Halacha", "Life quest
 /** A chat's title: the first question, cut at a word. */
 export function titleFor(messages: SavedMessage[]): string {
   const first = messages.find((m) => m.role === "user" && m.text?.trim())?.text?.replace(/\s+/g, " ").trim() ?? "";
-  if (!first) return "New chat";
+  if (!first) return messages.some((m) => m.role === "user" && (m.pictures?.length || m.pictureCount)) ? "A picture" : "New chat";
   if (first.length <= MAX_TITLE) return first;
   return `${first.slice(0, MAX_TITLE).replace(/\s+\S*$/, "")}…`;
 }
@@ -71,23 +95,54 @@ function isResult(r: unknown): r is AskResult {
   );
 }
 
-function readMessage(m: unknown): SavedMessage | null {
+function readPictures(raw: unknown): SavedPicture[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (p): p is SavedPicture =>
+        !!p &&
+        typeof p.src === "string" &&
+        /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(p.src) &&
+        p.src.length <= MAX_PREVIEW_CHARS &&
+        typeof p.w === "number" &&
+        typeof p.h === "number",
+    )
+    .slice(0, MAX_PREVIEWS)
+    .map((p) => ({ src: p.src, w: Math.round(p.w), h: Math.round(p.h) }));
+}
+
+/**
+ * Where saved chats are read. On the device a chat keeps its picture previews and any answer still
+ * being written; in the person's account it keeps neither (only how many pictures a question had).
+ */
+export type ChatPlace = "device" | "account";
+
+function readMessage(m: unknown, place: ChatPlace): SavedMessage | null {
   if (!m || typeof m !== "object") return null;
   const x = m as Record<string, unknown>;
-  if (x.role === "user" && typeof x.text === "string") return { role: "user", text: x.text };
+  if (x.role === "user" && typeof x.text === "string") {
+    const pictures = readPictures(x.pictures);
+    const count = Math.min(MAX_PREVIEWS, Math.max(pictures.length, typeof x.pictureCount === "number" && x.pictureCount > 0 ? Math.floor(x.pictureCount) : 0));
+    if (!x.text.trim() && !count) return null;
+    if (place === "account" || !pictures.length) return { role: "user", text: x.text, ...(count ? { pictureCount: count } : {}) };
+    return { role: "user", text: x.text, pictures };
+  }
   if (x.role === "ai" && isResult(x.result)) return { role: "ai", result: x.result };
+  const pending = x.pending as Record<string, unknown> | undefined;
+  if (place === "device" && x.role === "ai" && pending && typeof pending.id === "string" && ANSWER_ID.test(pending.id) && typeof pending.at === "number")
+    return { role: "ai", pending: { id: pending.id, at: pending.at } };
   return null;
 }
 
 /** Saved chats from storage, checked and newest first. Anything malformed is left out. */
-export function parseChats(raw: unknown): SavedChat[] {
+export function parseChats(raw: unknown, place: ChatPlace = "device"): SavedChat[] {
   if (!Array.isArray(raw)) return [];
   const out: SavedChat[] = [];
   for (const c of raw) {
     if (!c || typeof c !== "object") continue;
     const x = c as Record<string, unknown>;
     if (typeof x.id !== "string" || !Array.isArray(x.messages)) continue;
-    const messages = x.messages.map(readMessage).filter((m): m is SavedMessage => m !== null);
+    const messages = x.messages.map((m) => readMessage(m, place)).filter((m): m is SavedMessage => m !== null);
     if (!messages.length || out.some((o) => o.id === x.id)) continue;
     const updatedAt = typeof x.updatedAt === "number" ? x.updatedAt : 0;
     out.push({
@@ -106,12 +161,31 @@ export function parseChats(raw: unknown): SavedChat[] {
 /** Save a chat's latest messages: it moves to the top, and the oldest chat beyond the limit goes. */
 export function upsertChat(chats: SavedChat[], chat: Omit<SavedChat, "messages"> & { messages: SavedMessage[] }): SavedChat[] {
   const messages = chat.messages
-    .filter((m) => (m.role === "user" ? !!m.text?.trim() : !!m.result))
-    .map((m) => (m.result ? { role: m.role, result: trimResult(m.result) } : { role: m.role, text: m.text }))
+    .filter((m) => (m.role === "user" ? !!m.text?.trim() || !!m.pictures?.length || !!m.pictureCount : !!m.result || !!m.pending))
+    .map((m): SavedMessage => {
+      if (m.role === "ai") return m.result ? { role: "ai", result: trimResult(m.result) } : { role: "ai", pending: m.pending };
+      return {
+        role: "user",
+        text: m.text ?? "",
+        ...(m.pictures?.length ? { pictures: m.pictures.slice(0, MAX_PREVIEWS) } : m.pictureCount ? { pictureCount: m.pictureCount } : {}),
+      };
+    })
     .slice(-MAX_MESSAGES_PER_CHAT);
   if (!messages.length) return chats;
   const saved: SavedChat = { ...chat, title: chat.title || titleFor(messages), category: cleanCategory(chat.category), messages };
   return [saved, ...chats.filter((c) => c.id !== chat.id)].slice(0, MAX_CHATS);
+}
+
+/** The answers still being written, in every chat, newest first. */
+export function pendingAnswers(chats: SavedChat[]): Array<{ chatId: string; pending: PendingAnswer }> {
+  const out: Array<{ chatId: string; pending: PendingAnswer }> = [];
+  for (const c of chats) for (const m of c.messages) if (m.pending) out.push({ chatId: c.id, pending: m.pending });
+  return out.sort((a, b) => b.pending.at - a.pending.at);
+}
+
+/** A chat as the person's account keeps it: no picture previews, no answers still being written. */
+export function chatForAccount(chat: SavedChat): SavedChat {
+  return parseChats([chat], "account")[0] ?? { ...chat, messages: [] };
 }
 
 /** Chats grouped by category, the person's categories in A–Z order and unsorted chats last. */

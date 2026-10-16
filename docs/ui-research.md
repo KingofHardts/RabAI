@@ -7,6 +7,9 @@ navigate, and things just don't fit well — like, I have to scroll down all the
 these words. I want a deep dive on other online Gemara things or other translating things, and I
 really want you to better the UI visually as well as in a utilitarian sense."
 
+A second study, on how the chat should feel (answers that wait for you, pictures, waiting,
+scrolling), is in [`ui-feel.md`](ui-feel.md) (2026-10-16).
+
 It has five parts:
 
 1. [What other apps do](#1-what-other-apps-do)

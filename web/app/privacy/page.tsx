@@ -12,12 +12,13 @@ export default function PrivacyPage() {
           <Link href="/">← Back to RabAI</Link>
         </p>
         <h1>What RabAI keeps, and why</h1>
-        <p className="muted">Last updated 7 October 2026. RabAI is a private preview while the rabbinic board reviews it.</p>
+        <p className="muted">Last updated 16 October 2026. RabAI is a private preview while the rabbinic board reviews it.</p>
 
         <h2>On your device</h2>
         <p>
           Your saved chats, the words you save, your marks, where you were reading, and what RabAI knows about you
-          (&ldquo;About you&rdquo;) are kept in this browser, on this device. Unless you sign in, they stay there.
+          (&ldquo;About you&rdquo;) are kept in this browser, on this device. Unless you sign in, they stay there. A chat
+          keeps a small preview of each picture you sent with it.
         </p>
 
         <h2>When you ask a question</h2>
@@ -27,13 +28,24 @@ export default function PrivacyPage() {
           with it, so RabAI can explain at your level. RabAI&rsquo;s server doesn&rsquo;t keep your questions, except in your
           saved chats when you are signed in.
         </p>
+        <p>
+          <strong>Pictures you send</strong> go to the AI model with your question, and again with your next few questions
+          in the same chat, so it can still see them. RabAI&rsquo;s server never keeps them.
+        </p>
+        <p>
+          <strong>While an answer is being written,</strong> RabAI&rsquo;s server keeps it, so you can leave the page and
+          come back to it. It keeps only the answer and its progress, never your question or your pictures, under a random
+          number only your device knows. Once your device has the answer, the copy on the server is deleted; anything left
+          is deleted after a day.
+        </p>
 
         <h2>If you sign in</h2>
         <p>Signing in is optional. It lets your chats and what RabAI knows about you follow you to your other devices.</p>
         <ul>
           <li>
             <strong>Kept in your account:</strong> what you told RabAI in &ldquo;About you&rdquo;, what it noticed while you
-            learned (the books you read and the words you looked up), and your saved chats.
+            learned (the books you read and the words you looked up), and your saved chats. Your account keeps how many
+            pictures a question had, not the pictures.
           </li>
           <li>
             <strong>Your email address is not kept.</strong> It is used once, to send you the sign-in link. RabAI keeps only a
