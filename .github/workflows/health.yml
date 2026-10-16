@@ -4,11 +4,12 @@ name: Is RabAI working?
 # monthly limits, blocks, the databases), Vercel (the latest deploy, which settings exist), the
 # settings used the way the app uses them (the databases answer, the Anthropic key works), and the
 # live app (the lock page, the access code, the library list, the Sources page, the Gemara page, a
-# word, three real questions: one from the library, one about RabAI's own sources, one practical
-# halacha question looked up online), and the app in a real browser on a phone and a computer (page
-# errors, the Sources page's search, one more question).
+# word, five real questions: one from the library, one about RabAI's own sources, one with a
+# picture, one whose page leaves halfway and comes back for the answer, one practical halacha
+# question looked up online), and the app in a real browser on a phone and a computer (page errors,
+# the Sources page's search, one more question, with the page reloaded while it is answered).
 #
-# Run it by hand: Actions, "Is RabAI working?", Run workflow. It costs about as much as four
+# Run it by hand: Actions, "Is RabAI working?", Run workflow. It costs about as much as six
 # questions in the app. This repository is public, so its Actions logs are too: every value the run
 # reads is masked before use, and the script prints no key, code, token or answer
 # (tools/health_check.py).

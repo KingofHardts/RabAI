@@ -14,12 +14,13 @@ summary:
    - the Anthropic key answers a one-word request (a fraction of a cent).
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
    the articles' sections (with how many paragraphs the first articles of each open with), the
-   Sources page opens, and three real questions are answered: one from the library, one about
-   RabAI's own sources (which books it uses and leaves out), and one practical halacha question
-   that RabAI looks up online on the trusted Orthodox sites (together about the cost of four
-   questions in the app). Only whether each step worked is printed, never the answer, and never
-   an article's title or words (only counts; for the lookup, the names of the trusted sites it
-   used).
+   Sources page opens, and five real questions are answered: one from the library, one about
+   RabAI's own sources (which books it uses and leaves out), one with a picture (two plain colors,
+   to show that a picture reaches RabAI), one the asking page leaves halfway and comes back for
+   (to show the answer is kept while nobody is waiting), and one practical halacha question that
+   RabAI looks up online on the trusted Orthodox sites (together about the cost of six questions
+   in the app). Only whether each step worked is printed, never the answer, and never an
+   article's title or words (only counts; for the lookup, the names of the trusted sites it used).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -27,13 +28,16 @@ token, a question's answer or anything about a person.
 Uses only the standard library and the helpers in tools/library_upload.py.
 """
 
+import base64
 import http.cookiejar
 import json
 import os
 import re
+import struct
 import subprocess
 import sys
 import time
+import zlib
 import urllib.error
 import urllib.parse
 from datetime import datetime, timezone
@@ -67,6 +71,33 @@ QUESTION = "What is the first word of the Torah, and what does it mean?"
 SOURCES_QUESTION = "Which books do you use for halacha, and which do you leave out?"
 # A practical question the classic books don't name directly: RabAI should look it up online.
 PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
+# Asked with a picture that is red on the left and blue on the right.
+PICTURE_QUESTION = "What two colors are in this picture?"
+# Asked by a page that leaves halfway and comes back for the answer.
+LEAVE_QUESTION = "Why is the Shema said twice a day?"
+
+
+def two_color_picture(width: int = 256, height: int = 256) -> str:
+    """A PNG, red on the left half and blue on the right, as base64 (no image library needed)."""
+    red, blue = b"\xd0\x24\x24", b"\x24\x48\xd0"
+    row = b"\x00" + red * (width // 2) + blue * (width - width // 2)
+    raw = row * height
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
+    return base64.b64encode(png).decode()
+
+
+def answer_words(result: dict) -> str:
+    """The words of a checked answer, for a check that is never printed."""
+    return " ".join(str(b.get("text") or "") for b in result.get("blocks") or [] if isinstance(b, dict)).lower()
 
 problems: list[str] = []
 
@@ -456,10 +487,11 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         problem(f"\"Show the flow\" answered HTTP {status} with something that isn't JSON "
                 f"(after {seen.get('seconds', 0):.0f} seconds, x-vercel-error = {h.get('x-vercel-error', 'none')}).")
 
-    def live_answer(question: str, label: str) -> dict | None:
+    def live_answer(question: str, label: str, pictures: list | None = None) -> dict | None:
         """Ask for a live (streamed) answer: one JSON object per line. Returns the checked result."""
         seen.pop("cut", None)
-        status, raw = fetch("/api/ask", {"question": question, "stream": True}, timeout=300)
+        body = {"question": question, "stream": True, **({"pictures": pictures} if pictures else {})}
+        status, raw = fetch("/api/ask", body, timeout=300)
         h = seen.get("headers", {})
         if status != 200:
             problem(f"Asking {label} answered HTTP {status}.")
@@ -487,6 +519,75 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
             problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
         return r
 
+    def leave_midway(question: str) -> None:
+        """Ask, leave as a closed tab would once RabAI starts, and come back for the answer."""
+        job = base64.urlsafe_b64encode(os.urandom(18)).decode().rstrip("=")
+        req = urllib.request.Request(APP + "/api/ask", data=json.dumps({"question": question, "stream": True, "job": job}).encode(),
+                                     method="POST")
+        req.add_header("Content-Type", "application/json")
+        started = time.monotonic()
+        heard = []
+        try:
+            with opener.open(req, timeout=120) as resp:
+                # Read until RabAI says what it is doing, then hang up.
+                while True:
+                    line = resp.readline()
+                    if not line:
+                        break
+                    try:
+                        kind = json.loads(line).get("type")
+                    except (ValueError, AttributeError):
+                        continue
+                    heard.append(kind)
+                    if kind in ("status", "text", "done", "stopped"):
+                        break
+        except urllib.error.HTTPError as e:
+            problem(f"Asking a question to leave halfway answered HTTP {e.code}.")
+            return
+        except Exception as e:  # noqa: BLE001 - reported, not raised
+            problem(f"Asking a question to leave halfway failed: {type(e).__name__}.")
+            return
+        left = time.monotonic() - started
+        if "done" in heard:
+            summary(f"- Leaving halfway: the answer was done before the page left ({left:.0f} seconds), so this wasn't tested.")
+            return
+        # Come back for it, the way a reopened page does.
+        view: dict = {}
+        status = 0
+        while time.monotonic() - started < 330:
+            time.sleep(5)
+            status, raw = fetch("/api/ask/job?id=" + job)
+            try:
+                view = json.loads(raw)
+            except ValueError:
+                view = {}
+            if status != 200 or view.get("status") != "running":
+                break
+        r = view.get("result") if isinstance(view.get("result"), dict) else {}
+        finished = time.monotonic() - started
+        # The page has it now: nothing more is kept.
+        removed = False
+        try:
+            gone = urllib.request.Request(APP + "/api/ask/job?id=" + job, method="DELETE")
+            with opener.open(gone, timeout=60) as resp:
+                removed = resp.status == 200
+            after_status, _ = fetch("/api/ask/job?id=" + job)
+            removed = removed and after_status == 404
+        except Exception:  # noqa: BLE001 - reported below
+            removed = False
+        summary(f"- Leaving halfway: the page left after {left:.0f} seconds; coming back, the answer was "
+                f"{plain(view.get('status') or ('not found' if status == 404 else f'HTTP {status}'))} after {finished:.0f} seconds"
+                + (f", status = {plain(r.get('status'))}, {len(r.get('sources') or [])} sources cited" if r else "")
+                + f"; removed afterwards: {'yes' if removed else 'no'}.")
+        if status == 404:
+            problem("An answer whose page left halfway couldn't be found again (is the people database connected?).")
+        elif view.get("status") != "done" or not r:
+            problem(f"An answer whose page left halfway didn't finish (it ended as {plain(view.get('status') or status)}).")
+        elif r.get("status") != "answered":
+            problem(f"An answer whose page left halfway ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+        if not removed:
+            problem("A finished answer wasn't removed when the page asked (DELETE /api/ask/job).")
+
     live_answer(QUESTION, "a live answer")
 
     # A question about RabAI's own library: the lookup step should mark it, so RabAI answers from
@@ -497,6 +598,19 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         if not r.get("aboutLibrary"):
             problem("A question about which books RabAI uses wasn't recognized as one about its own library, "
                     "so RabAI wasn't given its sources list.")
+
+    # A picture: two plain colors, so whether RabAI saw it can be checked without printing a word
+    # of the answer (only yes or no).
+    r = live_answer(PICTURE_QUESTION, "a question with a picture", pictures=[{"data": two_color_picture()}])
+    if r is not None:
+        words = answer_words(r)
+        saw = "red" in words and "blue" in words
+        summary(f"  - RabAI named the picture's two colors: {'yes' if saw else 'no'}.")
+        if r.get("status") == "answered" and not saw:
+            problem("A question with a picture was answered, but the answer didn't name the picture's two colors "
+                    "(did the picture reach RabAI?).")
+
+    leave_midway(LEAVE_QUESTION)
 
     # A practical question: RabAI should look it up on the trusted Orthodox sites, open the texts
     # the pages rely on, and show the note to ask one's rav. Only counts and the sites' names

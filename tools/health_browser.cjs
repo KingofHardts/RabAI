@@ -101,6 +101,17 @@ async function run(name, options, ask) {
       const started = Date.now();
       await page.fill("#ask-input", QUESTION);
       await page.click(".composer form button[type=submit]");
+      // Leave in the middle, the way a person reloads or comes back to a closed tab: once RabAI is
+      // writing, reload the page. The answer should still arrive.
+      let reloaded = false;
+      const writing = await page.waitForSelector(".msg-ai.bare.live", { timeout: 30000 }).then(() => true).catch(() => false);
+      if (writing) {
+        await page.waitForTimeout(3000);
+        if (await page.locator(".msg-ai.bare.live").count()) {
+          await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
+          reloaded = true;
+        }
+      }
       // Done when the answer shows its follow-up buttons (answered) or the app's notice.
       const outcome = await Promise.race([
         page.waitForSelector(".msg-ai.bare .follow", { timeout: 150000 }).then(() => "answered"),
@@ -111,7 +122,15 @@ async function run(name, options, ask) {
       const notices = await page.locator(".msg-ai.bare .note").count();
       if (outcome === "answered" && notices === 0) {
         const cites = await page.locator(".msg-ai.bare .cite").count();
-        say("OK", `${name}: a question was answered in ${seconds} seconds, with ${cites} source buttons.`);
+        const away = await page.locator(".away-note").count();
+        const how = reloaded
+          ? away
+            ? " (the page was reloaded while RabAI was writing, and the answer came back)"
+            : " (the page was reloaded while RabAI was writing)"
+          : writing
+            ? " (it finished before the page could be reloaded)"
+            : "";
+        say("OK", `${name}: a question was answered in ${seconds} seconds, with ${cites} source buttons${how}.`);
       } else if (notices > 0) {
         const note = await page.locator(".msg-ai.bare .note").first().innerText();
         say("PROBLEM", `${name}: a question got the app's notice after ${seconds} seconds: "${note}"`);
