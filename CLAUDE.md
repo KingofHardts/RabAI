@@ -276,6 +276,9 @@ Done 2026-10-16, at Josh's request:
 - A pass over how the chat feels, written up with its sources in `docs/ui-feel.md`: the question
   stays at the top while the answer is written, Copy and Try again, a "you can leave" note, chats
   that show "Answering" and "New answer", a New chat button on phones, and tidier bars.
+- The "Is RabAI working?" check now asks with a picture, leaves a question halfway and comes back
+  for it, and reloads the phone's page while it answers. All three passed on 2026-10-16 (the
+  answer left after 1 second was finished and picked up 63 seconds later).
 
 Done 2026-10-13, at Josh's request:
 - The library expanded: 67 more works in the canon as proposed, 13 more entries in
@@ -306,9 +309,11 @@ Open items:
 - **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages on since
   2026-10-11** (about $0.75 per GB over 9 GB in a month), so going past 9 GB costs money but no
   longer blocks writes. Storage counts every database used in the month, deleted ones included;
-  the period runs to 2026-11-01. After the rebuild of 2026-10-14 this period's storage is 12.6 GB
-  (about 3.6 GB over, roughly $2.70); a library rebuild adds about 4.5 GB each time. Batch canon
-  changes into one rebuild, and check a collection's estimated size before writing it.
+  the period runs to 2026-11-01. This period's storage is 17.2 GB (measured 2026-10-16; about
+  8.2 GB over, roughly $6). The 12.6 GB read right after the 2026-10-14 rebuild hadn't yet counted
+  the new library: Turso's monthly figure lags, so read it a day or two after a rebuild. A library
+  rebuild adds about 4.5 GB each time. Batch canon changes into one rebuild, and check a
+  collection's estimated size before writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
 - Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
