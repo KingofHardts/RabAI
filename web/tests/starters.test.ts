@@ -4,6 +4,7 @@ import { dayStarters, LIFE_STARTERS, pickStarters, TORAH_STARTERS } from "../lib
 import type { DaySummary } from "../lib/calendar/place";
 
 const DAY: DaySummary = {
+  date: "2026-11-03",
   civil: "Tuesday, November 3, 2026",
   hebrew: "23 Cheshvan 5787",
   hebrewHe: "כ״ג חשון תשפ״ז",

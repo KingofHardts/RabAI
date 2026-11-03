@@ -240,6 +240,27 @@ export function whenLabel(time: number, now = Date.now()): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(d.getFullYear() !== new Date(now).getFullYear() ? { year: "numeric" } : {}) });
 }
 
+/** Which part of the list a chat falls in by when it was last used: "Today", "Yesterday", "This week", "Earlier". */
+export function dateBucket(time: number, now = Date.now()): string {
+  const day = (t: number) => {
+    const d = new Date(t);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  const days = Math.round((day(now) - day(time)) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return "This week";
+  return "Earlier";
+}
+
+/** Whether a chat has every one of the words: in its name, its category, or anything said in it. */
+export function chatMatches(chat: SavedChat, words: string[]): boolean {
+  if (!words.length) return true;
+  const said = chat.messages.map((m) => (m.role === "user" ? (m.text ?? "") : (m.result?.blocks.map((b) => b.text).join("") ?? ""))).join(" ");
+  const hay = `${chat.title} ${chat.category} ${chat.chavrusa?.text ?? ""} ${said}`.toLowerCase();
+  return words.every((w) => hay.includes(w));
+}
+
 // ---------------------------------------------------------------------------
 // Recent reading: where the person was learning, so they can pick up there.
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AskResult, LineAction } from "@/lib/engine/answer";
 import type { AnswerBlock, AnswerSource } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
@@ -13,6 +13,8 @@ import type { WordEntry } from "@/lib/library/word-parts";
 import {
   addRecent,
   categoriesFor,
+  chatMatches,
+  dateBucket,
   CHATS_KEY,
   cleanCategory,
   groupByCategory,
@@ -30,7 +32,7 @@ import {
   type SavedPicture,
 } from "@/lib/saved-chats";
 import { PICTURE_LIMITS, questionForPictures, type QuestionPicture } from "@/lib/pictures";
-import { canSpeak, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
+import { canSpeak, setSpeechRate, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
@@ -42,10 +44,11 @@ import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } f
 import AboutYou from "./AboutYou";
 import YourPlace, { placeSummary } from "./YourPlace";
 import ChavrusaSetup, { type ChavrusaChoice } from "./ChavrusaSetup";
-import { amudOf, openingMessage, quickReplies, reachedLine, STYLE_INFO, DEPTH_INFO, type ChavrusaSession } from "@/lib/chavrusa";
+import { amudOf, openingMessage, quickReplies, reachedLine, sessionLabel, STYLE_INFO, DEPTH_INFO, type ChavrusaSession } from "@/lib/chavrusa";
 import { deviceWhen, loadPlaceSettings, savePlaceSettings, type PlaceSettings } from "@/lib/calendar/device";
 import type { DaySummary } from "@/lib/calendar/place";
 import { pickStarters, type StarterGroup } from "@/lib/starters";
+import { shabbatLine, soonLine, todayLine } from "@/lib/calendar/day-lines";
 import AccountDialog from "./AccountDialog";
 import AnswerFeedback from "./AnswerFeedback";
 import { useAccount, type AccountApi } from "./use-account";
@@ -153,6 +156,37 @@ const ANSWER_GIVE_UP_MS = 8 * 60 * 1000;
 const OPEN_CHAT_KEY = "rabai_open_chat";
 /** Said when an answer couldn't be picked up again. */
 const LOST_NOTICE = "This answer didn't finish. Please try again.";
+const TEXT_SIZES = ["normal", "large", "larger"] as const;
+type TextSize = (typeof TEXT_SIZES)[number];
+const TEXT_SCALE: Record<TextSize, number> = { normal: 1, large: 1.15, larger: 1.3 };
+
+/** Questions typed but not yet sent, per chat, for this tab (kept through a reload, gone with the tab). */
+const DRAFTS_KEY = "rabai_drafts";
+
+function readDrafts(): Record<string, string> {
+  try {
+    const d = JSON.parse(window.sessionStorage.getItem(DRAFTS_KEY) ?? "{}");
+    return d && typeof d === "object" ? (d as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+/** The unsent question kept for a chat (null: a new chat). */
+function draftFor(id: string | null): string {
+  const d = readDrafts()[id ?? "new"];
+  return typeof d === "string" ? d : "";
+}
+function keepDraft(id: string | null, text: string) {
+  try {
+    const d = readDrafts();
+    const key = id ?? "new";
+    if (text.trim()) d[key] = text.slice(0, 2000);
+    else delete d[key];
+    window.sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(d));
+  } catch {
+    /* storage can be unavailable; the draft simply isn't kept */
+  }
+}
 
 interface ReaderCommentary extends Passage {
   author: string;
@@ -374,6 +408,59 @@ function plainAnswer(result: AskResult | undefined): string {
   return result?.blocks.map((b) => b.text).join("") ?? "";
 }
 
+/** An answer as plain text with the texts it cited listed under it, for Copy and Share. */
+function answerToShare(result: AskResult | undefined, testing: boolean): string {
+  const refs: string[] = [];
+  for (const b of result?.blocks ?? []) for (const c of b.citations) if (!c.article && !c.online && !refs.includes(c.ref)) refs.push(c.ref);
+  const lines = [plainAnswer(result).trim()];
+  if (refs.length)
+    lines.push("", testing ? "Sources (RabbAI's testing library, not yet approved by the rabbinic board):" : "Sources:", ...refs.map((r) => `• ${r}`));
+  lines.push("", "From RabbAI, an AI Torah teacher, not a rav.");
+  return lines.join("\n");
+}
+
+/** A whole chat as plain text: each question and answer, with the texts each answer cited. */
+function chatToShare(chat: { title: string; messages: Array<{ role: "user" | "ai"; text?: string; result?: AskResult }> }, testing: boolean): string {
+  const parts = [chat.title, ""];
+  for (const m of chat.messages) {
+    if (m.role === "user" && m.text) parts.push(`You: ${m.text}`, "");
+    else if (m.role === "ai" && m.result?.status === "answered") {
+      const one = answerToShare(m.result, testing).replace(/\n\nFrom RabbAI, an AI Torah teacher, not a rav\.$/, "");
+      parts.push(`RabbAI: ${one}`, "");
+    }
+  }
+  parts.push("From RabbAI, an AI Torah teacher, not a rav.");
+  return parts.join("\n");
+}
+
+/** A run of Hebrew inside a line of English: Hebrew letters, with the spaces, marks and abbreviations between them. */
+const HEBREW_RUN = /[\u05D0-\u05EA](?:[\u0591-\u05F4\s"',.:;!?()\-]*[\u05D0-\u05EA\u0591-\u05C7\u05F3\u05F4])?/g;
+
+/** A line with its Hebrew set in the Hebrew typeface and marked as Hebrew, so it reads and is spoken correctly. */
+function withHebrew(line: string, nextKey: () => number): ReactNode[] {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of line.matchAll(HEBREW_RUN)) {
+    const at = m.index ?? 0;
+    if (at > last) out.push(line.slice(last, at));
+    out.push(
+      <span key={`he${nextKey()}`} lang="he" dir="rtl" className="he-run">
+        {m[0]}
+      </span>,
+    );
+    last = at + m[0].length;
+  }
+  if (last < line.length) out.push(line.slice(last));
+  return out;
+}
+
+/** Mostly Hebrew: more than twice as many Hebrew letters as Latin ones. */
+function mostlyHebrew(text: string): boolean {
+  const he = (text.match(/[\u05D0-\u05EA]/g) ?? []).length;
+  const en = (text.match(/[A-Za-z]/g) ?? []).length;
+  return he > 0 && he > 2 * en;
+}
+
 /** The person's question that an answer replied to: the last message of theirs before it. */
 function questionBefore(messages: ChatMessage[], id: number): string {
   const i = messages.findIndex((m) => m.id === id);
@@ -550,15 +637,21 @@ async function loadPicture(file: File): Promise<{ image: CanvasImageSource; widt
 
 function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: string) => void }) {
   const paragraphs: ReactNode[][] = [[]];
+  const texts: string[] = [""];
   let key = 0;
+  const nextKey = () => key++;
   for (const block of blocks) {
     const pieces = block.text.split(/\n{2,}/);
     pieces.forEach((piece, i) => {
-      if (i > 0) paragraphs.push([]);
+      if (i > 0) {
+        paragraphs.push([]);
+        texts.push("");
+      }
       const current = paragraphs[paragraphs.length - 1];
+      texts[texts.length - 1] += piece;
       piece.split("\n").forEach((line, j) => {
         if (j > 0) current.push(<br key={`br${key++}`} />);
-        if (line) current.push(<span key={`t${key++}`}>{line}</span>);
+        if (line) current.push(<span key={`t${key++}`}>{withHebrew(line, nextKey)}</span>);
       });
     });
     const current = paragraphs[paragraphs.length - 1];
@@ -568,7 +661,13 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
       if (c.article || c.online) continue;
       current.push(" ");
       current.push(
-        <button key={`c${key++}`} type="button" className="cite" onClick={() => onOpen(c.ref)} title={`Open ${c.ref}`}>
+        <button
+          key={`c${key++}`}
+          type="button"
+          className="cite"
+          onClick={() => onOpen(c.ref)}
+          title={c.quote ? `“${c.quote.length > 160 ? `${c.quote.slice(0, 160)}…` : c.quote}” (open ${c.ref})` : `Open ${c.ref}`}
+        >
           {c.ref}
         </button>,
       );
@@ -577,9 +676,12 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
   return (
     <>
       {paragraphs
-        .filter((p) => p.some((n) => typeof n !== "string" || n.trim()))
-        .map((p, i) => (
-          <p key={i}>{p}</p>
+        .map((p, i) => ({ p, rtl: mostlyHebrew(texts[i] ?? "") }))
+        .filter(({ p }) => p.some((n) => typeof n !== "string" || n.trim()))
+        .map(({ p, rtl }, i) => (
+          <p key={i} {...(rtl ? { dir: "rtl", lang: "he", className: "he-para" } : {})}>
+            {p}
+          </p>
         ))}
     </>
   );
@@ -837,6 +939,55 @@ function CopyAnswer({ text }: { text: string }) {
   );
 }
 
+/** On a phone, the share sheet (messages, WhatsApp, email); elsewhere Copy does the job. */
+function ShareAnswer({ text }: { text: string }) {
+  const [can, setCan] = useState(false);
+  useEffect(() => {
+    setCan(typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+  if (!can) return null;
+  return (
+    <button type="button" className="btn quiet" onClick={() => void navigator.share({ title: "From RabbAI", text }).catch(() => undefined)}>
+      <ShareIcon /> Share
+    </button>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v13" />
+      <path d="m7 8 5-5 5 5" />
+      <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+    </svg>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+
+/** Copy a whole chat, questions and answers with their sources, to paste anywhere. */
+function CopyChat({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setDone(false), 2000);
+    return () => clearTimeout(t);
+  }, [done]);
+  if (typeof navigator === "undefined" || !navigator.clipboard) return null;
+  return (
+    <button type="button" className="chip-btn" onClick={() => void navigator.clipboard.writeText(text).then(() => setDone(true)).catch(() => undefined)}>
+      <span aria-live="polite">{done ? "Copied" : "Copy the whole chat"}</span>
+    </button>
+  );
+}
+
 function PictureIcon() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -924,6 +1075,25 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [fitting, setFitting] = useState(false);
   /** A short note under the box: a picture that couldn't be added, or an answer stopped. */
   const [composerNote, setComposerNote] = useState<string | null>(null);
+  /** The size of the text in chat and the reader (Settings), and how fast answers are read aloud. */
+  const [textSize, setTextSize] = useState<TextSize>("normal");
+  const [readingRate, setReadingRate] = useState<"0.8" | "1" | "1.2">("1");
+  useEffect(() => {
+    document.documentElement.style.setProperty("--text-scale", String(TEXT_SCALE[textSize]));
+  }, [textSize]);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  /** Whether the device has a connection (Ask waits without one). */
+  const [online, setOnline] = useState(true);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine !== false);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
   /** Chats whose answer arrived while another chat was open. */
   const [freshChats, setFreshChats] = useState<Set<string>>(() => new Set());
   const pictureInputRef = useRef<HTMLInputElement>(null);
@@ -989,6 +1159,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // Suggested questions, drawn fresh each time a new chat opens; today's come first.
   const [starters, setStarters] = useState<StarterGroup[] | null>(null);
   const welcomeShown = messages.length === 0;
+  /** The person's last question in the chat (it can be changed and asked again). */
+  const lastUserIndex = messages.reduce((at, m, i) => (m.role === "user" ? i : at), -1);
   useEffect(() => {
     if (!welcomeShown) {
       setStarters(null);
@@ -1151,9 +1323,66 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const lastFocus = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
+  // An unsent question is kept with its chat for this tab, so switching chats or reloading keeps it.
+  const draftsReady = useRef(false);
+  useEffect(() => {
+    if (!draftsReady.current) {
+      // After a reload: bring back what was being typed in the chat that opens.
+      draftsReady.current = true;
+      const kept = draftFor(chatIdRef.current);
+      if (kept && !input) {
+        setInput(kept);
+        return;
+      }
+    }
+    keepDraft(chatIdRef.current, input);
+    // Only typing changes a draft; switching chats keeps and brings back drafts itself (showChat).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
+
+  // Ctrl/Cmd+Shift+O starts a new chat (as in other chat apps); "?" lists the keyboard shortcuts.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (!!t.closest("input, textarea, select, [contenteditable=true]") || t.isContentEditable);
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        startNewChatRef.current();
+        return;
+      }
+      if (e.key === "?" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  // On a computer, "/" puts the cursor in the question box, as on many sites.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || mode !== "chat") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input, textarea, select, [contenteditable=true]") || t.isContentEditable)) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      const box = textareaRef.current;
+      if (!box) return;
+      e.preventDefault();
+      box.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mode]);
+
   // Settings and saved words live on this device only.
   useEffect(() => {
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
+    setTextSize(readStored("rabai_text_size", TEXT_SIZES, "normal"));
+    const rate = readStored("rabai_speech_rate", ["0.8", "1", "1.2"] as const, "1");
+    setReadingRate(rate);
+    setSpeechRate(Number(rate));
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
     try {
@@ -1308,6 +1537,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change, changedAt: Date.now() } : c)));
 
   const showChat = (id: string | null, list: ChatMessage[], session: ChavrusaSession | null = null) => {
+    keepDraft(chatIdRef.current, input);
     chavrusaRef.current = session;
     setChavrusaState(session);
     dictation.cancel();
@@ -1316,7 +1546,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     chatIdRef.current = id;
     setChatId(id);
     setMessages(list);
-    setInput("");
+    setInput(draftFor(id));
     setAttached([]);
     setComposerNote(null);
     setChatsOpen(false);
@@ -1335,6 +1565,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   };
 
   const startNewChat = () => showChat(null, []);
+  const startNewChatRef = useRef(startNewChat);
+  startNewChatRef.current = startNewChat;
 
   const openChat = (chat: SavedChat) =>
     showChat(
@@ -1571,6 +1803,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [dafRef, dafPick, dafMenu, flowStep]);
+
+  // The browser tab says what is open: the printed page, or the chat's name.
+  const baseTitle = useRef("RabbAI");
+  const openChatTitle = chatId ? chats.find((c) => c.id === chatId)?.title : undefined;
+  useEffect(() => {
+    const t = daf ? `${daf.section} · RabbAI` : openChatTitle ? `${openChatTitle} · RabbAI` : "RabbAI";
+    baseTitle.current = t;
+    if (!document.hidden) document.title = t;
+  }, [daf, openChatTitle]);
 
   const tailRef = useRef<HTMLDivElement>(null);
   /**
@@ -1956,7 +2197,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     const onShow = () => {
       if (document.hidden) return;
-      if (document.title !== "RabbAI") document.title = "RabbAI";
+      if (document.title !== baseTitle.current) document.title = baseTitle.current;
       for (const m of messagesRef.current) if (m.pending && !watchers.current.has(m.pending.id)) watchJob(m.pending.id, chatIdRef.current ?? "", m.pending.at);
     };
     document.addEventListener("visibilitychange", onShow);
@@ -2049,13 +2290,32 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       if (c.text && !choices.some((x) => x.text === c.text)) choices.push(c);
     };
     if (daf) add({ text: daf.section, label: `This page: ${daf.section}` });
-    if (readerOpen && reader?.section) add({ text: reader.section, label: `What's open: ${reader.section}` });
+    if (readerOpen && reader?.section) {
+      // Start at the line being read, when one is picked (or the line an answer opened).
+      const line = [selected, reader.focus].find((r) => r?.startsWith(`${reader.section}:`));
+      add({ text: reader.section, label: `What's open: ${reader.section}${line ? `, from ${line}` : ""}`, ...(line ? { at: line } : {}) });
+    }
     const last = profile.remember ? profile.observed.learning[0] : undefined;
     if (last) add({ text: last.text, label: `Continue ${last.text}${last.at && last.at !== last.text ? ` (from ${last.at})` : ""}`, ...(last.at ? { at: last.at } : {}) });
     if (day?.daf?.ref) add({ text: day.daf.ref, label: `Today's Daf Yomi: ${day.daf.text}` });
     if (day?.parsha && !day.parsha.holiday) add({ text: `Parashat ${day.parsha.name}`, label: `This week's parsha: ${day.parsha.name}` });
     setChavrusaSetup({ initial: { style: last?.style ?? "guide", depth: "standard", ...initial }, choices });
   };
+
+  /** How many lines the session's text has, for "line 4 of 28" (fetched once per text). */
+  const [sessionLines, setSessionLines] = useState<{ text: string; n: number } | null>(null);
+  const sessionText = chavrusa?.text;
+  useEffect(() => {
+    if (!sessionText || sessionLines?.text === sessionText) return;
+    const ctrl = new AbortController();
+    void fetch(`/api/text?ref=${encodeURIComponent(sessionText)}&count=1`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { section?: string; lines?: number } | null) => {
+        if (j?.lines && j.section === sessionText) setSessionLines({ text: sessionText, n: j.lines });
+      })
+      .catch(() => undefined);
+    return () => ctrl.abort();
+  }, [sessionText, sessionLines?.text]);
 
   /** Start a chavrusa session in a new chat: RabbAI opens it the way the person chose. */
   const startChavrusa = (session: ChavrusaSession) => {
@@ -2144,6 +2404,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       void submitBox();
+      return;
+    }
+    // In an empty box, the up arrow brings back your last question, to change and send again.
+    if (e.key === "ArrowUp" && !input && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey) {
+      const last = [...messages].reverse().find((m) => m.role === "user" && m.text);
+      if (!last?.text) return;
+      e.preventDefault();
+      setInput(last.text);
+      const el = e.currentTarget;
+      requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length));
     }
   };
   const onComposerChange = (value: string) => {
@@ -3225,6 +3495,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         </button>
       )}
       {categoryPicker(c)}
+      <CopyChat text={chatToShare(c, libraryMode === "testing")} />
       {confirmDelete === c.id ? (
         <span className="confirm">
           Delete this chat?{" "}
@@ -3249,9 +3520,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
    */
   const renderChatsPanel = (column = false) => {
     const words = chatFilter.toLowerCase().split(/\s+/).filter(Boolean);
-    const shown = words.length
-      ? chats.filter((c) => words.every((w) => `${c.title} ${c.category}`.toLowerCase().includes(w)))
-      : chats;
+    const shown = words.length ? chats.filter((c) => chatMatches(c, words)) : chats;
     return (
       <div className={column ? "chats-col-inner" : "chats-panel"}>
         <div className="chats-head">
@@ -3282,15 +3551,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             )}
           </p>
         )}
-        {chats.length > 6 && (
+        {chats.length > 3 && (
           <>
             <label className="sr-only" htmlFor="chat-filter">
-              Find a chat
+              Search your chats
             </label>
             <input
               id="chat-filter"
               className="book-filter"
-              placeholder="Find a chat"
+              type="search"
+              placeholder="Search your chats"
               value={chatFilter}
               onChange={(e) => setChatFilter(e.target.value)}
             />
@@ -3305,11 +3575,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <section key={g.category || "_none"} className="chat-group">
               <h3 className={`group-name ${categoryTone(g.category)}`}>{g.category || "Not sorted"}</h3>
               <ul>
-                {g.chats.map((c) => {
+                {g.chats.map((c, ci) => {
                   const questions = c.messages.filter((m) => m.role === "user").length;
                   const open = chatTools === c.id;
+                  // In a long list, a small label where the days change: Today, Yesterday, This week, Earlier.
+                  const bucket = g.chats.length > 4 && !words.length ? dateBucket(c.updatedAt) : null;
+                  const newBucket = bucket && (ci === 0 || dateBucket(g.chats[ci - 1].updatedAt) !== bucket);
                   return (
-                    <li key={c.id} className={`chat-row${c.id === chatId ? " current" : ""}`}>
+                    <Fragment key={c.id}>
+                    {newBucket && <li className="chat-when" aria-hidden="true">{bucket}</li>}
+                    <li className={`chat-row${c.id === chatId ? " current" : ""}`}>
                       <div className="chat-row-main">
                         <button type="button" className="chat-open" onClick={() => openChat(c)}>
                           <span className="chat-title">{c.title}</span>
@@ -3317,6 +3592,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                             {whenLabel(c.updatedAt)} · {questions} {questions === 1 ? "question" : "questions"}
                             {c.id === chatId ? " · open now" : ""}
                           </span>
+                          {c.chavrusa && <span className="chat-chav">{sessionLabel(c.chavrusa)}</span>}
                           {c.messages.some((m) => m.pending) ? (
                             <span className="chat-flag working">Answering</span>
                           ) : freshChats.has(c.id) ? (
@@ -3340,6 +3616,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </div>
                       {open && <div className="chat-tools">{chatToolsFor(c)}</div>}
                     </li>
+                    </Fragment>
                   );
                 })}
               </ul>
@@ -3952,6 +4229,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <>
               <button type="button" className="menu-scrim" aria-label="Close settings" onClick={() => setSettingsOpen(false)} />
               <div className="settings-menu" role="dialog" aria-label="Settings">
+                <p className="settings-group">Your learning</p>
                 <label className="switch">
                   <input type="checkbox" checked={growth} onChange={(e) => toggleGrowth(e.target.checked)} />
                   <span>
@@ -3992,6 +4270,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </span>
                   </button>
                 )}
+                <p className="settings-group">Times and reading</p>
                 <button
                   type="button"
                   className="settings-row"
@@ -4001,12 +4280,74 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   }}
                 >
                   <strong>Your place</strong>
-                  <span className="muted">{placeSummary(placeSettings)}. For candle lighting, fasts and the day&apos;s times</span>
+                  <span className="muted">
+                    {placeSummary(placeSettings)}
+                    {day?.shabbat && placeSettings.place
+                      ? `. This Shabbat: candles ${day.shabbat.candlesDay.split(",")[0]} ${day.shabbat.candles}, ends ${day.shabbat.ends}`
+                      : ". For candle lighting, fasts and the day's times"}
+                  </span>
                 </button>
+                <div className="settings-line">
+                  <span id="text-size-label">Text size</span>
+                  <div className="seg" role="radiogroup" aria-labelledby="text-size-label">
+                    {TEXT_SIZES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        role="radio"
+                        aria-checked={textSize === t}
+                        className={textSize === t ? "on" : ""}
+                        style={{ fontSize: `${14 * TEXT_SCALE[t]}px` }}
+                        onClick={() => {
+                          setTextSize(t);
+                          store("rabai_text_size", t);
+                        }}
+                      >
+                        {t === "normal" ? "A" : t === "large" ? "A+" : "A++"}
+                        <span className="sr-only">{t === "normal" ? " usual size" : t === "large" ? " larger" : " largest"}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {speechOk && (
+                  <div className="settings-line">
+                    <span id="reading-rate-label">Reading aloud</span>
+                    <div className="seg" role="radiogroup" aria-labelledby="reading-rate-label">
+                      {(["0.8", "1", "1.2"] as const).map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          role="radio"
+                          aria-checked={readingRate === r}
+                          className={readingRate === r ? "on" : ""}
+                          onClick={() => {
+                            setReadingRate(r);
+                            setSpeechRate(Number(r));
+                            store("rabai_speech_rate", r);
+                          }}
+                        >
+                          {r === "0.8" ? "Slower" : r === "1" ? "Usual" : "Faster"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="settings-group">About RabbAI</p>
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
                   <strong>RabbAI&apos;s sources</strong>
                   <span className="muted">Every book it reads, what waits for the rabbinic board, and what it leaves out</span>
                 </a>
+                <button
+                  type="button"
+                  className="settings-row wide-pointer"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setShortcutsOpen(true);
+                  }}
+                >
+                  <strong>Keyboard shortcuts</strong>
+                  <span className="muted">Press ? anywhere to see them</span>
+                </button>
                 <div className="settings-about">
                   <p>RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                   {libraryMode === "testing" && (
@@ -4120,17 +4461,20 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     ר
                   </div>
                   <div className="body">
-                    <p className="welcome-hi">Shalom! I’m RabbAI, an AI Torah teacher.</p>
+                    <p className="welcome-hi">
+                      Shalom{profile.remember && profile.stated.name ? `, ${profile.stated.name}` : ""}! I’m RabbAI, an AI Torah teacher.
+                    </p>
                     {day && (
                       <p className="welcome-today">
-                        <span>{day.civil.split(",")[0]}, {day.hebrew}</span>
+                        <span>{todayLine(day)}</span>
                         {day.parsha && <span>{day.parsha.holiday ? day.parsha.name : `Parashat ${day.parsha.name}`}</span>}
-                        {day.todayIs[0] && <span>{day.todayIs[0]}</span>}
-                        {day.shabbat && new Date().getDay() >= 4 && new Date().getDay() <= 5 && (
-                          <span>
-                            Candles {day.shabbat.candlesDay.split(",")[0]} {day.shabbat.candles}
-                          </span>
-                        )}
+                        {day.todayIs[0] && !(day.soon?.date === day.date && day.soon.title === day.todayIs[0]) && <span>{day.todayIs[0]}</span>}
+                      </p>
+                    )}
+                    {day && (shabbatLine(day) || soonLine(day)) && (
+                      <p className="welcome-times">
+                        {shabbatLine(day) && <span>{shabbatLine(day)}</span>}
+                        {soonLine(day) && <span>{soonLine(day)}</span>}
                       </p>
                     )}
                     <p>
@@ -4139,7 +4483,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </p>
                     {libraryMode === "testing" && (
                       <p className="welcome-tag">
-                        <span className="tag-gray">Testing library</span> Sources are not yet approved by the rabbinic board.
+                        <span className="tag-gray">Testing library</span> Not yet approved by the rabbinic board.
                       </p>
                     )}
                     {!connected && (
@@ -4169,8 +4513,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                             Continue {profile.observed.learning[0].text}
                           </button>
                         )}
-                        <button type="button" className="btn primary" onClick={() => openChavrusaSetup()}>
-                          Start learning
+                        <button type="button" className="btn primary" onClick={() => openChavrusaSetup()} aria-label="Start learning with a chavrusa">
+                          <span className="wide-only">Start learning</span>
+                          <span className="narrow-only">Start</span>
                         </button>
                       </div>
                     </div>
@@ -4187,6 +4532,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         </div>
                       </div>
                     ))}
+                    {starters && starters.length > 0 && (
+                      <button
+                        type="button"
+                        className="link starters-more"
+                        onClick={() =>
+                          setStarters((cur) => {
+                            // Draw again until something changes (the week's own questions stay).
+                            const key = (g: StarterGroup[] | null) => JSON.stringify(g?.map((x) => x.items.map((i) => i.label)));
+                            let next = pickStarters(day);
+                            for (let n = 0; n < 4 && key(next) === key(cur); n++) next = pickStarters(day);
+                            return next;
+                          })
+                        }
+                      >
+                        <RefreshIcon /> Other questions
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -4199,6 +4561,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <div key={m.id} className="msg-user" data-msg={m.id} data-msg-user="">
                     <SentPictures pictures={m.pictures} count={m.pictureCount} onOpen={setPictureView} />
                     {m.text ? <div className="msg-user-text">{m.text}</div> : null}
+                    {m.text && i === lastUserIndex && !pending && (
+                      <button
+                        type="button"
+                        className="link msg-edit"
+                        onClick={() => {
+                          setInput(m.text ?? "");
+                          requestAnimationFrame(() => {
+                            const el = textareaRef.current;
+                            if (!el) return;
+                            el.focus();
+                            el.setSelectionRange(el.value.length, el.value.length);
+                          });
+                        }}
+                      >
+                        Edit and ask again
+                      </button>
+                    )}
                   </div>
                 ) : m.pending ? (
                   <div key={m.id} className="msg-ai bare live" data-msg={m.id} aria-busy="true">
@@ -4251,7 +4630,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
                             </button>
                           )}
-                          <CopyAnswer text={plainAnswer(m.result)} />
+                          <CopyAnswer text={answerToShare(m.result, libraryMode === "testing")} />
+                          <ShareAnswer text={answerToShare(m.result, libraryMode === "testing")} />
                           {i === messages.length - 1 && (
                             <span className="follow-more">
                               <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "deeper" }); void send("Tell me more.", { deep: true }); }}>
@@ -4260,6 +4640,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
                                 Say it more simply
                               </button>
+                              {!chavrusa && (
+                                <button
+                                  type="button"
+                                  className="btn quiet"
+                                  disabled={pending}
+                                  onClick={() =>
+                                    void send("Quiz me on what you just explained: ask me two or three short questions, one at a time, and tell me how I did.")
+                                  }
+                                >
+                                  Quiz me on this
+                                </button>
+                              )}
                             </span>
                           )}
                         </div>
@@ -4437,7 +4829,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <span className="chav-what">
                     {STYLE_INFO[chavrusa.style].name}
                     {chavrusa.text ? ` · ${chavrusa.text}` : ""}
-                    {chavrusa.at && chavrusa.text && chavrusa.at.startsWith(`${chavrusa.text}:`) ? `, line ${chavrusa.at.slice(chavrusa.text.length + 1)}` : ""}
+                    {chavrusa.at && chavrusa.text && chavrusa.at.startsWith(`${chavrusa.text}:`)
+                      ? `, line ${chavrusa.at.slice(chavrusa.text.length + 1)}${sessionLines?.text === chavrusa.text ? ` of ${sessionLines.n}` : ""}`
+                      : ""}
                     <span className="chav-depth-note"> · {DEPTH_INFO[chavrusa.depth].name}</span>
                   </span>
                   <span className="chav-bar-btns">
@@ -4557,7 +4951,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       ? attached.length > 1
                         ? "Ask about the pictures…"
                         : "Ask about the picture…"
-                      : "Ask anything…"
+                      : chavrusa
+                        ? "Answer, or ask your chavrusa…"
+                        : "Ask anything…"
                 }
                 maxLength={2000}
                 autoComplete="off"
@@ -4578,11 +4974,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <span className="stop-sq" aria-hidden="true" /> Stop
                 </button>
               ) : (
-                <button key="ask" className="send" type="submit" disabled={preparing > 0 || fitting || (!input.trim() && !attached.length)}>
+                <button
+                  key="ask"
+                  className="send"
+                  type="submit"
+                  disabled={!online || preparing > 0 || fitting || (!input.trim() && !attached.length)}
+                  title={online ? undefined : "No connection right now"}
+                >
                   Ask
                 </button>
               )}
             </form>
+            {!online && (
+              <p className="voice-note offline-note" role="status">
+                You’re offline. Your question stays here, and Ask works again when the connection is back.
+              </p>
+            )}
             {composerNote && !listening && (
               <p className="voice-note" role="status">
                 {composerNote}
@@ -4866,6 +5273,28 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         </button>
       )}
 
+      {shortcutsOpen && (
+        <div className="about-view" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" onClick={() => setShortcutsOpen(false)}>
+          <div className="about-card shortcuts-card" onClick={(e) => e.stopPropagation()}>
+            <div className="about-head">
+              <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+              <button type="button" className="icon-btn" aria-label="Close" autoFocus onClick={() => setShortcutsOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <dl className="shortcuts">
+              <dt><kbd>/</kbd></dt><dd>Go to the question box</dd>
+              <dt><kbd>Enter</kbd></dt><dd>Ask</dd>
+              <dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>A new line in your question</dd>
+              <dt><kbd>↑</kbd></dt><dd>In an empty box, bring back your last question</dd>
+              <dt><kbd>Ctrl</kbd> or <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>A new chat</dd>
+              <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>The next or previous word in a word&apos;s card, or page as printed</dd>
+              <dt><kbd>Esc</kbd></dt><dd>Close a card, a menu or the page</dd>
+              <dt><kbd>?</kbd></dt><dd>This list</dd>
+            </dl>
+          </div>
+        </div>
+      )}
       {aboutOpen && (
         <AboutYou
           profile={profile}
@@ -4878,6 +5307,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 }
               : undefined
           }
+          onContinue={(l) => {
+            setAboutOpen(false);
+            startChavrusa({ style: l.style ?? "guide", depth: "standard", text: l.text, ...(l.at ? { at: l.at } : {}) });
+          }}
           onStated={(stated) => keepProfile(withStated(profileRef.current, stated))}
           onRemember={(on) => keepProfile(withRemember(profileRef.current, on))}
           onForgetNoticed={() => keepProfile(forgetNoticed(profileRef.current))}

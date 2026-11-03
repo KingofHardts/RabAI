@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { calendarInfo, calendarNoteForLookup, calendarSettings, candleMinutesFor, dafRef, yearAhead } from "../lib/calendar/calendar";
+import { calendarInfo, calendarNoteForLookup, calendarSettings, candleMinutesFor, dafRef, daySummary, yearAhead } from "../lib/calendar/calendar";
 import { asksAboutCalendar, parsePlace, parsePrefs, parseWhenAndWhere, placeFromHeaders, whenForRequest, type Place } from "../lib/calendar/place";
 import { calendarNotes, planRequest } from "../lib/engine/answer";
 import { loadLibrary } from "../lib/library/index";
@@ -197,4 +197,19 @@ test("the calendar library never reaches the device", () => {
   for (const r of roots) walk(join(web, r));
   assert.deepEqual(offenders, []);
   assert.doesNotMatch(readFileSync(join(web, "lib/calendar/place.ts"), "utf8"), /@hebcal/);
+});
+
+test("the day summary gives a fast coming in the next two days, with its times", () => {
+  // Asara B'Tevet 5787 is Sunday, December 20, 2026; the day before, it is "tomorrow".
+  const info = calendarInfo({ now: at("2026-12-19T12:00:00-05:00"), place: BALTIMORE });
+  const day = daySummary(info);
+  assert.equal(day.date, "2026-12-19");
+  assert.equal(day.soon?.kind, "fast");
+  assert.match(day.soon?.title ?? "", /Tevet/);
+  assert.equal(day.soon?.begins?.date, "2026-12-20");
+  assert.match(day.soon?.begins?.time ?? "", /am$/);
+  assert.equal(day.soon?.ends?.date, "2026-12-20");
+  assert.match(day.soon?.ends?.time ?? "", /pm$/);
+  // Nothing within two days of an ordinary Tuesday in Cheshvan.
+  assert.equal(daySummary(calendarInfo({ now: at("2026-11-03T14:00:00-05:00"), place: BALTIMORE })).soon, undefined);
 });

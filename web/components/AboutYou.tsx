@@ -34,6 +34,7 @@ export default function AboutYou({
   onForgetNoticed,
   onForgetAll,
   onClose,
+  onContinue,
 }: {
   profile: LearnerProfile;
   /** Signed in: this is kept in the person's account too. */
@@ -45,6 +46,8 @@ export default function AboutYou({
   onForgetNoticed: () => void;
   onForgetAll: () => void;
   onClose: () => void;
+  /** Pick up a chavrusa session where it stopped. */
+  onContinue?: (l: LearnerProfile["observed"]["learning"][number]) => void;
 }) {
   const s = profile.stated;
   const o = profile.observed;
@@ -196,6 +199,14 @@ export default function AboutYou({
                         {l.at && l.at !== l.text ? `, up to ${l.at}` : ""}
                         {l.style ? ` · ${STYLE_INFO[l.style].name}` : ""}
                         <span className="muted"> · {ago(l.last)}</span>
+                        {onContinue && (
+                          <>
+                            {" "}
+                            <button type="button" className="link about-continue" onClick={() => onContinue(l)}>
+                              Continue
+                            </button>
+                          </>
+                        )}
                       </li>
                     ))}
                   </ul>

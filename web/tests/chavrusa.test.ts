@@ -118,3 +118,29 @@ test("a saved chat keeps its chavrusa session", () => {
   assert.deepEqual(parseChats([chat], "account")[0].chavrusa, { style: "review", depth: "light", text: "Berakhot 2a" });
   assert.equal(parseChats([{ ...chat, chavrusa: { style: "nope" } }])[0].chavrusa, undefined);
 });
+
+test("the chats list names a session's place, and finds chats by what was said in them", async () => {
+  const { sessionLabel } = await import("../lib/chavrusa");
+  const { chatMatches, dateBucket } = await import("../lib/saved-chats");
+  assert.equal(sessionLabel({ style: "guide", depth: "standard", text: "Berakhot 2a", at: "Berakhot 2a:4" }), "Chavrusa · Berakhot 2a, line 4");
+  assert.equal(sessionLabel({ style: "review", depth: "light" }), "Chavrusa · the reviewer");
+  const chat = {
+    id: "c",
+    title: "A question",
+    category: "Shabbos",
+    createdAt: 1,
+    updatedAt: 1,
+    messages: [
+      { role: "user" as const, text: "Why two challot?" },
+      { role: "ai" as const, result: { status: "answered", blocks: [{ text: "Because of the double portion of manna.", citations: [] }] } as never },
+    ],
+  };
+  assert.ok(chatMatches(chat, ["manna"]));
+  assert.ok(chatMatches(chat, ["shabbos", "challot"]));
+  assert.ok(!chatMatches(chat, ["tefillin"]));
+  const now = new Date(2026, 10, 3, 12).getTime();
+  assert.equal(dateBucket(now - 3600_000, now), "Today");
+  assert.equal(dateBucket(now - 86400_000, now), "Yesterday");
+  assert.equal(dateBucket(now - 3 * 86400_000, now), "This week");
+  assert.equal(dateBucket(now - 20 * 86400_000, now), "Earlier");
+});

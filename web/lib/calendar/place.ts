@@ -52,6 +52,8 @@ export interface WhenAndWhere {
 
 /** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */
 export interface DaySummary {
+  /** YYYY-MM-DD where the person is. */
+  date: string;
   /** "Tuesday, November 3, 2026". */
   civil: string;
   /** "23 Cheshvan 5787". */
@@ -66,6 +68,15 @@ export interface DaySummary {
   /** The next holidays, fasts and Rosh Chodesh in the coming weeks. */
   coming: Array<{ title: string; day: string; date: string; kind: string }>;
   shabbat?: { candles: string; candlesDay: string; ends: string; endsDay: string };
+  /** A fast or holiday today or in the next two days, with when a fast begins and ends. */
+  soon?: {
+    title: string;
+    date: string;
+    day: string;
+    kind: string;
+    begins?: { date: string; time: string };
+    ends?: { date: string; time: string };
+  };
   place?: { name: string; from: PlaceSource };
 }
 

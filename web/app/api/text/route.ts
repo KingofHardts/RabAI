@@ -11,14 +11,18 @@ export const runtime = "nodejs";
  * each line split into words for word study.
  */
 export async function GET(request: Request) {
-  const ref = new URL(request.url).searchParams.get("ref")?.slice(0, 160) ?? "";
+  const params = new URL(request.url).searchParams;
+  const ref = params.get("ref")?.slice(0, 160) ?? "";
   if (!ref) return NextResponse.json({ error: "Which text? Pass ?ref=" }, { status: 400 });
+  // ?count=1: only how many lines the page or chapter has (a chavrusa's "line 4 of 28").
+  const countOnly = params.get("count") === "1";
 
   const lib = loadLibrary();
-  if (lib.mode === "testing") return testingSection(ref, lib);
+  if (lib.mode === "testing") return testingSection(ref, lib, countOnly);
 
   const section = getSection(lib, ref);
   if (!section) return NextResponse.json({ error: `“${ref}” isn't in the library yet.` }, { status: 404 });
+  if (countOnly) return NextResponse.json({ section: section.section, lines: section.lines.length });
 
   const all = section.lines.flatMap((l) => [l.passage, ...l.commentaries]);
   const { tokens, study } = studyPassages(lib, all);
@@ -56,7 +60,7 @@ export async function GET(request: Request) {
 }
 
 /** A section from the private testing library, in the same shape the reader uses. */
-async function testingSection(ref: string, lib: Library) {
+async function testingSection(ref: string, lib: Library, countOnly = false) {
   const store = testingStore();
   if (!store) return NextResponse.json({ error: "The library isn't connected right now." }, { status: 503 });
   let found: Awaited<ReturnType<typeof store.section>>;
@@ -70,6 +74,9 @@ async function testingSection(ref: string, lib: Library) {
     return NextResponse.json({ error: `“${ref}” isn't in the library yet.` }, { status: 404 });
   }
   const first = found.lines[0];
+  if (countOnly) {
+    return NextResponse.json({ section: first.section, lines: found.lines.length }, { headers: { "Cache-Control": "private, max-age=3600" } });
+  }
   const s = first.source!;
   const work: Work = {
     id: s.canonId,

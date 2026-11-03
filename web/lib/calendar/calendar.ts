@@ -531,7 +531,20 @@ export function daySummary(info: CalendarInfo): DaySummary {
     if (coming.length >= 3) break;
   }
   const s = info.shabbat;
+  // A fast or holiday today or in the next two days, for a heads-up on the welcome screen.
+  const horizon = isoOf(addDays(new Date(`${info.today.date}T12:00:00`), 2));
+  const soonItem = info.upcoming.find(
+    (u) => u.date >= info.today.date && u.date <= horizon && (u.kind === "fast" || u.kind === "holiday") && !/^Fast (?:begins|ends)/.test(u.title),
+  );
+  const fastTime = (which: "begins" | "ends") => {
+    if (soonItem?.kind !== "fast") return undefined;
+    const t = info.upcoming.find((u) => u.time && u.title === `Fast ${which} (${soonItem.title})`);
+    return t?.time ? { date: t.date, time: t.time } : undefined;
+  };
+  const begins = fastTime("begins");
+  const ends = fastTime("ends");
   return {
+    date: info.today.date,
     civil: info.today.civil,
     hebrew: info.today.hebrew,
     hebrewHe: info.today.hebrewHe,
@@ -542,5 +555,17 @@ export function daySummary(info: CalendarInfo): DaySummary {
     coming,
     ...(s?.candles && s.ends && s.candlesDay && s.endsDay ? { shabbat: { candles: s.candles, candlesDay: s.candlesDay, ends: s.ends, endsDay: s.endsDay } } : {}),
     ...(info.place ? { place: { name: info.place.name, from: info.place.from } } : {}),
+    ...(soonItem
+      ? {
+          soon: {
+            title: soonItem.title,
+            date: soonItem.date,
+            day: soonItem.day,
+            kind: soonItem.kind,
+            ...(begins ? { begins } : {}),
+            ...(ends ? { ends } : {}),
+          },
+        }
+      : {}),
   };
 }

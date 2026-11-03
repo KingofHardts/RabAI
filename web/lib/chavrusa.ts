@@ -103,6 +103,19 @@ export function chavrusaSettings(s: ChavrusaSession): string {
     .join("\n");
 }
 
+/** The line number in a place ("Berakhot 2a:4" -> 4), or null. */
+export function lineNumber(ref: string | undefined): number | null {
+  const m = ref ? /:(\d+)(?::\d+)?$/.exec(ref) : null;
+  return m ? Number(m[1]) : null;
+}
+
+/** How a session is named in the list of chats: "Chavrusa · Berakhot 2a, line 4". */
+export function sessionLabel(s: ChavrusaSession): string {
+  const line = lineNumber(s.at);
+  if (!s.text) return `Chavrusa · ${STYLE_INFO[s.style].name.toLowerCase()}`;
+  return `Chavrusa · ${s.text}${line ? `, line ${line}` : ""}`;
+}
+
 /** The first message of a session, as the person says it. */
 export function openingMessage(s: ChavrusaSession): string {
   if (s.style === "review") return s.text ? `Let's review ${s.text} together. Quiz me on it.` : "Let's review what I learned recently. Quiz me on it.";
@@ -112,10 +125,11 @@ export function openingMessage(s: ChavrusaSession): string {
 
 /** Short replies offered under a chavrusa's answer, for the way chosen. */
 export function quickReplies(s: ChavrusaSession): string[] {
-  const common = ["Next line", "Give me a hint", "Just tell me", "Where are we up to?"];
-  if (s.style === "questioner") return ["Give me a hint", "Here's my answer…", "Just tell me", "Next line"];
-  if (s.style === "partner") return ["Let me read the next line", "Did I get it right?", "Your turn", "Next line"];
-  if (s.style === "deep") return ["Ask me the hard question", "What do the Rishonim say?", "Why does each side hold that?", "Next line"];
+  // Every way can sum up what was learned so far (chazara, the review chavrusas end a sitting with).
+  const sumUp = "Sum up what we learned";
+  if (s.style === "questioner") return ["Give me a hint", "Here's my answer…", "Just tell me", "Next line", sumUp];
+  if (s.style === "partner") return ["Let me read the next line", "Did I get it right?", "Your turn", "Next line", sumUp];
+  if (s.style === "deep") return ["Ask me the hard question", "What do the Rishonim say?", "Why does each side hold that?", "Next line", sumUp];
   if (s.style === "review") return ["Quiz me", "Another question", "Explain what I got wrong", "What should I go over again?"];
-  return common;
+  return ["Next line", "Give me a hint", "Just tell me", "Where are we up to?", sumUp];
 }

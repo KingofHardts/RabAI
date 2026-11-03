@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import type { WordEntry } from "@/lib/library/word-parts";
 import { firstSense } from "@/lib/library/entry-summary";
 import { useSheetDrag } from "./use-sheet-drag";
+import { hasHebrewVoice, speakHebrew } from "./voice";
 
 /*
  * The card that opens when a word or a line is tapped, in the reader and on the printed page
@@ -110,6 +111,28 @@ export default function WordCard(props: WordCardProps) {
 
   const visible = tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id;
 
+  // Hear the word, when the device has a Hebrew voice (voices can arrive a moment after the page).
+  const [canHear, setCanHear] = useState(false);
+  useEffect(() => {
+    const check = () => setCanHear(hasHebrewVoice());
+    check();
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.addEventListener?.("voiceschanged", check);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", check);
+  }, []);
+
+  // The first time someone opens a word, a one-line tip says the card follows the next word tapped.
+  const [firstTime, setFirstTime] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("rabai_tip_words")) return;
+      window.localStorage.setItem("rabai_tip_words", "seen");
+      setFirstTime(true);
+    } catch {
+      /* without storage, no tip */
+    }
+  }, []);
+
   const head = (
     <>
       <div className="wc-top">
@@ -128,6 +151,14 @@ export default function WordCard(props: WordCardProps) {
           <span className="he wc-he" lang="he">
             {word}
           </span>
+          {canHear && (
+            <button type="button" className="wc-hear" aria-label={`Hear ${word}`} title="Hear it" onClick={() => speakHebrew(word)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4z" />
+                <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+              </svg>
+            </button>
+          )}
           {onPrev && (
             <button type="button" className="wc-step" aria-label="Previous word" onClick={onPrev}>
               ›
@@ -136,6 +167,7 @@ export default function WordCard(props: WordCardProps) {
         </div>
       )}
       {wordNote && <div className="wc-note">{wordNote}</div>}
+      {firstTime && word && <div className="wc-tip">Tip: tap any other word to look it up. The card follows you.</div>}
       {breakdown && <div className="wc-breakdown">{breakdown}</div>}
     </>
   );

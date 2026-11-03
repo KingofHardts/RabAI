@@ -247,6 +247,32 @@ function pushSentences(text: string, push: (t: string, lang: "en" | "he") => voi
 
 let speakingToken = 0;
 
+/** How fast answers are read aloud, chosen in Settings (1 is the usual pace). */
+let speechRate = 1;
+export const SPEECH_RATES = [0.8, 1, 1.2] as const;
+export function setSpeechRate(rate: number): void {
+  speechRate = SPEECH_RATES.includes(rate as (typeof SPEECH_RATES)[number]) ? rate : 1;
+}
+
+/** Whether the device has a Hebrew voice (so a word can be heard). */
+export function hasHebrewVoice(): boolean {
+  return canSpeak() && !!bestVoice("he");
+}
+
+/** Say one Hebrew word or phrase slowly, with the device's Hebrew voice. */
+export function speakHebrew(text: string): void {
+  const voice = canSpeak() ? bestVoice("he") : null;
+  if (!voice) return;
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  speakingToken += 1;
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = voice;
+  u.lang = voice.lang;
+  u.rate = 0.75 * speechRate;
+  synth.speak(u);
+}
+
 /**
  * Read text aloud in a calm voice. Hebrew is read with a Hebrew voice when the device has one,
  * and skipped otherwise (an answer translates its Hebrew right beside it). Calls onEnd once.
@@ -277,7 +303,7 @@ export function speak(text: string, onEnd?: () => void): void {
     const voice = p.lang === "he" ? hebrew : english;
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? (p.lang === "he" ? "he-IL" : "en-US");
-    u.rate = p.lang === "he" ? 0.85 : 0.95;
+    u.rate = (p.lang === "he" ? 0.85 : 0.95) * speechRate;
     u.pitch = 1;
     if (i === pieces.length - 1) {
       u.onend = finish;
