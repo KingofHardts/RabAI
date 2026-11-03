@@ -257,7 +257,33 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-10-16)
+## Where things stand (2026-11-03)
+
+Done 2026-11-03, at Josh's request (his brother's suggestions):
+- Renamed RabAI to RabbAI everywhere people see it (the repo, database and code names stay).
+- Dates and times: RabbAI knows the civil and Hebrew date, this week's parsha, the coming holidays
+  and fasts, and today's daily learning, and gives zmanim for the person's place from Hebcal
+  (KosherJava's calculations) with the common calendars' defaults (founding spec "Dates and
+  times", open question 20). A question on "this week's parsha" opens its verses with their
+  meforshim even if the planner misses (`parshaRefsFor`).
+- Opening questions change with each visit and with the calendar.
+- Learning with a chavrusa: six ways, three depths, and memory of what was learned and where they
+  stopped, across chats and devices (open question 21).
+- Talk: a conversation out loud, as in ChatGPT's voice mode (open question 22). On iPhones each
+  turn starts with a tap; a transcription service on the server would make it dependable there,
+  which needs Josh's choice of provider.
+- Pictures: a photo of a page of a sefer finds the page; handwritten notes are read as the
+  person's own; an answer about the Gemara offers "See … as printed".
+- The word card on a phone follows the finger, and Rashi and Tosafot show the translation under
+  the Hebrew.
+- 53 smaller improvements from research, listed with what was read in
+  `docs/research-2026-11.md`.
+- Wider sources: the canon already holds the classic parsha commentaries, the Midrash, the
+  Chassidic and mussar works and the codes (794 works), and the planner now opens them for a dvar
+  Torah. RabbAI may offer a thought of its own, built on and cited to the texts (core premises
+  "Your own thinking", for the board).
+- The "Is RabbAI working?" check also asks for a dvar Torah on this week's parsha and one question
+  as if spoken in Talk.
 
 Moving RabbAI off Senior Stylist:
 - The maintainer is creating a RabbAI cloud environment (Custom network access with the default
@@ -400,11 +426,9 @@ Done 2026-10-06:
   the library has no record of the printed line breaks. Matching the print line for line needs
   either those line breaks (from scans) or correcting each page by hand, as Mercava did.
 
-Next, as the maintainer asked (2026-10-06), roughly in this order:
-1. **A chavrusa mode.** RabbAI learns a daf with you on the printed page: points things out, asks
-   you questions, and tracks what you've learned and where you need practice.
-2. **More color** across the app, used to mean something (for example, sources, questions,
-   your own words).
+Next, as the maintainer asked (2026-10-06): **more color** across the app, used to mean
+something (for example, sources, questions, your own words). (The chavrusa mode he asked for then
+was built on 2026-11-03.)
 
 ## Writing style for anything a user or a rav will read
 
