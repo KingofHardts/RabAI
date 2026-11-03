@@ -60,7 +60,8 @@ export interface DaySummary {
   hebrew: string;
   hebrewHe: string;
   afterSunset: boolean;
-  parsha?: { name: string; he: string; day: string; holiday?: boolean; next?: string };
+  /** This week's parsha; `ref` is its first verse as the library names it. */
+  parsha?: { name: string; he: string; day: string; ref?: string; holiday?: boolean; next?: string };
   /** Today's Daf Yomi, "Bechorot 46", and the library's name for its first amud. */
   daf?: { text: string; ref?: string };
   /** What today is: a fast, Rosh Chodesh, a night of Chanukah, a holiday, a day of the Omer. */

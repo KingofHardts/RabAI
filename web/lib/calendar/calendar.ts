@@ -549,7 +549,7 @@ export function daySummary(info: CalendarInfo): DaySummary {
     hebrew: info.today.hebrew,
     hebrewHe: info.today.hebrewHe,
     afterSunset: info.today.afterSunset,
-    ...(p ? { parsha: { name: p.name, he: p.he, day: p.day, ...(p.holiday ? { holiday: true } : {}), ...(info.parshaNext ? { next: info.parshaNext.name } : {}) } } : {}),
+    ...(p ? { parsha: { name: p.name, he: p.he, day: p.day, ...(p.ref ? { ref: p.ref } : {}), ...(p.holiday ? { holiday: true } : {}), ...(info.parshaNext ? { next: info.parshaNext.name } : {}) } } : {}),
     ...(daf ? { daf: { text: daf.text, ...(daf.ref ? { ref: daf.ref } : {}) } } : {}),
     todayIs: [...new Set(today.filter((u) => !/^Fast (?:begins|ends)/.test(u.title)).map((u) => u.title))],
     coming,

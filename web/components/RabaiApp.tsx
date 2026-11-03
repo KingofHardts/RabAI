@@ -292,7 +292,7 @@ function keepAboveSheet(scroller: HTMLElement, el: HTMLElement, topInset = 0) {
   const openBottom = (vv ? vv.offsetTop : 0) + viewH * 0.46;
   if (r.top >= viewTop && r.bottom <= openBottom) return;
   const target = viewTop + Math.min(24, Math.max(0, openBottom - viewTop) * 0.15);
-  scroller.scrollBy({ top: r.top - target, behavior: "smooth" });
+  scroller.scrollBy({ top: r.top - target, behavior: smoothOrNot() });
 }
 
 /** chatTools holds a chat's id while its menu is open in the list; this, for the open chat's own menu. */
@@ -321,6 +321,11 @@ const MARK_COLORS = [
   { id: "pink", label: "Pink" },
 ];
 const MAX_SAVED_WORDS = 500;
+
+/** Smooth scrolling, unless the person's device asks for less motion. */
+function smoothOrNot(): ScrollBehavior {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
 
 function readStored<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -934,7 +939,7 @@ function CopyAnswer({ text }: { text: string }) {
           .catch(() => undefined)
       }
     >
-      <CopyIcon /> {done ? "Copied" : "Copy"}
+      <CopyIcon /> <span aria-live="polite">{done ? "Copied" : "Copy"}</span>
     </button>
   );
 }
@@ -1339,6 +1344,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     // Only typing changes a draft; switching chats keeps and brings back drafts itself (showChat).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input]);
+
+  // Esc closes what is open on top: the shortcuts list, a sent picture, the chats screen on a phone.
+  // (The chats are a column beside the chat on a computer; on a phone they are their own screen.)
+  const chatsScreen = chatsOpen && !(mode === "chat" && wide && !readerOpen);
+  useEffect(() => {
+    if (!shortcutsOpen && !pictureView && !chatsScreen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (shortcutsOpen) setShortcutsOpen(false);
+      else if (pictureView) setPictureView(null);
+      else setChatsOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [shortcutsOpen, pictureView, chatsScreen]);
 
   // Ctrl/Cmd+Shift+O starts a new chat (as in other chat apps); "?" lists the keyboard shortcuts.
   useEffect(() => {
@@ -1791,9 +1811,28 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       .catch(() => setWordInfo((prev) => ({ ...prev, [w]: { loading: false, error: "The dictionaries couldn't be reached just now." } })));
   }, [dafPick, wordInfo]);
 
+  // The pages before and after, and the opener, for the page keys below.
+  const dafPrevRef = useRef<string | undefined>(undefined);
+  const dafNextRef = useRef<string | undefined>(undefined);
+  const openDafRef = useRef(openDaf);
+  dafPrevRef.current = daf?.prev ?? undefined;
+  dafNextRef.current = daf?.next ?? undefined;
+  openDafRef.current = openDaf;
+
   useEffect(() => {
     if (!dafRef) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
+      // The arrow keys turn the page, as the ‹ › buttons do (a word's card uses them for words).
+      if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && !dafPick && !dafMenu && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const t = e.target as HTMLElement | null;
+        if (t?.closest("input, textarea, select, [contenteditable=true]")) return;
+        const to = e.key === "ArrowLeft" ? dafPrevRef.current : dafNextRef.current;
+        if (to) {
+          e.preventDefault();
+          void openDafRef.current(to);
+        }
+        return;
+      }
       if (e.key !== "Escape") return;
       if (dafMenu) setDafMenu(null);
       else if (dafPick) setDafPick(null);
@@ -1803,6 +1842,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [dafRef, dafPick, dafMenu, flowStep]);
+
+  // The zoom tip goes away by itself: once the page is zoomed, or after a while.
+  useEffect(() => {
+    if (!dafZoomHint || !daf) return;
+    if (dafZoom !== 1) {
+      setDafZoomHint(false);
+      store("rabai_daf_zoom_hint", "seen");
+      return;
+    }
+    const t = window.setTimeout(() => {
+      setDafZoomHint(false);
+      store("rabai_daf_zoom_hint", "seen");
+    }, 9000);
+    return () => window.clearTimeout(t);
+  }, [dafZoomHint, dafZoom, daf]);
 
   // The browser tab says what is open: the printed page, or the chat's name.
   const baseTitle = useRef("RabbAI");
@@ -2506,7 +2560,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-ref="${CSS.escape(reader.focus)}"]`);
     autoScrollUntil.current = Date.now() + 1200;
     setBarHidden(false);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    el?.scrollIntoView({ block: "center", behavior: smoothOrNot() });
     if (window.matchMedia("(max-width: 979px)").matches) closeRef.current?.focus();
   }, [reader, readerLoading]);
 
@@ -2593,7 +2647,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const ref = Object.keys(lineAnswers).find((r) => lineAnswers[r]?.loading);
     if (!ref) return;
     const el = readerBodyRef.current?.querySelector<HTMLElement>(`[data-answer-for="${CSS.escape(ref)}"]`);
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    el?.scrollIntoView({ block: "nearest", behavior: smoothOrNot() });
   }, [lineAnswers, selected, reader]);
 
   const chooseLang = (l: Lang) => {
@@ -4598,6 +4652,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       {m.result?.status === "answered" && (
                         <TeacherNotes sources={m.result.sources ?? []} onOpen={(r) => void openReader(r)} />
                       )}
+                      {m.result?.status === "answered" &&
+                        (() => {
+                          // An answer from the Gemara (a photo of a daf, for one) offers its page as printed.
+                          const amud = m.result.blocks
+                            .flatMap((b) => b.citations)
+                            .filter((c) => !c.article && !c.online)
+                            .map((c) => amudOf(c.ref))
+                            .find((a): a is string => !!a);
+                          return amud ? (
+                            <p className="open-printed">
+                              <button type="button" className="chip-btn" onClick={() => void openDaf(amud)}>
+                                <span aria-hidden="true">▤</span> See {amud} as printed
+                              </button>
+                            </p>
+                          ) : null;
+                        })()}
                       {m.result && (m.result.status === "answered" || m.result.status === "no_key") && (
                         <OnlineNotes result={m.result} onOpen={(r) => void openReader(r)} />
                       )}
@@ -4753,10 +4823,38 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </div>
           ) : (
             <div className="thread learn-home">
+              {day && (day.daf?.ref || day.parsha?.ref) && (
+                <div className="learn-today" role="group" aria-label="Today">
+                  {day.daf?.ref && (
+                    <button type="button" className="learn-today-item" onClick={() => void openDaf(day.daf!.ref!)}>
+                      <span className="label-sm">Today&apos;s Daf Yomi</span>
+                      <strong>{day.daf.text}</strong>
+                      <span className="muted">Open the page as printed</span>
+                    </button>
+                  )}
+                  {day.parsha?.ref && !day.parsha.holiday && (
+                    <button type="button" className="learn-today-item" onClick={() => void openReader(day.parsha!.ref!)}>
+                      <span className="label-sm">This week&apos;s parsha</span>
+                      <strong>{day.parsha.name}</strong>
+                      <span className="muted">Read it with the commentaries</span>
+                    </button>
+                  )}
+                </div>
+              )}
               {sections === null ? (
-                <p className="thinking">
-                  Opening the library<span className="dots" />
-                </p>
+                <div className="shelf-skeleton" aria-busy="true">
+                  <p className="sr-only">Opening the library</p>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="sk-shelf" aria-hidden="true">
+                      <span className="sk-line short" />
+                      <div className="sk-row">
+                        <span className="sk-card" />
+                        <span className="sk-card" />
+                        <span className="sk-card" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : sections.length === 0 ? (
                 <p className="note">No texts are in the library yet. They appear here once the rabbinic board approves them.</p>
               ) : (
@@ -4958,6 +5056,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 maxLength={2000}
                 autoComplete="off"
               />
+              {input.length > 40 && !pending && (
+                <button
+                  type="button"
+                  className="composer-clear"
+                  aria-label="Clear the question box"
+                  title="Clear"
+                  onClick={() => {
+                    if (listening) dictation.cancel();
+                    setInput("");
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  ×
+                </button>
+              )}
               {/* Two different buttons (keys), so the click that stops an answer can never also send the
                   question again: a reused button would become "submit" while the click is handled. */}
               {pending ? (

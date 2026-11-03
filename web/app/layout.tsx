@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "RabbAI",
   description: "An AI Torah teacher that answers from the Orthodox mesorah and opens the sources with you, and someone to talk with about anything.",
   robots: { index: false, follow: false },
+  // On a phone, "Add to Home Screen" opens RabbAI like an app, full screen, with its own icon.
+  appleWebApp: { capable: true, title: "RabbAI", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -22,6 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={dafFontVariables}>
       <head>
+        {/* Fetched with the access cookie, so the private app's lock stays as it is. */}
+        <link rel="manifest" href="/rabbai.webmanifest" crossOrigin="use-credentials" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
