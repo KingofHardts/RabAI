@@ -307,3 +307,14 @@ test("a rejected book reaches RabbAI as the author's claims, with the answer Ort
   assert.doesNotMatch(context, /what the kabbalists teach|Caution, a debated source/);
   assert.match(CORE_PREMISES, /Some of these books were rejected/);
 });
+
+test("a question spoken in Talk tells RabbAI it is talking out loud, after the cached instructions", () => {
+  const settingsOf = (input: Parameters<typeof planRequest>[0]) =>
+    (planRequest(input, lib, config).params.system as Array<{ text: string }>)
+      .slice(2)
+      .map((b) => b.text)
+      .join("\n");
+  assert.match(CORE_PREMISES, /## Talking out loud/);
+  assert.match(settingsOf({ question: "What is the Shema?", talking: true }), /talking with you out loud \(see "Talking out loud"\)/);
+  assert.doesNotMatch(settingsOf({ question: "What is the Shema?" }), /talking with you out loud/);
+});

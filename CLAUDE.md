@@ -152,8 +152,16 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.
 - Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
-  What the microphone hears goes into the text box and is never sent without the person
-  pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied box.
+  Outside Talk, what the microphone hears goes into the text box and is never sent without the
+  person pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied
+  box.
+- Talk (`web/components/talk.ts`, its turn-taking in `web/lib/talk.ts`; founding spec "Talking out
+  loud") is a conversation out loud that the person turns on themselves. It sends what they said
+  only after a pause and a visible countdown they can stop, and its microphone is closed while
+  RabbAI answers or speaks, when something covers the chat, when the page is hidden, and after a
+  long quiet. Its questions go through the usual path (`send` in `RabaiApp.tsx`), so the answers
+  are checked like any other, and only the final, checked answer is read aloud. The model is told
+  only that the person is talking (`TALKING_SETTING`); how to answer is in the core premises.
 - Pictures with a question (`web/lib/pictures.ts`, founding spec "Pictures with a question"): at
   most four, made smaller on the device, and checked by their own bytes on the server (never by
   the kind they claim). The server never keeps a picture: not in the answer store, not in an

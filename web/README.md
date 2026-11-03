@@ -29,10 +29,18 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   the next few questions while the page is open. The server never keeps a picture; the chat
   keeps a small preview on the device, and an account keeps only the number of pictures
   (`lib/pictures.ts`).
-- **Talk.** The microphone button types what you say into the box (the browser's own speech
+- **Voice.** The microphone button types what you say into the box (the browser's own speech
   recognition); you read it and press Ask. A question asked out loud gets its answer read
-  aloud, and every answer has a Listen button (the browser's own voices). Nothing is recorded
-  or sent anywhere else.
+  aloud, and every answer has a Listen button (the browser's own voices; Settings chooses the
+  voice and the speed). Nothing is recorded, and RabbAI gets only the words.
+- **Talk.** While the box is empty, Ask becomes Talk: a conversation out loud, as in ChatGPT's
+  voice mode (`components/talk.ts`, the turn-taking in `lib/talk.ts`). RabbAI listens and shows
+  the words; when you pause, a countdown sends them ("Keep talking" to say more, a tap to send at
+  once); the answer appears in the chat, checked as always, and is read aloud; a tap stops it, and
+  RabbAI listens again (on an iPhone, after a tap). The microphone is closed while RabbAI answers
+  or speaks, when something covers the chat, when the page is hidden, and after half a minute of
+  quiet. RabbAI is told the person is talking, and answers in short spoken turns (core premises,
+  "Talking out loud").
 - **Highlight and ask.** Highlight any words in an answer or a text, and an "Ask about this"
   button appears.
 - **Read.** Tapping a source opens the page or chapter with the cited line highlighted: beside

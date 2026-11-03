@@ -10,7 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
  * when it is full and its text is scrolled to the top, pulling down brings it back down. On
  * letting go it settles where the finger was heading: a quick flick wins over where it was let go.
  * Below half height it closes. The motion is the curve phones use for sheets
- * (docs/ui-feel-2.md, "The word sheet").
+ * (docs/research-2026-11.md, "The word card on a phone, and other sheets").
  *
  * When the page is zoomed in with two fingers, the sheet is drawn at its usual size at the bottom
  * of what is on screen, instead of being zoomed with the page (the visual viewport, below).

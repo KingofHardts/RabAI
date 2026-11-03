@@ -375,6 +375,24 @@ wording.
     RabbAI can connect a new question to what they learned before, in any chat and on any of
     their devices. The person sees and can forget all of it in "About you".
   - Open question 21 asks the board about the ways and their wording.
+- **Talking out loud.** **Decided (Josh, 2026-11-03):** a person can talk with RabbAI out loud, as
+  in ChatGPT's voice mode, and learn with it that way as with a chavrusa. How it works:
+  - The person turns it on (Talk, in the question box when the box is empty). RabbAI listens, and
+    what it hears appears as words.
+  - When they pause, a countdown shows before what they said is sent as their question, with
+    "Keep talking" to say more; a tap sends it at once, and End turns Talk off.
+  - The answer appears in the chat as always, with its sources checked, and is then read aloud. A
+    tap stops the reading, and RabbAI listens again. On an iPhone, each turn begins with a tap,
+    because listening again by itself is unreliable there.
+  - The microphone is closed while RabbAI answers and while it speaks, when something covers the
+    chat, when the page is hidden, and after half a minute of quiet.
+  - As with the microphone in the question box, only the browser's own speech recognition and
+    voices are used. RabbAI gets only the words; nothing is recorded. Outside Talk, the microphone
+    puts words in the question box, and nothing is sent until the person presses Ask.
+  - RabbAI is told when the person is talking, and answers in a way that is good to hear (core
+    premises, "Talking out loud"). Open question 22 asks the board about that section.
+  - A dependable back-and-forth on iPhones would need a transcription service on the server; that
+    needs Josh's choice of provider.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
@@ -531,3 +549,7 @@ These need a decision before launch. Each one changes behavior.
     them and the dictionaries)? The same question covers the paragraph "Your own thinking" in
     "How you think": RabbAI may connect and organize what the sources say in its own words, and
     must say so when a connection is its own.
+22. **Talking out loud.** People can now talk with RabbAI out loud (see "Talking out loud"). Is
+    the core premises' section "Talking out loud" right? In particular: short spoken answers,
+    checking a word the microphone may have heard wrongly, and writing Hebrew in English letters so
+    a voice can read it.

@@ -51,7 +51,13 @@ export interface AskInput {
   when?: WhenAndWhere;
   /** This chat is a chavrusa session: the way the person chose to learn, and what they are learning (lib/chavrusa). */
   chavrusa?: ChavrusaSession;
+  /** The person is talking out loud (Talk): their words came from speech recognition, and the answer is read aloud. */
+  talking?: boolean;
 }
+
+/** What RabbAI is told when the person is talking out loud; "Talking out loud" in the core premises says how to answer. */
+export const TALKING_SETTING =
+  'The person is talking with you out loud (see "Talking out loud"): their words came from their device\'s speech recognition, and your answer will be read aloud.';
 
 /** Progress reports while an answer is being made, for a live screen. */
 export interface AskHooks {
@@ -486,6 +492,7 @@ export function planRequest(
     ...lookupSettings(notes),
     notes.calendar ? calendarSettings(notes.calendar.info, { times: notes.calendar.times, year: notes.calendar.year }) : "",
     input.chavrusa ? chavrusaSettings(input.chavrusa) : "",
+    input.talking ? TALKING_SETTING : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
     input.profile ? profileSummary(input.profile) : "",
   ]

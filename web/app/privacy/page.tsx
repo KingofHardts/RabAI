@@ -35,6 +35,12 @@ export default function PrivacyPage() {
           in the same chat, so it can still see them. RabbAI&rsquo;s server never keeps them.
         </p>
         <p>
+          <strong>Your voice.</strong> When you use the microphone or talk with RabbAI out loud, your browser turns what
+          you say into words. Some browsers do this on your device; others, such as Chrome, send the sound to the
+          browser&rsquo;s maker to do it. RabbAI gets only the words, as if you had typed them, and never the sound.
+          Answers read aloud use your device&rsquo;s own voices.
+        </p>
+        <p>
           <strong>Your time zone and your place</strong> go with each question, so RabbAI knows the date where you are and
           can work out times like candle lighting. If you haven&rsquo;t set a place, RabbAI&rsquo;s server uses the
           approximate area of your internet connection, which your connection already tells it (you can turn this off in

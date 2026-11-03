@@ -14,12 +14,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * - Words are added up from each result as it becomes final, because some phones forget the
  *   earlier results after a pause.
  * - What was heard goes into the text box. The person reads it and presses Ask themselves.
+ *   (Talk, a conversation out loud that the person turns on, is in components/talk.ts.)
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Recognition = any;
 
-function recognitionCtor(): (new () => Recognition) | null {
+export function recognitionCtor(): (new () => Recognition) | null {
   if (typeof window === "undefined") return null;
   const w = window as any;
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
@@ -198,8 +199,29 @@ function voiceScore(v: SpeechSynthesisVoice, lang: "en" | "he"): number {
   return score;
 }
 
+/** The English voice chosen in Settings, by name; empty for the best one on the device. */
+let preferredVoice = "";
+export function setPreferredVoice(name: string): void {
+  preferredVoice = name;
+}
+
+/** The device's English voices, best first, for the choice in Settings. */
+export function englishVoices(): Array<{ name: string; lang: string }> {
+  if (!canSpeak()) return [];
+  return window.speechSynthesis
+    .getVoices()
+    .map((v) => ({ v, score: voiceScore(v, "en") }))
+    .filter((x) => x.score > -1)
+    .sort((a, b) => b.score - a.score || a.v.name.localeCompare(b.v.name))
+    .map(({ v }) => ({ name: v.name, lang: v.lang }));
+}
+
 function bestVoice(lang: "en" | "he"): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
+  if (lang === "en" && preferredVoice) {
+    const chosen = voices.find((v) => v.name === preferredVoice);
+    if (chosen) return chosen;
+  }
   let best: SpeechSynthesisVoice | null = null;
   let bestScore = -1;
   for (const v of voices) {

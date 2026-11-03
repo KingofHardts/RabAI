@@ -77,6 +77,7 @@ function parse(body: unknown): AskInput | string {
     ...(pictures.length ? { pictures } : {}),
     ...(profile ? { profile } : {}),
     ...(chavrusa ? { chavrusa } : {}),
+    ...(!action && b.talking === true ? { talking: true } : {}),
   };
 }
 

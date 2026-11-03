@@ -1235,3 +1235,32 @@ kbd { font-family: var(--font-ui); font-size: 12.5px; padding: 2px 7px; border: 
 .composer-clear:hover { background: var(--tint, color-mix(in srgb, var(--ink) 6%, transparent)); }
 .msg-ai .body .open-printed { margin: 10px 0 0; font-family: var(--font-ui); }
 .open-printed .chip-btn { display: inline-flex; gap: 6px; align-items: center; }
+/* Talk: a conversation out loud, in place of the question box (components/talk.ts). */
+.send.talk-start { display: inline-flex; align-items: center; gap: 6px; padding-inline: 14px 16px; }
+.talk { max-width: 680px; margin: 0 auto; display: flex; gap: 16px; align-items: center; padding: 4px 0; }
+.talk-orb { flex: none; position: relative; width: 64px; height: 64px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); }
+.talk-listening .talk-orb, .talk-countdown .talk-orb { animation: listening 1.6s ease-out infinite; }
+.talk-speaking .talk-orb { animation: talk-speak 1.3s ease-in-out infinite; }
+.talk-answering .talk-orb { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.talk-answering .talk-orb:disabled { opacity: 1; }
+.talk-paused .talk-orb { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+@keyframes talk-speak { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.talk-ring { position: absolute; inset: -6px; width: calc(100% + 12px); height: calc(100% + 12px); transform: rotate(-90deg); pointer-events: none; }
+.talk-ring circle { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: talk-count linear forwards; }
+@keyframes talk-count { to { stroke-dashoffset: 0; } }
+.talk-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.talk-status { margin: 0; font-weight: 600; color: var(--ink); }
+.talk-words { margin: 0; color: var(--ink); max-height: 4.6em; overflow-y: auto; overscroll-behavior: contain; }
+.talk-hearing { color: var(--muted); }
+.talk-asked { color: var(--muted); font-style: italic; }
+.talk-actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 2px; }
+.talk-actions .btn { min-height: 40px; }
+@media (max-width: 640px) {
+  .talk { gap: 12px; }
+  .talk-orb { width: 56px; height: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .talk-orb { animation: none !important; }
+  .talk-ring { display: none; }
+}
+.voice-pick { max-width: 60%; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 6px 10px; font: inherit; }

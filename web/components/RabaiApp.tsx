@@ -32,7 +32,9 @@ import {
   type SavedPicture,
 } from "@/lib/saved-chats";
 import { PICTURE_LIMITS, questionForPictures, type QuestionPicture } from "@/lib/pictures";
-import { canSpeak, setSpeechRate, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
+import { canSpeak, englishVoices, setPreferredVoice, setSpeechRate, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
+import { useTalk, type TalkControls } from "./talk";
+import { micOpen, secondsLeft, TALK_TIMING, tapAction, wordsOf } from "@/lib/talk";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
@@ -1021,6 +1023,92 @@ function MicIcon() {
   );
 }
 
+/** Talk: a voice, as a few bars of sound. */
+function TalkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+    </svg>
+  );
+}
+
+/** The big Talk button while RabbAI speaks. */
+function TalkSpeakerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10v4h4l5 4V6L8 10H4z" />
+      <path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" />
+    </svg>
+  );
+}
+
+/**
+ * Talk: the conversation out loud, in place of the question box (components/talk.ts). The big
+ * button does what it says; the words heard show as they come, and the answer appears in the chat.
+ */
+function TalkPanel({ talk, chavrusa, onEnd }: { talk: TalkControls; chavrusa: boolean; onEnd: () => void }) {
+  const s = talk.state;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (s.phase !== "countdown") return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [s.phase, s.countdownAt]);
+  const open = micOpen(s.phase);
+  const words = wordsOf(s);
+  const tap = tapAction(s);
+  const status =
+    s.phase === "listening"
+      ? s.holding
+        ? "Go on, I'm listening…"
+        : words
+          ? "Listening… tap the microphone when you're done."
+          : chavrusa
+            ? "Listening… go ahead."
+            : "Listening… ask anything."
+      : s.phase === "countdown"
+        ? `Sending in ${Math.max(1, secondsLeft(s, Math.max(now, s.countdownAt)))}…`
+        : s.phase === "answering"
+          ? "RabbAI is answering…"
+          : s.phase === "speaking"
+            ? "RabbAI is speaking. Tap to stop and talk."
+            : (s.note ?? "Your turn. Tap to talk.");
+  return (
+    <div className={`talk talk-${s.phase}`} role="group" aria-label="Talking with RabbAI">
+      <button type="button" className="talk-orb" onClick={talk.tap} disabled={tap.action === "none"} aria-label={tap.label} title={tap.label} autoFocus>
+        {s.phase === "countdown" && (
+          <svg key={s.countdownAt} className="talk-ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="16.5" pathLength={100} style={{ animationDuration: `${TALK_TIMING.countdownMs}ms` }} />
+          </svg>
+        )}
+        {s.phase === "speaking" ? <TalkSpeakerIcon /> : <MicIcon />}
+      </button>
+      <div className="talk-body">
+        <p className="talk-status" aria-live="polite">
+          {status}
+        </p>
+        {open && words ? (
+          <p className="talk-words">
+            {s.settled} <span className="talk-hearing">{s.hearing}</span>
+          </p>
+        ) : s.phase === "answering" && s.asked ? (
+          <p className="talk-words talk-asked">{s.asked}</p>
+        ) : null}
+        <div className="talk-actions">
+          {s.phase === "countdown" && (
+            <button type="button" className="btn quiet" onClick={talk.keepTalking}>
+              Keep talking
+            </button>
+          )}
+          <button type="button" className="btn quiet" onClick={onEnd}>
+            End
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChatsIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1110,6 +1198,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [speechOk, setSpeechOk] = useState(false);
+  /** The voice chosen for reading aloud (empty for the device's best), and the device's English voices. */
+  const [voiceName, setVoiceName] = useState("");
+  const [voiceList, setVoiceList] = useState<Array<{ name: string; lang: string }>>([]);
   /** True while the words in the box came from the microphone. */
   const spokenInput = useRef(false);
   const dictation = useDictation(
@@ -1119,6 +1210,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     }, []),
   );
   const listening = dictation.state === "listening";
+  /** Talk: the conversation out loud (components/talk.ts), set once the hook is made below. */
+  const talkRef = useRef<TalkControls | null>(null);
   const [growth, setGrowth] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   /** What RabbAI knows about the person: what they told it and what it noticed (on this device). */
@@ -1403,6 +1496,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const rate = readStored("rabai_speech_rate", ["0.8", "1", "1.2"] as const, "1");
     setReadingRate(rate);
     setSpeechRate(Number(rate));
+    try {
+      const voice = window.localStorage.getItem("rabai_voice") ?? "";
+      setVoiceName(voice);
+      setPreferredVoice(voice);
+    } catch {
+      /* storage is unavailable */
+    }
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
     try {
@@ -1557,6 +1657,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change, changedAt: Date.now() } : c)));
 
   const showChat = (id: string | null, list: ChatMessage[], session: ChavrusaSession | null = null) => {
+    talkRef.current?.end();
     keepDraft(chatIdRef.current, input);
     chavrusaRef.current = session;
     setChavrusaState(session);
@@ -1955,6 +2056,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   /** Read an answer aloud, or stop if it is the one being read. */
   const listen = useCallback(
     (id: string, text: string) => {
+      const talk = talkRef.current;
+      if (talk && (micOpen(talk.state.phase) || talk.state.phase === "speaking")) {
+        // Listening by hand pauses Talk, so its microphone doesn't hear the answer being read.
+        const readingThis = talk.state.phase === "speaking" && speakingRef.current === id;
+        talk.pause(null);
+        if (readingThis) return;
+      }
       if (speakingRef.current === id) {
         stopSpeaking();
         setSpeaking(null);
@@ -1973,6 +2081,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const watchers = useRef(new Map<string, ReturnType<typeof setTimeout> | null>());
   const settledJobs = useRef(new Set<string>());
   const spokenJobs = useRef(new Set<string>());
+  /** Questions asked in Talk: their answers are read aloud, and then RabbAI listens again. */
+  const talkJobs = useRef(new Set<string>());
   /** The pictures sent during this visit, by their preview: sent again with follow-up questions. */
   const sentPictures = useRef(new Map<string, QuestionPicture>());
 
@@ -2049,6 +2159,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
       // A question asked out loud gets its answer read aloud.
       if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) listen(`m${placeholder.id}`, plainAnswer(result));
+      if (talkJobs.current.delete(jobId)) {
+        if (placeholder && result.status === "answered") talkRef.current?.answer(`m${placeholder.id}`, plainAnswer(result));
+        else talkRef.current?.answerFailed(result.status === "answered" ? undefined : "RabbAI couldn't answer that just now; the note is in the chat. Tap to talk to go on.");
+      }
       if (document.hidden) document.title = "Answered · RabbAI";
     },
     [settleInChat, listen, setChatChavrusa, saveChats, notice],
@@ -2062,6 +2176,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       controllers.current.delete(jobId);
       dropLive(jobId);
       spokenJobs.current.delete(jobId);
+      if (talkJobs.current.delete(jobId)) talkRef.current?.answerFailed();
       settleInChat(chat, jobId, (m) => ({ id: m.id, role: "ai", result: errorResult(notice) }));
     },
     [settleInChat, errorResult],
@@ -2267,7 +2382,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
    * @param opts.base The conversation to ask in, when not the one on screen (Try again).
    */
   const send = useCallback(
-    (question: string, opts: { deep?: boolean; spoken?: boolean; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {}): boolean => {
+    (question: string, opts: { deep?: boolean; spoken?: boolean; talk?: boolean; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {}): boolean => {
       const q = question.trim();
       const pics = opts.pictures ?? [];
       if (!q && !pics.length) return false;
@@ -2322,7 +2437,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       spokenInput.current = false;
       setMode("chat");
       notice({ kind: "question" });
-      if (opts.spoken) spokenJobs.current.add(jobId);
+      if (opts.talk) talkJobs.current.add(jobId);
+      else if (opts.spoken) spokenJobs.current.add(jobId);
       void streamJob(jobId, chat, at, {
         question: q,
         ...(pics.length ? { pictures: pics.map((p) => p.full) } : {}),
@@ -2331,11 +2447,45 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         deep: opts.deep === true,
         profile: profileRef.current.remember ? profileRef.current : undefined,
         ...(chavrusaRef.current ? { chavrusa: chavrusaRef.current } : {}),
+        ...(opts.talk ? { talking: true } : {}),
       });
       return true;
     },
     [messages, growth, dictation, setSpeaking, notice, streamJob],
   );
+
+  // Talk: what the person says is sent as their question, and the answer is read aloud.
+  const talkSend = useCallback((q: string) => send(q, { talk: true }), [send]);
+  const talk = useTalk({ onSend: talkSend, onSpeaking: setSpeaking });
+  talkRef.current = talk;
+  const talkOn = talk.state.phase !== "off";
+  /** Talk needs the browser to both listen and speak. */
+  const talkOk = speechOk && dictation.supported;
+  const pauseTalk = talk.pause;
+  // Talk pauses when something covers the chat (the printed page, the reader on a phone, a dialog).
+  const talkCovered =
+    mode !== "chat" ||
+    (chatsOpen && !(wide && !readerOpen)) ||
+    !!dafRef ||
+    (readerOpen && !wide) ||
+    settingsOpen ||
+    aboutOpen ||
+    placeOpen ||
+    shortcutsOpen ||
+    !!chavrusaSetup;
+  const talkLive = micOpen(talk.state.phase) || talk.state.phase === "speaking";
+  useEffect(() => {
+    if (talkCovered && talkLive) pauseTalk("Paused while something else was open. Tap to talk.");
+  }, [talkCovered, talkLive, pauseTalk]);
+  const startTalk = () => {
+    if (listening) dictation.cancel();
+    setComposerNote(null);
+    talk.start();
+  };
+  const endTalk = () => {
+    talk.end();
+    if (wide) requestAnimationFrame(() => textareaRef.current?.focus());
+  };
 
   /** Open "Learn with a chavrusa", with quick choices of what to learn. */
   const openChavrusaSetup = (initial?: Partial<ChavrusaSession>) => {
@@ -2792,14 +2942,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     }
   };
 
-  // Escape closes the settings menu.
+  // Escape closes the settings menu. While it is open, the device's voices are listed (some
+  // browsers load them a moment later).
   useEffect(() => {
     if (!settingsOpen) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") setSettingsOpen(false);
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const synth = canSpeak() ? window.speechSynthesis : null;
+    const loadVoices = () => setVoiceList(englishVoices());
+    loadVoices();
+    synth?.addEventListener?.("voiceschanged", loadVoices);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      synth?.removeEventListener?.("voiceschanged", loadVoices);
+    };
   }, [settingsOpen]);
 
   const toggleGrowth = (on: boolean) => {
@@ -4386,6 +4544,31 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </div>
                   </div>
                 )}
+                {speechOk && voiceList.length > 1 && (
+                  <div className="settings-line">
+                    <label htmlFor="voice-pick">Voice</label>
+                    <select
+                      id="voice-pick"
+                      className="voice-pick"
+                      value={voiceList.some((v) => v.name === voiceName) ? voiceName : ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setVoiceName(v);
+                        setPreferredVoice(v);
+                        store("rabai_voice", v);
+                        setSpeaking(null);
+                        speak("Shalom! This is how answers will sound.");
+                      }}
+                    >
+                      <option value="">The best on this device</option>
+                      {voiceList.map((v) => (
+                        <option key={v.name} value={v.name}>
+                          {v.name} ({v.lang})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <p className="settings-group">About RabbAI</p>
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
                   <strong>RabbAI&apos;s sources</strong>
@@ -4949,7 +5132,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </button>
                   </span>
                 </div>
-                {!pending && messages.length > 0 && (
+                {!pending && !talkOn && messages.length > 0 && (
                   <div className="chav-replies">
                     {quickReplies(chavrusa).map((r) => (
                       <button
@@ -4970,7 +5153,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 )}
               </div>
             )}
-            {(attached.length > 0 || preparing > 0) && (
+            {talkOn && <TalkPanel talk={talk} chavrusa={!!chavrusa} onEnd={endTalk} />}
+            {!talkOn && (attached.length > 0 || preparing > 0) && (
               <ul className="attach-row" aria-label="Pictures to send">
                 {attached.map((a, i) => (
                   <li key={a.key} className="attach">
@@ -4991,6 +5175,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 ))}
               </ul>
             )}
+            {!talkOn && (
             <form onSubmit={onSubmit}>
               <input
                 ref={pictureInputRef}
@@ -5086,6 +5271,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 >
                   <span className="stop-sq" aria-hidden="true" /> Stop
                 </button>
+              ) : talkOk && !input.trim() && !attached.length && !preparing ? (
+                <button
+                  key="talk"
+                  type="button"
+                  className="send talk-start"
+                  disabled={!online}
+                  aria-label="Talk with RabbAI out loud"
+                  title={online ? "Talk with RabbAI out loud" : "No connection right now"}
+                  onClick={startTalk}
+                >
+                  <TalkIcon /> Talk
+                </button>
               ) : (
                 <button
                   key="ask"
@@ -5098,6 +5295,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </button>
               )}
             </form>
+            )}
             {!online && (
               <p className="voice-note offline-note" role="status">
                 You’re offline. Your question stays here, and Ask works again when the connection is back.
@@ -5108,7 +5306,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 {composerNote}
               </p>
             )}
-            {(dictation.error || listening) && (
+            {!talkOn && (dictation.error || listening) && (
               <p className="voice-note" role={dictation.error ? "alert" : "status"}>
                 {dictation.error ?? "Listening. Tap the microphone when you’re done, then press Ask."}
               </p>
