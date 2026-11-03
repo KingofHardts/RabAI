@@ -339,6 +339,21 @@ wording.
   comes back, the app picks up the answer, finished or still being written, and puts it in its
   place; the copy on the server is then deleted, and anything left is deleted after a day. Stop
   stops an answer and keeps nothing of it.
+- **Dates and times.** **Decided (Josh, 2026-11-03):** RabbAI knows the date for the person
+  (civil and Hebrew), this week's parsha, the coming holidays and fasts, and today's daily
+  learning, and can answer questions such as when Shabbat comes in or when tomorrow's fast ends.
+  The calendar and the times are worked out on the server with Hebcal (the calculations most Jewish
+  calendars use, from KosherJava), for the person's place: one they choose in Settings, their
+  device's location if they allow it, or else the approximate area of their internet connection,
+  which RabbAI says is approximate. The place stays on the device; the server uses it for that
+  question only and never keeps it. Defaults follow the common calendars: candle lighting 18
+  minutes before sunset (in Israel, the city's custom: 40 minutes in Jerusalem, 30 in Haifa and
+  Zikhron Ya'akov, 20 elsewhere), Shabbat ends at nightfall with the sun 8.5° below the horizon,
+  fasts end with the sun 7.083° below, and the latest Shema is given by both the Magen Avraham
+  and the Vilna Gaon. A person may choose other candle-lighting minutes, a fixed havdalah time
+  (42, 50 or 72 minutes), or Chabad's times (the Baal HaTanya's). RabbAI never works out a time
+  itself, says not to wait for the last minute, and sends people to their shul's calendar and
+  their rav for their community's practice. Open question 20 asks the board about the defaults.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
@@ -476,4 +491,14 @@ These need a decision before launch. Each one changes behavior.
     with a question"). Does the core premises' section "Pictures the person sends" set the right
     limits? In particular: how should RabbAI speak about a photo of a kosher symbol or a label
     (the draft says it names the symbol and sends the person to the agency or their rav, and
-    never says a product is kosher), and should a public app accept pictures at all?
+    never says a product is kosher), and should a public app accept pictures at all? The section
+    now also covers a photo of a page of a sefer (RabbAI works out the page and explains it from
+    the library's text) and handwritten notes on it (read as the person's notes, kept apart from
+    the text, never presented as a commentary).
+20. **Dates and times.** RabbAI now gives zmanim for the person's place (see "Dates and times").
+    Are the defaults right (candle lighting 18 minutes before sunset outside Israel; Shabbat ends at
+    8.5°; fasts end at 7.083°; both the Magen Avraham's and the Vilna Gaon's latest Shema)? Should
+    RabbAI give Rabbeinu Tam's time for the end of Shabbat as well, as it does now? Are the choices
+    offered in Settings the right ones, and is the wording of the core premises' section "Dates,
+    times and the calendar" right, in particular "never cut it close" and sending people to their
+    shul's calendar?

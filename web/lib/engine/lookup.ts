@@ -2,6 +2,7 @@ import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resource
 import type { Passage } from "../library/types";
 import type { QuestionPicture } from "../pictures";
 import { codeOf } from "../library/link-order";
+import { asksAboutCalendar } from "../calendar/place";
 import { parseRef, sectionOf, type TestingStore } from "../library/testing";
 import {
   allowedLookup,
@@ -45,6 +46,12 @@ export interface LookupPlan {
    * what it leaves out and why. RabbAI is then given the sources list (lib/sources).
    */
   library: boolean;
+  /**
+   * The question depends on the date or the time: the day's zmanim, when Shabbat or a holiday or
+   * a fast begins or ends, the Hebrew date, this week's parsha, today's daf. RabbAI is then given
+   * the calendar's times for the person's place (lib/calendar).
+   */
+  calendar: boolean;
 }
 
 export interface LookupClient {
@@ -75,6 +82,9 @@ export const LOOKUP_LIMITS = {
    * themselves so they never take a primary source's place.
    */
   articles: 4,
+  /** How many texts count as plenty, and how many articles still come then. */
+  plentyOfTexts: 10,
+  articlesWithPlenty: 2,
   /** Searches for an online lookup. */
   queries: 3,
   /** Places opened in the library because a page found online relies on them. */
@@ -142,14 +152,35 @@ Then say what kind of question it is, and whether RabbAI should also look online
   ask what the sources say about a topic ("what are the sources for lighting candles?"). A
   library question needs no refs or phrases, unless they also ask what a book says.
 
+- "calendar": true when the answer depends on today's date or the time of day: the day's times
+  (zmanim), when Shabbat, a holiday or a fast begins or ends, candle lighting, the Hebrew date,
+  this week's parsha, today's daf or other daily learning, or how many days until a holiday.
+
+The message may begin with a line about today: the date, the Hebrew date, this week's parsha with
+its verses, and today's Daf Yomi. Use it whenever the question depends on the date. "This week's
+parsha" means the parsha named there; "today's daf" means the daf named there.
+
+For a dvar Torah, a drash or a thought on the parsha or a holiday, plan the way a darshan
+prepares: name the verses at the center (for this week's parsha, its opening verses and a verse
+or two the person mentions or that the parsha is known for), so their meforshim open with them
+(Rashi, the Ramban, the Ibn Ezra, the Sforno, the Or HaChaim, the Kli Yakar and the rest the
+library holds); and name the Midrash on those verses (Bereshit Rabbah and the other Midrash
+Rabbah, the Tanchuma) and the Chassidic and mussar works on the parsha the library holds (the
+Sefat Emet, the Kedushat Levi, the Noam Elimelech, the Me'or Einayim, the Shem MiShmuel), by their
+section for that parsha.
+
 When the person sends pictures, read them first. A picture of a page from a sefer (a daf of
-Gemara, a page of Chumash, a siddur, a Mishnah Berurah) shows where to look: name that place in
-the library, and the phrases printed on it. A picture of a label, a sign or a letter tells you
-what the question is about; plan for that question. If you can't tell what a picture shows, plan
-from the words of the question alone.
+Gemara, a page of Chumash, a siddur, a Mishnah Berurah) shows where to look. Read the page's
+header and the words printed on it: on a daf of Gemara, the tractate's name, the chapter and the
+daf number in Hebrew letters are printed at the top. Name that place in the library ("Berakhot
+2a"; if you can't tell which side of the daf it is, name the daf and give phrases from the page),
+and give phrases printed on it, so the right lines open. Handwritten notes in the margins are the person's
+own: they tell you what the person is asking about, but they are not the book's words. A picture
+of a label, a sign or a letter tells you what the question is about; plan for that question. If
+you can't tell what a picture shows, plan from the words of the question alone.
 
 Reply with JSON only, in this form:
-{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false}
+{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false, "calendar": false}
 At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases, ${LOOKUP_LIMITS.english} English phrases and ${LOOKUP_LIMITS.queries} queries.
 For a message that needs no sources (a greeting, small talk, a question about the app, or a
 practical task with no Torah side, such as a recipe or a math problem), reply with empty lists
@@ -212,6 +243,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
       online,
       queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
       library: json.library === true,
+      calendar: json.calendar === true,
     };
   } catch {
     return null;
@@ -220,7 +252,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
 
 /** A plan that opens nothing and looks nothing up. */
 export function emptyPlan(): LookupPlan {
-  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [], library: false };
+  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [], library: false, calendar: false };
 }
 
 /** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
@@ -241,7 +273,7 @@ export function fallbackPlan(question: string): LookupPlan {
   const english = (question.match(/[A-Za-z][A-Za-z'-]*/g) ?? [])
     .filter((w) => w.length > 3 && !STOP_WORDS.has(w.toLowerCase()))
     .slice(0, 4);
-  return { ...emptyPlan(), hebrew, english, library: asksAboutLibrary(question) };
+  return { ...emptyPlan(), hebrew, english, library: asksAboutLibrary(question), calendar: asksAboutCalendar(question) };
 }
 
 const SOURCE_WORDS = "sources?|books?|seforim|sefarim|texts?|editions?|translations?|commentar(?:y|ies)|meforshim|websites?|sites?|library";
@@ -270,11 +302,13 @@ export async function planLookups(
   store: TestingStore,
   client: LookupClient | null,
   pictures: QuestionPicture[] = [],
+  /** A line about today (the date, this week's parsha, today's daf), read before the question. */
+  today = "",
 ): Promise<LookupPlan> {
   if (!client || !question.trim()) return fallbackPlan(question);
   try {
     const catalog = await store.catalog();
-    const reply = await client.create(lookupRequest(question, catalog, lookupModel(), pictures));
+    const reply = await client.create(lookupRequest(today ? `${today}\n\n${question}` : question, catalog, lookupModel(), pictures));
     const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
     // An empty plan is a choice: small talk or a practical task needs no sources, and searching
     // anyway only slows the answer and hands the model passages that don't help.
@@ -320,6 +354,8 @@ export interface RetrieveOptions {
   online?: OnlineSetting;
   /** A short note on what is happening, for a live screen. */
   onStatus?: (text: string) => void;
+  /** A line about today for the planner (lib/calendar: calendarNoteForLookup). */
+  today?: string;
 }
 
 /** Open the planned places, follow their links, and search; the line in focus comes first. */
@@ -329,7 +365,7 @@ export async function retrieveFromTesting(
   client: LookupClient | null,
   opts: RetrieveOptions = {},
 ): Promise<Retrieved> {
-  const plan = await planLookups(question, store, client, opts.pictures ?? []);
+  const plan = await planLookups(question, store, client, opts.pictures ?? [], opts.today ?? "");
   const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
 
@@ -398,7 +434,10 @@ export async function retrieveFromTesting(
     }
   }
   // Contemporary articles last: they explain and point to the texts, and never replace them.
-  add(articles, out.size + LOOKUP_LIMITS.articles);
+  // When the library already gave plenty of texts, fewer articles come, so an answer rests on the
+  // texts and not on a ready-made article.
+  const articleRoom = out.size >= LOOKUP_LIMITS.plentyOfTexts ? LOOKUP_LIMITS.articlesWithPlenty : LOOKUP_LIMITS.articles;
+  add(articles.slice(0, articleRoom), out.size + articleRoom);
   // Pages found online come after everything from the library, marked as found online.
   if (online?.pages.length) add(onlineDocuments(online), out.size + online.pages.length);
   return { plan, documents: [...out.values()], ...(online ? { online, checked } : {}) };

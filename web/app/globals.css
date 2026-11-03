@@ -275,6 +275,22 @@ p.muted { margin: 0; }
 .about-noticed p { margin: 0; }
 .about-noticed .btn { justify-self: start; }
 .about-foot { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-end; font-size: 14px; }
+/* Your place */
+.place-card > * { min-width: 0; }
+.place-card select { width: 100%; max-width: 100%; text-overflow: ellipsis; }
+.place-now { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.place-now > div { display: grid; gap: 3px; font-size: 14.5px; min-width: 0; }
+.place-now .muted { font-size: 13.5px; }
+.place-preview { font-size: 13.5px; color: var(--ink); }
+.place-locate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.place-locate .muted { font-size: 13px; flex: 1 1 200px; }
+.place-problem { margin: 0; font-size: 14px; color: var(--danger); }
+.place-results { list-style: none; margin: -8px 0 0; padding: 4px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 2px; max-height: 280px; overflow-y: auto; }
+.place-results button { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 12px; min-height: 44px; border: 0; border-radius: 9px; background: none; color: var(--ink); text-align: start; font: inherit; font-size: 14.5px; cursor: pointer; }
+.place-results button:hover, .place-results button:focus-visible { background: var(--bg); }
+.place-results .muted { font-size: 13px; flex: none; }
+.place-none { margin: -8px 0 0; font-size: 13.5px; }
+.place-note { font-size: 13px !important; }
 .about-foot > span { flex: 1 1 100%; }
 .btn.danger { border-color: var(--danger); color: var(--danger); background: none; }
 @media (max-width: 559px) {
@@ -668,8 +684,14 @@ a.settings-row { text-decoration: none; }
 .chat-head .chat-tools { border-top: 0; padding: 8px 0 0; }
 .new-chat { flex: none; }
 @media (max-width: 560px) { .new-chat { padding-inline: 4px; } }
+/* today, on the welcome */
+.msg-ai .body .welcome-today { display: flex; flex-wrap: wrap; gap: 4px 0; margin: -2px 0 10px; font-family: var(--font-ui); font-size: 13.5px; color: var(--muted); }
+.welcome-today span + span::before { content: "·"; margin: 0 8px; color: var(--line-strong, var(--muted)); }
 /* the suggested first questions */
-.starters { margin-top: 4px; }
+.starters { margin-top: 4px; animation: starters-in .25s ease-out both; }
+@keyframes starters-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .starters { animation: none; } }
+.starters-today .starter { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .starters .label-sm { margin: 12px 0 6px; }
 .starter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
 .starter { text-align: start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 52px; font-family: var(--font-ui); font-size: 14.5px; line-height: 1.4; color: var(--ink); }

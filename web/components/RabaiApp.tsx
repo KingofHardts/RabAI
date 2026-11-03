@@ -40,6 +40,10 @@ import DafColumn from "./DafColumn";
 import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import AboutYou from "./AboutYou";
+import YourPlace, { placeSummary } from "./YourPlace";
+import { deviceWhen, loadPlaceSettings, savePlaceSettings, type PlaceSettings } from "@/lib/calendar/device";
+import type { DaySummary } from "@/lib/calendar/place";
+import { pickStarters, type StarterGroup } from "@/lib/starters";
 import AccountDialog from "./AccountDialog";
 import AnswerFeedback from "./AnswerFeedback";
 import { useAccount, type AccountApi } from "./use-account";
@@ -242,19 +246,6 @@ interface SavedWord {
 /** chatTools holds a chat's id while its menu is open in the list; this, for the open chat's own menu. */
 const HEAD_TOOLS = "__head__";
 
-const STARTERS: Array<{ label: string; items: string[] }> = [
-  {
-    label: "Ask about Torah",
-    items: [
-      "Why does the Torah start with Creation?",
-      "Why do we add a Chanukah light each night?",
-      "What did Hillel say about the whole Torah on one foot?",
-      "Help me read the first words of the Torah",
-    ],
-  },
-  { label: "Talk about life", items: ["I had a hard day. Can we talk?", "My friend and I had a falling out. How do I make it right?"] },
-];
-
 const ACTIONS: Array<{ id: LineAction; label: string }> = [
   { id: "explain", label: "Explain this" },
   { id: "words", label: "Word by word" },
@@ -443,7 +434,7 @@ async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Pr
   const res = await fetch("/api/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, stream: true }),
+    body: JSON.stringify({ ...body, stream: true, when: deviceWhen() }),
   });
   const end = await readLive(res, hooks);
   if (!end || !("result" in end)) throw new Error("The answer was cut off. Please try again.");
@@ -941,6 +932,57 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [profile, setProfile] = useState<LearnerProfile>(emptyProfile);
   const profileRef = useRef<LearnerProfile>(emptyProfile());
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  // Where the person is, for the day's times; kept on this device only (lib/calendar/device.ts).
+  const [placeSettings, setPlaceSettings] = useState<PlaceSettings>({ place: null, prefs: {}, approx: true });
+  useEffect(() => setPlaceSettings(loadPlaceSettings()), []);
+  const changePlace = useCallback((next: PlaceSettings) => {
+    setPlaceSettings(next);
+    savePlaceSettings(next);
+  }, []);
+  // Today for the person (the date, the parsha, today's daf), for the welcome and its questions.
+  const [day, setDay] = useState<DaySummary | null>(null);
+  const [dayTried, setDayTried] = useState(false);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const done = () => setDayTried(true);
+    const late = window.setTimeout(done, 2500);
+    fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ when: deviceWhen() }),
+      signal: ctrl.signal,
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<DaySummary>) : null))
+      .then((d) => {
+        if (d) setDay(d);
+        done();
+      })
+      .catch(() => {});
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(late);
+    };
+  }, [placeSettings]);
+  // Suggested questions, drawn fresh each time a new chat opens; today's come first.
+  const [starters, setStarters] = useState<StarterGroup[] | null>(null);
+  const welcomeShown = messages.length === 0;
+  useEffect(() => {
+    if (!welcomeShown) {
+      setStarters(null);
+      return;
+    }
+    if (!day && !dayTried) return;
+    setStarters((cur) => {
+      if (!cur) return pickStarters(day);
+      // The day arrived after the questions were drawn: add today's, keep the rest.
+      if (day && !cur.some((g) => g.label === "For this week")) {
+        const today = pickStarters(day).find((g) => g.label === "For this week");
+        return today ? [today, ...cur] : cur;
+      }
+      return cur;
+    });
+  }, [welcomeShown, day, dayTried]);
   /** The person's account, when they sign in (use-account.ts); set below, once the chats exist. */
   const accountRef = useRef<AccountApi | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -1769,7 +1811,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         const res = await fetch("/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...body, stream: true, job: jobId }),
+          body: JSON.stringify({ ...body, stream: true, job: jobId, when: deviceWhen() }),
           signal: ctrl.signal,
         });
         const end = await readLive(res, {
@@ -3762,6 +3804,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="settings-row"
+                  onClick={() => {
+                    setSettingsOpen(false);
+                    setPlaceOpen(true);
+                  }}
+                >
+                  <strong>Your place</strong>
+                  <span className="muted">{placeSummary(placeSettings)}. For candle lighting, fasts and the day&apos;s times</span>
+                </button>
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
                   <strong>RabbAI&apos;s sources</strong>
                   <span className="muted">Every book it reads, what waits for the rabbinic board, and what it leaves out</span>
@@ -3880,6 +3933,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                   <div className="body">
                     <p className="welcome-hi">Shalom! I’m RabbAI, an AI Torah teacher.</p>
+                    {day && (
+                      <p className="welcome-today">
+                        <span>{day.civil.split(",")[0]}, {day.hebrew}</span>
+                        {day.parsha && <span>{day.parsha.holiday ? day.parsha.name : `Parashat ${day.parsha.name}`}</span>}
+                        {day.todayIs[0] && <span>{day.todayIs[0]}</span>}
+                        {day.shabbat && new Date().getDay() >= 4 && new Date().getDay() <= 5 && (
+                          <span>
+                            Candles {day.shabbat.candlesDay.split(",")[0]} {day.shabbat.candles}
+                          </span>
+                        )}
+                      </p>
+                    )}
                     <p>
                       Ask me anything, about Torah or about life. You can type, {dictation.supported ? "talk, " : ""}or send a
                       picture of a page.
@@ -3896,13 +3961,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </p>
                     )}
                     <p className="welcome-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
-                    {STARTERS.map((g) => (
-                      <div key={g.label} className="starters">
+                    {(starters ?? []).map((g) => (
+                      <div key={g.label} className={`starters${g.label === "For this week" ? " starters-today" : ""}`}>
                         <p className="label-sm">{g.label}</p>
                         <div className="starter-grid">
                           {g.items.map((q) => (
-                            <button key={q} type="button" className="starter" onClick={() => void send(q)}>
-                              {q}
+                            <button key={q.label} type="button" className="starter" onClick={() => void send(q.ask)}>
+                              {q.label}
                             </button>
                           ))}
                         </div>
@@ -4550,6 +4615,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           onClose={() => setAboutOpen(false)}
         />
       )}
+
+      {placeOpen && <YourPlace settings={placeSettings} onChange={changePlace} onClose={() => setPlaceOpen(false)} />}
 
       {accountOpen && <AccountDialog state={account.state} api={account.api} onClose={() => setAccountOpen(false)} />}
     </div>

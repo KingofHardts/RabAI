@@ -6,6 +6,7 @@ import { profileForAsk } from "@/lib/account/ask-profile";
 import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type AskResult, type LineAction, type Turn } from "@/lib/engine/answer";
 import { jobCheck, jobShape, jobStore, noJobStore, runAnswer, type LiveEvent } from "@/lib/answer-jobs";
 import { PICTURE_LIMITS, picturesSize, questionForPictures, readPictures, type QuestionPicture } from "@/lib/pictures";
+import { whenForRequest } from "@/lib/calendar/place";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,9 +166,11 @@ export async function POST(request: Request) {
   if (typeof parsed === "string") return NextResponse.json({ error: parsed }, { status: 422 });
   // Signed in, the account's profile is used in place of the device's copy (lib/account/ask-profile.ts).
   const profile = await profileForAsk(request, parsed.profile);
-  const input: AskInput = { ...parsed, profile };
-  if (!profile) delete input.profile;
   const b = body as Record<string, unknown>;
+  // The person's day: their time zone and place for the calendar and the times (lib/calendar).
+  const when = whenForRequest(b.when, request.headers);
+  const input: AskInput = { ...parsed, profile, when };
+  if (!profile) delete input.profile;
   if (b.stream === true) {
     if (b.job !== undefined && !jobShape(b.job)) return NextResponse.json({ error: "That answer id isn't valid." }, { status: 422 });
     return liveAnswer(input, jobShape(b.job) ? b.job : null);

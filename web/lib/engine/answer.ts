@@ -11,6 +11,8 @@ import { asksAboutLibrary, retrieveFromTesting } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
+import { calendarInfo, calendarNoteForLookup, calendarSettings, yearAhead, type CalendarInfo, type YearItem } from "../calendar/calendar";
+import { asksAboutCalendar, type WhenAndWhere } from "../calendar/place";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -41,6 +43,11 @@ export interface AskInput {
   profile?: LearnerProfile;
   /** Pictures the person attached to the question (lib/pictures.ts), already checked. */
   pictures?: QuestionPicture[];
+  /**
+   * The person's time zone, and their place if they set one (or the approximate place of their
+   * connection), for the calendar and the day's times (lib/calendar). Never kept.
+   */
+  when?: WhenAndWhere;
 }
 
 /** Progress reports while an answer is being made, for a live screen. */
@@ -359,6 +366,11 @@ export interface LookupNotes {
   checked?: string[];
   /** The person asks about RabbAI's own library: RabbAI is given the sources list (lib/sources). */
   library?: boolean;
+  /**
+   * The calendar for the person: always the date, the parsha and the coming days; the day's times
+   * and the year ahead too when the question depends on them.
+   */
+  calendar?: { info: CalendarInfo; times: boolean; year?: YearItem[] };
 }
 
 /** The settings lines for a practical question and an online lookup. */
@@ -464,6 +476,7 @@ export function planRequest(
       ? `Word study: the person asked about ${input.word}${input.focusRef ? ` in ${input.focusRef}` : ""}. Other passages that contain this exact word were searched for and are attached if found; the library has no root index yet, so do not claim other places its root appears.`
       : "",
     ...lookupSettings(notes),
+    notes.calendar ? calendarSettings(notes.calendar.info, { times: notes.calendar.times, year: notes.calendar.year }) : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
     input.profile ? profileSummary(input.profile) : "",
   ]
@@ -541,6 +554,13 @@ export async function ask(
   let retrieved: Passage[] | undefined;
   let lookedUp: string[] | undefined;
   let notes: LookupNotes = {};
+  // Today, for the person: the date, the parsha, the coming days and, at their place, the times.
+  let calendar: CalendarInfo | null = null;
+  try {
+    calendar = calendarInfo({ tz: input.when?.tz, place: input.when?.place, prefs: input.when?.prefs });
+  } catch (err) {
+    console.warn("[rabai] working out the calendar failed:", err instanceof Error ? err.message : err);
+  }
   if (lib.mode === "testing") {
     if (!store) {
       return {
@@ -563,10 +583,17 @@ export async function ask(
         // A line action on the reader is about that line; it never needs the web.
         research: input.action ? null : client,
         onStatus: hooks.onStatus,
+        ...(calendar ? { today: calendarNoteForLookup(calendar) } : {}),
       });
       retrieved = found.documents;
       lookedUp = found.plan.refs;
-      notes = { practical: found.plan.practical, online: found.online, checked: found.checked, library: found.plan.library };
+      notes = {
+        practical: found.plan.practical,
+        online: found.online,
+        checked: found.checked,
+        library: found.plan.library,
+        ...(calendar ? { calendar: calendarNotes(calendar, input, found.plan.calendar) } : {}),
+      };
     } catch (err) {
       console.error("[rabai] library lookup failed:", err instanceof Error ? err.message : err);
       return {
@@ -585,6 +612,7 @@ export async function ask(
   // Without the lookup step (the development and approved libraries), a plainly worded question
   // about RabbAI's own library still gets the sources list. A line action is about its line.
   if (lib.mode !== "testing" && !input.action && asksAboutLibrary(buildQuestion(input))) notes.library = true;
+  if (lib.mode !== "testing" && calendar) notes.calendar = calendarNotes(calendar, input, false);
 
   const plan = planRequest(input, lib, engineConfig(), retrieved, notes);
   const base = {
@@ -656,6 +684,23 @@ export async function ask(
     model: message.model,
     ...(notes.online ? { online: onlineReport(notes, plan.documents, mapped.sources) } : {}),
   };
+}
+
+/**
+ * The calendar for RabbAI: the times and the year ahead only when the question depends on them
+ * (the planner said so, or the words do), and never for a line action in the reader.
+ */
+export function calendarNotes(info: CalendarInfo, input: AskInput, planned: boolean): NonNullable<LookupNotes["calendar"]> {
+  const times = !input.action && (planned || asksAboutCalendar(buildQuestion(input)));
+  let year: YearItem[] | undefined;
+  if (times) {
+    try {
+      year = yearAhead({ tz: input.when?.tz, place: input.when?.place });
+    } catch {
+      year = undefined;
+    }
+  }
+  return { info, times, ...(year?.length ? { year } : {}) };
 }
 
 /** The pages looked up online, each marked with whether the answer used it. */

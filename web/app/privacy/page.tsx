@@ -18,7 +18,8 @@ export default function PrivacyPage() {
         <p>
           Your saved chats, the words you save, your marks, where you were reading, and what RabbAI knows about you
           (&ldquo;About you&rdquo;) are kept in this browser, on this device. Unless you sign in, they stay there. A chat
-          keeps a small preview of each picture you sent with it.
+          keeps a small preview of each picture you sent with it. If you set your place (Settings, Your place), it is kept
+          here too, rounded to about a kilometer.
         </p>
 
         <h2>When you ask a question</h2>
@@ -31,6 +32,13 @@ export default function PrivacyPage() {
         <p>
           <strong>Pictures you send</strong> go to the AI model with your question, and again with your next few questions
           in the same chat, so it can still see them. RabbAI&rsquo;s server never keeps them.
+        </p>
+        <p>
+          <strong>Your time zone and your place</strong> go with each question, so RabbAI knows the date where you are and
+          can work out times like candle lighting. If you haven&rsquo;t set a place, RabbAI&rsquo;s server uses the
+          approximate area of your internet connection, which your connection already tells it (you can turn this off in
+          Your place). The server uses these for that answer only and never keeps them, and they are not sent to the AI
+          model except as the date and the times worked out from them.
         </p>
         <p>
           <strong>While an answer is being written,</strong> RabbAI&rsquo;s server keeps it, so you can leave the page and

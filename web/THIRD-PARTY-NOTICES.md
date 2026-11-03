@@ -43,3 +43,18 @@ their full license texts are in `app/fonts/`.
   `4e51edad1a265838154e2cae46c28c6a11145c95`). License: `app/fonts/Mekorot-OFL.txt`.
 
 The files are served unchanged.
+
+## Hebcal
+
+The calendar and the day's times (`lib/calendar/calendar.ts`) use the Hebcal libraries, installed
+unchanged from npm and run only on the server, never sent to a browser:
+
+- `@hebcal/core` and `@hebcal/hdate`, under the GNU General Public License, version 2 or later
+  (https://github.com/hebcal/hebcal-es6, https://github.com/hebcal/hdate-js);
+- `@hebcal/noaa`, the solar calculations, under the GNU Lesser General Public License, version 2.1
+  (https://github.com/hebcal/noaa), based on the KosherJava zmanim library by Eliyahu Hershfeld;
+- `@hebcal/learning` and `@hebcal/leyning`, the daily learning schedules and the Torah readings,
+  under the BSD 2-Clause License (https://github.com/hebcal/hebcal-learning,
+  https://github.com/hebcal/hebcal-leyning).
+
+Each package's own license text is in its folder under `node_modules/@hebcal/`.
