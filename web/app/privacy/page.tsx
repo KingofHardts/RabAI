@@ -12,14 +12,15 @@ export default function PrivacyPage() {
           <Link href="/">← Back to RabbAI</Link>
         </p>
         <h1>What RabbAI keeps, and why</h1>
-        <p className="muted">Last updated 16 October 2026. RabbAI is a private preview while the rabbinic board reviews it.</p>
+        <p className="muted">Last updated 3 November 2026. RabbAI is a private preview while the rabbinic board reviews it.</p>
 
         <h2>On your device</h2>
         <p>
           Your saved chats, the words you save, your marks, where you were reading, and what RabbAI knows about you
           (&ldquo;About you&rdquo;) are kept in this browser, on this device. Unless you sign in, they stay there. A chat
-          keeps a small preview of each picture you sent with it. If you set your place (Settings, Your place), it is kept
-          here too, rounded to about a kilometer.
+          keeps a small preview of each picture you sent with it, and a chavrusa session keeps how you chose to learn and the
+          last line you reached. If you set your place (Settings, Your place), it is kept here too, rounded to about a
+          kilometer.
         </p>
 
         <h2>When you ask a question</h2>
@@ -52,8 +53,9 @@ export default function PrivacyPage() {
         <ul>
           <li>
             <strong>Kept in your account:</strong> what you told RabbAI in &ldquo;About you&rdquo;, what it noticed while you
-            learned (the books you read and the words you looked up), and your saved chats. Your account keeps how many
-            pictures a question had, not the pictures.
+            learned (the books you read, the words you looked up, the Torah subjects you asked about, and where you reached
+            with your chavrusa), and your saved chats. Your account keeps how many pictures a question had, not the
+            pictures.
           </li>
           <li>
             <strong>Your email address is not kept.</strong> It is used once, to send you the sign-in link. RabbAI keeps only a
@@ -96,9 +98,10 @@ export default function PrivacyPage() {
 
         <h2>What RabbAI never keeps</h2>
         <p>
-          RabbAI notices only what you learn. It doesn&rsquo;t keep anything about your health, your feelings, your observance,
-          your family or anything else about your life, even if you mention it in a chat (a chat you save keeps your own words,
-          as you wrote them). What is kept is used only for what this page describes.
+          RabbAI notices only what you learn: the subject of a question, in a few words (&ldquo;the times for the
+          Shema&rdquo;), never the question itself. It doesn&rsquo;t keep anything about your health, your feelings, your
+          observance, your family or anything else about your life, even if you mention it in a chat (a chat you save keeps
+          your own words, as you wrote them). What is kept is used only for what this page describes.
         </p>
       </article>
     </main>

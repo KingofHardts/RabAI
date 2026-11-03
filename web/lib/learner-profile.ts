@@ -15,6 +15,8 @@
  * server builds the lines the model sees from a checked copy (profileSummary).
  */
 
+import { CHAVRUSA_STYLES, STYLE_INFO, type ChavrusaStyle } from "./chavrusa";
+
 export const PROFILE_KEY = "rabai_profile";
 
 export const LEVELS = ["new", "some", "experienced", "advanced"] as const;
@@ -77,6 +79,10 @@ export interface ObservedProfile {
   simpler: number;
   deeper: number;
   questions: number;
+  /** What they learned with RabbAI as a chavrusa: the text, the last line reached, and the way they chose. */
+  learning: Array<{ text: string; at?: string; style?: ChavrusaStyle; count: number; last: number }>;
+  /** The Torah subjects of their questions, as the lookup step named them (never their life). */
+  topics: Array<{ topic: string; count: number; last: number }>;
 }
 
 export interface LearnerProfile {
@@ -98,6 +104,10 @@ export interface LearnerProfile {
 
 export const MAX_BOOKS = 12;
 export const MAX_WORDS = 40;
+export const MAX_LEARNING = 8;
+export const MAX_TOPICS = 16;
+/** Answers in a session closer together than this count as one time learning it. */
+const SESSION_GAP_MS = 2 * 60 * 60 * 1000;
 const MAX_NAME = 40;
 const MAX_TITLE = 80;
 const MAX_WORD = 30;
@@ -107,7 +117,7 @@ export function emptyProfile(): LearnerProfile {
     v: 1,
     remember: true,
     stated: {},
-    observed: { books: [], words: [], simpler: 0, deeper: 0, questions: 0 },
+    observed: { books: [], words: [], simpler: 0, deeper: 0, questions: 0, learning: [], topics: [] },
     updatedAt: 0,
     statedAt: 0,
     rememberAt: 0,
@@ -162,6 +172,24 @@ export function parseProfile(raw: unknown): LearnerProfile {
       .filter((w) => w.word && w.count > 0)
       .slice(0, MAX_WORDS);
   }
+  if (Array.isArray(o.learning)) {
+    p.observed.learning = o.learning
+      .map((l) => (l && typeof l === "object" ? (l as Record<string, unknown>) : {}))
+      .map((l) => {
+        const at = cleanText(l.at, MAX_TITLE);
+        const style = oneOf(CHAVRUSA_STYLES, l.style);
+        return { text: cleanText(l.text, MAX_TITLE), ...(at ? { at } : {}), ...(style ? { style } : {}), count: count(l.count), last: time(l.last) };
+      })
+      .filter((l) => l.text && l.count > 0)
+      .slice(0, MAX_LEARNING);
+  }
+  if (Array.isArray(o.topics)) {
+    p.observed.topics = o.topics
+      .map((t) => (t && typeof t === "object" ? (t as Record<string, unknown>) : {}))
+      .map((t) => ({ topic: cleanText(t.topic, 60), count: count(t.count), last: time(t.last) }))
+      .filter((t) => t.topic && t.count > 0)
+      .slice(0, MAX_TOPICS);
+  }
   p.observed.simpler = count(o.simpler);
   p.observed.deeper = count(o.deeper);
   p.observed.questions = count(o.questions);
@@ -178,13 +206,15 @@ export type Activity =
   | { kind: "word"; word: string }
   | { kind: "simpler" }
   | { kind: "deeper" }
-  | { kind: "question" };
+  | { kind: "question" }
+  | { kind: "learned"; text: string; at?: string; style?: ChavrusaStyle }
+  | { kind: "topic"; topic: string };
 
 /** The profile after something the person did. Nothing changes when remembering is off. */
 export function noticed(profile: LearnerProfile, a: Activity, now = Date.now()): LearnerProfile {
   if (!profile.remember) return profile;
   const o = profile.observed;
-  const next: ObservedProfile = { ...o, books: o.books, words: o.words };
+  const next: ObservedProfile = { ...o, books: o.books, words: o.words, learning: o.learning, topics: o.topics };
   if (a.kind === "book") {
     const title = cleanText(a.title, MAX_TITLE);
     if (!title) return profile;
@@ -199,6 +229,24 @@ export function noticed(profile: LearnerProfile, a: Activity, now = Date.now()):
     next.words = [entry, ...o.words.filter((w) => w.word !== word)]
       .sort((x, y) => y.count - x.count || y.last - x.last)
       .slice(0, MAX_WORDS);
+  } else if (a.kind === "learned") {
+    const text = cleanText(a.text, MAX_TITLE);
+    if (!text) return profile;
+    const found = o.learning.find((l) => l.text === text);
+    const at = cleanText(a.at, MAX_TITLE) || found?.at;
+    const style = a.style ?? found?.style;
+    // One time learning it, however many answers in a sitting.
+    const times = (found?.count ?? 0) + (found && now - found.last < SESSION_GAP_MS ? 0 : 1);
+    next.learning = [
+      { text, ...(at ? { at } : {}), ...(style ? { style } : {}), count: Math.max(1, times), last: now },
+      ...o.learning.filter((l) => l.text !== text),
+    ].slice(0, MAX_LEARNING);
+  } else if (a.kind === "topic") {
+    const topic = cleanText(a.topic, 60);
+    if (!topic) return profile;
+    const key = topic.toLowerCase();
+    const found = o.topics.find((t) => t.topic.toLowerCase() === key);
+    next.topics = [{ topic, count: (found?.count ?? 0) + 1, last: now }, ...o.topics.filter((t) => t.topic.toLowerCase() !== key)].slice(0, MAX_TOPICS);
   } else if (a.kind === "simpler") next.simpler = o.simpler + 1;
   else if (a.kind === "deeper") next.deeper = o.deeper + 1;
   else next.questions = o.questions + 1;
@@ -225,6 +273,15 @@ export function forgetAll(profile: LearnerProfile, now = Date.now()): LearnerPro
   return { ...emptyProfile(), remember: profile.remember, rememberAt: profile.rememberAt, updatedAt: now, statedAt: now, observedSince: now };
 }
 
+/** "today", "yesterday", "3 days ago", "2 weeks ago". */
+export function ago(time: number, now = Date.now()): string {
+  const days = Math.floor((now - time) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  return `${Math.round(days / 7)} weeks ago`;
+}
+
 /** The words looked up more than once: what to practice. */
 export function practiceWords(profile: LearnerProfile, limit = 8): string[] {
   return profile.observed.words.filter((w) => w.count > 1).slice(0, limit).map((w) => w.word);
@@ -234,7 +291,7 @@ export function practiceWords(profile: LearnerProfile, limit = 8): string[] {
  * The lines the model sees about the person, built on the server from a checked profile. Plain
  * facts only; empty when there is nothing, or when remembering is off.
  */
-export function profileSummary(profile: LearnerProfile): string {
+export function profileSummary(profile: LearnerProfile, now = Date.now()): string {
   if (!profile.remember) return "";
   const s = profile.stated;
   const o = profile.observed;
@@ -247,6 +304,15 @@ export function profileSummary(profile: LearnerProfile): string {
   if (s.length) lines.push(`They prefer ${LENGTH_LABELS[s.length].toLowerCase()}.`);
   const books = o.books.slice(0, 4).map((b) => b.title);
   if (books.length) lines.push(`Recently learning: ${books.join("; ")}.`);
+  const learning = o.learning.slice(0, 3);
+  if (learning.length)
+    lines.push(
+      `Learning with you as a chavrusa: ${learning
+        .map((l) => `${l.text}${l.at ? `, reached ${l.at}` : ""}${l.style ? ` (${STYLE_INFO[l.style].name.toLowerCase()})` : ""}, ${ago(l.last, now)}`)
+        .join("; ")}.`,
+    );
+  const topics = o.topics.slice(0, 6).map((t) => t.topic);
+  if (topics.length) lines.push(`Torah topics they asked about recently: ${topics.join("; ")}.`);
   const practice = practiceWords(profile, 6);
   if (practice.length) lines.push(`Words they have looked up more than once: ${practice.join(", ")}.`);
   if (o.simpler + o.deeper >= 3) {

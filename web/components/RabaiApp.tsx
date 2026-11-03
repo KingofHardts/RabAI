@@ -41,6 +41,8 @@ import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
 import AboutYou from "./AboutYou";
 import YourPlace, { placeSummary } from "./YourPlace";
+import ChavrusaSetup, { type ChavrusaChoice } from "./ChavrusaSetup";
+import { amudOf, openingMessage, quickReplies, reachedLine, STYLE_INFO, DEPTH_INFO, type ChavrusaSession } from "@/lib/chavrusa";
 import { deviceWhen, loadPlaceSettings, savePlaceSettings, type PlaceSettings } from "@/lib/calendar/device";
 import type { DaySummary } from "@/lib/calendar/place";
 import { pickStarters, type StarterGroup } from "@/lib/starters";
@@ -949,6 +951,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const profileRef = useRef<LearnerProfile>(emptyProfile());
   const [aboutOpen, setAboutOpen] = useState(false);
   const [placeOpen, setPlaceOpen] = useState(false);
+  // The open chat's chavrusa session (lib/chavrusa), if it is one, and the setup panel when open.
+  const [chavrusa, setChavrusaState] = useState<ChavrusaSession | null>(null);
+  const chavrusaRef = useRef<ChavrusaSession | null>(null);
+  const [chavrusaSetup, setChavrusaSetup] = useState<{ initial?: Partial<ChavrusaSession>; choices: ChavrusaChoice[] } | null>(null);
   // Where the person is, for the day's times; kept on this device only (lib/calendar/device.ts).
   const [placeSettings, setPlaceSettings] = useState<PlaceSettings>({ place: null, prefs: {}, approx: true });
   useEffect(() => setPlaceSettings(loadPlaceSettings()), []);
@@ -1251,10 +1257,30 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         category: existing?.category ?? "",
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
+        ...(chavrusaRef.current ? { chavrusa: chavrusaRef.current } : {}),
         messages: saved,
       }),
     );
   }, [messages, chatId, saveChats]);
+
+  /** Change or end the open chat's chavrusa session, and keep the change with the chat. */
+  const setChatChavrusa = useCallback(
+    (session: ChavrusaSession | null) => {
+      chavrusaRef.current = session;
+      setChavrusaState(session);
+      const id = chatIdRef.current;
+      if (!id || !chatsRef.current.some((c) => c.id === id)) return;
+      saveChats(
+        chatsRef.current.map((c) => {
+          if (c.id !== id) return c;
+          const { chavrusa: _old, ...rest } = c;
+          void _old;
+          return { ...rest, ...(session ? { chavrusa: session } : {}), changedAt: Date.now() };
+        }),
+      );
+    },
+    [saveChats],
+  );
 
   /** The chat on screen, for answers that arrive later (they belong to the chat that asked). */
   const chatIdRef = useRef<string | null>(null);
@@ -1281,7 +1307,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const updateChat = (id: string, change: Partial<Pick<SavedChat, "title" | "category">>) =>
     saveChats(chatsRef.current.map((c) => (c.id === id ? { ...c, ...change, changedAt: Date.now() } : c)));
 
-  const showChat = (id: string | null, list: ChatMessage[]) => {
+  const showChat = (id: string | null, list: ChatMessage[], session: ChavrusaSession | null = null) => {
+    chavrusaRef.current = session;
+    setChavrusaState(session);
     dictation.cancel();
     stopSpeaking();
     setSpeaking(null);
@@ -1312,6 +1340,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     showChat(
       chat.id,
       chat.messages.map((m) => ({ id: nextId.current++, ...m })),
+      chat.chavrusa ?? null,
     );
 
   const deleteChat = (id: string) => {
@@ -1708,13 +1737,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         ...(how.away ? { away: true } : {}),
       }));
       if (!open) setFreshChats((prev) => new Set(prev).add(chat));
+      // A chavrusa session moves on to the furthest line the answer cited, and is remembered.
+      const session = open ? chavrusaRef.current : (chatsRef.current.find((c) => c.id === chat)?.chavrusa ?? null);
+      if (session && result.status === "answered") {
+        const at = reachedLine(session, result.sources.filter((x) => !x.article && !x.online).map((x) => x.ref));
+        const next = at && at !== session.at ? { ...session, at } : session;
+        if (next !== session) {
+          if (open) setChatChavrusa(next);
+          else saveChats(chatsRef.current.map((c) => (c.id === chat ? { ...c, chavrusa: next } : c)));
+        }
+        if (next.text) notice({ kind: "learned", text: next.text, ...(next.at ? { at: next.at } : {}), style: next.style });
+      }
+      // The Torah subject of the question, so RabbAI remembers what they learned (never their life).
+      if (result.topic) notice({ kind: "topic", topic: result.topic });
       // The page has it now: nothing more is kept on the server.
       void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
       // A question asked out loud gets its answer read aloud.
       if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) listen(`m${placeholder.id}`, plainAnswer(result));
       if (document.hidden) document.title = "Answered · RabbAI";
     },
-    [settleInChat, listen],
+    [settleInChat, listen, setChatChavrusa, saveChats, notice],
   );
 
   const failJob = useCallback(
@@ -1993,11 +2035,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         growth,
         deep: opts.deep === true,
         profile: profileRef.current.remember ? profileRef.current : undefined,
+        ...(chavrusaRef.current ? { chavrusa: chavrusaRef.current } : {}),
       });
       return true;
     },
     [messages, growth, dictation, setSpeaking, notice, streamJob],
   );
+
+  /** Open "Learn with a chavrusa", with quick choices of what to learn. */
+  const openChavrusaSetup = (initial?: Partial<ChavrusaSession>) => {
+    const choices: ChavrusaChoice[] = [];
+    const add = (c: ChavrusaChoice) => {
+      if (c.text && !choices.some((x) => x.text === c.text)) choices.push(c);
+    };
+    if (daf) add({ text: daf.section, label: `This page: ${daf.section}` });
+    if (readerOpen && reader?.section) add({ text: reader.section, label: `What's open: ${reader.section}` });
+    const last = profile.remember ? profile.observed.learning[0] : undefined;
+    if (last) add({ text: last.text, label: `Continue ${last.text}${last.at && last.at !== last.text ? ` (from ${last.at})` : ""}`, ...(last.at ? { at: last.at } : {}) });
+    if (day?.daf?.ref) add({ text: day.daf.ref, label: `Today's Daf Yomi: ${day.daf.text}` });
+    if (day?.parsha && !day.parsha.holiday) add({ text: `Parashat ${day.parsha.name}`, label: `This week's parsha: ${day.parsha.name}` });
+    setChavrusaSetup({ initial: { style: last?.style ?? "guide", depth: "standard", ...initial }, choices });
+  };
+
+  /** Start a chavrusa session in a new chat: RabbAI opens it the way the person chose. */
+  const startChavrusa = (session: ChavrusaSession) => {
+    setChavrusaSetup(null);
+    if (dafRef) closeDaf();
+    showChat(null, [], session);
+    send(openingMessage(session), { fresh: true });
+  };
 
   /** Stop the answer being written in this chat; the question goes back in the box. */
   const stopAnswer = () => {
@@ -3447,11 +3513,31 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           >
             {outlineState?.loading ? "Outlining…" : showOutline ? "Hide the flow" : "Show the flow"}
           </button>
+          <button
+            type="button"
+            className="rb-btn chav-daf-btn"
+            disabled={!daf}
+            onClick={() => daf && openChavrusaSetup({ text: daf.section })}
+            aria-label="Learn this page with a chavrusa"
+          >
+            Learn it
+          </button>
           <button type="button" className="rb-btn" aria-expanded={dafMenu === "view"} onClick={() => setDafMenu(dafMenu === "view" ? null : "view")}>
             View
           </button>
           {dafMenu === "view" && (
             <div className="rb-menu daf-menu" role="group" aria-label="View">
+              <button
+                type="button"
+                className="btn primary narrow-only chav-menu-btn"
+                disabled={!daf}
+                onClick={() => {
+                  setDafMenu(null);
+                  if (daf) openChavrusaSetup({ text: daf.section });
+                }}
+              >
+                Learn this page with a chavrusa
+              </button>
               <div className="view-row">
                 <span>Page size</span>
                 <div className="seg" role="group" aria-label="Page size">
@@ -4062,6 +4148,32 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         steps are in web/README.md.
                       </p>
                     )}
+                    <div className="chav-invite">
+                      <div className="chav-invite-text">
+                        <strong>Learn with a chavrusa</strong>
+                        <span className="muted">
+                          A piece at a time, from the text itself. It can ask you questions, go deep, or keep to the Gemara, Rashi and
+                          Tosafot.
+                        </span>
+                      </div>
+                      <div className="chav-invite-btns">
+                        {profile.remember && profile.observed.learning[0] && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              const l = profile.observed.learning[0];
+                              startChavrusa({ style: l.style ?? "guide", depth: "standard", text: l.text, ...(l.at ? { at: l.at } : {}) });
+                            }}
+                          >
+                            Continue {profile.observed.learning[0].text}
+                          </button>
+                        )}
+                        <button type="button" className="btn primary" onClick={() => openChavrusaSetup()}>
+                          Start learning
+                        </button>
+                      </div>
+                    </div>
                     <p className="welcome-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                     {(starters ?? []).map((g) => (
                       <div key={g.label} className={`starters${g.label === "For this week" ? " starters-today" : ""}`}>
@@ -4318,6 +4430,54 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
         {mode === "chat" && (!chatsOpen || chatsColumn) && (
           <div className="composer">
+            {chavrusa && (
+              <div className="chav-bar" role="group" aria-label="Your chavrusa">
+                <div className="chav-bar-row">
+                  <span className="chav-badge">Chavrusa</span>
+                  <span className="chav-what">
+                    {STYLE_INFO[chavrusa.style].name}
+                    {chavrusa.text ? ` · ${chavrusa.text}` : ""}
+                    {chavrusa.at && chavrusa.text && chavrusa.at.startsWith(`${chavrusa.text}:`) ? `, line ${chavrusa.at.slice(chavrusa.text.length + 1)}` : ""}
+                    <span className="chav-depth-note"> · {DEPTH_INFO[chavrusa.depth].name}</span>
+                  </span>
+                  <span className="chav-bar-btns">
+                    {amudOf(chavrusa.text) && (
+                      <button
+                        type="button"
+                        className="chav-page-btn"
+                        aria-label={`Open ${chavrusa.text} as printed`}
+                        title="Open the page"
+                        onClick={() => void openDaf(chavrusa.text!)}
+                      >
+                        ▤
+                      </button>
+                    )}
+                    <button type="button" className="link" onClick={() => openChavrusaSetup(chavrusa)}>
+                      Change
+                    </button>
+                  </span>
+                </div>
+                {!pending && messages.length > 0 && (
+                  <div className="chav-replies">
+                    {quickReplies(chavrusa).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        className="chip-btn"
+                        onClick={() => {
+                          if (r.endsWith("…")) {
+                            setInput(`${r.slice(0, -1)}: `);
+                            textareaRef.current?.focus();
+                          } else void send(r);
+                        }}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {(attached.length > 0 || preparing > 0) && (
               <ul className="attach-row" aria-label="Pictures to send">
                 {attached.map((a, i) => (
@@ -4577,6 +4737,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   >
                     Editions
                   </button>
+                  {!reader.work.article && (
+                    <>
+                      {" · "}
+                      <button type="button" className="link" onClick={() => openChavrusaSetup({ text: reader.section })}>
+                        Learn this with a chavrusa
+                      </button>
+                    </>
+                  )}
                 </p>
               )}
               {reader && readerMenu === "about" && (
@@ -4719,6 +4887,29 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       )}
 
       {placeOpen && <YourPlace settings={placeSettings} onChange={changePlace} onClose={() => setPlaceOpen(false)} />}
+
+      {chavrusaSetup && (
+        <ChavrusaSetup
+          initial={chavrusaSetup.initial}
+          choices={chavrusaSetup.choices}
+          onStart={(session) => {
+            // Changing the way mid-session keeps the chat; otherwise a new chat starts.
+            if (chavrusa && messages.length && session.text === chavrusa.text) {
+              setChavrusaSetup(null);
+              setChatChavrusa({ ...session, ...(chavrusa.at ? { at: chavrusa.at } : {}) });
+            } else startChavrusa(session);
+          }}
+          onClose={() => setChavrusaSetup(null)}
+          onEnd={
+            chavrusa && messages.length
+              ? () => {
+                  setChavrusaSetup(null);
+                  setChatChavrusa(null);
+                }
+              : undefined
+          }
+        />
+      )}
 
       {accountOpen && <AccountDialog state={account.state} api={account.api} onClose={() => setAccountOpen(false)} />}
     </div>

@@ -13,6 +13,7 @@ import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
 import { calendarInfo, calendarNoteForLookup, calendarSettings, yearAhead, type CalendarInfo, type YearItem } from "../calendar/calendar";
 import { asksAboutCalendar, type WhenAndWhere } from "../calendar/place";
+import { amudOf, chavrusaSettings, nextLineRef, type ChavrusaSession } from "../chavrusa";
 
 // ---------------------------------------------------------------------------
 // Inputs and outputs
@@ -48,6 +49,8 @@ export interface AskInput {
    * connection), for the calendar and the day's times (lib/calendar). Never kept.
    */
   when?: WhenAndWhere;
+  /** This chat is a chavrusa session: the way the person chose to learn, and what they are learning (lib/chavrusa). */
+  chavrusa?: ChavrusaSession;
 }
 
 /** Progress reports while an answer is being made, for a live screen. */
@@ -88,6 +91,11 @@ export interface AskResult {
    * shows a link to the full sources list under the answer.
    */
   aboutLibrary?: boolean;
+  /**
+   * The Torah subject of the question in a few words, named by the lookup step, so the person's
+   * learning can be remembered (lib/learner-profile.ts). Empty for a question about their life.
+   */
+  topic?: string;
 }
 
 /** The pages RabbAI looked up online for an answer, shown apart from the texts. */
@@ -477,6 +485,7 @@ export function planRequest(
       : "",
     ...lookupSettings(notes),
     notes.calendar ? calendarSettings(notes.calendar.info, { times: notes.calendar.times, year: notes.calendar.year }) : "",
+    input.chavrusa ? chavrusaSettings(input.chavrusa) : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
     input.profile ? profileSummary(input.profile) : "",
   ]
@@ -554,6 +563,7 @@ export async function ask(
   let retrieved: Passage[] | undefined;
   let lookedUp: string[] | undefined;
   let notes: LookupNotes = {};
+  let topic = "";
   // Today, for the person: the date, the parsha, the coming days and, at their place, the times.
   let calendar: CalendarInfo | null = null;
   try {
@@ -576,15 +586,26 @@ export async function ask(
     }
     hooks.onStatus?.("Looking in the library");
     try {
+      // In a chavrusa session, the line reached and the next one open first; "Just the page" keeps
+      // to the page's Gemara, Rashi and Tosafot.
+      const session = input.chavrusa;
+      const page = session?.style === "page" ? amudOf(session.text) : null;
+      const sessionNote = session?.text
+        ? `The person is learning ${session.text} with RabbAI as a chavrusa${session.at ? `; the last line reached is ${session.at}` : ""}.`
+        : "";
+      const preface = [calendar ? calendarNoteForLookup(calendar) : "", sessionNote].filter(Boolean).join("\n");
       const found = await retrieveFromTesting(searchQuery(input), store, client, {
-        focusRef: input.focusRef,
+        focusRef: input.focusRef ?? session?.at ?? session?.text,
+        ...(session?.at ? { alsoRefs: [nextLineRef(session.at)].filter((r): r is string => !!r) } : {}),
+        ...(page ? { onlyPage: page } : {}),
         pictures: input.pictures,
         extraPhrases: input.action === "word" && input.word ? [input.word] : [],
         // A line action on the reader is about that line; it never needs the web.
         research: input.action ? null : client,
         onStatus: hooks.onStatus,
-        ...(calendar ? { today: calendarNoteForLookup(calendar) } : {}),
+        ...(preface ? { preface } : {}),
       });
+      topic = found.plan.topic;
       retrieved = found.documents;
       lookedUp = found.plan.refs;
       notes = {
@@ -627,6 +648,8 @@ export async function ask(
     ...(notes.practical ? { practical: true } : {}),
     ...(notes.online ? { online: onlineReport(notes, plan.documents, []) } : {}),
     ...(notes.library ? { aboutLibrary: true } : {}),
+    // A question flagged for safety is never remembered as a topic.
+    ...(topic && !notice ? { topic } : {}),
   };
 
   if (!client) {

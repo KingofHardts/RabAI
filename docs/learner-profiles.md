@@ -18,9 +18,12 @@ in "What you know about the person" (a draft for the board).
 |---|---|---|
 | What they told RabbAI | name (optional), how much they have learned, how well they read Hebrew, community, what they want to learn, short or fuller answers | "About you" in settings |
 | What RabbAI noticed | the books they read (up to 12), the words they looked up (up to 40; the ones looked up twice are the ones to practice), how often they asked for simpler or deeper answers, how many questions they asked | what they do in the app |
+| What they learned with a chavrusa (2026-11-03) | up to 8 texts: the text, the last line reached, the way they chose (the guide, the questioner, and so on), how many sittings (a sitting is counted once, however many questions it has) | chavrusa sessions: the furthest line of the text that a checked answer cited |
+| The Torah subjects they asked about (2026-11-03) | up to 16, three to six words each ("the times for the Shema"), counted when asked again | the planning step names the subject of each question; it leaves it empty for anything that isn't Torah learning, and never puts a name, a place or anything personal in it |
 
 Only learning activity is noticed. RabbAI never keeps health, feelings, observance, family, or
-anything else about a person's life, even when they mention it in a chat.
+anything else about a person's life, even when they mention it in a chat. A question itself is
+never kept in the profile, only its subject in a few words.
 
 The person sees all of it in **About you**, can change any of it, can forget what was noticed, can
 forget everything, and can turn remembering off. With remembering off nothing is noticed and
@@ -29,7 +32,7 @@ nothing about them is sent with their questions.
 ## How it reaches RabbAI, efficiently
 
 - The app sends the profile with each question. The server checks it (`parseProfile`: known values
-  only, plain words, size limits) and turns it into at most nine short lines (`profileSummary`).
+  only, plain words, size limits) and turns it into at most eleven short lines (`profileSummary`).
 - Those lines go in the request's last instruction block, after the cached core premises and app
   instructions. The cached part is the same for everyone, so a profile costs a few dozen tokens per
   question and doesn't break caching.
@@ -71,7 +74,8 @@ switch to turn it off), and "Was this helpful?" now.
   RabbAI explains, never what the sources say.
 - A privacy page (`/privacy`), and Download my data, Sign out and Delete my account.
 - Setup: the "Accounts" section of `web/README.md`.
-- Still to come: the `progress` table for the chavrusa mode (phase 4).
+- The chavrusa mode keeps its progress in the profile itself (phase 4), so no separate
+  `progress` table was needed.
 
 ### Phase 3: RabbAI gets better for everyone, with people in charge
 
@@ -91,11 +95,27 @@ shared learning goes through people:
 - **Efficiency from what is learned**: common questions and their sources are found faster, and
   translations made once are kept for everyone (RabbAI's translation library).
 
-### Phase 4: the chavrusa mode uses it
+### Phase 4: the chavrusa mode uses it (first part built 2026-11-03)
 
-The planned chavrusa mode (learning a daf together) reads the profile and the progress table:
-where the person is, which words to practice, which questions they answered well, and what to
-review.
+The maintainer asked (2026-11-03) for RabbAI to be a consistent chavrusa: one that remembers what
+the person learned, with ways of learning to choose from and depth levels.
+
+- **A session belongs to a chat.** "Learn with a chavrusa" (on the welcome screen, the printed
+  page and the reader) asks what to learn, which way (the guide, the questioner, the partner, the
+  deep diver, just the page, the reviewer) and how deep (the main point, step by step, every
+  detail). The chat keeps the session with it (`chavrusa` in a saved chat), so reopening the chat
+  carries on the same way.
+- **Where they reached.** When a checked answer cites lines of the text being learned, the
+  furthest one becomes the session's place (`reachedLine` in `web/lib/chavrusa.ts`; it never moves
+  back, and a commentary's line doesn't count). The next question is sent with it, the library
+  opens that line and the next one, and the profile remembers it (`learning`), so the welcome
+  screen offers "Continue Berakhot 2a" in a new chat or on another device.
+- **What RabbAI is told.** The way and depth by name (`chavrusaSettings`); what each way means is
+  written in the core premises ("Learning as a chavrusa", a draft for the board). "Just the page"
+  keeps the documents to that amud's Gemara, Rashi and Tosafot and the dictionaries.
+- **Across chats.** The profile's lines tell RabbAI what the person has been learning with it and
+  the subjects they asked about, so it can connect a new question to what they learned before.
+- Still to come: which questions the person answered well, and a schedule for reviewing.
 
 ## Decisions for the maintainer
 

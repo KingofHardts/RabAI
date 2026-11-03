@@ -1,4 +1,4 @@
-import { emptyProfile, MAX_BOOKS, MAX_WORDS, type LearnerProfile, type ObservedProfile } from "../learner-profile";
+import { emptyProfile, MAX_BOOKS, MAX_LEARNING, MAX_TOPICS, MAX_WORDS, type LearnerProfile, type ObservedProfile } from "../learner-profile";
 import { MAX_CHATS, type SavedChat } from "../saved-chats";
 
 /*
@@ -44,7 +44,11 @@ function mergeItems<T extends Item>(
       const k = key(item);
       const seen = out.get(k);
       if (!seen) out.set(k, { ...item, count: counted });
-      else out.set(k, { ...seen, count: mode === "join" ? seen.count + counted : Math.max(seen.count, counted), last: Math.max(seen.last, item.last) });
+      else {
+        // The newer copy's details (such as where a chavrusa session reached) stand.
+        const newer = item.last > seen.last ? item : seen;
+        out.set(k, { ...newer, count: mode === "join" ? seen.count + counted : Math.max(seen.count, counted), last: Math.max(seen.last, item.last) });
+      }
     }
   }
   return [...out.values()];
@@ -69,11 +73,27 @@ function mergeObserved(a: LearnerProfile, b: LearnerProfile, mode: MergeMode): {
   )
     .sort((x, y) => y.count - x.count || y.last - x.last)
     .slice(0, MAX_WORDS);
+  const learning = mergeItems(
+    (x) => x.text,
+    copies.map(({ p, current }) => ({ items: p.observed.learning, current })),
+    since,
+    mode,
+  )
+    .sort((x, y) => y.last - x.last)
+    .slice(0, MAX_LEARNING);
+  const topics = mergeItems(
+    (x) => x.topic.toLowerCase(),
+    copies.map(({ p, current }) => ({ items: p.observed.topics, current })),
+    since,
+    mode,
+  )
+    .sort((x, y) => y.last - x.last)
+    .slice(0, MAX_TOPICS);
   const tally = (k: "simpler" | "deeper" | "questions") => {
     const values = copies.filter((c) => c.current).map((c) => c.p.observed[k]);
     return mode === "join" ? values.reduce((s, v) => s + v, 0) : Math.max(0, ...values);
   };
-  return { observed: { books, words, simpler: tally("simpler"), deeper: tally("deeper"), questions: tally("questions") }, since };
+  return { observed: { books, words, simpler: tally("simpler"), deeper: tally("deeper"), questions: tally("questions"), learning, topics }, since };
 }
 
 /**

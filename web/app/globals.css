@@ -273,6 +273,7 @@ p.muted { margin: 0; }
 .about-noticed { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; font-size: 14.5px; }
 .about-noticed h3 { margin: 0; font-size: 15px; }
 .about-noticed p { margin: 0; }
+.about-list { margin: 4px 0 0; padding-inline-start: 20px; display: grid; gap: 2px; }
 .about-noticed .btn { justify-self: start; }
 .about-foot { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: flex-end; font-size: 14px; }
 /* Your place */
@@ -743,8 +744,9 @@ a.settings-row { text-decoration: none; }
 .view-row .seg button { font-size: 18px; padding: 4px 16px; min-height: 40px; }
 .daf-label { padding: 4px 16px; border-bottom: 1px solid var(--line); }
 .narrow-only { display: none; }
+.chav-menu-btn { width: 100%; justify-content: center; margin-bottom: 6px; }
 @media (max-width: 640px) {
-  .flow-btn { display: none; }
+  .flow-btn, .chav-daf-btn { display: none; }
   .narrow-only { display: inline-flex; }
   .daf-bar .rb-title .he { font-size: 19px; }
 }
@@ -1112,3 +1114,35 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 }
 /* Buttons and tappable words answer a tap at once, and a quick second tap never zooms the page. */
 button, a, summary, label, [role="button"], .w-tap { touch-action: manipulation; }
+
+/* ---------- learning with a chavrusa (components/ChavrusaSetup.tsx, the bar above the box) ---------- */
+.chav-invite { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 14px 0 6px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: 14px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); font-family: var(--font-ui); }
+.chav-invite-text { display: grid; gap: 3px; flex: 1 1 240px; min-width: 0; }
+.chav-invite-text strong { font-size: 15.5px; }
+.chav-invite-text .muted { font-size: 13.5px; line-height: 1.45; }
+.chav-invite-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.chavrusa-card > * { min-width: 0; }
+.chav-texts { display: grid; gap: 6px; }
+.chav-pick { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 14.5px; }
+.chav-pick input, .chav-style input, .chav-depth input { accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
+.chav-pick:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.about-field .chav-texts + input[type="text"] { margin-top: 8px; }
+.chav-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.chav-style, .chav-depth { position: relative; display: grid; gap: 3px; padding: 10px 12px 10px 38px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-size: 14.5px; min-height: 64px; align-content: center; }
+.chav-style input, .chav-depth input { position: absolute; inset-inline-start: 12px; top: 13px; }
+.chav-style .muted, .chav-depth .muted { font-size: 13px; line-height: 1.4; }
+.chav-style.on, .chav-depth.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); box-shadow: 0 0 0 1px var(--accent) inset; }
+.chav-depths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 559px) { .chav-depths { grid-template-columns: 1fr; } }
+.chav-bar { display: grid; gap: 8px; padding: 8px 10px; margin-bottom: 8px; border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--accent) 5%, var(--surface)); font-family: var(--font-ui); }
+.chav-bar-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; min-width: 0; }
+.chav-badge { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--accent); }
+.chav-what { flex: 1 1 auto; min-width: 0; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chav-depth-note { color: var(--muted); }
+@media (max-width: 559px) { .chav-depth-note { display: none; } .chav-bar { padding: 6px 10px; gap: 6px; } }
+.chav-bar-btns { flex: none; display: flex; align-items: center; gap: 10px; }
+.chav-bar-btns .link { font-size: 13.5px; min-height: 36px; }
+.chav-page-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--accent); font-size: 16px; line-height: 1; padding: 0; }
+.chav-end { margin-inline-end: auto; }
+.chav-replies { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chav-replies .chip-btn { flex: none; white-space: nowrap; }

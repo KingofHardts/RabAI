@@ -52,6 +52,8 @@ export interface LookupPlan {
    * the calendar's times for the person's place (lib/calendar).
    */
   calendar: boolean;
+  /** The Torah subject of the question, in a few words; empty when it isn't about Torah learning. */
+  topic: string;
 }
 
 export interface LookupClient {
@@ -155,6 +157,15 @@ Then say what kind of question it is, and whether RabbAI should also look online
 - "calendar": true when the answer depends on today's date or the time of day: the day's times
   (zmanim), when Shabbat, a holiday or a fast begins or ends, candle lighting, the Hebrew date,
   this week's parsha, today's daf or other daily learning, or how many days until a holiday.
+- "topic": the Torah subject of the question in three to six English words ("the times for the
+  Shema", "Rashi on Genesis 1:1", "lighting Chanukah candles"), so the person's learning can be
+  remembered. Empty ("") when the question isn't about Torah learning: about the person's own
+  life, feelings, health, family or work, a greeting, or a practical task. Never put a name, a
+  place or anything personal in it.
+
+In a chavrusa session, a line before the question says what the person is learning with RabbAI
+and the last line reached. "Next line", "keep going" and the like mean the line after it; name
+that line and the commentaries on it.
 
 The message may begin with a line about today: the date, the Hebrew date, this week's parsha with
 its verses, and today's Daf Yomi. Use it whenever the question depends on the date. "This week's
@@ -180,7 +191,7 @@ of a label, a sign or a letter tells you what the question is about; plan for th
 you can't tell what a picture shows, plan from the words of the question alone.
 
 Reply with JSON only, in this form:
-{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false, "calendar": false}
+{"refs": ["..."], "hebrew": ["..."], "english": ["..."], "practical": false, "online": "", "queries": [], "library": false, "calendar": false, "topic": ""}
 At most ${LOOKUP_LIMITS.refs} refs, ${LOOKUP_LIMITS.hebrew} Hebrew phrases, ${LOOKUP_LIMITS.english} English phrases and ${LOOKUP_LIMITS.queries} queries.
 For a message that needs no sources (a greeting, small talk, a question about the app, or a
 practical task with no Torah side, such as a recipe or a math problem), reply with empty lists
@@ -244,6 +255,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
       queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
       library: json.library === true,
       calendar: json.calendar === true,
+      topic: typeof json.topic === "string" ? json.topic.replace(/[^\p{L}\p{M}\p{N} ,.'’:()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) : "",
     };
   } catch {
     return null;
@@ -252,7 +264,7 @@ export function readLookupPlan(text: string): LookupPlan | null {
 
 /** A plan that opens nothing and looks nothing up. */
 export function emptyPlan(): LookupPlan {
-  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [], library: false, calendar: false };
+  return { refs: [], hebrew: [], english: [], practical: false, online: "", queries: [], library: false, calendar: false, topic: "" };
 }
 
 /** Read the plan from the model's reply. Anything malformed becomes an empty plan. */
@@ -302,13 +314,13 @@ export async function planLookups(
   store: TestingStore,
   client: LookupClient | null,
   pictures: QuestionPicture[] = [],
-  /** A line about today (the date, this week's parsha, today's daf), read before the question. */
-  today = "",
+  /** Lines read before the question: today (the date, this week's parsha, today's daf), and a chavrusa session's place. */
+  preface = "",
 ): Promise<LookupPlan> {
   if (!client || !question.trim()) return fallbackPlan(question);
   try {
     const catalog = await store.catalog();
-    const reply = await client.create(lookupRequest(today ? `${today}\n\n${question}` : question, catalog, lookupModel(), pictures));
+    const reply = await client.create(lookupRequest(preface ? `${preface}\n\n${question}` : question, catalog, lookupModel(), pictures));
     const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
     // An empty plan is a choice: small talk or a practical task needs no sources, and searching
     // anyway only slows the answer and hands the model passages that don't help.
@@ -354,8 +366,24 @@ export interface RetrieveOptions {
   online?: OnlineSetting;
   /** A short note on what is happening, for a live screen. */
   onStatus?: (text: string) => void;
-  /** A line about today for the planner (lib/calendar: calendarNoteForLookup). */
-  today?: string;
+  /**
+   * Lines the planner reads before the question: today's date and parsha (lib/calendar:
+   * calendarNoteForLookup) and, in a chavrusa session, what is being learned (lib/chavrusa).
+   */
+  preface?: string;
+  /** More places to open beside the one in focus (in a chavrusa session, the next line). */
+  alsoRefs?: string[];
+  /**
+   * Keep to one amud of the Bavli: its Gemara, Rashi and Tosafot, and the dictionaries (the
+   * chavrusa's "Just the page"). Nothing else is opened, searched or looked up online.
+   */
+  onlyPage?: string;
+}
+
+/** A passage of an amud's Gemara, Rashi or Tosafot, or a dictionary entry for its words. */
+export function onThePage(p: Passage, page: string): boolean {
+  if (p.source?.dictionary) return true;
+  return [page, `Rashi on ${page}`, `Tosafot on ${page}`].some((s) => p.ref === s || p.ref.startsWith(`${s}:`));
 }
 
 /** Open the planned places, follow their links, and search; the line in focus comes first. */
@@ -365,19 +393,19 @@ export async function retrieveFromTesting(
   client: LookupClient | null,
   opts: RetrieveOptions = {},
 ): Promise<Retrieved> {
-  const plan = await planLookups(question, store, client, opts.pictures ?? [], opts.today ?? "");
-  const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...plan.refs];
+  const plan = await planLookups(question, store, client, opts.pictures ?? [], opts.preface ?? "");
+  const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...(opts.alsoRefs ?? []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
 
   // An online lookup runs beside the library's, when the plan asks for one and the setting allows.
-  const kind = opts.research ? allowedLookup(plan.online, opts.online ?? onlineSetting()) : "";
+  const kind = opts.research && !opts.onlyPage ? allowedLookup(plan.online, opts.online ?? onlineSetting()) : "";
   if (kind) opts.onStatus?.(kind === "torah" ? "Searching trusted Orthodox sites" : "Searching the web");
   const lookingOnline = kind && opts.research ? lookOnline(question, plan.queries, kind, opts.research) : null;
 
   const [opened, searched, articles] = await Promise.all([
     store.lookup(refs, LOOKUP_LIMITS.perRef, phrases),
     store.search(phrases, LOOKUP_LIMITS.searched),
-    store.articles(phrases, LOOKUP_LIMITS.articles).catch((err) => {
+    (opts.onlyPage ? Promise.resolve([] as Passage[]) : store.articles(phrases, LOOKUP_LIMITS.articles)).catch((err) => {
       console.warn("[rabai] article search failed:", err instanceof Error ? err.message : err);
       return [] as Passage[];
     }),
@@ -440,5 +468,6 @@ export async function retrieveFromTesting(
   add(articles.slice(0, articleRoom), out.size + articleRoom);
   // Pages found online come after everything from the library, marked as found online.
   if (online?.pages.length) add(onlineDocuments(online), out.size + online.pages.length);
-  return { plan, documents: [...out.values()], ...(online ? { online, checked } : {}) };
+  const documents = opts.onlyPage ? [...out.values()].filter((p) => onThePage(p, opts.onlyPage!)) : [...out.values()];
+  return { plan, documents, ...(online ? { online, checked } : {}) };
 }

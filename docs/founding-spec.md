@@ -354,6 +354,27 @@ wording.
   (42, 50 or 72 minutes), or Chabad's times (the Baal HaTanya's). RabbAI never works out a time
   itself, says not to wait for the last minute, and sends people to their shul's calendar and
   their rav for their community's practice. Open question 20 asks the board about the defaults.
+- **Learning as a chavrusa.** **Decided (Josh, 2026-11-03):** a person can learn with RabbAI
+  as with a chavrusa (a learning partner), and RabbAI remembers what they learned together, so it
+  is a consistent partner from one sitting to the next. How it works:
+  - The person chooses what to learn (the page open, today's daf, this week's parsha, where they
+    stopped, or anything else), a way of learning, and a depth. The ways: the guide (explains
+    step by step and checks they're with it), the questioner (asks questions and gives hints,
+    and tells the answer only after they try), the partner (they take turns reading and
+    explaining), the deep diver (the hard questions, the Rishonim and Acharonim), just the page
+    (only the Gemara, Rashi and Tosafot on that amud, and the dictionaries), and the reviewer
+    (quizzes them on what they learned). The depths: the main point, step by step, every detail.
+  - What each way means is written in the core premises ("Learning as a chavrusa", for the board);
+    the app only names the one chosen. A way changes how RabbAI teaches, never what the sources
+    say, and the same rules hold as in any answer: every point from the sources, cited and
+    checked.
+  - The chat keeps the session: the way, the depth, and the last line of the text that a checked
+    answer cited. Each question is sent with that line, so the next one picks up from there. The
+    person's profile (when remembering is on) keeps the texts they learned and where they reached,
+    and the Torah subjects of their questions in a few words (never the questions themselves), so
+    RabbAI can connect a new question to what they learned before, in any chat and on any of
+    their devices. The person sees and can forget all of it in "About you".
+  - Open question 21 asks the board about the ways and their wording.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.
@@ -502,3 +523,11 @@ These need a decision before launch. Each one changes behavior.
     offered in Settings the right ones, and is the wording of the core premises' section "Dates,
     times and the calendar" right, in particular "never cut it close" and sending people to their
     shul's calendar?
+21. **Learning as a chavrusa.** People can now learn with RabbAI as with a chavrusa, choosing a
+    way of learning and a depth (see "Learning as a chavrusa"). Are the ways right, and is the
+    core premises' section "Learning as a chavrusa" right for each one? In particular: may the
+    questioner hold back the answer until the person tries (it always gives it when asked), and
+    should "just the page" ever reach beyond the Gemara, Rashi and Tosafot (today it uses only
+    them and the dictionaries)? The same question covers the paragraph "Your own thinking" in
+    "How you think": RabbAI may connect and organize what the sources say in its own words, and
+    must say so when a connection is its own.

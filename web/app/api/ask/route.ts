@@ -7,6 +7,7 @@ import { anthropicClient, ask, LIMITS, LINE_ACTIONS, type AskInput, type AskResu
 import { jobCheck, jobShape, jobStore, noJobStore, runAnswer, type LiveEvent } from "@/lib/answer-jobs";
 import { PICTURE_LIMITS, picturesSize, questionForPictures, readPictures, type QuestionPicture } from "@/lib/pictures";
 import { whenForRequest } from "@/lib/calendar/place";
+import { parseChavrusa } from "@/lib/chavrusa";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +65,7 @@ function parse(body: unknown): AskInput | string {
   if (picturesSize(allPictures) > PICTURE_LIMITS.totalChars) return "Those pictures are too large together. Please send fewer, or smaller ones.";
 
   const profile = b.profile && typeof b.profile === "object" ? parseProfile(b.profile) : undefined;
+  const chavrusa = action ? null : parseChavrusa(b.chavrusa);
   return {
     question,
     action,
@@ -74,6 +76,7 @@ function parse(body: unknown): AskInput | string {
     deep: b.deep === true,
     ...(pictures.length ? { pictures } : {}),
     ...(profile ? { profile } : {}),
+    ...(chavrusa ? { chavrusa } : {}),
   };
 }
 

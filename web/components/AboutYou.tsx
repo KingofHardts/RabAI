@@ -13,10 +13,12 @@ import {
   LEVELS,
   LEVEL_LABELS,
   practiceWords,
+  ago,
   type Goal,
   type LearnerProfile,
   type StatedProfile,
 } from "@/lib/learner-profile";
+import { STYLE_INFO } from "@/lib/chavrusa";
 
 /*
  * "About you": what the person tells RabbAI about themselves, and everything RabbAI has noticed
@@ -177,10 +179,33 @@ export default function AboutYou({
               Remembering is off. RabbAI notices nothing and sends nothing about you with your questions
               {signedIn ? ", and saves nothing new about you to your account" : ""}.
             </p>
-          ) : !o.books.length && !o.words.length && !o.questions ? (
-            <p className="muted">Nothing yet. As you learn, the books you read and the words you look up show here.</p>
+          ) : !o.books.length && !o.words.length && !o.questions && !o.learning.length && !o.topics.length ? (
+            <p className="muted">
+              Nothing yet. As you learn, the books you read, the words you look up, what you learn with your chavrusa and the
+              Torah topics you ask about show here.
+            </p>
           ) : (
             <>
+              {o.learning.length > 0 && (
+                <div>
+                  <strong>Learning with your chavrusa:</strong>
+                  <ul className="about-list">
+                    {o.learning.slice(0, 6).map((l) => (
+                      <li key={l.text}>
+                        {l.text}
+                        {l.at && l.at !== l.text ? `, up to ${l.at}` : ""}
+                        {l.style ? ` · ${STYLE_INFO[l.style].name}` : ""}
+                        <span className="muted"> · {ago(l.last)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {o.topics.length > 0 && (
+                <p>
+                  <strong>Torah topics you asked about:</strong> {o.topics.slice(0, 8).map((t) => t.topic).join("; ")}
+                </p>
+              )}
               {o.books.length > 0 && (
                 <p>
                   <strong>Recently learning:</strong> {o.books.slice(0, 6).map((b) => b.title).join(", ")}

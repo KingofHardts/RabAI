@@ -8,6 +8,7 @@
  */
 
 import type { AskResult } from "./engine/answer";
+import { parseChavrusa, type ChavrusaSession } from "./chavrusa";
 
 /** A small preview of a picture sent with a question, kept with the chat on the device only. */
 export interface SavedPicture {
@@ -44,6 +45,8 @@ export interface SavedChat {
   updatedAt: number;
   /** When its name or category last changed, so the change reaches the person's other devices. */
   changedAt?: number;
+  /** The chat is a chavrusa session (lib/chavrusa): how RabbAI learns with the person, and where they reached. */
+  chavrusa?: ChavrusaSession;
   messages: SavedMessage[];
 }
 
@@ -145,6 +148,7 @@ export function parseChats(raw: unknown, place: ChatPlace = "device"): SavedChat
     const messages = x.messages.map((m) => readMessage(m, place)).filter((m): m is SavedMessage => m !== null);
     if (!messages.length || out.some((o) => o.id === x.id)) continue;
     const updatedAt = typeof x.updatedAt === "number" ? x.updatedAt : 0;
+    const chavrusa = parseChavrusa(x.chavrusa);
     out.push({
       id: x.id,
       title: typeof x.title === "string" && x.title.trim() ? x.title.slice(0, MAX_TITLE + 1) : titleFor(messages),
@@ -152,6 +156,7 @@ export function parseChats(raw: unknown, place: ChatPlace = "device"): SavedChat
       createdAt: typeof x.createdAt === "number" ? x.createdAt : updatedAt,
       updatedAt,
       ...(typeof x.changedAt === "number" && Number.isFinite(x.changedAt) && x.changedAt > 0 ? { changedAt: x.changedAt } : {}),
+      ...(chavrusa ? { chavrusa } : {}),
       messages: messages.slice(-MAX_MESSAGES_PER_CHAT),
     });
   }
