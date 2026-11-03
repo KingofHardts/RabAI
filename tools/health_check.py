@@ -71,6 +71,13 @@ SETTINGS = (
 QUESTION = "What is the first word of the Torah, and what does it mean?"
 # A question about RabbAI's own library: RabbAI should answer it from its sources list.
 SOURCES_QUESTION = "Which books do you use for halacha, and which do you leave out?"
+# Why the lookup step's own plan wasn't used (lookupFallback in an answer's result).
+LOOKUP_FALLBACKS = {
+    "cut_off": "was cut off at its token limit",
+    "unreadable": "gave no plan that could be read",
+    "failed": "failed to run",
+}
+
 # A practical question the classic books don't name directly: RabbAI should look it up online.
 PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
 # Asked with a picture that is red on the left and blue on the right.
@@ -524,6 +531,12 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                 f"{seen.get('seconds', 0):.0f} seconds.")
         if r.get("status") not in ("answered",):
             problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+        # The lookup step plans which texts to open; when its plan can't be used, RabbAI searches the
+        # question's words instead, and practical questions lose the online lookup and the rav note.
+        fell_back = LOOKUP_FALLBACKS.get(str(r.get("lookupFallback") or ""))
+        summary(f"  - The lookup step: {fell_back or 'planned it'}.")
+        if fell_back:
+            problem(f"For {label}, the lookup step {fell_back}, so RabbAI searched the question's words instead.")
         return r
 
     def leave_midway(question: str) -> None:

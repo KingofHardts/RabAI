@@ -7,7 +7,7 @@ import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from 
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
 import { testingStore, type TestingStore } from "../library/testing";
-import { asksAboutLibrary, retrieveFromTesting } from "./lookup";
+import { asksAboutLibrary, retrieveFromTesting, type LookupFallback } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
@@ -102,6 +102,12 @@ export interface AskResult {
    * learning can be remembered (lib/learner-profile.ts). Empty for a question about their life.
    */
   topic?: string;
+  /**
+   * Why the lookup step's own plan wasn't used, when it wasn't (its reply was cut off, couldn't be
+   * read, or the call failed), so the question's words were searched instead. For the live check
+   * ("Is RabbAI working?"); nothing shows it to the person.
+   */
+  lookupFallback?: LookupFallback;
 }
 
 /** The pages RabbAI looked up online for an answer, shown apart from the texts. */
@@ -571,6 +577,7 @@ export async function ask(
   let lookedUp: string[] | undefined;
   let notes: LookupNotes = {};
   let topic = "";
+  let lookupFallback: LookupFallback | undefined;
   // Today, for the person: the date, the parsha, the coming days and, at their place, the times.
   let calendar: CalendarInfo | null = null;
   try {
@@ -619,6 +626,7 @@ export async function ask(
         ...(preface ? { preface } : {}),
       });
       topic = found.plan.topic;
+      lookupFallback = found.plan.fallback;
       retrieved = found.documents;
       lookedUp = found.plan.refs;
       notes = {
@@ -663,6 +671,7 @@ export async function ask(
     ...(notes.library ? { aboutLibrary: true } : {}),
     // A question flagged for safety is never remembered as a topic.
     ...(topic && !notice ? { topic } : {}),
+    ...(lookupFallback ? { lookupFallback } : {}),
   };
 
   if (!client) {

@@ -283,7 +283,10 @@ Done 2026-11-03, at Josh's request (his brother's suggestions):
   Torah. RabbAI may offer a thought of its own, built on and cited to the texts (core premises
   "Your own thinking", for the board).
 - The "Is RabbAI working?" check also asks for a dvar Torah on this week's parsha and one question
-  as if spoken in Talk.
+  as if spoken in Talk, and says for each question whether the lookup step planned it. Its first
+  run found the planner's replies cut off: its 800-token cap counted the model's thinking, and the
+  longer planning instructions went past it, so a practical question lost the online lookup and
+  the rav note. The cap is now 4,000, and a plan that falls back says why (`lookupFallback`).
 
 Moving RabbAI off Senior Stylist:
 - The maintainer is creating a RabbAI cloud environment (Custom network access with the default

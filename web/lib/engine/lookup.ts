@@ -54,10 +54,18 @@ export interface LookupPlan {
   calendar: boolean;
   /** The Torah subject of the question, in a few words; empty when it isn't about Torah learning. */
   topic: string;
+  /**
+   * Set when the lookup step's own plan couldn't be used and the question's words were searched
+   * instead: its reply was cut off at the token limit, couldn't be read as a plan, or the call
+   * failed. Nothing shows it to the person; the live check reports it.
+   */
+  fallback?: LookupFallback;
 }
 
+export type LookupFallback = "cut_off" | "unreadable" | "failed";
+
 export interface LookupClient {
-  create(params: MessageCreateParamsNonStreaming): Promise<{ content: Array<{ type: string; text?: string }> }>;
+  create(params: MessageCreateParamsNonStreaming): Promise<{ content: Array<{ type: string; text?: string }>; stop_reason?: string | null }>;
 }
 
 export const LOOKUP_LIMITS = {
@@ -87,6 +95,12 @@ export const LOOKUP_LIMITS = {
   /** How many texts count as plenty, and how many articles still come then. */
   plentyOfTexts: 10,
   articlesWithPlenty: 2,
+  /**
+   * The most the lookup step may write, thinking included: the model thinks before it plans, and
+   * its thinking counts toward this cap even though it isn't returned. At 800 a longer think cut
+   * the plan off, and the answer fell back to searching the question's words (2026-11-03).
+   */
+  replyTokens: 4000,
   /** Searches for an online lookup. */
   queries: 3,
   /** Places opened in the library because a page found online relies on them. */
@@ -208,7 +222,7 @@ export function lookupRequest(
 ): MessageCreateParamsNonStreaming {
   return {
     model,
-    max_tokens: 800,
+    max_tokens: LOOKUP_LIMITS.replyTokens,
     output_config: { effort: "low" },
     system: [{ type: "text", text: LOOKUP_INSTRUCTIONS + catalog, cache_control: { type: "ephemeral" } }],
     messages: [
@@ -237,13 +251,26 @@ function strings(value: unknown, max: number, maxLen: number): string[] {
   return out;
 }
 
+/**
+ * The plan's JSON. A Hebrew abbreviation written with a plain quote mark (ק"ש, רש"י) breaks it, so
+ * when it can't be read as it is, such quotes are written as the Hebrew gershayim (ק״ש), as the
+ * books print them, and it is read again. Valid JSON is never changed.
+ */
+function parsePlanJson(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return JSON.parse(raw.replace(/([\u05D0-\u05EA])"(?=[\u05D0-\u05EA])/g, "$1\u05F4")) as Record<string, unknown>;
+  }
+}
+
 /** Read the plan from the model's reply, or null when the reply holds no plan at all. */
 export function readLookupPlan(text: string): LookupPlan | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) return null;
   try {
-    const json = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    const json = parsePlanJson(text.slice(start, end + 1));
     if (!json || typeof json !== "object" || !("refs" in json || "hebrew" in json || "english" in json)) return null;
     const online: OnlineNeed = json.online === "torah" || json.online === "general" ? json.online : "";
     return {
@@ -324,10 +351,15 @@ export async function planLookups(
     const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
     // An empty plan is a choice: small talk or a practical task needs no sources, and searching
     // anyway only slows the answer and hands the model passages that don't help.
-    return readLookupPlan(text) ?? fallbackPlan(question);
+    const plan = readLookupPlan(text);
+    if (plan) return plan;
+    // No plan: say why, so a cut-off or unreadable reply is noticed rather than quietly searched around.
+    const cutOff = reply.stop_reason === "max_tokens";
+    console.warn(`[rabai] lookup planning ${cutOff ? "was cut off at the token limit" : "gave no plan that could be read"}; searching the question's words instead`);
+    return { ...fallbackPlan(question), fallback: cutOff ? "cut_off" : "unreadable" };
   } catch (err) {
     console.warn("[rabai] lookup planning failed:", err instanceof Error ? err.message : err);
-    return fallbackPlan(question);
+    return { ...fallbackPlan(question), fallback: "failed" };
   }
 }
 

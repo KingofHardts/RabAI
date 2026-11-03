@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { ask, type ModelClient } from "../lib/engine/answer";
-import { fallbackPlan, parseLookupPlan, retrieveFromTesting, type LookupClient } from "../lib/engine/lookup";
+import { fallbackPlan, LOOKUP_LIMITS, lookupRequest, parseLookupPlan, retrieveFromTesting, type LookupClient } from "../lib/engine/lookup";
 import type { ResearchClient } from "../lib/engine/online";
 import { libraryMode, loadLibrary } from "../lib/library/index";
 import { abbreviationOf, hebrewNumber } from "../lib/library/word-parts";
@@ -393,6 +393,15 @@ test("the planner's reply is read safely", () => {
   });
 });
 
+test("a Hebrew abbreviation written with a plain quote doesn't lose the plan", () => {
+  const plan = parseLookupPlan('{"refs": ["Berakhot 2a"], "hebrew": ["זמן ק"ש", "רש"י"], "english": [], "practical": true}');
+  assert.deepEqual(plan.refs, ["Berakhot 2a"]);
+  assert.deepEqual(plan.hebrew, ["זמן ק״ש", "רש״י"]);
+  assert.equal(plan.practical, true);
+  // Valid JSON is read as it is, quotes between Hebrew words included.
+  assert.deepEqual(parseLookupPlan('{"refs": [], "hebrew": ["שבת","מיחם"], "english": []}').hebrew, ["שבת", "מיחם"]);
+});
+
 test("the planner says whether a question is practical, and whether to look online", () => {
   const plan = parseLookupPlan(
     '{"refs": [], "hebrew": [], "english": [], "practical": true, "online": "torah", "queries": ["dishwasher on Shabbat", "", 4, "dishwasher on Shabbat"]}',
@@ -417,6 +426,37 @@ function planner(reply: string): LookupClient & { calls: number } {
   };
   return c;
 }
+
+test("a plan that is cut off, unreadable, or never comes falls back to the question's words, and says why", async () => {
+  const store = await storePromise;
+  const question = "May I use an electric hot water urn on Shabbat?";
+  const replying = (text: string, stop_reason: string): LookupClient => ({
+    async create() {
+      return { content: [{ type: "thinking" }, { type: "text", text }], stop_reason };
+    },
+  });
+  // The plan's JSON stopped partway, at the token limit.
+  const cut = await retrieveFromTesting(question, store, replying('{"refs": ["Shulchan Aruch, Orach Chayim 253:1"], "hebrew": ["מיחם', "max_tokens"));
+  assert.equal(cut.plan.fallback, "cut_off");
+  assert.deepEqual(cut.plan.english, fallbackPlan(question).english, "the question's own words are searched");
+  assert.equal(cut.plan.practical, false);
+  // Thinking used the whole cap: no text at all.
+  const silent = await retrieveFromTesting(question, store, { async create() { return { content: [{ type: "thinking" }], stop_reason: "max_tokens" }; } });
+  assert.equal(silent.plan.fallback, "cut_off");
+  assert.equal((await retrieveFromTesting(question, store, replying("I can't plan this.", "end_turn"))).plan.fallback, "unreadable");
+  const failing: LookupClient = { async create() { throw new Error("overloaded"); } };
+  assert.equal((await retrieveFromTesting(question, store, failing)).plan.fallback, "failed");
+  // A plan that comes through is used as it is, with nothing marked.
+  const good = await retrieveFromTesting(question, store, replying(JSON.stringify({ refs: [], hebrew: [], english: ["urn"], practical: true }), "end_turn"));
+  assert.equal(good.plan.fallback, undefined);
+  assert.equal(good.plan.practical, true);
+});
+
+test("the lookup step's cap leaves room for its thinking as well as the plan", () => {
+  const req = lookupRequest("May I use an electric hot water urn on Shabbat?", "Shulchan Aruch, Orach Chayim\n");
+  assert.equal(req.max_tokens, LOOKUP_LIMITS.replyTokens);
+  assert.ok(req.max_tokens >= 4000, "800 tokens cut plans off once the model thought a little longer");
+});
 
 test("retrieval opens the planned places, follows links, searches, and puts the focus first", async () => {
   const store = await storePromise;
@@ -692,6 +732,22 @@ test("ask: a dictionary by an author outside Orthodoxy is sent as a word tool on
   assert.match(jastrow!.context ?? "", /only for what words mean, never for history or belief/);
   const line = docs.find((d) => d.title === "Jerusalem Talmud Berakhot 1:1:1");
   assert.match(line!.context ?? "", /no English translation/);
+});
+
+test("ask: when the lookup step's plan is cut off, the answer says so for the live check", async () => {
+  const store = await storePromise;
+  const client: ModelClient = {
+    async create(params) {
+      const system = (params.system as Array<{ text: string }>)[0].text;
+      if (system.startsWith("You find sources")) {
+        return { content: [{ type: "text", text: '{"refs": ["Genesis 1:1"], "hebrew": [', citations: null }], stop_reason: "max_tokens" } as unknown as BetaMessage;
+      }
+      return { id: "m", type: "message", role: "assistant", model: "claude-opus-5-5", stop_reason: "end_turn", content: [{ type: "text", text: "In the beginning.", citations: null }] } as unknown as BetaMessage;
+    },
+  };
+  const result = await ask({ question: "How does the Torah begin?" }, client, loadLibrary("testing"), store);
+  assert.equal(result.status, "answered");
+  assert.equal(result.lookupFallback, "cut_off");
 });
 
 test("ask: a practical question looked up online is checked against the texts, and the pages are shown apart", async () => {
