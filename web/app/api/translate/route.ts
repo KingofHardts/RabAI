@@ -39,7 +39,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'Send JSON: {"ref": "Berakhot 2a:1"}' }, { status: 400 });
   }
-  const raw = (body ?? {}) as { ref?: unknown; context?: unknown; words?: unknown };
+  const raw = (body ?? {}) as { ref?: unknown; refs?: unknown; context?: unknown; words?: unknown; keptOnly?: unknown };
+  // Only what is already kept, for several passages at once (the comments on a line): never asks
+  // the model, so it can run without the person tapping anything.
+  if (raw.keptOnly === true) return keptOnly(raw.refs);
   const ref = String(raw.ref ?? "").trim().slice(0, 160);
   if (!ref) return NextResponse.json({ error: "Which passage?" }, { status: 400 });
   const words = raw.words === true;
@@ -97,6 +100,28 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[rabai] translation failed:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: FAILED }, { status: 502 });
+  }
+}
+
+/** The kept translations of these passages whose text still matches; nothing is made. */
+async function keptOnly(rawRefs: unknown) {
+  const refs = [...new Set((Array.isArray(rawRefs) ? rawRefs : []).filter((r): r is string => typeof r === "string" && r.trim().length > 0).map((r) => r.trim().slice(0, 160)))].slice(0, 24);
+  if (!refs.length || libraryMode() !== "testing") return NextResponse.json({ translations: [] });
+  const store = testingStore();
+  const library = translationStore();
+  if (!store || !library) return NextResponse.json({ translations: [] });
+  try {
+    const [passages, kept] = await Promise.all([store.exact(refs), library.get(refs)]);
+    const out: Translation[] = [];
+    for (const p of passages) {
+      const k = kept.get(p.ref);
+      const he = plainText(p.he);
+      if (k && he && k.check === textCheck(he)) out.push(k.translation);
+    }
+    return NextResponse.json({ translations: out }, { headers: { "Cache-Control": "no-store" } });
+  } catch (err) {
+    console.warn("[rabai] reading kept translations failed:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ translations: [] });
   }
 }
 

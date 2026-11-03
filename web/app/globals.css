@@ -919,13 +919,16 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 /* ---------- the card for a tapped word or line (components/WordCard.tsx) ---------- */
 .wc { background: var(--surface); color: var(--ink); display: flex; flex-direction: column; min-height: 0; font-size: 15px; }
 .wc-popover { position: fixed; z-index: 30; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+/* On a phone: a sheet that follows the finger. Its place is set by components/use-sheet-drag.ts;
+   until then it waits just below the screen. */
 .wc-sheet {
-  position: fixed; inset: auto 0 0 0; z-index: 26; height: 46dvh; border-radius: 18px 18px 0 0;
-  box-shadow: 0 -8px 30px rgba(20, 30, 50, .18); padding-bottom: env(safe-area-inset-bottom, 0px); transition: height .22s ease;
+  position: fixed; top: 0; left: 0; width: 100%; height: 92dvh; z-index: 26; border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 30px rgba(20, 30, 50, .18); padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translate3d(0, 100dvh, 0); transform-origin: 0 0; will-change: transform; touch-action: pan-y;
 }
-.wc-sheet.tall { height: 88dvh; }
+.wc-grab { touch-action: none; flex: none; }
 .wc-panel { height: 100%; border-inline-start: 1px solid var(--line); overflow: hidden; }
-.wc-handle { display: grid; place-items: center; width: 100%; height: 24px; border: 0; background: none; padding: 0; flex: none; touch-action: none; }
+.wc-handle { display: grid; place-items: center; width: 100%; height: 28px; border: 0; background: none; padding: 0; flex: none; touch-action: none; cursor: grab; }
 .wc-handle span { width: 40px; height: 5px; border-radius: 3px; background: var(--line); }
 .wc-top { display: flex; align-items: center; gap: 8px; padding: 8px 8px 0 16px; flex: none; }
 .wc-sheet .wc-top { padding-top: 0; }
@@ -967,6 +970,10 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 .chip-btn.quiet { border-color: transparent; background: none; color: var(--accent); padding-inline: 4px; }
 .folded .clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 .tr-en { font-family: var(--font-voice); font-size: 16px; line-height: 1.6; }
+/* The Hebrew first, the translation directly under it */
+.tr-he { font-family: var(--font-he); font-size: 19px; line-height: 1.75; direction: rtl; text-align: right; margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.tr-he-on { background: var(--hl); border-radius: 4px; box-shadow: 0 0 0 2px var(--hl); }
+.wc-piece-tr .fine-left { margin-top: 2px; }
 .reader-body.with-sheet { padding-bottom: 50dvh; }
 .w-tap.known { text-decoration: underline dotted var(--accent); text-decoration-thickness: 2px; text-underline-offset: 8px; }
 
@@ -989,7 +996,6 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 .dict-full { padding: 0 10px 10px; }
 .dict-full .entry-text { margin: 0; font-size: 14.5px; line-height: 1.55; overflow-wrap: anywhere; }
 .dict-full .entry-text.he { font-size: 17px; text-align: right; font-family: var(--font-he); }
-@media (prefers-reduced-motion: reduce) { .wc-sheet { transition: none; } }
 .wc .muted, .wc .parts { color: var(--muted); }
 
 
@@ -1060,7 +1066,6 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 .about-view, .scrim { animation: fade-in .2s ease both; }
 .about-card { animation: pop-in .24s var(--ease-out) both; }
 @media (max-width: 559px) { .about-card { animation: sheet-up .32s var(--ease-out) both; } }
-.wc-sheet { animation: sheet-up .3s var(--ease-out) both; }
 .jump-latest { animation: rise .25s var(--ease-out) both; }
 /* On a computer a text opens beside the answer: it fades in (no movement, so nothing inside it
    is thrown off while it settles). */
@@ -1093,9 +1098,17 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 
 @media (prefers-reduced-motion: reduce) {
   .scroll > *, .msg-user, .msg-ai, .msg-ai .body > *, .steps li, .starter, .chats-panel, .settings-menu, .rb-menu, .chat-tools,
-  .about-view, .scrim, .about-card, .wc-sheet, .jump-latest, .app.with-reader .reader { animation: none !important; }
+  .about-view, .scrim, .about-card, .jump-latest, .app.with-reader .reader { animation: none !important; }
   .steps li.current .tick::before { animation: none; border-inline-end-color: var(--accent); }
   .btn, .send, .mic, .starter, .cite, .chip-btn, .icon-btn, .settings-row, .chat-open, .wc-step, .wc-asks button, .online-pages a, .jump-latest { transition: none; }
   .btn:active, .send:active, .mic:active, .starter:active, .cite:active, .chip-btn:active, .icon-btn:active, .settings-row:active,
   .chat-open:active, .wc-step:active, .wc-asks button:active, .online-pages a:active, .jump-latest:active { transform: none; }
 }
+
+/* On a phone, tapping a text box whose type is smaller than 16px makes iOS zoom the whole page in,
+   and it stays zoomed. So every text box is at least 16px on a touch screen. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select { font-size: max(16px, 1em) !important; }
+}
+/* Buttons and tappable words answer a tap at once, and a quick second tap never zooms the page. */
+button, a, summary, label, [role="button"], .w-tap { touch-action: manipulation; }

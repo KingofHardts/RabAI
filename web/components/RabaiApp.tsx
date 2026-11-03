@@ -243,6 +243,22 @@ interface SavedWord {
   savedAt: number;
 }
 
+/**
+ * On a phone, scroll so what was tapped sits in the part of the screen the word sheet leaves open
+ * (the top half), also when the page is zoomed in with two fingers.
+ */
+function keepAboveSheet(scroller: HTMLElement, el: HTMLElement, topInset = 0) {
+  const vv = window.visualViewport;
+  const r = el.getBoundingClientRect();
+  const s = scroller.getBoundingClientRect();
+  const viewTop = Math.max(s.top + topInset, vv ? vv.offsetTop : 0);
+  const viewH = vv ? vv.height : window.innerHeight;
+  const openBottom = (vv ? vv.offsetTop : 0) + viewH * 0.46;
+  if (r.top >= viewTop && r.bottom <= openBottom) return;
+  const target = viewTop + Math.min(24, Math.max(0, openBottom - viewTop) * 0.15);
+  scroller.scrollBy({ top: r.top - target, behavior: "smooth" });
+}
+
 /** chatTools holds a chat's id while its menu is open in the list; this, for the open chat's own menu. */
 const HEAD_TOOLS = "__head__";
 
@@ -1077,6 +1093,43 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [flowStep, setFlowStep] = useState<PhraseAt | null>(null);
   const [marks, setMarks] = useState<Record<string, string>>({});
   const [translations, setTranslations] = useState<Record<string, { loading?: boolean; error?: string; result?: Translation }>>({});
+  const translationsRef = useRef(translations);
+  translationsRef.current = translations;
+  const keptAsked = useRef(new Set<string>());
+  /**
+   * The translations already kept in RabbAI's translation library for these passages, so a Rashi
+   * or Tosafot shows its translation right under the Hebrew. Only reads what is kept; never asks
+   * the model (that waits for the person to tap "Translate").
+   */
+  const loadKept = useCallback(
+    async (refs: string[]) => {
+      if (libraryMode !== "testing") return;
+      const want = [...new Set(refs)].filter((r) => r && !keptAsked.current.has(r) && !translationsRef.current[r]?.result);
+      if (!want.length) return;
+      for (const r of want) keptAsked.current.add(r);
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refs: want, keptOnly: true }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { translations?: unknown[] };
+        const got = (Array.isArray(json.translations) ? json.translations : [])
+          .map((t) => readKeptTranslation(t))
+          .filter((t): t is Translation => !!t && want.includes(t.ref));
+        if (!got.length) return;
+        setTranslations((prev) => {
+          const next = { ...prev };
+          for (const t of got) if (!next[t.ref]?.result) next[t.ref] = { result: t };
+          return next;
+        });
+        for (const t of got) keepTranslation(t);
+      } catch {
+        // Nothing kept is shown; "Translate" still works.
+      }
+    },
+    [libraryMode],
+  );
   const [wordByWord, setWordByWord] = useState<Record<string, boolean>>({});
 
   const nextId = useRef(1);
@@ -1437,7 +1490,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   /** Selects a line or comment on the page, starting at its first word. */
   const pickPiece = (ref: string, he: string, part: "main" | "rashi" | "tosafot") => {
     setDafPick({ ref, index: 0, word: withoutPoints(pieceWords(he)[0] ?? ""), part });
-    setCardTab("meaning");
+    setCardTab(part === "main" ? "meaning" : "translation");
     setDafQuestion("");
   };
 
@@ -1447,9 +1500,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const main = document.querySelector<HTMLElement>(".daf-view .daf-main");
     const el = main?.querySelector<HTMLElement>(".dw.on");
     if (!main || !el) return;
-    const r = el.getBoundingClientRect();
-    const m = main.getBoundingClientRect();
-    if (r.top < m.top || r.bottom > m.top + m.height * 0.45) main.scrollBy({ top: r.top - m.top - m.height * 0.2, behavior: "smooth" });
+    keepAboveSheet(main, el);
   }, [wide, dafPick]);
 
   const markPiece = (ref: string, color: string | null) => {
@@ -2166,11 +2217,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const anchor =
       (wordCard && body.querySelector<HTMLElement>(".w-tap.on")) || body.querySelector<HTMLElement>(`[data-ref="${CSS.escape(selected)}"]`);
     if (!anchor) return;
-    const r = anchor.getBoundingClientRect();
-    const b = body.getBoundingClientRect();
-    const top = b.top + (barHidden ? 0 : headHeight);
-    const target = top + Math.min(24, b.height * 0.05);
-    if (r.top < top || r.bottom > b.top + b.height * 0.45) body.scrollBy({ top: r.top - target, behavior: "smooth" });
+    keepAboveSheet(body, anchor, barHidden ? 0 : headHeight);
     // Only when something new is tapped, not when the bar moves.
   }, [wide, selected, wordCard]);
 
@@ -2535,6 +2582,46 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
    * RabbAI's own translation (made only when the person taps, and always labeled), and its word by
    * word under the library's words.
    */
+  // A tapped line or comment, and the Rashi and Tosafot on it: load their kept translations so
+  // each comment can show its English right under the Hebrew.
+  const dafPickRef = dafPick?.ref;
+  const dafPickPart = dafPick?.part;
+  useEffect(() => {
+    if (!dafPickRef || !daf) return;
+    const refs = [dafPickRef];
+    if (dafPickPart === "main") refs.push(...[...daf.rashi, ...daf.tosafot].filter((c) => c.on === dafPickRef).map((c) => c.ref));
+    void loadKept(refs);
+  }, [dafPickRef, dafPickPart, daf, loadKept]);
+  useEffect(() => {
+    if (!reader || !selected) return;
+    const item = readerItem(selected);
+    if (!item) return;
+    void loadKept([item.p.ref, ...(item.line?.commentaries ?? []).map((c) => c.ref)]);
+    // readerItem reads the reader, which is listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reader, selected, loadKept]);
+
+  /** Under a comment's Hebrew: its English from the library, or RabbAI's kept translation, or a button to make one. */
+  const commentEnglish = (ref: string, en: string | undefined, context: string[]) => {
+    if (en) return <p className="wc-piece-en">{en}</p>;
+    const tr = translations[ref];
+    if (tr?.result?.general)
+      return (
+        <div className="wc-piece-tr">
+          <p className="wc-piece-en">{tr.result.general}</p>
+          <p className="fine-left">RabbAI’s translation. Not from the library, and not yet reviewed by the rabbinic board.</p>
+        </div>
+      );
+    return (
+      <div className="follow">
+        <button type="button" className="chip-btn" disabled={tr?.loading} onClick={() => void translate(ref, context, false)}>
+          {tr?.loading ? "Translating…" : "Translate"}
+        </button>
+        {tr?.error && <span className="fine-left">{tr.error}</span>}
+      </div>
+    );
+  };
+
   const renderTranslation = (o: {
     ref: string;
     en: string;
@@ -2543,11 +2630,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     active?: number;
     partName: string;
     onSource: (r: string) => void;
+    /** The Hebrew, word by word, shown first with the translation directly under it. */
+    heWords?: string[];
   }) => {
     const tr = translations[o.ref];
     const showWords = !!wordByWord[o.ref];
     return (
       <>
+        {o.heWords && o.heWords.length > 0 && !(showWords && tr?.result?.words) && (
+          <Folded className="tr-he" lines={6} lang="he">
+            {o.heWords.map((w, i) => (
+              <span key={i} className={i === o.active ? "tr-he-on" : undefined}>
+                {i > 0 && " "}
+                {w}
+              </span>
+            ))}
+          </Folded>
+        )}
         {o.en ? (
           <>
             <Folded className="tr-en" lines={8}>
@@ -2789,6 +2888,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             active: token ? wordCard?.index : undefined,
             partName,
             onSource: (r) => void openReader(r),
+            heWords: p.tokens.length ? p.tokens.map((t) => t.text) : pieceWords(p.he ?? ""),
           })}
         {tab === "commentary" &&
           (comment ? (
@@ -2810,7 +2910,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           ) : (
             <div className="wc-pieces">
               {line.commentaries.map((c) => (
-                <details key={c.ref} className="wc-piece">
+                <details key={c.ref} className="wc-piece" open={line.commentaries.length <= 2 || undefined}>
                   <summary>
                     <strong>{c.author ?? c.label}</strong>{" "}
                     <span className="he" lang="he">
@@ -2821,7 +2921,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <p className="he wc-piece-he" lang="he">
                     {c.he}
                   </p>
-                  {c.en && <p className="wc-piece-en">{c.en}</p>}
+                  {commentEnglish(c.ref, c.en, [line.ref])}
                   <button type="button" className="link" onClick={() => tapLine(c.ref)}>
                     Open this comment
                   </button>
@@ -3472,7 +3572,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       if (dafPick?.ref === ref && dafPick.index === index) return setDafPick(null);
                       // Another word of the same line keeps the open tab; a new line opens on the word's meaning.
                       if (dafPick?.ref !== ref) {
-                        setCardTab("meaning");
+                        // A Rashi or a Tosafot opens on its Hebrew with the translation under it.
+                        setCardTab(part === "main" ? "meaning" : "translation");
                         setDafQuestion("");
                       }
                       setDafPick({ ref, index, word: w, part, printedAs });
@@ -3586,13 +3687,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   active: dafPick.index,
                   partName,
                   onSource: goToSource,
+                  heWords: pieceWords(picked.he),
                 })}
               {dafTab === "commentary" && (
                 <div className="wc-pieces">
                   {dafPick.part === "main" ? (
                     onLine.length ? (
                       onLine.map((c) => (
-                        <details key={c.ref} className="wc-piece">
+                        <details key={c.ref} className="wc-piece" open={onLine.length <= 2 || undefined}>
                           <summary>
                             <span className={`part-chip part-${c.part}`}>{PART_LABEL[c.part]}</span>{" "}
                             <span className="he" lang="he">
@@ -3603,7 +3705,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           <p className="he wc-piece-he" lang="he">
                             {c.he}
                           </p>
-                          {c.en && <p className="wc-piece-en">{c.en}</p>}
+                          {commentEnglish(c.ref, c.en, [picked.ref])}
                           <button type="button" className="link" onClick={() => pickPiece(c.ref, c.he, c.part)}>
                             Show on the page
                           </button>

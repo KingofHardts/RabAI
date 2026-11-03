@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { WordEntry } from "@/lib/library/word-parts";
 import { firstSense } from "@/lib/library/entry-summary";
+import { useSheetDrag } from "./use-sheet-drag";
 
 /*
  * The card that opens when a word or a line is tapped, in the reader and on the printed page
@@ -65,12 +66,20 @@ export interface WordCardProps {
 
 export default function WordCard(props: WordCardProps) {
   const { label, word, wordNote, breakdown, aboveTabs, tabs, tab, onTab, onNext, onPrev, onClose, children, footer, variant, style } = props;
-  const [tall, setTall] = useState(false);
-  const drag = useRef<number | null>(null);
-  const dragged = useRef(false);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const handlers = useRef({ onClose, onNext, onPrev });
-  handlers.current = { onClose, onNext, onPrev };
+  const isSheet = variant === "sheet";
+  // On a phone the card is a sheet that follows the finger (components/use-sheet-drag.ts).
+  const sheet = useSheetDrag({ enabled: isSheet, onClose });
+  const close = isSheet ? sheet.close : onClose;
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const setBody = useCallback(
+    (el: HTMLDivElement | null) => {
+      bodyRef.current = el;
+      sheet.bodyRef.current = el;
+    },
+    [sheet.bodyRef],
+  );
+  const handlers = useRef({ onClose: close, onNext, onPrev });
+  handlers.current = { onClose: close, onNext, onPrev };
 
   // Escape closes; the arrow keys move between words, as on the page (left is the next word in Hebrew).
   useEffect(() => {
@@ -101,42 +110,11 @@ export default function WordCard(props: WordCardProps) {
 
   const visible = tabs.some((t) => t.id === tab) ? tab : tabs[0]?.id;
 
-  return (
-    <section
-      className={`wc wc-${variant}${tall ? " tall" : ""}${props.className ? ` ${props.className}` : ""}`}
-      style={style}
-      aria-label={props.ariaLabel}
-      role={variant === "panel" ? "complementary" : "dialog"}
-    >
-      {variant === "sheet" && (
-        <button
-          type="button"
-          className="wc-handle"
-          aria-label={tall ? "Make the card smaller" : "Make the card bigger"}
-          onClick={() => {
-            if (dragged.current) dragged.current = false;
-            else setTall(!tall);
-          }}
-          onPointerDown={(e) => {
-            drag.current = e.clientY;
-          }}
-          onPointerUp={(e) => {
-            if (drag.current === null) return;
-            const moved = e.clientY - drag.current;
-            drag.current = null;
-            if (Math.abs(moved) <= 30) return;
-            dragged.current = true;
-            if (moved < 0) setTall(true);
-            else if (tall) setTall(false);
-            else onClose();
-          }}
-        >
-          <span aria-hidden="true" />
-        </button>
-      )}
+  const head = (
+    <>
       <div className="wc-top">
         <div className="wc-label">{label}</div>
-        <button type="button" className="wc-x" aria-label="Close" onClick={onClose}>
+        <button type="button" className="wc-x" aria-label="Close" onClick={close}>
           ×
         </button>
       </div>
@@ -159,6 +137,36 @@ export default function WordCard(props: WordCardProps) {
       )}
       {wordNote && <div className="wc-note">{wordNote}</div>}
       {breakdown && <div className="wc-breakdown">{breakdown}</div>}
+    </>
+  );
+
+  return (
+    <section
+      ref={isSheet ? sheet.sheetRef : undefined}
+      className={`wc wc-${variant}${isSheet && sheet.snap === "full" ? " tall" : ""}${props.className ? ` ${props.className}` : ""}`}
+      style={style}
+      aria-label={props.ariaLabel}
+      role={variant === "panel" ? "complementary" : "dialog"}
+    >
+      {isSheet ? (
+        <>
+          <button
+            type="button"
+            className="wc-handle"
+            aria-label={sheet.snap === "full" ? "Make the card smaller" : "Make the card bigger"}
+            onClick={sheet.toggle}
+            {...sheet.handleProps}
+          >
+            <span aria-hidden="true" />
+          </button>
+          {/* The card's top can be dragged too, like the handle. */}
+          <div className="wc-grab" {...sheet.handleProps}>
+            {head}
+          </div>
+        </>
+      ) : (
+        head
+      )}
       {aboveTabs}
       <div className="wc-tabs" role="tablist" aria-label="What to show">
         {tabs.map((t) => (
@@ -176,7 +184,7 @@ export default function WordCard(props: WordCardProps) {
           </button>
         ))}
       </div>
-      <div className="wc-body" ref={bodyRef} role="tabpanel" id="wc-panel" aria-labelledby={`wc-tab-${visible}`}>
+      <div className="wc-body" ref={setBody} role="tabpanel" id="wc-panel" aria-labelledby={`wc-tab-${visible}`}>
         {children}
         {footer && <div className="wc-foot">{footer}</div>}
       </div>
