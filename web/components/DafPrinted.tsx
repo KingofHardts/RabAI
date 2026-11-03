@@ -76,7 +76,7 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
   }, [data, printed]);
   const firstMain = data.main[0]?.ref;
   const estimated = useMemo(() => new Set(printed.estimated), [printed]);
-  // Where RabAI's phrases break the words into runs. When it changes, the words are drawn inside new
+  // Where RabbAI's phrases break the words into runs. When it changes, the words are drawn inside new
   // spans and must be fitted to their printed widths again (the filter and the current phrase only
   // change colors, not this).
   const phraseShape = flow ? Object.entries(flow.phrases).map(([ref, ps]) => `${ref}:${ps.map((p) => `${p.from}-${p.to}`).join(",")}`).join(";") : "";
@@ -238,7 +238,7 @@ export default function DafPrinted({ data, zoom, selectedRef, linkedRefs, active
             ]
               .filter(Boolean)
               .join(" ");
-            // RabAI's phrases color only the Gemara; they add spans around words and never move one.
+            // RabbAI's phrases color only the Gemara; they add spans around words and never move one.
             const lineFlow = p.part === "main" ? flow : null;
             const phraseOf = phraseNumbers(lineFlow, ref, p.words.length);
             const out: WordEntry[] = [];

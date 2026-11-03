@@ -1,5 +1,5 @@
 /*
- * Fill RabAI's translation library from inside a Claude Code session, instead of the paid Message
+ * Fill RabbAI's translation library from inside a Claude Code session, instead of the paid Message
  * Batches API (scripts/translate-library.ts). The requests are the same (buildRequests in
  * lib/engine/translate-batch.ts) and so are the checks (collectBatch): only the step that would
  * send the requests to the API is different. Each request is written out as a file, translated in
@@ -7,7 +7,7 @@
  *
  * The translations are kept first in a translation library on this computer, then sealed (only the
  * import job can open them, see lib/library/inbox-seal.ts) and pushed to translations-inbox/ in the
- * repository. The "RabAI's translation inbox" workflow imports them into the shared translation
+ * repository. The "RabbAI's translation inbox" workflow imports them into the shared translation
  * library, checking each one again against the testing library's text.
  *
  * Usage, from web/, with the testing library on this computer:
@@ -34,7 +34,7 @@
  * seal     seals what hasn't been sent yet into ../translations-inbox/<date>-<n>.sealed, with the
  *          inbox's public key (../translations-inbox/public-key.pem).
  *
- * Every translation is RabAI's own and is labeled in the app as not yet reviewed by the rabbinic
+ * Every translation is RabbAI's own and is labeled in the app as not yet reviewed by the rabbinic
  * board. ../library/ is never committed: the request files hold the library's texts.
  */
 import { createClient } from "@libsql/client";
@@ -86,8 +86,8 @@ function amudim(spec: string | undefined): Set<string> | null {
 
 const ANSWER_FORM = `# How to answer
 
-Each <id>.request.md in this folder is one request to RabAI's translator. Answer it the way the
-model would be asked to through the API: follow the instructions below (RabAI's core premises,
+Each <id>.request.md in this folder is one request to RabbAI's translator. Answer it the way the
+model would be asked to through the API: follow the instructions below (RabbAI's core premises,
 then "Translating a passage") and the request's own words, and reply in exactly the form it asks
 for, with no other words. Write the reply to <id>.answer.txt, beside the request.
 

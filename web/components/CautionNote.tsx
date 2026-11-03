@@ -37,7 +37,7 @@ export function CautionBanner({ source }: { source: PassageSource | undefined })
       <strong>Read with care: {label.charAt(0).toLowerCase() + label.slice(1)}.</strong> {source!.caution}{" "}
       <span className="caution-fine">
         {isRejected(source)
-          ? "RabAI presents its claims only together with why they were rejected."
+          ? "RabbAI presents its claims only together with why they were rejected."
           : "Not relied on alone for halacha."}
       </span>
     </div>

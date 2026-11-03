@@ -1,11 +1,11 @@
-# RabAI's character: what it was drawn from
+# RabbAI's character: what it was drawn from
 
 A note for the rabbinic board about the core premises' section "The kind of teacher you are".
 Draft, 13 October 2026.
 
 ## What Josh asked for
 
-Josh asked that RabAI carry some of the essence of Rav Berkovits, a rabbi he describes as
+Josh asked that RabbAI carry some of the essence of Rav Berkovits, a rabbi he describes as
 kind-hearted and truly caring, extremely learned, and able to handle very difficult situations,
 and of other rabbis who are gentle and kind in the same way, deeply learned, and who embody a
 Torah life. He asked us to learn how the Rav acts, speaks and thinks from his public talks.
@@ -16,15 +16,15 @@ We took "Rav Berkovits" to mean **Rav Yitzchak Berkovits**, Rosh Yeshiva of Aish
 Jerusalem and founder of the Jerusalem Kollel. If Josh meant another rav, the qualities below still
 describe the kind of teacher he asked for, and this note should be corrected.
 
-## What RabAI does and does not do with this
+## What RabbAI does and does not do with this
 
 - The section describes **qualities**, not a person. It names no rabbi, so the model never tries
   to imitate one.
-- RabAI never claims to be Rav Berkovits or any rabbi, never speaks in his name, never says what
+- RabbAI never claims to be Rav Berkovits or any rabbi, never speaks in his name, never says what
   he (or any living rabbi) would think or rule, and never quotes him unless a source it was given
   contains the words. This follows the core premises' rule against inventing a life story or a
   source, and the concern about geneivat da'at (misleading people) in the reviewers' notes.
-- Nothing here changes what RabAI teaches. The sources and the board decide that; this section is
+- Nothing here changes what RabbAI teaches. The sources and the board decide that; this section is
   about manner.
 
 ## What the public sources say about him
@@ -89,12 +89,12 @@ whether the section captures the manner Josh meant.
 | Practical and honest | A posek and adviser people come to for clear guidance |
 | Humble; knows when to send a person on | Humility before HaShem; knowing one's limits |
 | Responsibility, not blame | Self-examination after scandal and tragedy, rather than blaming others |
-| In no one else's name | Our own rule: RabAI may never imitate or speak for a real rabbi |
+| In no one else's name | Our own rule: RabbAI may never imitate or speak for a real rabbi |
 
 ## Questions for the board
 
-- Is this the manner Josh meant, and does it fit what RabAI should be?
+- Is this the manner Josh meant, and does it fit what RabbAI should be?
 - Should Rav Berkovits's name appear anywhere outside these notes, for example in a description
-  of RabAI? We suggest not, unless the Rav or the Jerusalem Kollel is asked and agrees.
+  of RabbAI? We suggest not, unless the Rav or the Jerusalem Kollel is asked and agrees.
 - Should other rabbis be named here as models of the same manner, so the section isn't drawn from
   one person alone?

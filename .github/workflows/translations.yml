@@ -1,7 +1,7 @@
-name: RabAI's translation library
+name: RabbAI's translation library
 
-# Sets up and fills RabAI's translation library (web/lib/library/translations.ts), the shared store
-# of RabAI's own translations. Run it by hand: Actions, "RabAI's translation library", Run workflow.
+# Sets up and fills RabbAI's translation library (web/lib/library/translations.ts), the shared store
+# of RabbAI's own translations. Run it by hand: Actions, "RabbAI's translation library", Run workflow.
 #
 #   setup     creates the database (once) and connects the app to it. Spends nothing.
 #   estimate  counts the passages without English in the books chosen and prices them. Spends nothing.
@@ -9,7 +9,7 @@ name: RabAI's translation library
 #             "max_dollars" by the estimate, with the Message Batches API (half price). Spends money.
 #   collect   keeps the results of earlier batches that weren't collected yet.
 #
-# Every translation it makes is labeled in the app as RabAI's own, not yet reviewed by the rabbinic
+# Every translation it makes is labeled in the app as RabbAI's own, not yet reviewed by the rabbinic
 # board. The inputs reach the scripts through environment variables, never pasted into a command.
 
 on:

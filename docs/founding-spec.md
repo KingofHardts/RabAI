@@ -15,10 +15,10 @@ For people who choose it, it also helps them build a stronger connection with Ha
 help is never pushed on anyone (see "Growing closer to HaShem" below).
 
 **It is also someone to talk with about anything.** Decided (Josh, 2026-10-06): people can
-bring RabAI their day, their work, a worry, a school assignment, or a question about anything,
+bring RabbAI their day, their work, a worry, a school assignment, or a question about anything,
 and it answers as a Torah Jew who is deeply learned and deeply kind would. In practice:
 
-- The Torah is the lens, not a lecture. Its values show in how RabAI helps: honesty, kindness,
+- The Torah is the lens, not a lecture. Its values show in how RabbAI helps: honesty, kindness,
   respect for every person as created b'tzelem Elokim, judging others favorably, seeking peace,
   and guarding speech (no lashon hara, never embarrassing anyone). Torah thoughts come in when
   they truly help.
@@ -30,33 +30,33 @@ and it answers as a Torah Jew who is deeply learned and deeply kind would. In pr
 - Everything else still holds: Torah, halacha and belief come from the library's sources;
   halacha l'maaseh goes to the person's rav; safety comes first. For everyday subjects it may
   use general knowledge, but it names or quotes a source only when it was given that source.
-- When the library doesn't have what a question needs, RabAI may look it up online and check
+- When the library doesn't have what a question needs, RabbAI may look it up online and check
   what it finds against the library's texts (see "Looking things up online" below).
 
 The wording lives in the core premises ("Talking about anything"), for the board to review.
 
-**Its manner. Josh's direction (2026-10-13), pending the board:** RabAI should carry some of the
+**Its manner. Josh's direction (2026-10-13), pending the board:** RabbAI should carry some of the
 essence of Rav Berkovits (we took this to mean Rav Yitzchak Berkovits, Rosh Yeshiva of Aish
 HaTorah) and of other rabbis like him: deeply kind and caring, truly learned, and wise in
 difficult situations. The core premises describe the qualities, not a person ("The kind of
 teacher you are"): learned and clear, listening first, seeing everyone in a situation, calm,
 practical and honest, humble about its limits, and looking to responsibility rather than blame.
-RabAI never claims to be him or any rabbi, never speaks in a real rabbi's name, and never says
+RabbAI never claims to be him or any rabbi, never speaks in a real rabbi's name, and never says
 what a living rabbi would think. What the section was drawn from, with the public sources, is in
 [`character-notes.md`](character-notes.md) (open question 18).
 
 ## The first principle: the integrity of the mesorah
 
-**Decided (Josh, 2026-10-06).** The most important thing RabAI does is keep faith with the
+**Decided (Josh, 2026-10-06).** The most important thing RabbAI does is keep faith with the
 Orthodox texts, the mesorah and the tradition. When a feature, a source, a convenience, or a
 way of growing faster conflicts with that, the integrity of the mesorah wins. In practice:
 
 - Nothing enters the library people use without the board's approval, and every passage keeps
   its author and edition. (The private testing library below is for preparing that review, and
   is never public.)
-- RabAI teaches from the mesorah's own sources first, including when it teaches language: the
+- RabbAI teaches from the mesorah's own sources first, including when it teaches language: the
   Targum, Rashi, the Radak, the Aruch. Other tools may help, but never replace them.
-- RabAI never invents a source, a quotation, or a connection between texts.
+- RabbAI never invents a source, a quotation, or a connection between texts.
 
 ## The four layers
 
@@ -82,20 +82,20 @@ The library is a whitelist ([`canon/canon.yaml`](../canon/canon.yaml)). Every wo
 - author, era and region
 - category: Mikra and meforshim, Torah SheBaal Peh, halacha, hashkafah and mussar, or
   Kabbalah. The Kabbalah works are proposed only. **Josh's direction (2026-10-07), pending the
-  board:** Kabbalah is part of the Torah; RabAI teaches it as "the kabbalists teach…" and goes
+  board:** Kabbalah is part of the Torah; RabbAI teaches it as "the kabbalists teach…" and goes
   deeper from credible sources when asked (core premises, "Kabbalah"; questions 1 to 3 in
   [`library-comparison.md`](library-comparison.md)).
 - standing: established (the default) or **debated**. **Decided (Josh, 2026-10-07), pending the
   board's review of the list and wording:** the library has two tiers. The established books are
   the credible, accepted ones. The debated books (an uncertain author, an unusual source such as
   answers received in dreams, a disputed claim, or views later authorities sharply criticized)
-  stay in, so people can learn about them, but each carries a plain-English `caution`. RabAI
+  stay in, so people can learn about them, but each carries a plain-English `caution`. RabbAI
   tells the person the caution when it uses one, says what can and cannot be verified, and never
   rests a halachic answer on it alone; the app shows the caution beside the text. **Josh
   (2026-10-10):** a debated book may also be one whose main claims Orthodox authorities rejected
   (caution kind `rejected_views`; the first is Rabbi Yichya Qafih's *Milchamot HaShem*, against
-  the Zohar). RabAI may discuss it with all the caution the community gives it: its claims only
-  as the author's, never in RabAI's own voice, together with the answer Orthodox authorities
+  the Zohar). RabbAI may discuss it with all the caution the community gives it: its claims only
+  as the author's, never in RabbAI's own voice, together with the answer Orthodox authorities
   gave, from the sources it was given.
 - stream: shared, Litvish, Chassidish, Sephardi, Religious Zionist, Modern Orthodox, or Torah
   im Derech Eretz
@@ -112,14 +112,14 @@ question wait for the board (`orthodox: review`), and nothing enters the testing
 its license allows it.
 
 **The sources list for the board. Josh's direction (2026-10-13):** the rabbis should be able to
-check what RabAI uses and what it leaves out, and RabAI should be able to say so when asked.
+check what RabbAI uses and what it leaves out, and RabbAI should be able to say so when asked.
 [`docs/sources-for-review.md`](sources-for-review.md) lists, from the canon: the works kept with
-a caution, the editions waiting for the board, what is left out and why, the order RabAI opens
+a caution, the editions waiting for the board, what is left out and why, the order RabbAI opens
 the commentaries in, the websites it may search, what isn't in the library yet, the earlier
 questions for the board, and the whole library book by book, shelved the way a beit midrash is
 (Tanakh, Mishnah and Talmud, halacha, thought, Kabbalah, prayer, then dictionaries). It is made by
 `python3 tools/validate.py --write` and checked on every commit, so it never drifts from the
-canon. The app shows the same list on its Sources page, and when someone asks RabAI which books it
+canon. The app shows the same list on its Sources page, and when someone asks RabbAI which books it
 uses, the app gives it the list (core premises, "Your own library").
 
 **Translations and commentary come only from Orthodox sources** (Koren, ArtScroll/Mesorah,
@@ -141,7 +141,7 @@ Litvish, Chassidish, Sephardi, and Religious Zionist approaches often differ. Th
 - for real-life rulings, lays out the mainstream positions and sends the person to their rav
 
 **Reading a ruling with its commentaries. Josh's direction (2026-10-13), pending the board:**
-halacha is read the way a posek reads it. When RabAI opens a seif of the Shulchan Aruch, the
+halacha is read the way a posek reads it. When RabbAI opens a seif of the Shulchan Aruch, the
 app opens with it the commentaries printed around it, the main ones first (on Orach Chayim the
 Mishnah Berurah and Biur Halacha, then the Magen Avraham and Taz; on Yoreh De'ah the Shach and
 Taz; on Even HaEzer the Chelkat Mechokek and Beit Shmuel; on Choshen Mishpat the Sma and Shach),
@@ -158,7 +158,7 @@ wording.
 - **Retrieval whitelist.** Only works with `status: approved` and a cleared license go into
   the searchable library. `tools/validate.py` produces that list.
 - **Testing library.** **Decided (Josh, 2026-10-06).** Before the board approves anything,
-  the private, locked app may use a testing library, so RabAI can be tried across real texts
+  the private, locked app may use a testing library, so RabbAI can be tried across real texts
   and the board can see it working. It is held to a stricter bar than "proposed":
   - only editions of canon works, each marked `orthodox: true`, mapped to one exact Sefaria
     version, and never a whole collection;
@@ -206,24 +206,24 @@ wording.
     so. The board still decides for the approved library.
 
   The dictionaries (Jastrow, Sefer HaShorashim) come from Sefaria's public database backup,
-  which holds them separately from its texts. When a passage has no English, RabAI translates
+  which holds them separately from its texts. When a passage has no English, RabbAI translates
   it itself, says the translation is its own, and is given the dictionary entries for the
   passage's words: first the entries that cite that very line, then entries whose headword
   matches. This is how the Yerushalmi is taught until an Orthodox translation can be licensed.
 
-  Josh (2026-10-07): on the printed-page view, "Translate this" gives RabAI's own translation of
+  Josh (2026-10-07): on the printed-page view, "Translate this" gives RabbAI's own translation of
   a line of Gemara, a Rashi or a Tosafot that the library has no English for, and "Word by word"
-  sets RabAI's English under each word of any passage. Both run only when the person taps, are
-  kept on the device, and are labeled "RabAI's translation. Not from the library, and not yet
+  sets RabbAI's English under each word of any passage. Both run only when the person taps, are
+  kept on the device, and are labeled "RabbAI's translation. Not from the library, and not yet
   reviewed by the rabbinic board." The Hebrew in a word-by-word list is always the library's own
-  text; RabAI only adds the English. See open question 16.
+  text; RabbAI only adds the English. See open question 16.
 
-  Josh (2026-10-07, later the same day): RabAI keeps its translations in its own translation
+  Josh (2026-10-07, later the same day): RabbAI keeps its translations in its own translation
   library, so a passage is translated once and shared with everyone, and the library can be
   filled ahead of time, at lower cost, for texts with no Orthodox English. A translation is made
   only from the library's Orthodox sources: the line a comment explains with its Orthodox
   English, the other commentaries on that line, and the dictionaries. Where a given source reads
-  a phrase another way, RabAI lists that reading, quoting the source's own words, and the quote
+  a phrase another way, RabbAI lists that reading, quoting the source's own words, and the quote
   is checked like a citation. Every kept translation records what it was made from and carries
   a review status, "unreviewed" until the board reviews it. Filling the library ahead of time
   costs money and is run only by the maintainer, with a spending limit.
@@ -236,7 +236,7 @@ wording.
   the canon for the board, not as whole sites.
 
   Website collections (Josh, 2026-10-10: Aish.com and Chabad.org couldn't send an export, so
-  their articles are copied from their websites). Each section of a site that RabAI uses is an
+  their articles are copied from their websites). Each section of a site that RabbAI uses is an
   edition in the canon (`site:` in `canon/canon.yaml`, category `articles`), never the whole
   site: for Aish.com, ten sections chosen for Torah learning, leaving out news, politics,
   entertainment, recipes and video. `tools/collection_build.py` copies them through the site's
@@ -249,11 +249,11 @@ wording.
   way, and keeps only the paragraphs in the page's article box (`site.page` in the canon), never
   its links, forms, comments or menus. The reader's question is labeled "Question:" and kept in
   one passage with the start of the answer, so a search that finds the question brings the
-  answer with it and RabAI never takes a reader's words for the rabbi's. Each article keeps its
-  address, author and dates, and the app shows who wrote it with a link to the original. RabAI uses an article as a teacher's
+  answer with it and RabbAI never takes a reader's words for the rabbi's. Each article keeps its
+  address, author and dates, and the app shows who wrote it with a link to the original. RabbAI uses an article as a teacher's
   explanation that points to the texts, never as a primary source and never as a ruling (the
   core premises' "Articles by today's teachers", for the board). The sites are trusted, but only
-  the texts confirm a point: RabAI checks an article's point against the texts it was given and
+  the texts confirm a point: RabbAI checks an article's point against the texts it was given and
   says whether they agree (Josh, 2026-10-11). Under each answer the app lists the articles it used
   under their own heading ("From today's teachers: explanations, not sources"), apart from the
   texts, and says so when no text was cited at all. A collection is never public,
@@ -261,7 +261,7 @@ wording.
   public.
 
   The printed page, line for line (Josh asked, 2026-10-07): so that a word found on a line of a
-  printed Gemara is in the same place on RabAI's page, `tools/daf_layout.py` reads Sefaria's
+  printed Gemara is in the same place on RabbAI's page, `tools/daf_layout.py` reads Sefaria's
   scans of the Romm Vilna printing (1880-86, public domain) and records where each printed line
   sits, which of the library's words it holds, and where on the line each word is printed. Only
   those positions are kept, in the testing library. The scans are never stored, committed or
@@ -287,7 +287,7 @@ wording.
   `vowels_only` in the canon: it is kept in its own table, never searched or quoted, and its
   points are laid on the library's own words letter by letter, so each word keeps its letters and
   its place on the page. A word the copy spells differently is shown without vowels.
-- **Looking things up online.** **Decided (Josh, 2026-10-13):** RabAI should be able to answer
+- **Looking things up online.** **Decided (Josh, 2026-10-13):** RabbAI should be able to answer
   any question, including a practical halacha question or one its library doesn't cover, by
   looking it up, checking what it finds against the library's Orthodox texts, and then answering;
   and for a practical question it always tells the person to ask their rav. How it works:
@@ -301,12 +301,12 @@ wording.
     everyday facts with no Torah side (news, a place, a schedule), it may search the wider web,
     never the sites listed there as not for the web: non-Orthodox movements, academic Bible
     criticism, Christian and missionary sites, and anonymous question-and-answer forums.
-  - A page reaches RabAI only as its own words: the sentences the search cited, with a little of
+  - A page reaches RabbAI only as its own words: the sentences the search cited, with a little of
     the page around them. The search's own summary never reaches the answer, and pages are not
     kept.
   - The classic texts a page relies on (the Shulchan Aruch, the Mishnah Berurah, a teshuva) are
-    opened in RabAI's own library, so the page can be checked against them. As with articles,
-    only the texts confirm a point: if a text says the same, RabAI cites the text; if none does,
+    opened in RabbAI's own library, so the page can be checked against them. As with articles,
+    only the texts confirm a point: if a text says the same, RabbAI cites the text; if none does,
     it says the point comes from that site and that it couldn't confirm it from the texts. A
     page is never one of the sources behind an answer.
   - Under the answer the app lists the pages under their own heading, with links to the sites
@@ -317,16 +317,16 @@ wording.
     `RABAI_ONLINE=torah` keeps them to the trusted sites, and a public app looks nothing up until
     the board approves the list (open question 17).
 - **Pictures with a question.** **Decided (Josh, 2026-10-16):** a person can attach pictures to
-  a question (a photo of a page of a sefer, a screenshot, a note) and RabAI reads them. How it
+  a question (a photo of a page of a sefer, a screenshot, a note) and RabbAI reads them. How it
   works:
   - Up to four pictures go with a question. The app shrinks each one on the person's device
     before sending it, and the server checks that each really is a picture (JPEG, PNG, WebP or
     GIF).
-  - RabAI reads them with the question, and its quick planning step reads them too, so it can
+  - RabbAI reads them with the question, and its quick planning step reads them too, so it can
     open the texts a picture shows. A picture is never a source and never cited: when it shows a
     text the library has, the answer rests on the library's text (core premises, "Pictures the
     person sends", for the board).
-  - A picture is sent again with the next few questions in the same chat, so RabAI can still see
+  - A picture is sent again with the next few questions in the same chat, so RabbAI can still see
     it, for as long as the page stays open.
   - The server never keeps a picture. The person's device keeps a small preview with the saved
     chat; the person's account, when they are signed in, keeps only how many pictures a question
@@ -419,7 +419,7 @@ These need a decision before launch. Each one changes behavior.
 7. **Women's voices.** Should Orthodox women teachers be included as hashkafah sources?
 8. **Topics the assistant refers out immediately** rather than discussing at all.
 9. **Disclaimer wording** at the top of halachic answers. Draft (2026-10-13): under an answer to
-   a practical halacha question, the app shows "For your own situation, ask your rav. RabAI
+   a practical halacha question, the app shows "For your own situation, ask your rav. RabbAI
    explains what the sources say, but it is not a rav and can't decide for you."
 10. **Audience and tone.** Decided by Josh (2026-10-06): one warm voice, like a kind rebbe,
     for everyone, adapting to each person's level. The board reviews the voice rules in the
@@ -438,25 +438,25 @@ These need a decision before launch. Each one changes behavior.
     Targum) preferred wherever they differ. Or excluded? (Meanwhile, Josh decided on
     2026-10-06 to use Jastrow this way in the private testing library, and the testing library
     uses the Aruch's Lublin 1883 printing, without Kohut's notes.)
-14. **Everyday conversation.** Which requests should RabAI decline, and how should it phrase
+14. **Everyday conversation.** Which requests should RabbAI decline, and how should it phrase
     the decline? How much Torah should it bring into everyday answers when nobody asked? How
     should it speak with people who are not Jewish about the Torah's values for all people
-    (the seven Noahide mitzvos)? Josh decided that RabAI talks about anything through a Torah
+    (the seven Noahide mitzvos)? Josh decided that RabbAI talks about anything through a Torah
     lens (see "What the assistant is"); the board refines the boundaries. Test questions
     T48-T55 cover it.
-15. **RabAI's outline of the Gemara.** On the printed-page view, a person can ask RabAI to
+15. **RabbAI's outline of the Gemara.** On the printed-page view, a person can ask RabbAI to
     color each phrase of the amud by what it does: Mishnah, question, answer, statement, proof,
     challenge, resolution, or story, with a short note, and step through the phrases one by
-    one beside the library's English for each. This is RabAI's own reading of the
+    one beside the library's English for each. This is RabbAI's own reading of the
     sugya, not a source, and the app labels it "not yet reviewed by the rabbinic board". It
     runs only when the person asks. Should the board review a sample of outlines before
     launch, keep the label, or turn the feature off until outlines are reviewed page by page?
-16. **RabAI's translations on the page.** For a line of Gemara, a Rashi or a Tosafot that has
-    no English in the library, a person can ask RabAI for a translation, and for any passage, a
-    word-by-word translation under the text. RabAI is told to follow the text's own meaning (the
+16. **RabbAI's translations on the page.** For a line of Gemara, a Rashi or a Tosafot that has
+    no English in the library, a person can ask RabbAI for a translation, and for any passage, a
+    word-by-word translation under the text. RabbAI is told to follow the text's own meaning (the
     Gemara as Rashi explains it) and add nothing else, and the app labels it "not from the
     library, and not yet reviewed by the rabbinic board". Translations are now kept and shared
-    in RabAI's translation library, each with a review status the board can set, and the
+    in RabbAI's translation library, each with a review status the board can set, and the
     library can be filled ahead of time for whole books. Should the board review a sample
     before launch, review book by book before a book's translations are shown publicly, keep
     the label, or turn the feature off until an Orthodox translation of those texts can be
@@ -465,15 +465,15 @@ These need a decision before launch. Each one changes behavior.
     `canon/lookup-sites.yaml`, and the sites never searched. Should everyday lookups on the
     wider web be allowed at all, or only the trusted sites (`RABAI_ONLINE=torah`)? Should a
     public app look things up, and should the board review sample answers that used pages found
-    online before launch? Josh decided that RabAI looks things up and checks them against the
+    online before launch? Josh decided that RabbAI looks things up and checks them against the
     library (see "Looking things up online"); the board decides the boundaries.
-18. **RabAI's manner.** Josh asked that RabAI carry some of the essence of Rav Berkovits and of
+18. **RabbAI's manner.** Josh asked that RabbAI carry some of the essence of Rav Berkovits and of
     rabbis like him (see "Its manner" above, and [`character-notes.md`](character-notes.md)).
     Does the section "The kind of teacher you are" in the core premises capture that manner, and
-    is it right for RabAI? Should the Rav's name appear anywhere outside the reviewers' notes? We
+    is it right for RabbAI? Should the Rav's name appear anywhere outside the reviewers' notes? We
     suggest not, unless the Rav or the Jerusalem Kollel is asked and agrees.
 19. **Pictures the person sends.** People can now send pictures with a question (see "Pictures
     with a question"). Does the core premises' section "Pictures the person sends" set the right
-    limits? In particular: how should RabAI speak about a photo of a kosher symbol or a label
+    limits? In particular: how should RabbAI speak about a photo of a kosher symbol or a label
     (the draft says it names the symbol and sends the person to the agency or their rav, and
     never says a product is kosher), and should a public app accept pictures at all?

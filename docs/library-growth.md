@@ -1,6 +1,6 @@
 # Growing the library
 
-How RabAI gets as many authentic, vetted Orthodox sources as possible, and what limits it today.
+How RabbAI gets as many authentic, vetted Orthodox sources as possible, and what limits it today.
 
 ## Where the library stands
 
@@ -50,9 +50,9 @@ Two cautions. A digital edition can carry its own license even when the printed 
 public domain, so check the license of the file we actually download. And the board still
 approves each edition.
 
-**RabAI reads Hebrew and Aramaic.** So it can learn from these sefarim and explain them in
+**RabbAI reads Hebrew and Aramaic.** So it can learn from these sefarim and explain them in
 English even where no approved English translation exists. Whenever it translates a passage
-itself, the reader labels it as RabAI's translation, so nobody confuses it with a published
+itself, the reader labels it as RabbAI's translation, so nobody confuses it with a published
 one, and the test set checks translation quality.
 
 ### 2. Open-licensed English
@@ -69,7 +69,7 @@ YUTorah, Yeshiva.org.il, the Peninei Halakha site, and The Rabbi Sacks Legacy.
 
 What to offer them:
 
-- RabAI is free and supported by donations. Their content is never sold.
+- RabbAI is free and supported by donations. Their content is never sold.
 - Every passage is credited to them by name, with a link back to their site.
 - Their words are quoted as written and never altered.
 - They can see how their content is used, and withdraw it at any time.
@@ -91,7 +91,7 @@ since it already licenses its Talmud to Sefaria.
 Some institutions hold vast digitized collections, for example the Bar-Ilan Responsa Project,
 Otzar HaChochma, HebrewBooks.org (scans of public-domain seforim), AlHaTorah (digital Mikraot
 Gedolot), and Dicta (an Israeli nonprofit building Hebrew text tools). These are larger,
-slower agreements, for once RabAI has shown what it is.
+slower agreements, for once RabbAI has shown what it is.
 
 Scanned seforim must be turned into searchable text first. That needs careful OCR and
 proofreading, and Rashi script makes it harder.
@@ -122,7 +122,7 @@ Signals the board can use, in the tradition's own terms:
 
 Two more safeguards:
 
-- **Every passage keeps its label**: author, work, edition, and stream. RabAI says whose words
+- **Every passage keeps its label**: author, work, edition, and stream. RabbAI says whose words
   it is quoting, and can give classic sources more weight than modern ones.
 - **People can flag an answer.** Flags go to a review queue the board sees.
 

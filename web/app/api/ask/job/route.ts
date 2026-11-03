@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     return json(view(kept));
   } catch (err) {
     console.warn("[rabai] reading a kept answer failed:", err instanceof Error ? err.message : err);
-    return json({ error: "RabAI couldn't check on that answer just now." }, 503);
+    return json({ error: "RabbAI couldn't check on that answer just now." }, 503);
   }
 }
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     return json({ stopping: true });
   } catch (err) {
     console.warn("[rabai] stopping a kept answer failed:", err instanceof Error ? err.message : err);
-    return json({ error: "RabAI couldn't stop that answer just now." }, 503);
+    return json({ error: "RabbAI couldn't stop that answer just now." }, 503);
   }
 }
 

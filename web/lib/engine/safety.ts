@@ -2,7 +2,7 @@
  * The safety check that runs before anything else.
  *
  * It is deliberately simple and errs toward caution. It never blocks a question: a person
- * asking what the Torah says about suicide may be studying, or may be in pain, and RabAI
+ * asking what the Torah says about suicide may be studying, or may be in pain, and RabbAI
  * answers either way. When the check fires, the app shows crisis resources above the answer
  * and tells the model to put safety first (core premises, "Safety comes first").
  *
@@ -42,7 +42,7 @@ export interface SafetyNotice {
   lines: Array<{ label: string; action: string; href: string }>;
 }
 
-/** US resources for now; localize before offering RabAI outside the US. */
+/** US resources for now; localize before offering RabbAI outside the US. */
 export function safetyNotice(concern: SafetyConcern): SafetyNotice {
   const emergency = { label: "Emergency", action: "Call 911", href: "tel:911" };
   switch (concern) {

@@ -4,7 +4,7 @@ import { SourcesFind } from "@/components/SourcesFind";
 import { libraryMode, type LibraryMode } from "@/lib/library";
 import { SOURCES, editionsRead, shorten, sourceCounts, type SourceEdition, type SourceWork } from "@/lib/sources";
 
-export const metadata: Metadata = { title: "RabAI's sources · RabAI" };
+export const metadata: Metadata = { title: "RabbAI's sources · RabbAI" };
 
 const REVIEW_LIST = "https://github.com/KingofHardts/RabAI/blob/main/docs/sources-for-review.md";
 
@@ -12,7 +12,7 @@ const REVIEW_LIST = "https://github.com/KingofHardts/RabAI/blob/main/docs/source
 const NOT_YET: Record<Exclude<SourceEdition["state"], "testing">, string> = {
   held: "waiting for the rabbinic board",
   needs_agreement: "needs the publisher's agreement",
-  no_copy: "no copy RabAI may use yet",
+  no_copy: "no copy RabbAI may use yet",
 };
 
 function editionName(e: SourceEdition): string {
@@ -25,7 +25,7 @@ function editionName(e: SourceEdition): string {
   return notes.length ? `${e.name} (${notes.join("; ")})` : e.name;
 }
 
-/** One book: its name, who wrote it, the editions RabAI reads, and the ones it doesn't yet. */
+/** One book: its name, who wrote it, the editions RabbAI reads, and the ones it doesn't yet. */
 function Work({ work, mode, proposed }: { work: SourceWork; mode: LibraryMode; proposed: boolean }) {
   const read = proposed ? work.editions.filter((e) => e.state === "testing") : editionsRead(work, mode);
   const notYet = work.editions.filter((e) => !read.includes(e) && e.state !== "testing");
@@ -93,9 +93,9 @@ function Area({ title, about, works, mode, proposed }: { title: string; about: s
 }
 
 /**
- * RabAI's sources: every book it reads, what waits for the rabbinic board, and what it leaves
+ * RabbAI's sources: every book it reads, what waits for the rabbinic board, and what it leaves
  * out and why, from the same list the board reviews (docs/sources-for-review.md). The app's
- * settings link here, and so does an answer about RabAI's own library.
+ * settings link here, and so does an answer about RabbAI's own library.
  */
 export default function SourcesPage() {
   const mode = libraryMode();
@@ -112,26 +112,26 @@ export default function SourcesPage() {
     <main className="privacy">
       <article className="privacy-card sources-card">
         <p className="privacy-back">
-          <Link href="/">← Back to RabAI</Link>
+          <Link href="/">← Back to RabbAI</Link>
         </p>
-        <h1>RabAI&rsquo;s sources</h1>
+        <h1>RabbAI&rsquo;s sources</h1>
         <p>
-          Every book RabAI reads, what is waiting for the rabbinic board, and what it leaves out, and why. RabAI answers Torah
+          Every book RabbAI reads, what is waiting for the rabbinic board, and what it leaves out, and why. RabbAI answers Torah
           questions only from these texts, and opens the commentaries the way a learner does.
         </p>
         <p className="muted">
           {mode === "testing"
-            ? "RabAI is a private preview. It reads these published Orthodox editions for testing, before the rabbinic board approves them. This list is a proposal: the board has not approved it yet."
+            ? "RabbAI is a private preview. It reads these published Orthodox editions for testing, before the rabbinic board approves them. This list is a proposal: the board has not approved it yet."
             : mode === "development"
-              ? "This copy of RabAI runs on a few development texts typed by the team, for testing. Below is the library RabAI is being built to read, a proposal the rabbinic board has not approved yet."
+              ? "This copy of RabbAI runs on a few development texts typed by the team, for testing. Below is the library RabbAI is being built to read, a proposal the rabbinic board has not approved yet."
               : proposed
-                ? "RabAI answers only from books the rabbinic board has approved, and it hasn't approved any yet. Below are the books proposed for its review."
-                : "RabAI answers only from books the rabbinic board has approved, with their licenses cleared."}
+                ? "RabbAI answers only from books the rabbinic board has approved, and it hasn't approved any yet. Below are the books proposed for its review."
+                : "RabbAI answers only from books the rabbinic board has approved, with their licenses cleared."}
         </p>
 
         <ul className="sources-glance">
           <li>
-            <strong>{works.length}</strong> {proposed ? "works proposed" : "works RabAI reads"}
+            <strong>{works.length}</strong> {proposed ? "works proposed" : "works RabbAI reads"}
           </li>
           {cautioned.length > 0 && (
             <li>
@@ -166,7 +166,7 @@ export default function SourcesPage() {
             <section data-group>
               <h2>Kept with a caution</h2>
               <p className="muted">
-                These stay in the library. Whenever RabAI uses one it says the caution too, and it never rests a halachic answer
+                These stay in the library. Whenever RabbAI uses one it says the caution too, and it never rests a halachic answer
                 on one of them alone.
               </p>
               <ul className="src-list">
@@ -184,7 +184,7 @@ export default function SourcesPage() {
 
           <section data-group>
             <h2>Waiting for the rabbinic board</h2>
-            <p className="muted">Editions RabAI doesn&rsquo;t read until the board decides about them.</p>
+            <p className="muted">Editions RabbAI doesn&rsquo;t read until the board decides about them.</p>
             <ul className="src-list">
               {waiting.map((w) => {
                 const held = w.editions.filter((e) => e.state === "held");
@@ -206,8 +206,8 @@ export default function SourcesPage() {
             <section data-group>
               <h2>Not in the library yet</h2>
               <p className="muted">
-                Books RabAI would like to read but can&rsquo;t yet: they are copyrighted and need the publisher&rsquo;s agreement,
-                or there is no copy RabAI may use.
+                Books RabbAI would like to read but can&rsquo;t yet: they are copyrighted and need the publisher&rsquo;s agreement,
+                or there is no copy RabbAI may use.
               </p>
               <ul className="src-list">
                 {notYet.map((w) => (
@@ -231,7 +231,7 @@ export default function SourcesPage() {
             <h2>Left out, and why</h2>
             <p className="muted">
               Left out on purpose, because they don&rsquo;t fit an Orthodox library: mostly translations and editions from outside
-              the Orthodox world. RabAI may still describe such a view when someone asks, saying what it is, but never cites it as
+              the Orthodox world. RabbAI may still describe such a view when someone asks, saying what it is, but never cites it as
               a source.
             </p>
             <ul className="src-list">
@@ -248,9 +248,9 @@ export default function SourcesPage() {
           </section>
 
           <section data-group>
-            <h2>How RabAI opens the commentaries</h2>
+            <h2>How RabbAI opens the commentaries</h2>
             <p className="muted">
-              For a ruling or a line, RabAI opens the commentaries printed around it in this order, the way a learner does, and
+              For a ruling or a line, RabbAI opens the commentaries printed around it in this order, the way a learner does, and
               each gives a line or two before the next is opened.
               {SOURCES.readingOrder.status === "approved" ? "" : " This order is a proposal for the board."}
             </p>
@@ -277,10 +277,10 @@ export default function SourcesPage() {
           </section>
 
           <section data-group>
-            <h2>Websites RabAI may search</h2>
+            <h2>Websites RabbAI may search</h2>
             <p className="muted">
-              For anything about Torah, halacha or belief, RabAI searches only these trusted Orthodox sites, and a page is never
-              a source: RabAI checks it against the texts.
+              For anything about Torah, halacha or belief, RabbAI searches only these trusted Orthodox sites, and a page is never
+              a source: RabbAI checks it against the texts.
               {SOURCES.sites.status === "approved" ? "" : " This list is a proposal for the board."}
             </p>
             <ul className="src-list">
@@ -308,7 +308,7 @@ export default function SourcesPage() {
         </div>
 
         <p className="muted sources-foot">
-          This page is made from RabAI&rsquo;s canon, the list of books and editions the rabbinic board reviews.{" "}
+          This page is made from RabbAI&rsquo;s canon, the list of books and editions the rabbinic board reviews.{" "}
           <a href={REVIEW_LIST} target="_blank" rel="noopener noreferrer">
             The same list, as the board reads it
           </a>

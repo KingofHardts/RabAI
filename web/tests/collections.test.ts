@@ -97,7 +97,7 @@ test("the texts are searched apart from the articles, and the articles on their 
   assert.deepEqual(await store.articles(["candle"], 0), []);
 });
 
-test("a paragraph that has lost its article's details never reaches RabAI as a book", async () => {
+test("a paragraph that has lost its article's details never reaches RabbAI as a book", async () => {
   const { db } = await aishCollection();
   // A title and paragraph left behind without their article (two posts once shared one address).
   await db.all(
@@ -126,7 +126,7 @@ test("a collection that can't be reached is left out, and the library keeps work
   assert.deepEqual(await store.articles(["candle"], 4), []);
 });
 
-test("RabAI is told an article is a teacher's explanation, by whom, that only the texts confirm it, and never settled halacha", async () => {
+test("RabbAI is told an article is a teacher's explanation, by whom, that only the texts confirm it, and never settled halacha", async () => {
   const { store } = await aishCollection();
   const [p] = await store.lookup(["Aish.com, Lighting Candles 1"]);
   const context = testingContext(p);

@@ -85,7 +85,7 @@ function failedAnswer(): AskResult {
     safety: null,
     libraryMode: libraryMode(),
     droppedCitations: 0,
-    notice: "Something went wrong reaching RabAI. Please try again in a moment.",
+    notice: "Something went wrong reaching RabbAI. Please try again in a moment.",
   };
 }
 
@@ -93,7 +93,7 @@ function failedAnswer(): AskResult {
 const KEEP_ALIVE_MS = 15_000;
 
 /**
- * A live answer, one JSON object per line: {"type":"status","text"} while RabAI looks and
+ * A live answer, one JSON object per line: {"type":"status","text"} while RabbAI looks and
  * reads, {"type":"text","text"} for each new piece of the answer, and finally
  * {"type":"done","result"} with the checked answer (or {"type":"stopped"} when the person stopped
  * it). Citations appear only in the final result, after the checker has passed them.

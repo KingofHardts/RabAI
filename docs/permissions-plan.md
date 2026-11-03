@@ -8,7 +8,7 @@ in the maintainer's own records, not in this public repo.
 ## Found and loaded (private testing library)
 
 - **Talmud Yerushalmi:** the first printing (Venice, 1523), public domain by age. There is no
-  open Orthodox English translation, so RabAI translates the Yerushalmi itself, says the
+  open Orthodox English translation, so RabbAI translates the Yerushalmi itself, says the
   translation is its own, and is given Jastrow's and the Aruch's entries for the words of the
   line. Ohr LaYesharim (Machon HaYerushalmi), a Hebrew commentary on twelve tractates, is
   loaded alongside it.
@@ -49,7 +49,7 @@ have to confirm who holds the rights.
 | Who to ask | Works |
 |---|---|
 | Aish | 48 Ways to Wisdom, plus articles and divrei Torah. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `aish`): complete access, private use only, not public for now. Put its wording on file here. Aish couldn't send an export, so its ten Torah sections (`canon/canon.yaml`, category `articles`) are copied from its website through its own interface (`tools/collection_build.py`). |
-| Chabad.org | Articles, Q&A, and their translations. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `chabad-org`): complete access, private use only, not public for now. Put its wording on file here; before any public use, texts it hosts by another publisher's permission (Judaica Press's Tanach, Moznaim's Mishneh Torah, to confirm) may need that publisher's OK. **One more thing to ask:** Chabad.org couldn't send an export, and its website shows every robot a Cloudflare check that a copying program can't pass (and shouldn't try to). Ask its web team to let RabAI's copier through: a Cloudflare rule that skips the check for requests whose user agent starts with `RabAIBot`, or one that skips it when a secret header they choose is present (they give the header's value to Josh, who adds it as a GitHub secret; it is never written in this repo). The copier keeps to their robots.txt and its 5-second pause between requests. A note for their web team is drafted in `docs/outreach/chabad-org-access.md`. |
+| Chabad.org | Articles, Q&A, and their translations. **Written OK received** (reported by the maintainer, 2026-10-10; `canon/permissions.yaml`, `chabad-org`): complete access, private use only, not public for now. Put its wording on file here; before any public use, texts it hosts by another publisher's permission (Judaica Press's Tanach, Moznaim's Mishneh Torah, to confirm) may need that publisher's OK. **One more thing to ask:** Chabad.org couldn't send an export, and its website shows every robot a Cloudflare check that a copying program can't pass (and shouldn't try to). Ask its web team to let RabbAI's copier through: a Cloudflare rule that skips the check for requests whose user agent starts with `RabAIBot`, or one that skips it when a secret header they choose is present (they give the header's value to Josh, who adds it as a GitHub secret; it is never written in this repo). The copier keeps to their robots.txt and its 5-second pause between requests. A note for their web team is drafted in `docs/outreach/chabad-org-access.md`. |
 | TorahAnytime | Recorded shiurim. **Permission received** (reported by the maintainer, 2026-10-11; `canon/permissions.yaml`, `torah-anytime`), recorded as private use only until its wording is on file. Audio and video play from TorahAnytime; only text (titles, speakers, transcripts where there are any) would be stored. Put its wording on file here. |
 | Koren / Maggid | The Talmud, A Reference Guide; Rav Soloveitchik volumes they publish; confirming the license of the Koren Yerushalmi files on Sefaria (Shekalim so far) |
 | OU Press and the Toras HoRav Foundation | Rav Soloveitchik's works; Rav Aryeh Kaplan's NCSY titles |
@@ -261,7 +261,7 @@ Barukh SheAmar on the Haggadah ("Tel Aviv 1968"), and the Chida's Haggadah comme
    - removal on request, at any time.
 4. **Offer what helps them:** attribution and links that send learners to them, a private
    login to see how their content appears, and a way for them to flag anything.
-5. **Settle the money question once.** RabAI is free with voluntary donations
+5. **Settle the money question once.** RabbAI is free with voluntary donations
    ([`licensing.md`](licensing.md)). Say so up front, and ask whether that fits their terms.
 6. **Record every answer** in `canon/partners.yaml` (status only), and the edition's `notes`
    and `license` in `canon/canon.yaml` once permission is in writing.
@@ -270,7 +270,7 @@ Barukh SheAmar on the Haggadah ("Tel Aviv 1968"), and the Chida's Haggadah comme
 
 > Shalom,
 >
-> I'm building RabAI, a free Torah learning app that answers questions from inside the
+> I'm building RabbAI, a free Torah learning app that answers questions from inside the
 > Orthodox mesorah. Every answer rests on real sources: the app shows the exact words it
 > relies on and links to them, and it never quotes a text it doesn't have. A board of
 > Orthodox rabbanim approves every text before the app opens to the public.

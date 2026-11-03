@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emptyProfile, forgetNoticed, noticed, parseProfile, practiceWords, profileSummary, withStated } from "../lib/learner-profile";
 
-/* What RabAI knows about the person: kept small, checked, and only about their learning. */
+/* What RabbAI knows about the person: kept small, checked, and only about their learning. */
 
 test("noticing what the person learns: books newest first, words by how often", () => {
   let p = emptyProfile();

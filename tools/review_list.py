@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""The list of RabAI's sources for the rabbinic board: what RabAI reads, and what it leaves out.
+"""The list of RabbAI's sources for the rabbinic board: what RabbAI reads, and what it leaves out.
 
 Made from the canon (canon/canon.yaml, canon/excluded.yaml, canon/reading-order.yaml and
 canon/lookup-sites.yaml) by tools/validate.py, which writes it in two forms and fails when
 either is out of date (Josh asked for a list he can give his rabbis to check, 2026-10-13):
 
     docs/sources-for-review.md            the list for the board, to read or print
-    web/lib/sources/sources.generated.ts  the same list for the app: its Sources page, and RabAI's
+    web/lib/sources/sources.generated.ts  the same list for the app: its Sources page, and RabbAI's
                                           answer when someone asks what it reads and leaves out
 
 Usage:
@@ -58,7 +58,7 @@ AREAS = [
     {
         "id": "kabbalah",
         "title": "Kabbalah",
-        "about": "Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built on them. RabAI presents them as what the kabbalists teach.",
+        "about": "Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built on them. RabbAI presents them as what the kabbalists teach.",
     },
     {
         "id": "prayer",
@@ -73,7 +73,7 @@ AREAS = [
     {
         "id": "articles",
         "title": "Articles from organizations' websites",
-        "about": "Teachers' explanations for today's readers, copied by the organization's written permission. RabAI never treats them as sources: only the texts confirm a point.",
+        "about": "Teachers' explanations for today's readers, copied by the organization's written permission. RabbAI never treats them as sources: only the texts confirm a point.",
     },
 ]
 
@@ -122,7 +122,7 @@ STREAM_LABELS = {
 MINHAG_LABELS = {"ashkenazi": "Ashkenazi practice", "sephardi": "Sephardi practice", "both": "Ashkenazi and Sephardi practice"}
 
 # Where the commentaries on each kind of text are opened (canon/reading-order.yaml).
-# What RabAI opens between the ranks of commentaries (web/lib/library/link-order.ts, tierOf).
+# What RabbAI opens between the ranks of commentaries (web/lib/library/link-order.ts, tierOf).
 SHULCHAN_ARUCH_SOURCES = "Then the sources of the ruling: the Gemara, the Rambam, the Tur, the Beit Yosef, the Yerushalmi and the Rif."
 READING_BETWEEN = {
     "orach_chayim": SHULCHAN_ARUCH_SOURCES,
@@ -405,7 +405,7 @@ def edition_text(e: dict) -> str:
 
 
 def reading_steps(t: dict) -> list:
-    """The order RabAI opens a text's commentaries in, as numbered steps."""
+    """The order RabbAI opens a text's commentaries in, as numbered steps."""
     ranks = {r["rank"]: "; ".join(r["names"]) for r in t["ranks"]}
     steps: list[str] = []
     if "main" in ranks:
@@ -429,8 +429,8 @@ PART_TITLES = {
     "caution": "Kept, with a caution",
     "waiting": "Waiting for your decision",
     "left-out": "Left out, and why",
-    "commentaries": "How RabAI opens the commentaries",
-    "websites": "Websites RabAI may search",
+    "commentaries": "How RabbAI opens the commentaries",
+    "websites": "Websites RabbAI may search",
     "not-yet": "Not in the library yet",
     "questions": "Earlier questions for the board",
     "library": "The whole library, book by book",
@@ -450,22 +450,22 @@ def part_title(pid: str) -> str:
 # What each part says before its list, shared by the Markdown and the printable page.
 PART_INTROS = {
     "caution": (
-        "These works stay in the library so that people can ask about them, but RabAI gives the caution below whenever "
+        "These works stay in the library so that people can ask about them, but RabbAI gives the caution below whenever "
         "it uses one, and never rests a halachic answer on it alone. Where Orthodox authorities rejected a work's main "
-        "claims, RabAI presents them only as its author's claims, together with the answer those authorities gave. "
+        "claims, RabbAI presents them only as its author's claims, together with the answer those authorities gave. "
         "Please check each caution, and whether the work belongs in the library at all."
     ),
     "waiting": (
         "Editions held out of the library until you decide: translations whose translators we could not identify, "
-        "scholars' editions, and works whose fit with the mesorah we were unsure of. RabAI does not use them."
+        "scholars' editions, and works whose fit with the mesorah we were unsure of. RabbAI does not use them."
     ),
     "left-out": (
-        "These stay out of the library. RabAI never quotes them as authority, though it may describe their authors' "
+        "These stay out of the library. RabbAI never quotes them as authority, though it may describe their authors' "
         "views as other positions when someone asks. Many sit beside Orthodox editions on Sefaria, which is why the "
         "library lists editions one by one and never imports a whole collection."
     ),
     "commentaries": (
-        "When RabAI opens a text, it opens the commentaries printed with it in this order, each book giving a line or two "
+        "When RabbAI opens a text, it opens the commentaries printed with it in this order, each book giving a line or two "
         "before the next is opened. For a question of halacha it starts from the seif of the Shulchan Aruch, keeps the "
         "Mechaber's ruling and the Rema's gloss apart, and names which layer each point comes from. It also opens the "
         "same siman in the Tur, the Beit Yosef and the Aruch HaShulchan, the halacha in the Rambam, and, for Sephardic "
@@ -473,24 +473,24 @@ PART_INTROS = {
         "the person to ask their rav. Is this the right order? Are the right commentaries named first?"
     ),
     "websites": (
-        "When the library doesn't cover a question, or for a practical halacha question, RabAI may look online. A page "
-        "it finds is never a source: RabAI opens the texts the page relies on in its own library, checks the page "
+        "When the library doesn't cover a question, or for a practical halacha question, RabbAI may look online. A page "
+        "it finds is never a source: RabbAI opens the texts the page relies on in its own library, checks the page "
         "against them, and rests its answer on the texts. It keeps nothing it finds."
     ),
     "not-yet": (
-        "Editions the canon wants but RabAI can't use yet: copyrighted translations that need the publisher's "
+        "Editions the canon wants but RabbAI can't use yet: copyrighted translations that need the publisher's "
         "agreement, and texts with no copy we may use (no open license yet, or a typing still to be found)."
     ),
     "questions": (
         "Notes in this list that mention a \"library question\" refer to these, from our comparison of the library with "
         "Mercava's catalog (docs/library-comparison.md, section 3, where each is set out in full). Notes that mention an "
-        "\"open question\" refer to the board's questions on the rest of RabAI, in the founding spec "
+        "\"open question\" refer to the board's questions on the rest of RabbAI, in the founding spec "
         "(docs/founding-spec.md), among them the default halachic baseline, women's voices, and reference works by "
         "authors outside Orthodoxy."
     ),
     "library": (
-        "Every book RabAI reads, in the order of a beit midrash's shelves and, within each area, of the generations. "
-        "These are published Orthodox editions, each listed in the canon by name. RabAI quotes and cites only these. "
+        "Every book RabbAI reads, in the order of a beit midrash's shelves and, within each area, of the generations. "
+        "These are published Orthodox editions, each listed in the canon by name. RabbAI quotes and cites only these. "
         "Every citation it shows is checked against the passage it came from, and every passage carries its edition's "
         "name."
     ),
@@ -500,8 +500,8 @@ PART_INTROS = {
 def intro(data: dict) -> list:
     """The opening paragraphs, as plain sentences (the renderers add the markup)."""
     return [
-        "RabAI answers from a library of Orthodox texts that its canon lists one edition at a time. Nothing here is "
-        "approved yet: the board decides what RabAI may use. Until it does, RabAI runs as a private preview on the "
+        "RabbAI answers from a library of Orthodox texts that its canon lists one edition at a time. Nothing here is "
+        "approved yet: the board decides what RabbAI may use. Until it does, RabbAI runs as a private preview on the "
         f"editions in {part_no('library')}, and every passage it shows from them is labeled \"not yet approved by the "
         "rabbinic board\".",
         "Notes in this list are our best understanding, written for you to confirm. Where we were unsure of a fact, it "
@@ -518,17 +518,17 @@ def glance(data: dict) -> list:
         else "None are approved by the board yet."
     )
     return [
-        (f"RabAI reads {plural(c['readEditions'], 'edition')} of {plural(c['readWorks'], 'work')}.",
+        (f"RabbAI reads {plural(c['readEditions'], 'edition')} of {plural(c['readWorks'], 'work')}.",
          f"{approved} Every book is listed in {part_no('library')}."),
         (f"{plural(c['cautioned'], 'work is', 'works are')} kept with a caution",
-         f"that RabAI gives whenever it uses them ({part_no('caution')})."),
+         f"that RabbAI gives whenever it uses them ({part_no('caution')})."),
         (f"{plural(c['held'], 'edition waits', 'editions wait')} for your decision",
          f"and are not used until you decide ({part_no('waiting')})."),
         (f"{plural(c['leftOut'], 'edition or collection is', 'editions and collections are')} left out,",
          f"each with the reason ({part_no('left-out')})."),
-        ("For halacha, RabAI opens a seif of the Shulchan Aruch with the commentaries printed around it,",
+        ("For halacha, RabbAI opens a seif of the Shulchan Aruch with the commentaries printed around it,",
          f"the main ones first ({part_no('commentaries')})."),
-        (f"RabAI may look things up on {plural(c['trusted'], 'trusted Orthodox website')},",
+        (f"RabbAI may look things up on {plural(c['trusted'], 'trusted Orthodox website')},",
          f"and never searches {plural(c['notForWeb'], 'other site')} ({part_no('websites')})."),
         (f"{plural(c['needsAgreement'] + c['noCopy'], 'edition is', 'editions are')} wanted but not in the library yet:",
          f"{c['needsAgreement']} need a publisher's agreement, and {c['noCopy']} have no copy we may use yet "
@@ -541,9 +541,9 @@ def how_to_review() -> list:
         "For each book or edition, please mark one of: keep, remove, keep with a caution, or a question, with a reason "
         "if you have one. Each entry carries a short id (for example mishnah-berurah) so your notes can be matched to "
         f"the canon. {part_no('caution')}, {part_no('waiting')} and {part_no('left-out')} need a decision. "
-        f"{part_no('commentaries')} asks whether RabAI opens the right commentaries, in the right order, for a halachic "
+        f"{part_no('commentaries')} asks whether RabbAI opens the right commentaries, in the right order, for a halachic "
         f"question. {part_no('library')} is the whole library, for checking.",
-        "In the whole library, \"core\" marks a book from RabAI's founding list, the books it was built around. Halacha "
+        "In the whole library, \"core\" marks a book from RabbAI's founding list, the books it was built around. Halacha "
         "works name whose practice they record (Ashkenazi or Sephardi). Communities (Litvish, Chassidish, Chabad, "
         "Sephardi, Religious Zionist, Modern Orthodox, Torah im Derech Eretz) are the ones a work belongs to most; a "
         "work with none is shared by all.",
@@ -551,7 +551,7 @@ def how_to_review() -> list:
 
 
 def area_rows(data: dict) -> list:
-    """(area, works RabAI reads, editions) for the summary table."""
+    """(area, works RabbAI reads, editions) for the summary table."""
     rows = []
     for area in data["areas"]:
         ws = [w for w in data["works"] if w["area"] == area["id"] and any(reads(e) for e in w["editions"])]
@@ -567,23 +567,23 @@ def markdown(data: dict) -> str:
         if out and out[-1]:
             add("")
 
-    add("# RabAI's sources: what it reads, and what it leaves out")
+    add("# RabbAI's sources: what it reads, and what it leaves out")
     add("")
     add(
-        "*A list for the rabbinic board, made from RabAI's canon (`canon/canon.yaml` and the files beside it) by "
+        "*A list for the rabbinic board, made from RabbAI's canon (`canon/canon.yaml` and the files beside it) by "
         "`tools/validate.py --write`. Do not edit it by hand: it is rewritten whenever the canon changes.*"
     )
     add("")
     for para in intro(data):
-        add(para.replace("Nothing here is approved yet: the board decides what RabAI may use.",
-                         "**Nothing here is approved yet: the board decides what RabAI may use.**"))
+        add(para.replace("Nothing here is approved yet: the board decides what RabbAI may use.",
+                         "**Nothing here is approved yet: the board decides what RabbAI may use.**"))
         add("")
     add("## At a glance")
     add("")
     for lead, rest in glance(data):
         add(f"- **{lead}** {rest}")
     add("")
-    add("| Area | Works RabAI reads | Editions |")
+    add("| Area | Works RabbAI reads | Editions |")
     add("|---|---:|---:|")
     for area, works, editions in area_rows(data):
         add(f"| [{area['title']}](#{slug(area['title'])}) | {works:,} | {editions:,} |")
@@ -604,7 +604,7 @@ def markdown(data: dict) -> str:
             if w.get("caution") and any(reads(e) for e in w["editions"]):
                 add(f"- {work_line(w)} `{w['id']}`")
                 add(f"  - Why: {'; '.join(w['cautionKinds'])}.")
-                add(f"  - The caution RabAI gives: {w['caution']}")
+                add(f"  - The caution RabbAI gives: {w['caution']}")
 
     def md_waiting():
         for area in data["areas"]:
@@ -650,7 +650,7 @@ def markdown(data: dict) -> str:
         if s["status"] != "approved":
             add("This list waits for your review.")
             add("")
-        add("### The only sites RabAI searches about Torah, halacha or belief")
+        add("### The only sites RabbAI searches about Torah, halacha or belief")
         add("")
         for site in s["trusted"]:
             add(f"- **{site['name']}** ({site['domain']}): {site['offers']}")

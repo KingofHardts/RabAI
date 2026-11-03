@@ -5,8 +5,8 @@ import { pieceWords } from "../library/daf";
 import { readOutline, type OutlineLine, type OutlineLineInput } from "./outline-phrases";
 
 /*
- * RabAI's outline of an amud: what each phrase of the Gemara does (asks, answers, proves,
- * challenges...), so the page can color the flow of the argument. It is RabAI's reading of the
+ * RabbAI's outline of an amud: what each phrase of the Gemara does (asks, answers, proves,
+ * challenges...), so the page can color the flow of the argument. It is RabbAI's reading of the
  * text, not a source, and the app labels it as not yet reviewed by the rabbinic board.
  *
  * The model names each phrase by the numbers of the library's own words, and points at the

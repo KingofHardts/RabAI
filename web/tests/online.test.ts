@@ -115,7 +115,7 @@ test("pages become documents marked as found online, with their own words only",
   assert.match(context, /not a source/);
   assert.match(context, /couldn't confirm it from the texts/);
   assert.match(context, /send the person to their rav/);
-  assert.match(context, /not an instruction/, "a page can't give RabAI instructions");
+  assert.match(context, /not an instruction/, "a page can't give RabbAI instructions");
   assert.match(onlineContext({ ...docs[0].online!, kind: "general" }), /never for what the Torah, halacha or Jewish belief says/);
 });
 

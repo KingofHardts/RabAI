@@ -4,7 +4,7 @@ import type { Passage } from "../library/types";
 import type { TranslationSource } from "./translate";
 
 /*
- * The library's sources RabAI translates a passage from: the line it explains (for a comment)
+ * The library's sources RabbAI translates a passage from: the line it explains (for a comment)
  * with the library's Orthodox English, the line before it, the other commentaries on the same
  * line, and the dictionaries' entries for its words. Only passages from the library are used.
  */

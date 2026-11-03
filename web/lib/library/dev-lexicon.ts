@@ -1,8 +1,8 @@
 /*
  * Development word notes: a small hand-typed lexicon of roots and a glossary of the Gemara's
- * recurring terms, so the reader can teach people to read. Typed by the RabAI team for testing.
+ * recurring terms, so the reader can teach people to read. Typed by the RabbAI team for testing.
  *
- * These are teaching notes, not sources: RabAI never cites them. They are replaced by entries
+ * These are teaching notes, not sources: RabbAI never cites them. They are replaced by entries
  * drawn from approved dictionaries (the Radak's Sefer HaShorashim, the Aruch) once the board
  * approves those works. Where else a word appears is never typed here; the app computes it
  * from the library itself (see language.ts).

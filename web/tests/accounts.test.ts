@@ -93,7 +93,7 @@ test("accounts are on only with the database, a long secret, and a way to send t
   const online = accountSettings({ ...ENV, VERCEL: "1" });
   assert.equal(online.enabled, false, "online, there is no log to read: mail is needed");
   assert.equal(online.devLinks, false);
-  assert.equal(accountSettings({ ...ENV, VERCEL: "1", RESEND_API_KEY: "re_x", RABAI_MAIL_FROM: "RabAI <signin@example.org>" }).enabled, true);
+  assert.equal(accountSettings({ ...ENV, VERCEL: "1", RESEND_API_KEY: "re_x", RABAI_MAIL_FROM: "RabbAI <signin@example.org>" }).enabled, true);
 });
 
 test("emailed links point at the app's own address, never at one a request claims", () => {
@@ -207,7 +207,7 @@ test("a device's first sign-in adds what it learned before, once", async () => {
   assert.equal(again.observed.questions, 10, "the same join sent twice is added once");
 });
 
-test("what they told RabAI comes from the copy where it changed last", () => {
+test("what they told RabbAI comes from the copy where it changed last", () => {
   const older = withStated(emptyProfile(), { level: "new", name: "Avi" }, T(1));
   const newer = withStated(emptyProfile(), { level: "advanced" }, T(2));
   assert.equal(mergeProfiles(older, newer).stated.level, "advanced");
@@ -233,7 +233,7 @@ test("remembering: the latest switch wins, and a tie keeps it off", () => {
 
 test("forgetting wins over an older copy, everywhere", () => {
   const before = learned(emptyProfile(), 0, ["Berakhot", "Genesis"], ["קורין", "קורין"], 5);
-  // On the computer: forget what RabAI noticed, then learn one more thing.
+  // On the computer: forget what RabbAI noticed, then learn one more thing.
   const computer = learned(forgetNoticed(before, T(100)), 110, ["Shabbat"], [], 1);
   // The phone still has the old copy, and opened Berakhot again after the forget.
   const phone = learned(before, 120, ["Berakhot"], [], 3);
@@ -245,7 +245,7 @@ test("forgetting wins over an older copy, everywhere", () => {
 
   const all = forgetAll(withStated(before, { level: "new" }, T(1)), T(200));
   const back = mergeProfiles(withStated(before, { level: "new" }, T(1)), all);
-  assert.deepEqual(back.stated, {}, "forgetting everything clears what they told RabAI too");
+  assert.deepEqual(back.stated, {}, "forgetting everything clears what they told RabbAI too");
   assert.equal(back.observed.books.length, 0);
 });
 
@@ -255,7 +255,7 @@ test("with remembering off, a device sends only the switch and forgetting, and t
 
   const sent = profileToSend(offHere);
   assert.equal(sent.remember, false);
-  assert.deepEqual(sent.stated, {}, "nothing they told RabAI leaves the device");
+  assert.deepEqual(sent.stated, {}, "nothing they told RabbAI leaves the device");
   assert.deepEqual(sent.observed.books, []);
   assert.deepEqual(sent.observed.words, []);
   assert.equal(sent.observed.questions, 0);

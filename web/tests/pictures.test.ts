@@ -62,7 +62,7 @@ test("pictures come after the documents, so every citation's document number is 
   assert.deepEqual(b[firstImage].source, { type: "base64", media_type: "image/png", data: PNG });
 });
 
-test("several pictures are each labeled, so RabAI can say which one it means", () => {
+test("several pictures are each labeled, so RabbAI can say which one it means", () => {
   const { params } = planRequest(
     { question: "Compare these two pages.", pictures: [{ mediaType: "image/png", data: PNG }, { mediaType: "image/jpeg", data: JPEG }] },
     lib,

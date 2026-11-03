@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const data = {
       exportedOn: new Date().toISOString(),
       about:
-        "Everything RabAI keeps in your account: what you told RabAI and what it noticed while you learned (your profile), and your saved chats. Your email address isn't kept, so it isn't here.",
+        "Everything RabbAI keeps in your account: what you told RabbAI and what it noticed while you learned (your profile), and your saved chats. Your email address isn't kept, so it isn't here.",
       profile,
       chats,
     };

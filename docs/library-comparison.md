@@ -8,7 +8,7 @@ The maintainer asked three things about the book catalog of Mercava (themercava.
 1. Do we have all of these in our library?
 2. Do we have more than these?
 3. Are these books good in terms of the Orthodox mesorah (the chain of Torah tradition) that
-   RabAI follows?
+   RabbAI follows?
 
 This document answers the first two from our data, and gathers the third into questions for the
 board. **The rabbinic board decides what is Torah content.** Everything below about a work's
@@ -133,7 +133,7 @@ MiShmuel, the Maharal).
 
 1. **The Tosefta**: all 61 tractates missing. Hebrew is public domain for every tractate.
 2. **Kabbalah**: none of Mercava's 16 Kabbalah entries is in our canon, and the founding spec
-   has no rule yet on how RabAI treats Kabbalah (see the questions in section 3).
+   has no rule yet on how RabbAI treats Kabbalah (see the questions in section 3).
 3. **The minor tractates** printed at the back of the Vilna Shas (Avot DeRabbi Natan,
    Soferim, Semachot, Kallah, Derekh Eretz and the rest), with their commentaries.
 4. **The commentaries around the codes**: Taz, Shach, Magen Avraham, Be'er Heitev, Pitchei
@@ -179,7 +179,7 @@ commentaries, responsa, and the classic works of mussar, Chasidut and Kabbalah. 
 can tell, no work on it comes from outside the Orthodox tradition. What needs the board's
 attention is narrower:
 
-- **Kabbalah as a whole**: whether RabAI quotes it, describes it, or refers people to a rav.
+- **Kabbalah as a whole**: whether RabbAI quotes it, describes it, or refers people to a rav.
 - **A few works and authors that later rabbis debated** (for example the Ralbag's
   philosophy, Rabbi Yaakov Emden's *Mitpachat Sefarim*, *Teshuvot Min HaShamayim*, the
   Radziner Rebbe's books on tekhelet) and **works whose author is uncertain** (*Sefer
@@ -452,7 +452,7 @@ One row per Mercava entry, in Mercava's order. Columns:
 | Chazeh Hatenufa | `Chazeh Hatenufa` | **Missing** | Chaim Shaal, Lemberg, 1886 (Public Domain) | No openly licensed English |  |
 | Maharam MiRothenburg | `Teshuvot Maharam` | **Missing** | Sefer She'elot uTeshuvot, Kremonah, 1557 (Public Domain); Shaarei Teshuvot, Maharam bar Barukh, Berlin, 1891 (Public Domain) | Rabbi Meir of Rothenburg, his life and his works, by Irving A. Agus. Philadelphia, 1947 (Public Domain); Sefaria Responsa Anthology (CC-BY) | English: Agus 1947 (Public Domain), a historian's selection. |
 | Sefer HaTashbetz | `Sefer HaTashbetz` | **Missing** | Sefer ha-tashbetz, Lemberg, 1891 (Public Domain) | No openly licensed English |  |
-| Shut min haShamayim | `Teshuvot Min HaShamayim` | **Missing** | Sheʾelot u-teshuvot Min ha-shamayim, Königsberg, 1858. (Public Domain) | No openly licensed English | Answers Rabbi Yaakov of Marvege recorded receiving in dreams. The board may want to say how RabAI presents it. |
+| Shut min haShamayim | `Teshuvot Min HaShamayim` | **Missing** | Sheʾelot u-teshuvot Min ha-shamayim, Königsberg, 1858. (Public Domain) | No openly licensed English | Answers Rabbi Yaakov of Marvege recorded receiving in dreams. The board may want to say how RabbAI presents it. |
 | Teshuvot HaRashbash | `Teshuvot HaRashbash` | **Missing** | None with an open license (e.g. Teshuvot HaRashbash, Livorno, 1742, license unknown) | Sefaria Responsa Anthology (CC-BY) | Hebrew Livorno 1742, license unknown; old enough for the canon's age rule. |
 | Teshuvot HaRi Migash | `Teshuvot HaRi Migash` | **Missing** | R. Yosef Ibn Migash Responsa, Warsaw, 1870 (Public Domain) | Sefaria Responsa Anthology (CC-BY) |  |
 | Teshuvot HaRivash | `Teshuvot HaRivash` | **Missing** | Rivash Responsa, Vilna, 1879 (Public Domain) | No openly licensed English |  |
@@ -514,7 +514,7 @@ One row per Mercava entry, in Mercava's order. Columns:
 | Mizrachi | `Mizrachi` | **Missing** | Four commentaries on Rashi. Warsaw, 1862 (Public Domain) | No openly licensed English | Supercommentary on Rashi. |
 | Rabbeinu Chananel | 5 titles, e.g. `Rabbeinu Chananel on Genesis`, `Rabbeinu Chananel on Exodus` | **Missing** | Open Hebrew for 5 of 5 titles. Most common: Migdal Chananel, Berlin, 1876 (Public Domain, 5/5) | Eliyahu Munk, HaChut Hameshulash (CC-BY, 5/5) | English: Munk (CC-BY). |
 | Radak | 25 titles, e.g. `Radak on Genesis`, `Radak on Joshua` | **Partly**: 1 of 25 in testing library — English only; 24 in canon only (Radak on Joshua, Radak on Judges, Radak on I Samuel, Radak on II Samuel, Radak on I Kings…) | Not used. Radak on Nach: the only full Hebrew file (`Radak on Nach`) has license *unknown*. Open exceptions: Genesis (Pressburg 1842; Berlin 1857; Ms. Guenzburg 495, all Public Domain), Psalms (Fürth 1843; Leipzig 1883, Public Domain), Chronicles (Berger critical edition, CC-BY-NC) | Used: Eliyahu Munk, HaChut Hameshulash (CC-BY, 1/25) Also: Rabbi Mike Feuer, Jerusalem Anthology (CC-BY, 4/25); The Commentary of Radak to Chronicles: A Translation with Introduction and Supercommentary, by Yitzhak Berger, Brown University, 2007 (CC-BY-NC, 2/25) — academic translation (board to check); McCaul Translation (Public Domain, 1/25) — probably Alexander McCaul's translation; McCaul was a Christian missionary (board to confirm); +2 more | Partly blocked: most Hebrew files have license unknown. Psalms and Genesis can come in now. |
-| Ralbag | 17 titles, e.g. `Ralbag on Torah`, `Ralbag on Joshua` | **Missing** | Open Hebrew for 17 of 17 titles. Most common: On Your Way (Public Domain, 12/17); Perush al Hamesh Megillot, Konigsberg, 1860 (Public Domain, 4/17) | Rabbi Mike Feuer, Jerusalem Anthology (CC-BY, 2/17) | Ralbag's philosophy was criticized by later authorities. His Torah commentary is widely printed in Mikraot Gedolot. The board decides how RabAI uses him. |
+| Ralbag | 17 titles, e.g. `Ralbag on Torah`, `Ralbag on Joshua` | **Missing** | Open Hebrew for 17 of 17 titles. Most common: On Your Way (Public Domain, 12/17); Perush al Hamesh Megillot, Konigsberg, 1860 (Public Domain, 4/17) | Rabbi Mike Feuer, Jerusalem Anthology (CC-BY, 2/17) | Ralbag's philosophy was criticized by later authorities. His Torah commentary is widely printed in Mikraot Gedolot. The board decides how RabbAI uses him. |
 | Ralbag Beur HaMilot | `Ralbag Beur HaMilot on Torah` | **Missing** | Ralbag on Torah, Venice, 1547 (Public Domain) | No openly licensed English |  |
 | Riva | `Riva on Torah` | **Missing** | Rabotenu Ba'ale ha-Tosafot, Warsaw, 1876 (Public Domain) | No openly licensed English | A Tosafist's supercommentary on Rashi. |
 | Saadia Gaon | 6 titles, e.g. `Saadia Gaon on Genesis`, `Saadia Gaon on Exodus` | **Missing** | Open Hebrew for 3 of 6 titles. Most common: Commentary on Ezra and Nehemiah, Oxford : Clarendon Press, 1882 (Public Domain, 2/6); Saadya's Commentary on Genesis, New York, 1984 (CC-BY, 1/6) | Eliyahu Munk, HaChut Hameshulash (CC-BY, 3/6) | Rav Saadia Gaon. English: Munk (CC-BY) for 3 books. |
@@ -629,7 +629,7 @@ the core premises, "Kabbalah"). Find a Zohar text that fits the Orthodox traditi
 used (question 2; under way). Keep *Mitpachat Sefarim* (question 3) as a debated book: in the
 library, with a caution that most authorities reject its claim about the Zohar's age.
 
-1. **How should RabAI treat Kabbalah?** Mercava has a whole Kabbalah shelf (Sefer Yetzirah,
+1. **How should RabbAI treat Kabbalah?** Mercava has a whole Kabbalah shelf (Sefer Yetzirah,
    Sefer HaBahir, Tikkunei Zohar, Heikhalot Rabbati, Gikatilla, Rabbi Yosef Karo's *Maggid
    Meisharim*, the Ramchal, Rabbi Chaim Vital's *Sha'ar HaGilgulim* and more). Our canon has
    none, and the founding spec says nothing about Kabbalah. Options: quote it like any other
@@ -653,14 +653,14 @@ library, with a caution that most authorities reject its claim about the Zohar's
    all five in one file. The canon lists the Zohar with these three routes (`zohar`), and the
    requests are in `docs/permissions-plan.md`.
 3. ***Mitpachat Sefarim*** is Rabbi Yaakov Emden's attack on the Sabbatean movement, and in
-   it he disputes how old parts of the Zohar are. Should RabAI have it, and if so how should it
+   it he disputes how old parts of the Zohar are. Should RabbAI have it, and if so how should it
    present that view?
 
 ### Debated authors and works
 
 **Josh's direction (2026-10-07), for the board to confirm:** keep the debated books and the
 books whose author is uncertain (questions 4 to 8), marked `standing: debated` in the canon with
-a plain-English caution each. RabAI says the caution when it uses one, explains what is and isn't
+a plain-English caution each. RabbAI says the caution when it uses one, explains what is and isn't
 verifiable and whether it is in line with the Orthodox mainstream, and never rests a halachic
 answer on it alone. The board reviews the list and each caution's wording.
 
@@ -678,7 +678,7 @@ answer on it alone. The board reviews the list and each caution's wording.
    canon now lists his commentary on Esther and Daniel as proposed, without a caution; the
    board decides whether it needs one.
 6. ***Teshuvot Min HaShamayim***, answers a Tosafist recorded receiving in dreams: how should
-   RabAI present them?
+   RabbAI present them?
 7. **The Radziner Rebbe's tekhelet** (*Ein HaTekhelet*, *Ptil Tekhelet*): his identification
    of the tekhelet dye was not accepted by many authorities. Is this an "edge" for open
    question 3 of the founding spec?
@@ -689,7 +689,7 @@ answer on it alone. The board reviews the list and each caution's wording.
    consider the author unknown. ***Tzava'at HaRivash*** collects teachings of the Baal Shem
    Tov and the Maggid of Mezeritch through students. ***Sefer HaBahir*** is traditionally
    attributed to Rabbi Nechunya ben HaKanah. The Ramban's commentary on Sefer Yetzirah and
-   *Issur VeHeter LeRashi* are attributed. Should RabAI say "attributed to" in such cases?
+   *Issur VeHeter LeRashi* are attributed. Should RabbAI say "attributed to" in such cases?
 
 ### Scholars' editions of Torah texts
 

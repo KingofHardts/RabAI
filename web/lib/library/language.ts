@@ -142,7 +142,7 @@ export interface WordConnections {
 }
 
 /**
- * The passages to show RabAI when someone asks about a word or phrase: every place the same
+ * The passages to show RabbAI when someone asks about a word or phrase: every place the same
  * phrase or root appears, or the same word when its root isn't known.
  */
 export function connectionsFor(lib: Library, word: string, lex: Lexicon = loadLexicon()): WordConnections {

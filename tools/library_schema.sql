@@ -3,10 +3,10 @@
 
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
 -- standing: 'established' or 'debated' (canon). A debated work carries a caution (plain English, shown
--- to the person and given to RabAI) and caution_kinds (JSON list from canon/vocabulary.yaml).
+-- to the person and given to RabbAI) and caution_kinds (JSON list from canon/vocabulary.yaml).
 CREATE TABLE works (id TEXT PRIMARY KEY, title TEXT, category TEXT, streams TEXT,
                     standing TEXT NOT NULL DEFAULT 'established', caution TEXT, caution_kinds TEXT);
--- word_tool: a dictionary RabAI may use only for what words mean (canon: word_tool_only).
+-- word_tool: a dictionary RabbAI may use only for what words mean (canon: word_tool_only).
 CREATE TABLE editions (id INTEGER PRIMARY KEY, work TEXT, name TEXT, language TEXT, approved INTEGER, word_tool INTEGER DEFAULT 0);
 -- first_ref: the book's first passage, filled after loading, so the app can list every book without
 -- looking each one up.

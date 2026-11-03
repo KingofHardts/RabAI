@@ -1,12 +1,12 @@
 /**
- * The sources list: what RabAI reads, and what it leaves out (tools/review_list.py, made from
+ * The sources list: what RabbAI reads, and what it leaves out (tools/review_list.py, made from
  * the canon by tools/validate.py --write into sources.generated.ts).
  */
 
 /**
  * testing: in the private testing library. held: waiting for the rabbinic board's decision.
  * needs_agreement: copyrighted, needs the publisher's license. no_copy: wanted, but there is no
- * copy RabAI may use yet.
+ * copy RabbAI may use yet.
  */
 export type EditionState = "testing" | "held" | "needs_agreement" | "no_copy";
 
@@ -40,10 +40,10 @@ export interface SourceWork {
   streams: string[];
   /** Whose practice a halacha work records. */
   minhag?: string;
-  /** On RabAI's founding list. */
+  /** On RabbAI's founding list. */
   core: boolean;
   approved: boolean;
-  /** A debated work: the caution RabAI gives whenever it uses it, and why. */
+  /** A debated work: the caution RabbAI gives whenever it uses it, and why. */
   caution?: string;
   cautionKinds?: string[];
   note?: string;
@@ -76,7 +76,7 @@ export interface ReadingText {
   id: string;
   title: string;
   ranks: Array<{ rank: "main" | "next" | "later"; label: string; names: string[] }>;
-  /** What RabAI opens between the ranks: the sources of a ruling, or the codes that rule on a line. */
+  /** What RabbAI opens between the ranks: the sources of a ruling, or the codes that rule on a line. */
   between?: string;
   after?: string;
 }

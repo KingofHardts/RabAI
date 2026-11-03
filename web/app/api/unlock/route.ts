@@ -9,7 +9,7 @@ const WRONG_CODE_DELAY_MS = 800;
 export async function POST(request: Request) {
   const g = gate();
   if (g.kind === "open") return NextResponse.json({ ok: true });
-  if (g.kind === "closed") return NextResponse.json({ error: "RabAI isn't open yet." }, { status: 403 });
+  if (g.kind === "closed") return NextResponse.json({ error: "RabbAI isn't open yet." }, { status: 403 });
 
   let typed = "";
   try {

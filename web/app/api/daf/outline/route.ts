@@ -16,7 +16,7 @@ const made = new Map<string, { lines: OutlineLine[]; model?: string }>();
 const MAX_KEPT = 200;
 
 /**
- * POST /api/daf/outline {"ref": "Berakhot 2a"} → RabAI's outline of the amud: what each phrase of
+ * POST /api/daf/outline {"ref": "Berakhot 2a"} → RabbAI's outline of the amud: what each phrase of
  * the Gemara does, checked against the library's words and English. Called only when the person
  * asks to see the flow.
  */
@@ -48,12 +48,12 @@ export async function POST(request: Request) {
       found.main.map((p) => ({ ref: p.ref, he: plainText(p.he), en: plainText(p.en) })),
       client,
     );
-    if (!result.lines.length) return NextResponse.json({ error: "RabAI couldn't outline this page just now. Please try again." }, { status: 502 });
+    if (!result.lines.length) return NextResponse.json({ error: "RabbAI couldn't outline this page just now. Please try again." }, { status: 502 });
     if (made.size >= MAX_KEPT) made.delete(made.keys().next().value!);
     made.set(section, result);
     return NextResponse.json({ section, ...result });
   } catch (err) {
     console.error("[rabai] outline failed:", err instanceof Error ? err.message : err);
-    return NextResponse.json({ error: "RabAI couldn't outline this page just now. Please try again." }, { status: 502 });
+    return NextResponse.json({ error: "RabbAI couldn't outline this page just now. Please try again." }, { status: 502 });
   }
 }

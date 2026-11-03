@@ -96,7 +96,7 @@ interface ChatMessage {
   away?: boolean;
 }
 
-/** A picture in the box, ready to send: what RabAI reads, and the preview the chat keeps. */
+/** A picture in the box, ready to send: what RabbAI reads, and the preview the chat keeps. */
 interface Attached {
   key: string;
   full: QuestionPicture;
@@ -189,7 +189,7 @@ type Lang = "he" | "both" | "en";
 interface LineAnswer {
   action: LineAction | "ask";
   loading: boolean;
-  /** What RabAI is doing, while it works. */
+  /** What RabbAI is doing, while it works. */
   status?: string;
   /** The answer's text as it is being written. */
   live?: string;
@@ -225,8 +225,8 @@ function shortFormNote(a: NonNullable<WordLookup["abbreviation"]>): string {
   if (a.kind === "verse" && a.numbers?.length === 2) return `${a.form} is a chapter and verse written in Hebrew letters: chapter ${a.numbers[0]}, verse ${a.numbers[1]}.`;
   if (a.kind === "verse") return `${a.form} is a reference written in Hebrew letters: ${a.numbers?.join(":")}.`;
   return a.kind === "geresh"
-    ? `${a.form} is a word cut short, or a number written in letters. It isn't a word of its own, so the dictionaries don't list it. RabAI can say what it stands for here.`
-    : `${a.form} is a short form (an abbreviation) for several words, not a word of its own, so it isn't looked up in the dictionaries. RabAI can say what it stands for here.`;
+    ? `${a.form} is a word cut short, or a number written in letters. It isn't a word of its own, so the dictionaries don't list it. RabbAI can say what it stands for here.`
+    : `${a.form} is a short form (an abbreviation) for several words, not a word of its own, so it isn't looked up in the dictionaries. RabbAI can say what it stands for here.`;
 }
 
 /** A word the person chose to keep. Saved only on this device. */
@@ -267,10 +267,10 @@ const DEV_NOTE = "Development texts for testing. Not yet an approved edition or 
 const WORDS_KEY = "rabai_words";
 /** The person's own marks on the page: a color for each line or comment they marked. */
 const MARKS_KEY = "rabai_marks";
-/** RabAI's translations, kept on the device so the same passage is never translated twice. */
+/** RabbAI's translations, kept on the device so the same passage is never translated twice. */
 const TRANSLATIONS_KEY = "rabai_translations";
 const MAX_KEPT_TRANSLATIONS = 60;
-const TRANSLATE_FAILED = "RabAI couldn't translate this just now. Please try again.";
+const TRANSLATE_FAILED = "RabbAI couldn't translate this just now. Please try again.";
 const MARK_COLORS = [
   { id: "yellow", label: "Yellow" },
   { id: "green", label: "Green" },
@@ -339,7 +339,7 @@ function Interlinear({ rows, active }: { rows: GlossRow[]; active?: number }) {
                 {r.expanded}
               </span>
             )}
-            <span className="gl-en" dir="ltr" lang="en" title={r.en === null ? "RabAI gave no English for this word." : undefined}>
+            <span className="gl-en" dir="ltr" lang="en" title={r.en === null ? "RabbAI gave no English for this word." : undefined}>
               {r.en ?? "—"}
             </span>
           </span>
@@ -389,7 +389,7 @@ interface LiveHooks {
   onText?: (delta: string) => void;
 }
 
-/** A request RabAI refused before it began (too long, a picture it can't read, the app locked). */
+/** A request RabbAI refused before it began (too long, a picture it can't read, the app locked). */
 class AskRefused extends Error {}
 
 /**
@@ -401,7 +401,7 @@ async function readLive(res: Response, hooks: LiveHooks = {}): Promise<{ result:
   if (!(res.headers.get("content-type") ?? "").includes("ndjson") || !res.body) {
     const json = (await res.json().catch(() => null)) as (AskResult & { error?: string }) | null;
     if (res.status === 413) throw new AskRefused("Those pictures are too large together. Please send fewer, or smaller ones.");
-    if (!json) throw new Error("RabAI didn't answer. Please try again.");
+    if (!json) throw new Error("RabbAI didn't answer. Please try again.");
     if (json.error && !json.status) throw new AskRefused(json.error);
     return { result: json };
   }
@@ -437,7 +437,7 @@ async function readLive(res: Response, hooks: LiveHooks = {}): Promise<{ result:
 }
 
 /**
- * Ask RabAI about a line in the reader: a short answer, shown live, not kept if the page goes away.
+ * Ask RabbAI about a line in the reader: a short answer, shown live, not kept if the page goes away.
  */
 async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Promise<AskResult> {
   const res = await fetch("/api/ask", {
@@ -452,7 +452,7 @@ async function postAsk(body: Record<string, unknown>, hooks: LiveHooks = {}): Pr
 
 /**
  * A picture the person chose, made ready to send: turned upright, at most 1568 pixels on its
- * longest side (as much as RabAI reads), as a JPEG small enough to send, and a small preview for
+ * longest side (as much as RabbAI reads), as a JPEG small enough to send, and a small preview for
  * the chat. Pictures with transparent parts get a white background.
  */
 async function preparePicture(file: File, targetChars = PICTURE_LIMITS.targetChars): Promise<{ full: QuestionPicture; preview: SavedPicture }> {
@@ -472,7 +472,7 @@ async function preparePicture(file: File, targetChars = PICTURE_LIMITS.targetCha
     return { url: canvas.toDataURL("image/jpeg", quality), w, h };
   };
   const longest = Math.max(source.width, source.height);
-  // As large as RabAI can read it (small print needs it), and no larger.
+  // As large as RabbAI can read it (small print needs it), and no larger.
   let scale = Math.min(1, PICTURE_LIMITS.longSide / longest, Math.sqrt(PICTURE_LIMITS.maxPixels / (source.width * source.height)));
   let quality = 0.86;
   let full: ReturnType<typeof draw>;
@@ -602,7 +602,7 @@ function TeacherNotes({ sources, onOpen }: { sources: AnswerSource[]; onOpen: (r
 }
 
 /**
- * The pages RabAI looked up online for an answer, under their own heading: from the trusted
+ * The pages RabbAI looked up online for an answer, under their own heading: from the trusted
  * Orthodox sites (canon/lookup-sites.yaml) or, for everyday facts, the web. Never sources: each
  * opens on its own site, and the texts they were checked against open in the reader.
  */
@@ -615,7 +615,7 @@ function OnlineNotes({ result, onOpen }: { result: AskResult; onOpen: (ref: stri
   if (o.status !== "found" || !pages.length) {
     return (
       <p className="online-quiet">
-        {o.status === "failed" ? `RabAI couldn't look this up on ${where} just now.` : `RabAI looked on ${where} and found nothing more to add.`}
+        {o.status === "failed" ? `RabbAI couldn't look this up on ${where} just now.` : `RabbAI looked on ${where} and found nothing more to add.`}
       </p>
     );
   }
@@ -664,7 +664,7 @@ function OnlineNotes({ result, onOpen }: { result: AskResult; onOpen: (ref: stri
 }
 
 /**
- * Under a practical halacha answer: RabAI explains, a rav decides (core premises, "Practical
+ * Under a practical halacha answer: RabbAI explains, a rav decides (core premises, "Practical
  * halacha"). The wording is a draft for the rabbinic board (founding spec, open question 9).
  */
 function RavNote() {
@@ -675,7 +675,7 @@ function RavNote() {
         <path d="M10 9.2a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M12 14.2h0" />
       </svg>
       <p>
-        <strong>For your own situation, ask your rav.</strong> RabAI explains what the sources say, but it is not a rav and
+        <strong>For your own situation, ask your rav.</strong> RabbAI explains what the sources say, but it is not a rav and
         can&apos;t decide for you.
       </p>
     </aside>
@@ -683,24 +683,24 @@ function RavNote() {
 }
 
 /**
- * Under an answer about RabAI's own library: the full list, with what waits for the rabbinic
+ * Under an answer about RabbAI's own library: the full list, with what waits for the rabbinic
  * board and what is left out, and why (app/sources).
  */
 function LibraryNote() {
   return (
     <p className="library-note">
       <a href="/sources" target="_blank" rel="noopener">
-        See RabAI&apos;s sources: every book it reads, what waits for the rabbinic board, and what it leaves out
+        See RabbAI&apos;s sources: every book it reads, what waits for the rabbinic board, and what it leaves out
       </a>
     </p>
   );
 }
 
-/** What RabAI is doing while it works: each step as it happens, the earlier ones checked off. */
+/** What RabbAI is doing while it works: each step as it happens, the earlier ones checked off. */
 function WorkingSteps({ steps }: { steps: string[] }) {
   const shown = steps.length ? steps : ["Thinking it through"];
   return (
-    <ol className="steps" aria-label="What RabAI is doing">
+    <ol className="steps" aria-label="What RabbAI is doing">
       {shown.map((step, i) => {
         const current = i === shown.length - 1;
         return (
@@ -754,7 +754,7 @@ function LiveText({ text }: { text: string }) {
 const LEAVE_HINT_MS = 7000;
 
 /**
- * An answer still being written: what RabAI is doing, then the words as they come. After a few
+ * An answer still being written: what RabbAI is doing, then the words as they come. After a few
  * seconds it says the person can leave; the answer will be here when they come back.
  */
 function PendingView({ job, at }: { job?: LiveJob; at: number }) {
@@ -906,7 +906,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [input, setInput] = useState("");
   /** This chat is waiting for an answer (another chat may be too; they don't block each other). */
   const pending = messages.some((m) => !!m.pending);
-  /** Answers being written, by their id: the steps RabAI has taken and the text so far. */
+  /** Answers being written, by their id: the steps RabbAI has taken and the text so far. */
   const [liveJobs, setLiveJobs] = useState<Record<string, LiveJob>>({});
   /** Pictures in the box, ready to send, and how many are still being prepared. */
   const [attached, setAttached] = useState<Attached[]>([]);
@@ -937,14 +937,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const listening = dictation.state === "listening";
   const [growth, setGrowth] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  /** What RabAI knows about the person: what they told it and what it noticed (on this device). */
+  /** What RabbAI knows about the person: what they told it and what it noticed (on this device). */
   const [profile, setProfile] = useState<LearnerProfile>(emptyProfile);
   const profileRef = useRef<LearnerProfile>(emptyProfile());
   const [aboutOpen, setAboutOpen] = useState(false);
   /** The person's account, when they sign in (use-account.ts); set below, once the chats exist. */
   const accountRef = useRef<AccountApi | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
-  /** Something the person did that RabAI may remember. Nothing happens when remembering is off. */
+  /** Something the person did that RabbAI may remember. Nothing happens when remembering is off. */
   const notice = useCallback((a: Activity) => {
     const next = noticed(profileRef.current, a);
     if (next === profileRef.current) return;
@@ -1334,20 +1334,20 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         body: JSON.stringify({ ref: daf.section }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "RabAI couldn't outline this page just now.");
+      if (!res.ok) throw new Error(json.error ?? "RabbAI couldn't outline this page just now.");
       // Checked on the device too: every phrase is the page's own words, every English the library's.
       const kept = readKeptOutline({ v: OUTLINE_VERSION, lines: json.lines, model: json.model }, daf.main);
-      if (!kept) throw new Error("RabAI couldn't outline this page just now.");
+      if (!kept) throw new Error("RabbAI couldn't outline this page just now.");
       setOutlines((prev) => ({ ...prev, [daf.section]: kept }));
       store(outlineKey(daf.section), keptOutline(kept));
       setOutlineState(null);
     } catch (err) {
-      setOutlineState({ loading: false, error: err instanceof Error ? err.message : "RabAI couldn't outline this page just now." });
+      setOutlineState({ loading: false, error: err instanceof Error ? err.message : "RabbAI couldn't outline this page just now." });
       setShowOutline(false);
     }
   };
 
-  /** RabAI's translation of a passage, asked for only when the person taps Translate or Word by word. */
+  /** RabbAI's translation of a passage, asked for only when the person taps Translate or Word by word. */
   const translate = async (ref: string, context: string[], openWords: boolean) => {
     if (openWords) setWordByWord((prev) => ({ ...prev, [ref]: true }));
     const have = translations[ref];
@@ -1619,7 +1619,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
       // A question asked out loud gets its answer read aloud.
       if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) listen(`m${placeholder.id}`, plainAnswer(result));
-      if (document.hidden) document.title = "Answered · RabAI";
+      if (document.hidden) document.title = "Answered · RabbAI";
     },
     [settleInChat, listen],
   );
@@ -1664,7 +1664,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     return q;
   };
 
-  /** RabAI turned the request down before starting (too long, a picture it can't read). */
+  /** RabbAI turned the request down before starting (too long, a picture it can't read). */
   const refuseJob = useCallback(
     (jobId: string, chat: string, message: string) => {
       if (chatIdRef.current !== chat) return failJob(jobId, chat, message);
@@ -1821,7 +1821,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     const onShow = () => {
       if (document.hidden) return;
-      if (document.title !== "RabAI") document.title = "RabAI";
+      if (document.title !== "RabbAI") document.title = "RabbAI";
       for (const m of messagesRef.current) if (m.pending && !watchers.current.has(m.pending.id)) watchJob(m.pending.id, chatIdRef.current ?? "", m.pending.at);
     };
     document.addEventListener("visibilitychange", onShow);
@@ -2328,7 +2328,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     store("rabai_growth", on ? "on" : "off");
   };
 
-  // ---- what RabAI knows about the person (lib/learner-profile.ts) ----
+  // ---- what RabbAI knows about the person (lib/learner-profile.ts) ----
   const keepProfile = useCallback((next: LearnerProfile) => {
     if (next === profileRef.current) return;
     const rememberChanged = next.remember !== profileRef.current.remember;
@@ -2341,8 +2341,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   // ---------------------------------------------------------------------------
 
-  // Look up a tapped word in the library's dictionaries. No AI: RabAI explains a word only
-  // when the person taps "Ask RabAI".
+  // Look up a tapped word in the library's dictionaries. No AI: RabbAI explains a word only
+  // when the person taps "Ask RabbAI".
   useEffect(() => {
     if (!wordCard || !reader) return;
     const line = reader.lines.find((l) => l.ref === wordCard.ref) ?? reader.lines.flatMap((l) => l.commentaries).find((c) => c.ref === wordCard.ref);
@@ -2456,7 +2456,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <LiveText text={answer.live} />
           ) : answer.loading ? (
             <p className="thinking">
-              {answer.status ?? (answer.action === "check" ? "RabAI is reading your translation" : "RabAI is looking at this line")}
+              {answer.status ?? (answer.action === "check" ? "RabbAI is reading your translation" : "RabbAI is looking at this line")}
               <span className="dots" />
             </p>
           ) : answer.error ? (
@@ -2490,7 +2490,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   /**
    * The Translation tab: the library's English with its translator, or, when the library has none,
-   * RabAI's own translation (made only when the person taps, and always labeled), and its word by
+   * RabbAI's own translation (made only when the person taps, and always labeled), and its word by
    * word under the library's words.
    */
   const renderTranslation = (o: {
@@ -2526,7 +2526,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         {(tr?.result?.general || (showWords && tr?.result)) && (
           <div className="rabai-tr">
             <p className="rabai-tr-label">
-              <strong>RabAI’s translation.</strong> Not from the library, and not yet reviewed by the rabbinic board.
+              <strong>RabbAI’s translation.</strong> Not from the library, and not yet reviewed by the rabbinic board.
             </p>
             {tr.result.general && !o.en && <p className="daf-panel-en">{tr.result.general}</p>}
             {showWords &&
@@ -2539,7 +2539,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ) : tr.result.words ? (
                 <Interlinear rows={tr.result.words} active={o.active ?? -1} />
               ) : (
-                <p className="muted">RabAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
+                <p className="muted">RabbAI’s word-by-word list didn’t line up with the library’s words, so it isn’t shown.</p>
               ))}
             {tr.result.readings && tr.result.readings.length > 0 && (
               <div className="tr-readings">
@@ -2601,18 +2601,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         )}
         {lookup?.error && <p className="muted">{lookup.error}</p>}
         {lookup?.abbreviation && !lookup.loading && <p className="muted">{shortFormNote(lookup.abbreviation)}</p>}
-        {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabAI can explain it.</p>}
+        {!lookup && /\s/.test(word) && <p className="muted">This stands for several words. RabbAI can explain it.</p>}
         <DictRows entries={entries} />
         {lookup && !lookup.loading && !lookup.error && !lookup.abbreviation && entries.length === 0 && !hasNotes && (
           <p className="muted">
-            {lookup.available === false ? "This build has no dictionaries yet." : "None of the library’s dictionaries has this word yet."} RabAI can
+            {lookup.available === false ? "This build has no dictionaries yet." : "None of the library’s dictionaries has this word yet."} RabbAI can
             explain it.
           </p>
         )}
         {lookup && !lookup.loading && (lookup.abbreviation || entries.length === 0) && (
           <div className="follow">
             <button type="button" className="chip-btn primary" onClick={onAsk}>
-              Ask RabAI about this word
+              Ask RabbAI about this word
             </button>
           </div>
         )}
@@ -2699,7 +2699,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               </div>
             </>
           )}
-          <p className="fine-left">Notes not marked with a dictionary are written by the RabAI team for testing.</p>
+          <p className="fine-left">Notes not marked with a dictionary are written by the RabbAI team for testing.</p>
         </div>
       ) : null;
     return (
@@ -2792,7 +2792,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <div className="wc-asks" role="group" aria-label={`Ask about ${p.ref}`}>
               {token && (
                 <button type="button" disabled={answer?.loading} onClick={askWord}>
-                  {heading === word ? "Ask RabAI about this word" : "Ask RabAI about this phrase"}
+                  {heading === word ? "Ask RabbAI about this word" : "Ask RabbAI about this phrase"}
                 </button>
               )}
               {ACTIONS.map((a) => (
@@ -3221,7 +3221,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const lookup = word ? wordInfo[word] : undefined;
     const first = lookup?.entries?.[0];
     const line = shownOutline?.lines.find((l) => l.ref === picked?.ref);
-    // What the phrase holding the tapped word does, in RabAI's outline.
+    // What the phrase holding the tapped word does, in RabbAI's outline.
     const phrase = line && dafPick ? line.phrases[phraseOfWord(line.phrases, dafPick.index)] : undefined;
     const answer = picked ? lineAnswers[picked.ref] : undefined;
     const partName = dafPick?.part === "main" ? "line" : "comment";
@@ -3361,7 +3361,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               {dafColumn && <p className="fine-left">Rashi and Tosafot are in the card when you tap a word.</p>}
               <label className="rb-check narrow-only">
                 <input type="checkbox" checked={showOutline} disabled={!daf || outlineState?.loading} onChange={() => void showFlow()} />
-                Show the flow (RabAI’s outline)
+                Show the flow (RabbAI’s outline)
               </label>
             </div>
           )}
@@ -3487,7 +3487,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 line ? (
                   <p className={`kind-note k-${(phrase ?? line).kind}`}>
                     <strong>{OUTLINE_LABELS[(phrase ?? line).kind]}.</strong> {phrase?.note || line.note}{" "}
-                    <span className="fine-inline">RabAI’s outline, not yet reviewed by the rabbinic board.</span>
+                    <span className="fine-inline">RabbAI’s outline, not yet reviewed by the rabbinic board.</span>
                   </p>
                 ) : undefined
               }
@@ -3594,7 +3594,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <div className="wc-asks" role="group" aria-label={`Ask about ${picked.ref}`}>
                     {word && (
                       <button type="button" disabled={answer?.loading} onClick={askDafWord}>
-                        Ask RabAI about this word
+                        Ask RabbAI about this word
                       </button>
                     )}
                     <button type="button" disabled={answer?.loading} onClick={() => void askLine(picked.ref, "explain")}>
@@ -3658,7 +3658,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               ר
             </div>
             <div>
-              <h1>RabAI</h1>
+              <h1>RabbAI</h1>
               <div className="sub">An AI Torah teacher</div>
             </div>
             {libraryMode === "development" && (
@@ -3727,7 +3727,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <span>
                     <strong>Help me grow closer to HaShem</strong>
                     <span className="muted">
-                      Off unless you turn it on. When it’s on, RabAI may gently offer one small step at a time, never with
+                      Off unless you turn it on. When it’s on, RabbAI may gently offer one small step at a time, never with
                       guilt.
                     </span>
                   </span>
@@ -3742,7 +3742,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 >
                   <strong>About you</strong>
                   <span className="muted">
-                    {profile.remember ? "What you told RabAI, and what it remembers of your learning" : "Remembering is off"}
+                    {profile.remember ? "What you told RabbAI, and what it remembers of your learning" : "Remembering is off"}
                   </span>
                 </button>
                 {accountsOn && (
@@ -3763,26 +3763,26 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </button>
                 )}
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
-                  <strong>RabAI&apos;s sources</strong>
+                  <strong>RabbAI&apos;s sources</strong>
                   <span className="muted">Every book it reads, what waits for the rabbinic board, and what it leaves out</span>
                 </a>
                 <div className="settings-about">
-                  <p>RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                  <p>RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                   {libraryMode === "testing" && (
                     <p>{TESTING_LABEL}</p>
                   )}
                   {libraryMode === "development" && <p>{DEV_NOTE}</p>}
                   {signedIn ? (
                     <p>
-                      Your chats and what RabAI knows about you are kept in your account. Saved words, marks and recent reading
+                      Your chats and what RabbAI knows about you are kept in your account. Saved words, marks and recent reading
                       stay on this device.
                     </p>
                   ) : (
-                    <p>Your chats, saved words, marks, recent reading and what RabAI knows about you stay on this device.</p>
+                    <p>Your chats, saved words, marks, recent reading and what RabbAI knows about you stay on this device.</p>
                   )}
                   <p>
                     <a href="/privacy" target="_blank" rel="noopener">
-                      What RabAI keeps, and why
+                      What RabbAI keeps, and why
                     </a>
                   </p>
                 </div>
@@ -3859,7 +3859,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <div className="account-notes">
                   {account.state.justSignedIn && signedIn && (
                     <p className="account-note" role="status">
-                      You’re signed in. Your chats and what RabAI knows about you now follow you to your other devices.
+                      You’re signed in. Your chats and what RabbAI knows about you now follow you to your other devices.
                     </p>
                   )}
                   {account.state.ended && account.state.status === "signed-out" && (
@@ -3879,7 +3879,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     ר
                   </div>
                   <div className="body">
-                    <p className="welcome-hi">Shalom! I’m RabAI, an AI Torah teacher.</p>
+                    <p className="welcome-hi">Shalom! I’m RabbAI, an AI Torah teacher.</p>
                     <p>
                       Ask me anything, about Torah or about life. You can type, {dictation.supported ? "talk, " : ""}or send a
                       picture of a page.
@@ -3895,7 +3895,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         steps are in web/README.md.
                       </p>
                     )}
-                    <p className="welcome-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                    <p className="welcome-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                     {STARTERS.map((g) => (
                       <div key={g.label} className="starters">
                         <p className="label-sm">{g.label}</p>
@@ -3913,7 +3913,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
 
               {messages.length > 0 && (
-                <p className="chat-rav">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+                <p className="chat-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
               )}
               {messages.map((m, i) =>
                 m.role === "user" ? (
@@ -4025,7 +4025,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         </span>
                         {revealed.has(w.form) ? (
                           <span className="meaning">
-                            {w.gloss ?? "Ask RabAI about this word"}
+                            {w.gloss ?? "Ask RabbAI about this word"}
                             {w.root ? ` · root ${w.root}${w.rootMeaning ? ` (${w.rootMeaning})` : ""}` : ""}
                           </span>
                         ) : (
@@ -4078,7 +4078,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </li>
                 ))}
               </ul>
-              <p className="fine-left">Written by the RabAI team for testing, until approved dictionaries replace these notes.</p>
+              <p className="fine-left">Written by the RabbAI team for testing, until approved dictionaries replace these notes.</p>
             </div>
           ) : (
             <div className="thread learn-home">
@@ -4208,7 +4208,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </button>
               )}
               <label htmlFor="ask-input" className="sr-only">
-                Ask RabAI
+                Ask RabbAI
               </label>
               <textarea
                 id="ask-input"
@@ -4266,7 +4266,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 {dictation.error ?? "Listening. Tap the microphone when you’re done, then press Ask."}
               </p>
             )}
-            <p className="fine">RabAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
+            <p className="fine">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
           </div>
         )}
           </div>

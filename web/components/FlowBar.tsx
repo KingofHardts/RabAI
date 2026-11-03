@@ -6,7 +6,7 @@ import { OUTLINE_LABELS, phraseId, type FlowStep, type OutlineKind } from "@/lib
 
 /*
  * Going through the flow phrase by phrase, at the bottom of the page view. It shows the current
- * phrase's kind, RabAI's note on it (tan, labeled as RabAI's) and the library's English for it, and
+ * phrase's kind, RabbAI's note on it (tan, labeled as RabbAI's) and the library's English for it, and
  * rings the phrase on the page and scrolls it into view.
  *
  * It sits below the page, not over it, so on a phone it never covers the words it is about.
@@ -86,9 +86,9 @@ export default function FlowBar({ steps, index, only, text, englishBy, onMove, o
 
   return (
     <section className="flow-bar" aria-label="Step through the flow, phrase by phrase" onKeyDown={onKeyDown}>
-      {/* What a screen reader hears on each step: the kind, RabAI's note, and where it is. */}
+      {/* What a screen reader hears on each step: the kind, RabbAI's note, and where it is. */}
       <p className="sr-only" aria-live="polite">
-        {`${label}: ${note}. ${of}${what}, ${step.ref}. RabAI’s outline, not yet reviewed by the rabbinic board.`}
+        {`${label}: ${note}. ${of}${what}, ${step.ref}. RabbAI’s outline, not yet reviewed by the rabbinic board.`}
       </p>
       <div className="flow-top">
         <span className={`flow-kind k-${phrase.kind}`}>{label}</span>
@@ -123,7 +123,7 @@ export default function FlowBar({ steps, index, only, text, englishBy, onMove, o
         </p>
         <div className="flow-note">
           <p className="flow-by">
-            <strong>RabAI’s outline</strong>, not yet reviewed by the rabbinic board
+            <strong>RabbAI’s outline</strong>, not yet reviewed by the rabbinic board
           </p>
           <p>
             <strong>{label}.</strong> {note}
@@ -131,7 +131,7 @@ export default function FlowBar({ steps, index, only, text, englishBy, onMove, o
         </div>
         <div className="flow-en">
           <p className="flow-by" title={englishBy}>
-            {phrase.en ? "The library’s English, matched to this phrase by RabAI" : english ? "The library’s English for the whole line" : "The library’s English"}
+            {phrase.en ? "The library’s English, matched to this phrase by RabbAI" : english ? "The library’s English for the whole line" : "The library’s English"}
             {englishBy && english ? <span className="flow-wide"> · {englishBy}</span> : null}
           </p>
           <p className="flow-en-text">{english || "The library has no English for this line."}</p>

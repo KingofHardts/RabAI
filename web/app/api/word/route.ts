@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 const DICTIONARIES: Record<string, { name: string; note?: string; tag?: string }> = {
   Jastrow: {
     name: "Jastrow's dictionary",
-    note: "Its author was not Orthodox. RabAI uses it only for what words mean.",
+    note: "Its author was not Orthodox. RabbAI uses it only for what words mean.",
     // The same notice, short enough to sit on every entry's one-line row.
     tag: "Not Orthodox · word meanings only",
   },
@@ -19,7 +19,7 @@ const DICTIONARIES: Record<string, { name: string; note?: string; tag?: string }
 
 /**
  * GET /api/word?w=ובראשית → the entries the library's dictionaries have for this word, with
- * how the word was read to find each one. No AI is involved; RabAI explains a word only when
+ * how the word was read to find each one. No AI is involved; RabbAI explains a word only when
  * the person asks.
  */
 export async function GET(request: Request) {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       const english = p.en.trim();
       return {
         dictionary: dict.name,
-        note: p.source?.wordToolOnly ? (dict.note ?? "RabAI uses this dictionary only for what words mean.") : dict.note,
+        note: p.source?.wordToolOnly ? (dict.note ?? "RabbAI uses this dictionary only for what words mean.") : dict.note,
         tag: p.source?.wordToolOnly ? (dict.tag ?? "Word meanings only") : dict.tag,
         headword: p.ref.includes(", ") ? p.ref.slice(p.ref.indexOf(", ") + 2) : p.ref,
         ref: p.ref,

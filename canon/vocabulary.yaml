@@ -58,7 +58,7 @@ status:
 
 # How firmly the tradition stands behind a work (maintainer's decision, 2026-10-07, pending the
 # board). Left out means established. A debated work stays in the library so people can ask about
-# it, but RabAI presents it with its caution and never rests a halachic answer on it alone.
+# it, but RabbAI presents it with its caution and never rests a halachic answer on it alone.
 standing:
   established: Credible and accepted in the Orthodox tradition (the default)
   debated: Kept, but presented with a caution and not held as high in halacha

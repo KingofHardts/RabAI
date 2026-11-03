@@ -19,7 +19,7 @@ export function clearSessionCookie(res: NextResponse, request: Request): void {
 export const NOT_SIGNED_IN = "You're not signed in.";
 export const ACCOUNTS_OFF = "Accounts aren't switched on yet.";
 export const ACCOUNT_UNAVAILABLE = "Your account can't be reached just now. Please try again in a moment.";
-export const ELSEWHERE = "That request didn't come from RabAI.";
+export const ELSEWHERE = "That request didn't come from RabbAI.";
 
 /** Log a failure without anything about the person in it. */
 export function logFailure(what: string, err: unknown): void {

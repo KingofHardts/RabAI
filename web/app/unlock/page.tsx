@@ -14,13 +14,13 @@ export default async function UnlockPage({ searchParams }: { searchParams: Promi
       <div className="unlock-card">
         <div className="brand">
           <div className="mark" aria-hidden="true">ר</div>
-          <h1>RabAI</h1>
+          <h1>RabbAI</h1>
         </div>
         {g.kind === "closed" ? (
-          <p>RabAI isn&rsquo;t open yet. It is still being reviewed.</p>
+          <p>RabbAI isn&rsquo;t open yet. It is still being reviewed.</p>
         ) : (
           <>
-            <p>This is a private preview while RabAI is being reviewed. Please enter the access code you were given.</p>
+            <p>This is a private preview while RabbAI is being reviewed. Please enter the access code you were given.</p>
             <UnlockForm next={next} />
           </>
         )}

@@ -182,7 +182,7 @@ test("a stop asked on another server reaches the answer at its next progress", a
   assert.equal((await store.read(check))?.status, "stopped");
 });
 
-test("an answer that throws is kept as RabAI's note, and a store that fails doesn't stop the answer", async () => {
+test("an answer that throws is kept as RabbAI's note, and a store that fails doesn't stop the answer", async () => {
   const broken: JobStore = {
     ...noJobStore(),
     start: async () => {

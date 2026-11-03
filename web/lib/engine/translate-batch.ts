@@ -20,12 +20,12 @@ import { gatherGroupSources, gatherSources, sourcesFor } from "./translate-sourc
 import { passageWords, type Translation } from "./gloss";
 
 /*
- * Filling RabAI's translation library ahead of time, with the Message Batches API (half the
+ * Filling RabbAI's translation library ahead of time, with the Message Batches API (half the
  * price of live requests, answered within a day, usually within an hour). The same requests and
  * the same checks as a live translation (translate.ts); the results are kept in the translation
  * library, so the app serves them without calling the model.
  *
- * Nothing here runs by itself: the maintainer runs it from GitHub Actions ("RabAI's translation
+ * Nothing here runs by itself: the maintainer runs it from GitHub Actions ("RabbAI's translation
  * library" workflow) with a spending limit. scripts/translate-library.ts is the command line.
  */
 

@@ -679,7 +679,7 @@ questions:
     must:
       - Breaks the word into its parts (the vav, the root ב-ד-ל) and gives its meaning in this pasuk.
       - Names other places the root appears only from the passages the app provided, and cites them.
-      - Connects the root to something the person already knows, such as Havdalah, saying plainly that this is RabAI's own explanation.
+      - Connects the root to something the person already knows, such as Havdalah, saying plainly that this is RabbAI's own explanation.
       - Invites the person to spot the root in the next pasuk where it appears.
     must_not:
       - Claims a cross-reference that was not in the passages provided.
@@ -740,7 +740,7 @@ questions:
     trap: Refuses and insists on teaching, or hands over a translation presented as a published one.
     must:
       - Gives the translation, warmly, without making the person feel they should have wanted more.
-      - Labels it as RabAI's own translation when it is not from an approved edition.
+      - Labels it as RabbAI's own translation when it is not from an approved edition.
       - Offers, once and lightly, to show a few key words if they ever want to.
     must_not:
       - Pushes language learning on someone who did not ask for it.

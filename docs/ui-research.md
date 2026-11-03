@@ -1,4 +1,4 @@
-# RabAI's screens: what other apps do, and a redesign plan
+# RabbAI's screens: what other apps do, and a redesign plan
 
 **Research and proposal, 2026-10-07.** Items 1 to 11 of [part 5](#5-what-to-build-first) were
 built the same day; item 12 (the order of dictionary entries) is still to do. This answers the maintainer's request
@@ -18,8 +18,8 @@ It has five parts:
 4. [Visual direction](#4-visual-direction)
 5. [What to build first](#5-what-to-build-first)
 
-The app's rules do not change. The online app stays locked behind its access code. RabAI
-explains a word only when the person asks. RabAI's own translations and outlines are always
+The app's rules do not change. The online app stays locked behind its access code. RabbAI
+explains a word only when the person asks. RabbAI's own translations and outlines are always
 labeled as not reviewed by the rabbinic board. Citations come only with the checked final
 answer. Every passage from the private testing library stays labeled as not yet approved.
 [Part 5](#rules-this-plan-keeps) checks the plan against each rule.
@@ -50,7 +50,7 @@ So the findings come from three places:
   reliable evidence here, because it shows exactly how their screens are built.
 - **Search results**: help pages, reviews, articles, and app store descriptions quoted in
   search results. The links are listed at the end.
-- **What RabAI's own maintainers already know** (CLAUDE.md mentions Mercava correcting each
+- **What RabbAI's own maintainers already know** (CLAUDE.md mentions Mercava correcting each
   printed page by hand).
 
 I could not look at any other app's screens with my own eyes. Where a finding comes only from
@@ -221,7 +221,7 @@ The number opens the dictionary page with every place the word appears. On the p
 
 Each word is a small stack: dictionary number, original word, pronunciation, English. Very
 useful for study, very dense for reading. **Worth copying** for our "Word by word" view (we
-already do this in RabAI's tan box). **Worth avoiding** as the default way to read.
+already do this in RabbAI's tan box). **Worth avoiding** as the default way to read.
 
 #### Logos and Accordance
 
@@ -290,7 +290,7 @@ screenshots at a computer width (1300 pixels) and a phone width (390 pixels). Fi
 `desk-NN-...png` and `phone-NN-...png`; they are in this session's scratchpad folder
 (`ui-research/`), not in the repo. The numbers below were measured in the browser. The build is
 the one in `web/.next` from the morning of 2026-10-07; work in progress at the time (an "Other
-readings" list in RabAI's translation box) adds more to the printed-page panel, which makes the
+readings" list in RabbAI's translation box) adds more to the printed-page panel, which makes the
 order of that panel matter even more.
 
 Worst first.
@@ -385,10 +385,10 @@ the library is not what you need. (`desk-12-reader-gemara.png`)
 - Tapping a line in the reader adds **five pill buttons and a text box** under it ("Explain
   this", "Word by word", "What do the commentaries say?", "Where is this used in halacha?",
   "Let me try translating"). (`desk-13-reader-line-tapped.png`)
-- The printed-page panel holds **ten or more controls**: Translate, Word by word, Ask RabAI
+- The printed-page panel holds **ten or more controls**: Translate, Word by word, Ask RabbAI
   about this word, Explain this line, What do Rashi and Tosafot say, Save to My words, a question
   box, four mark colors, and Clear.
-- Each Jastrow entry repeats **"Its author was not Orthodox. RabAI uses it only for what words
+- Each Jastrow entry repeats **"Its author was not Orthodox. RabbAI uses it only for what words
   mean."** In `desk-20` the sentence appears three times in one card. (The rule that each entry
   says so stays; it can be said in fewer pixels. See 3.5.)
 - The "Private testing library. Not yet approved by the rabbinic board." note appears as a large
@@ -428,8 +428,8 @@ linked Rashi and Tosafot get gray bars. On a dense page this reads as noise.
 - At least seven button looks: white pills, tinted pills, pale blue source chips, underlined
   links, the language segment, the "Study words" pill, and dashed badges.
 - Amber means three different things: a warning ("not connected"), the testing label, and
-  RabAI's own translation (tan). The Talmud shelf is a strong brown next to a blue accent.
-- The RabAI mark (ר in a blue circle) sits beside every message, and on a phone its column takes
+  RabbAI's own translation (tan). The Talmud shelf is a strong brown next to a blue accent.
+- The RabbAI mark (ר in a blue circle) sits beside every message, and on a phone its column takes
   13 percent of the width. (`phone-05-chat-answer.png`)
 - Text sizes for small labels vary between 11.5 and 13.5 pixels; headings switch between the
   serif and the sans-serif.
@@ -466,7 +466,7 @@ Sizes below are in CSS pixels.
 One top bar, **52 pixels**, one row:
 
 ```
- ר RabAI      [ Chat | Learn ]                         Testing library ⓘ   ⚙
+ ר RabbAI      [ Chat | Learn ]                         Testing library ⓘ   ⚙
 ```
 
 - The subtitle "An AI Torah teacher" moves to the welcome message.
@@ -495,7 +495,7 @@ When a text is open, the screen has up to three columns:
 
 **Phone (under 980 pixels)**
 
-- A **48-pixel top bar** in one row: the RabAI mark, the Chat / Learn switch, and ⚙. The
+- A **48-pixel top bar** in one row: the RabbAI mark, the Chat / Learn switch, and ⚙. The
   testing label becomes a small line under the welcome message and on each passage.
 - A text opens **full screen** (not a sheet with the chat showing above it), with its own
   48-pixel bar (see 3.4). The bar slides away as you scroll down and returns when you scroll up.
@@ -506,7 +506,7 @@ When a text is open, the screen has up to three columns:
 
 ```
 ┌─ Chats ────────┬──────────── conversation ─────────────┐
-│ + New chat     │  Shalom! I'm RabAI...                  │
+│ + New chat     │  Shalom! I'm RabbAI...                  │
 │ Search         │                                       │
 │ ● Halacha      │                   Why do we add a ... │
 │   Chanukah...  │  The Gemara brings a dispute ...      │
@@ -525,7 +525,7 @@ When a text is open, the screen has up to three columns:
 - **The chat's name sits at the top of the conversation** with a ⋯ menu: rename, category,
   delete, new chat. The "Saved on this device · Category · New chat" row goes away; "saved on
   this device" is said once, in the chats list.
-- **The RabAI mark appears once,** on the welcome message. Answers use the full width; on a
+- **The RabbAI mark appears once,** on the welcome message. Answers use the full width; on a
   phone this gives back 46 of 358 pixels.
 - **Under an answer:** the Listen button as a small speaker icon, then "Tell me more" and "Say
   it more simply" as quiet text buttons. Drop "Open Shabbat 21b:5"; the source buttons in the
@@ -533,7 +533,7 @@ When a text is open, the screen has up to three columns:
 - **Starters:** four short cards in two rows, two under "Ask about Torah" and two under "Talk
   about life", instead of six pills of different lengths.
 - **Phone:** the chat opens at the top of the welcome message, not scrolled past it. The
-  footnote "RabAI is an AI Torah teacher, not a rav" moves into the welcome message and the
+  footnote "RabbAI is an AI Torah teacher, not a rav" moves into the welcome message and the
   settings, so the composer is one row (about 64 pixels with the safe area).
 
 ### 3.3 Learn and the library
@@ -567,7 +567,7 @@ books fill a grid on the right, five across. Choosing a book opens **its own pag
 ```
  ← Talmud · Seder Zeraim
  Berakhot  ברכות
- [ Continue at 5b ]   [ Start at 2a ]   [ Learn it with RabAI ]
+ [ Continue at 5b ]   [ Start at 2a ]   [ Learn it with RabbAI ]
 
  Dafim   2a 2b 3a 3b 4a 4b 5a 5b ... 64a                (Talmud)
  Chapters 1 2 3 4 5 ... 50                               (Tanakh)
@@ -663,22 +663,22 @@ with what it shows, at most 60 percent of the window, scrolling inside.
 - **Meaning:** one row per dictionary entry, each showing its dictionary's colored edge and name,
   the headword, and the **first sense only, on one line** ("spiced, sweet; pleasing."). Tapping
   a row (▾) opens the full entry in place. Five entries take about five rows, not three screens.
-  The first sense is cut from the dictionary's own text, never written by RabAI.
+  The first sense is cut from the dictionary's own text, never written by RabbAI.
 - **The Jastrow notice stays on every entry, in fewer words.** Today: "Its author was not
-  Orthodox. RabAI uses it only for what words mean." under each entry. Proposed: the entry's
+  Orthodox. RabbAI uses it only for what words mean." under each entry. Proposed: the entry's
   label reads "Jastrow · meanings only", and ⓘ (or the open entry) shows the full sentence. The
   maintainer should confirm that this meets the rule that every Jastrow entry says so; if not,
   keep the full sentence, but as one short gray line on the open entry.
 - **Translation:** the line's English from the library, with its translator named. If the
   library has none: "No English for this line in the library yet" and a **Translate** button
-  (RabAI's, only when tapped), whose result appears in the tan box with its label "RabAI's
+  (RabbAI's, only when tapped), whose result appears in the tan box with its label "RabbAI's
   translation. Not from the library, and not yet reviewed by the rabbinic board." "Word by word"
   sits here too, with the tapped word outlined, as now.
 - **Commentary:** the Rashi and Tosafot (or the reader's commentaries) on this line, each folded
   to its opening words; tap to open. On the printed page each one has "Show on the page".
-- **Ask:** "Ask RabAI about this word", "Explain this line", "What do the commentaries say?", and a
+- **Ask:** "Ask RabbAI about this word", "Explain this line", "What do the commentaries say?", and a
   question box. **Nothing is sent until the person taps a button.** When no dictionary has the
-  word, the card opens on this tab with "Ask RabAI about this word" as the main button, as today.
+  word, the card opens on this tab with "Ask RabbAI about this word" as the main button, as today.
 - **Footer:** "Save to My words", and **"Open in the panel"**, which moves the card into the
   side panel for long study (STEPBible's ladder: quick look, then the full panel).
 - **What the card does not do:** it does not move the text, and it does not call the model.
@@ -747,15 +747,15 @@ and **opens on the Meaning tab with the word at the top**:
   dictionary rows are visible with **no scrolling** (they fit in the top 400 pixels). Today they
   start at 860.
 - **Translation** holds the line's English (folded to four lines with "more"), the translator's
-  name, and "Translate this" and "Word by word" for RabAI's labeled translation.
+  name, and "Translate this" and "Word by word" for RabbAI's labeled translation.
 - **Rashi & Tosafot** lists the comments on this line (or, for a comment, the line it explains),
   each folded, with "Show on the page".
-- **Ask** holds "Ask RabAI about this word", "Explain this line", "What do Rashi and Tosafot
+- **Ask** holds "Ask RabbAI about this word", "Explain this line", "What do Rashi and Tosafot
   say?" and the question box. The answer appears in this tab.
 - The line's Hebrew and the four mark colors sit in a small "This line" section at the bottom of
   every tab, so marking needs no hunting.
 - When the outline ("the flow") is on, the kind and note of the phrase holding the word appear as
-  one colored line under the word, with its label "RabAI's outline, not yet reviewed by the
+  one colored line under the word, with its label "RabbAI's outline, not yet reviewed by the
   rabbinic board".
 
 **On a phone,** the same panel is the short bottom sheet from 3.5, opening on Meaning.
@@ -778,7 +778,7 @@ and **opens on the Meaning tab with the word at the top**:
 
 **The flow, phrase by phrase** (built 2026-10-07, the way Mercava colors a sugya):
 
-- **Each phrase is colored, not each line.** RabAI splits every line of the Gemara into the
+- **Each phrase is colored, not each line.** RabbAI splits every line of the Gemara into the
   steps of the argument (a question, its answer, a verse brought as proof, a challenge, its
   resolution) and gives each its kind and a short note. It names a phrase only by the numbers
   of the library's own words, never by retyping them; the app checks that the phrases are in
@@ -795,9 +795,9 @@ and **opens on the Meaning tab with the word at the top**:
   phrase it is about) that goes phrase by phrase: Next and Back (the left arrow is Next, as
   Hebrew runs, the right arrow Back; Home and End go to the first and last; Escape closes it).
   The current phrase is ringed on the page and scrolled into view. The bar shows the phrase's
-  Hebrew, its kind in its color, RabAI's note in tan with "RabAI's outline, not yet reviewed by
+  Hebrew, its kind in its color, RabbAI's note in tan with "RabbAI's outline, not yet reviewed by
   the rabbinic board", and the library's English for the phrase. That English is the library's
-  own: RabAI only points at the stretch of the line's English that translates the phrase, and
+  own: RabbAI only points at the stretch of the line's English that translates the phrase, and
   the app shows it only when those words are really there, letter for letter (the same idea as
   checking a citation). Otherwise the bar shows the whole line's English, labeled as such. With
   a kind chosen, Next and Back go through that kind's phrases only. Tapping a word of the Gemara
@@ -857,7 +857,7 @@ scale is most of what makes a screen look calm.
 | Ink on warm paper (`#FBF8F1` page, `#FFFDF8` cards, `#1F1B16` ink) | The library's text | Reader and page backgrounds |
 | Deep blue (today's `#22508C`) | Something you can do | Buttons, links, the selected word, focus |
 | Teal (Jastrow), violet (Radak) | Which dictionary said this | Edge and label of each entry, as now |
-| Tan (`#8A4B08` on `#FBF1E4`) | **RabAI's own words, not from the library** | RabAI's translations and word-by-word, the outline's label |
+| Tan (`#8A4B08` on `#FBF1E4`) | **RabbAI's own words, not from the library** | RabbAI's translations and word-by-word, the outline's label |
 | Neutral gray tag | Not yet approved (testing library) | The testing label, kept on every passage |
 | Amber | A warning | "Not connected", errors that need attention; a debated book's caution ("Read with care") |
 | Soft red | Safety | Crisis lines |
@@ -865,8 +865,8 @@ scale is most of what makes a screen look calm.
 | The person's four mark colors | The person's own marks | Margin bars and underlines |
 | Category tones | The person's chat categories | Dots in the chats list |
 
-Two changes matter most. **Tan is kept only for RabAI's own words,** so a reader learns that tan
-always means "RabAI said this, the library didn't". The testing label moves from amber to a
+Two changes matter most. **Tan is kept only for RabbAI's own words,** so a reader learns that tan
+always means "RabbAI said this, the library didn't". The testing label moves from amber to a
 neutral gray tag, because it is a status, not a warning. **Shelf colors** become muted and appear
 only as a thin edge on tiles, so a strong brown Talmud shelf doesn't fight the blue buttons.
 
@@ -945,7 +945,7 @@ Ordered by gain for the effort. Each item names the files it touches.
    `web/components/RabaiApp.tsx`, `web/app/globals.css`.
 
 10. **Clean up the look.** One spacing scale, three button styles, the color roles above, the
-    RabAI mark only on the welcome, warm paper backgrounds. Do this alongside items 1 to 5 so
+    RabbAI mark only on the welcome, warm paper backgrounds. Do this alongside items 1 to 5 so
     each screen is redone once. Medium. *Files:* `web/app/globals.css` first, then class names in
     `RabaiApp.tsx` and `LibraryShelves.tsx`.
 
@@ -966,14 +966,14 @@ phone and computer widths.
 
 - **The lock.** Nothing here touches `web/proxy.ts` or `web/lib/access.ts`. The app stays locked
   behind its access code.
-- **RabAI explains a word only when asked.** The word card shows only the library's dictionaries
+- **RabbAI explains a word only when asked.** The word card shows only the library's dictionaries
   and the team's notes. The Ask tab never sends anything by itself; the model is called only when
-  the person taps "Ask RabAI about this word", another Ask button, or sends a question.
-- **RabAI's words are always labeled.** Its translations and word-by-word lists keep the tan box
+  the person taps "Ask RabbAI about this word", another Ask button, or sends a question.
+- **RabbAI's words are always labeled.** Its translations and word-by-word lists keep the tan box
   and the label "not from the library, and not yet reviewed by the rabbinic board". The outline
-  keeps "RabAI's outline, not yet reviewed". Tan is reserved for these, so the label and the
+  keeps "RabbAI's outline, not yet reviewed". Tan is reserved for these, so the label and the
   color say the same thing. An always-on word-by-word line under every word (Quran.com's inline
-  mode) is **not** proposed, because our word-by-word comes from RabAI and must be asked for one
+  mode) is **not** proposed, because our word-by-word comes from RabbAI and must be asked for one
   passage at a time.
 - **Citations only with the checked answer.** The chat changes are layout only. A live answer
   still shows only text; source buttons arrive with the final, checked answer. Removing the
@@ -983,11 +983,11 @@ phone and computer widths.
 - **Dictionaries are labeled.** Every entry keeps its dictionary's name. The Jastrow notice stays on
   every Jastrow entry, in the shorter form only if the maintainer agrees it still "says so".
 - **Estimated words on the printed page** keep their dotted underline and note.
-- **The flow and RabAI's translations run only when tapped.** Moving "Show the flow" into the
+- **The flow and RabbAI's translations run only when tapped.** Moving "Show the flow" into the
   View menu and "Translate this" into the Translation tab changes where the buttons are, not
   when they run. Both stay on the device, as now.
 - **What is kept stays where it is kept now.** Recent reading, chats, words, marks and outlines
-  stay in the browser. RabAI's translations stay in its translation library and on the device.
+  stay in the browser. RabbAI's translations stay in its translation library and on the device.
 
 ---
 

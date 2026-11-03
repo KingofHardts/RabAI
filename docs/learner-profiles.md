@@ -1,32 +1,32 @@
-# Learner profiles: RabAI learns each person over time
+# Learner profiles: RabbAI learns each person over time
 
-*Plan and first step, 2026-10-07. The maintainer asked for RabAI to learn from each person, keep a
+*Plan and first step, 2026-10-07. The maintainer asked for RabbAI to learn from each person, keep a
 profile, and get smarter and more efficient over time, with the back end set up to do it
-correctly. Nothing here changes what RabAI teaches: the board decides Torah content.*
+correctly. Nothing here changes what RabbAI teaches: the board decides Torah content.*
 
 ## The rule this rests on
 
-A profile changes **how RabAI explains**, never **what the Torah says**. It may choose the level,
+A profile changes **how RabbAI explains**, never **what the Torah says**. It may choose the level,
 the words, the examples and the length of an answer. It never changes the sources, the halacha
-presented, or the core premises. For a question that depends on minhag (custom), RabAI gives the
+presented, or the core premises. For a question that depends on minhag (custom), RabbAI gives the
 person's community's practice first and still says that others differ. The core premises say this
 in "What you know about the person" (a draft for the board).
 
-## What RabAI keeps about a person
+## What RabbAI keeps about a person
 
 | Kind | What | Where it comes from |
 |---|---|---|
-| What they told RabAI | name (optional), how much they have learned, how well they read Hebrew, community, what they want to learn, short or fuller answers | "About you" in settings |
-| What RabAI noticed | the books they read (up to 12), the words they looked up (up to 40; the ones looked up twice are the ones to practice), how often they asked for simpler or deeper answers, how many questions they asked | what they do in the app |
+| What they told RabbAI | name (optional), how much they have learned, how well they read Hebrew, community, what they want to learn, short or fuller answers | "About you" in settings |
+| What RabbAI noticed | the books they read (up to 12), the words they looked up (up to 40; the ones looked up twice are the ones to practice), how often they asked for simpler or deeper answers, how many questions they asked | what they do in the app |
 
-Only learning activity is noticed. RabAI never keeps health, feelings, observance, family, or
+Only learning activity is noticed. RabbAI never keeps health, feelings, observance, family, or
 anything else about a person's life, even when they mention it in a chat.
 
 The person sees all of it in **About you**, can change any of it, can forget what was noticed, can
 forget everything, and can turn remembering off. With remembering off nothing is noticed and
 nothing about them is sent with their questions.
 
-## How it reaches RabAI, efficiently
+## How it reaches RabbAI, efficiently
 
 - The app sends the profile with each question. The server checks it (`parseProfile`: known values
   only, plain words, size limits) and turns it into at most nine short lines (`profileSummary`).
@@ -68,12 +68,12 @@ switch to turn it off), and "Was this helpful?" now.
   remembering off, win over any older copy.
 - **Signed in, an answer uses the account's profile.** The server still rebuilds the lines the
   model sees from a checked copy (`parseProfile`, `profileSummary`). The profile shapes only how
-  RabAI explains, never what the sources say.
+  RabbAI explains, never what the sources say.
 - A privacy page (`/privacy`), and Download my data, Sign out and Delete my account.
 - Setup: the "Accounts" section of `web/README.md`.
 - Still to come: the `progress` table for the chavrusa mode (phase 4).
 
-### Phase 3: RabAI gets better for everyone, with people in charge
+### Phase 3: RabbAI gets better for everyone, with people in charge
 
 Learning from many people must never let anyone change Torah content by using the app. So the
 shared learning goes through people:
@@ -89,7 +89,7 @@ shared learning goes through people:
   approves. Search can improve automatically from what people open after searching, because that
   changes only which passages are found first, never what they say.
 - **Efficiency from what is learned**: common questions and their sources are found faster, and
-  translations made once are kept for everyone (RabAI's translation library).
+  translations made once are kept for everyone (RabbAI's translation library).
 
 ### Phase 4: the chavrusa mode uses it
 

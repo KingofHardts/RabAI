@@ -1,22 +1,22 @@
-# RabAI's sources: what it reads, and what it leaves out
+# RabbAI's sources: what it reads, and what it leaves out
 
-*A list for the rabbinic board, made from RabAI's canon (`canon/canon.yaml` and the files beside it) by `tools/validate.py --write`. Do not edit it by hand: it is rewritten whenever the canon changes.*
+*A list for the rabbinic board, made from RabbAI's canon (`canon/canon.yaml` and the files beside it) by `tools/validate.py --write`. Do not edit it by hand: it is rewritten whenever the canon changes.*
 
-RabAI answers from a library of Orthodox texts that its canon lists one edition at a time. **Nothing here is approved yet: the board decides what RabAI may use.** Until it does, RabAI runs as a private preview on the editions in Part 8, and every passage it shows from them is labeled "not yet approved by the rabbinic board".
+RabbAI answers from a library of Orthodox texts that its canon lists one edition at a time. **Nothing here is approved yet: the board decides what RabbAI may use.** Until it does, RabbAI runs as a private preview on the editions in Part 8, and every passage it shows from them is labeled "not yet approved by the rabbinic board".
 
 Notes in this list are our best understanding, written for you to confirm. Where we were unsure of a fact, it says "(to confirm)".
 
 ## At a glance
 
-- **RabAI reads 825 editions of 741 works.** None are approved by the board yet. Every book is listed in Part 8.
-- **16 works are kept with a caution** that RabAI gives whenever it uses them (Part 1).
+- **RabbAI reads 825 editions of 741 works.** None are approved by the board yet. Every book is listed in Part 8.
+- **16 works are kept with a caution** that RabbAI gives whenever it uses them (Part 1).
 - **45 editions wait for your decision** and are not used until you decide (Part 2).
 - **52 editions and collections are left out,** each with the reason (Part 3).
-- **For halacha, RabAI opens a seif of the Shulchan Aruch with the commentaries printed around it,** the main ones first (Part 4).
-- **RabAI may look things up on 26 trusted Orthodox websites,** and never searches 18 other sites (Part 5).
+- **For halacha, RabbAI opens a seif of the Shulchan Aruch with the commentaries printed around it,** the main ones first (Part 4).
+- **RabbAI may look things up on 26 trusted Orthodox websites,** and never searches 18 other sites (Part 5).
 - **67 editions are wanted but not in the library yet:** 42 need a publisher's agreement, and 25 have no copy we may use yet (Part 6).
 
-| Area | Works RabAI reads | Editions |
+| Area | Works RabbAI reads | Editions |
 |---|---:|---:|
 | [Tanakh and its commentaries](#tanakh-and-its-commentaries) | 94 | 112 |
 | [Mishnah, Talmud and Midrash](#mishnah-talmud-and-midrash) | 174 | 187 |
@@ -29,77 +29,77 @@ Notes in this list are our best understanding, written for you to confirm. Where
 
 ## How to review
 
-For each book or edition, please mark one of: keep, remove, keep with a caution, or a question, with a reason if you have one. Each entry carries a short id (for example `mishnah-berurah`) so your notes can be matched to the canon. Part 1, Part 2 and Part 3 need a decision. Part 4 asks whether RabAI opens the right commentaries, in the right order, for a halachic question. Part 8 is the whole library, for checking.
+For each book or edition, please mark one of: keep, remove, keep with a caution, or a question, with a reason if you have one. Each entry carries a short id (for example `mishnah-berurah`) so your notes can be matched to the canon. Part 1, Part 2 and Part 3 need a decision. Part 4 asks whether RabbAI opens the right commentaries, in the right order, for a halachic question. Part 8 is the whole library, for checking.
 
-In the whole library, "core" marks a book from RabAI's founding list, the books it was built around. Halacha works name whose practice they record (Ashkenazi or Sephardi). Communities (Litvish, Chassidish, Chabad, Sephardi, Religious Zionist, Modern Orthodox, Torah im Derech Eretz) are the ones a work belongs to most; a work with none is shared by all.
+In the whole library, "core" marks a book from RabbAI's founding list, the books it was built around. Halacha works name whose practice they record (Ashkenazi or Sephardi). Communities (Litvish, Chassidish, Chabad, Sephardi, Religious Zionist, Modern Orthodox, Torah im Derech Eretz) are the ones a work belongs to most; a work with none is shared by all.
 
 ## Contents
 
 - [Part 1. Kept, with a caution](#part-1-kept-with-a-caution)
 - [Part 2. Waiting for your decision](#part-2-waiting-for-your-decision)
 - [Part 3. Left out, and why](#part-3-left-out-and-why)
-- [Part 4. How RabAI opens the commentaries](#part-4-how-rabai-opens-the-commentaries)
-- [Part 5. Websites RabAI may search](#part-5-websites-rabai-may-search)
+- [Part 4. How RabbAI opens the commentaries](#part-4-how-rabbai-opens-the-commentaries)
+- [Part 5. Websites RabbAI may search](#part-5-websites-rabbai-may-search)
 - [Part 6. Not in the library yet](#part-6-not-in-the-library-yet)
 - [Part 7. Earlier questions for the board](#part-7-earlier-questions-for-the-board)
 - [Part 8. The whole library, book by book](#part-8-the-whole-library-book-by-book)
 
 ## Part 1. Kept, with a caution
 
-These works stay in the library so that people can ask about them, but RabAI gives the caution below whenever it uses one, and never rests a halachic answer on it alone. Where Orthodox authorities rejected a work's main claims, RabAI presents them only as its author's claims, together with the answer those authorities gave. Please check each caution, and whether the work belongs in the library at all.
+These works stay in the library so that people can ask about them, but RabbAI gives the caution below whenever it uses one, and never rests a halachic answer on it alone. Where Orthodox authorities rejected a work's main claims, RabbAI presents them only as its author's claims, together with the answer those authorities gave. Please check each caution, and whether the work belongs in the library at all.
 
 - **Ralbag on Tanakh** (רלב״ג). Ralbag, written c. 1325-1345, Provence, France. `ralbag-on-tanakh`
   - Why: Later authorities sharply criticized some of its views.
-  - The caution RabAI gives: The Ralbag's commentary is printed in Mikraot Gedolot and widely learned, but later authorities sharply criticized some of his philosophical views.
+  - The caution RabbAI gives: The Ralbag's commentary is printed in Mikraot Gedolot and widely learned, but later authorities sharply criticized some of his philosophical views.
 - **Ralbag, Beur HaMilot on the Torah** (רלב"ג ביאור המלות). Ralbag, written c. 1326-1340. `ralbag-beur-hamilot`
   - Why: Later authorities sharply criticized some of its views.
-  - The caution RabAI gives: By the Ralbag, whose commentary is printed in Mikraot Gedolot; later authorities sharply criticized some of his philosophical views.
+  - The caution RabbAI gives: By the Ralbag, whose commentary is printed in Mikraot Gedolot; later authorities sharply criticized some of his philosophical views.
 - **Sefer HaYashar (the midrash on Bereishit to Shoftim)** (ספר הישר). Unknown, first printed in Venice, 1625. `sefer-hayashar-midrash`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Sefer HaYashar retells the history from Creation to the time of the Judges and presents itself as the "Book of the Upright" that the books of Joshua and Samuel mention. Who wrote it, and when, is unknown; it was first printed in 1625, and most scholars date it to the Middle Ages or later. Its stories carry less weight than the midrashim of the Sages.
+  - The caution RabbAI gives: Sefer HaYashar retells the history from Creation to the time of the Judges and presents itself as the "Book of the Upright" that the books of Joshua and Samuel mention. Who wrote it, and when, is unknown; it was first printed in 1625, and most scholars date it to the Middle Ages or later. Its stories carry less weight than the midrashim of the Sages.
 - **Otzar Midrashim (J. D. Eisenstein's collection of shorter midrashim)** (אוצר מדרשים). Collected by Judah David Eisenstein, printed in New York, 1915. `otzar-midrashim`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: A collection of about two hundred shorter midrashim, gathered by J. D. Eisenstein and printed in 1915. Some are early and widely quoted; many are later works whose authors and dates are unknown, so a teaching found only here carries less weight than the midrashim of the Sages.
+  - The caution RabbAI gives: A collection of about two hundred shorter midrashim, gathered by J. D. Eisenstein and printed in 1915. Some are early and widely quoted; many are later works whose authors and dates are unknown, so a teaching found only here carries less weight than the midrashim of the Sages.
 - **Issur VeHeter LeRashi** (איסור והיתר לרש"י). Rashi, written c. 990-1190. `issur-veheter-lerashi`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Carries Rashi's name, but it was put together in his school, by his students and later hands, so not every ruling in it is Rashi's own (to confirm).
+  - The caution RabbAI gives: Carries Rashi's name, but it was put together in his school, by his students and later hands, so not every ruling in it is Rashi's own (to confirm).
 - **Teshuvot Min HaShamayim** (שאלות ותשובות מן השמים). Jacob of Marvege, written c. 1270-1330, Marvejols, France. `teshuvot-min-hashamayim`
   - Why: It comes from an unusual source, such as answers received in dreams.
-  - The caution RabAI gives: Answers that the Tosafist Rabbi Yaakov of Marvege recorded receiving in dreams. The Gemara teaches that halacha is not decided by a voice from heaven (Bava Metzia 59b), so they are read as what he recorded, not as rulings.
+  - The caution RabbAI gives: Answers that the Tosafist Rabbi Yaakov of Marvege recorded receiving in dreams. The Gemara teaches that halacha is not decided by a voice from heaven (Bava Metzia 59b), so they are read as what he recorded, not as rulings.
 - **Rabbi Eliezer Berkovits on halacha and its renewal (HaHalakhah Kochah VeTafkidah, Tenai BeNissuin UVeGet, Jewish Women in Time and Torah, and on conversion)**. Rabbi Eliezer Berkovits, 1908-1992, Berlin, London, Sydney, Boston, Chicago and Jerusalem. `rabbi-eliezer-berkovits-on-halacha`
   - Why: Later authorities sharply criticized some of its views.
-  - The caution RabAI gives: Rabbi Eliezer Berkovits was an Orthodox rabbi and philosopher, a student of the Seridei Esh. In these books he argued that halacha can and should respond to new circumstances, and he proposed solutions, such as a condition in the marriage to free women whose husbands refuse a get, and changes in women's roles, that most poskim did not accept. Present his proposals as his own, together with the reasons other poskim gave for rejecting them.
+  - The caution RabbAI gives: Rabbi Eliezer Berkovits was an Orthodox rabbi and philosopher, a student of the Seridei Esh. In these books he argued that halacha can and should respond to new circumstances, and he proposed solutions, such as a condition in the marriage to free women whose husbands refuse a get, and changes in women's roles, that most poskim did not accept. Present his proposals as his own, together with the reasons other poskim gave for rejecting them.
 - **Milchamot HaShem (the Ralbag's Wars of the Lord)** (מלחמות השם לרלב״ג). Rabbi Levi ben Gershom (Ralbag), 1288-1344, Provence, France. `ralbag-milchamot-hashem`
   - Why: Later authorities sharply criticized some of its views.
-  - The caution RabAI gives: The Ralbag was a great Rishon whose commentary on Tanakh is printed in Mikraot Gedolot. In this book of philosophy he held, among other things, that God knows the events of the world through their general order rather than each one as it happens, and that the world was formed from a matter that had always existed. Later authorities sharply rejected these views. Present them as his, together with the answers other Rishonim gave.
+  - The caution RabbAI gives: The Ralbag was a great Rishon whose commentary on Tanakh is printed in Mikraot Gedolot. In this book of philosophy he held, among other things, that God knows the events of the world through their general order rather than each one as it happens, and that the world was formed from a matter that had always existed. Later authorities sharply rejected these views. Present them as his, together with the answers other Rishonim gave.
 - **Kol HaTor** (קול התור). Attributed to Rabbi Hillel Rivlin of Shklov, recording the Vilna Gaon's teaching, first published in the 20th century. `kol-hator`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Kol HaTor presents itself as the Vilna Gaon's teaching about the redemption and the return to Eretz Yisrael, written down by his student Rabbi Hillel of Shklov. It was first published in the twentieth century, and historians and rabbis disagree about whether it faithfully records the Gaon's words. Present what it says as the book's claims, not as the Gaon's settled teaching.
+  - The caution RabbAI gives: Kol HaTor presents itself as the Vilna Gaon's teaching about the redemption and the return to Eretz Yisrael, written down by his student Rabbi Hillel of Shklov. It was first published in the twentieth century, and historians and rabbis disagree about whether it faithfully records the Gaon's words. Present what it says as the book's claims, not as the Gaon's settled teaching.
 - **Milchamot HaShem (Rabbi Yichya Qafih)** (מלחמות השם). Yichya Qafih, begun in 1914, printed in Jerusalem in 1931, Yemen. `milchamot-hashem-qafih`
   - Why: Orthodox authorities rejected its main claims; it is kept so they can be explained.
-  - The caution RabAI gives: Rabbi Yichya Qafih's attack on the Zohar and on the Kabbalah of the Arizal, begun in 1914 and printed in Jerusalem in 1931. It argues that the Zohar is not the teaching of Rabbi Shimon bar Yochai but a much later book, and that Kabbalah is foreign to the Torah. Orthodox authorities rejected these claims: in 1914 Ashkenazi and Sephardi rabbis in Jerusalem signed a ban against those in Yemen who denied the Zohar, and the book was answered in defense of the Kabbalah (in Emunat Hashem; who wrote it is to be confirmed). The Zohar remains accepted across the Orthodox world as a holy book of the Torah's inner teaching. This book is kept so its claims can be understood together with why they were rejected; its claims are never presented as what the Torah teaches.
+  - The caution RabbAI gives: Rabbi Yichya Qafih's attack on the Zohar and on the Kabbalah of the Arizal, begun in 1914 and printed in Jerusalem in 1931. It argues that the Zohar is not the teaching of Rabbi Shimon bar Yochai but a much later book, and that Kabbalah is foreign to the Torah. Orthodox authorities rejected these claims: in 1914 Ashkenazi and Sephardi rabbis in Jerusalem signed a ban against those in Yemen who denied the Zohar, and the book was answered in defense of the Kabbalah (in Emunat Hashem; who wrote it is to be confirmed). The Zohar remains accepted across the Orthodox world as a holy book of the Torah's inner teaching. This book is kept so its claims can be understood together with why they were rejected; its claims are never presented as what the Torah teaches.
 - **Sefer HaYashar (the mussar book)** (ספר הישר). written c. 1300, Spain. `sefer-hayashar-mussar`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Sometimes attributed to Rabbeinu Tam, but many consider its author unknown.
+  - The caution RabbAI gives: Sometimes attributed to Rabbeinu Tam, but many consider its author unknown.
 - **Tzava'at HaRivash** (צוואת הריב"ש). written c. 1730-1770. `tzavaat-harivash`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Teachings of the Baal Shem Tov and the Maggid of Mezritch as written down by students, so how exactly it records their words is uncertain, and some of its practices were questioned by other authorities. Chassidic communities hold it in high regard.
+  - The caution RabbAI gives: Teachings of the Baal Shem Tov and the Maggid of Mezritch as written down by students, so how exactly it records their words is uncertain, and some of its practices were questioned by other authorities. Chassidic communities hold it in high regard.
 - **Sefer HaBahir** (ספר הבהיר). Attributed to Rabbi Nechunya ben HaKanah. `sefer-habahir`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Traditionally attributed to Rabbi Nechunya ben HaKanah and quoted by the Ramban and the kabbalists; it first circulated in the twelfth century, and its authorship is discussed (to confirm).
+  - The caution RabbAI gives: Traditionally attributed to Rabbi Nechunya ben HaKanah and quoted by the Ramban and the kabbalists; it first circulated in the twelfth century, and its authorship is discussed (to confirm).
 - **Mitpachat Sefarim (Rabbi Yaakov Emden)** (מטפחת ספרים). Yaakov Emden, written c. 1733-1767. `mitpachat-sefarim`
   - Why: A claim in it is disputed by many authorities.
-  - The caution RabAI gives: Rabbi Yaakov Emden's attack on the Sabbatean movement, in which he argues that some passages of the Zohar were added later. Most later authorities and the kabbalists reject that claim and hold the Zohar to be the teaching of Rabbi Shimon bar Yochai.
+  - The caution RabbAI gives: Rabbi Yaakov Emden's attack on the Sabbatean movement, in which he argues that some passages of the Zohar were added later. Most later authorities and the kabbalists reject that claim and hold the Zohar to be the teaching of Rabbi Shimon bar Yochai.
 - **The commentary on Sefer Yetzirah attributed to the Ramban** (רמב"ן). Moses ben Nachman (Ramban), written c. 1225-1265. `ramban-on-sefer-yetzirah`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Attributed to the Ramban; whether he wrote it is uncertain (to confirm).
+  - The caution RabbAI gives: Attributed to the Ramban; whether he wrote it is uncertain (to confirm).
 - **Sefer HaKanah** (ספר הקנה). Attributed to Rabbi Nechunya ben HaKanah. `sefer-hakanah`
   - Why: Who wrote it is uncertain, or it is attributed.
-  - The caution RabAI gives: Sefer HaKanah explains the mitzvot according to Kabbalah and is traditionally attributed to the Tanna Rabbi Nechunya ben HaKanah, but most scholars hold that it was written much later, in the Middle Ages, by an author whose name is unknown. Present its claims about its own origin as claims.
+  - The caution RabbAI gives: Sefer HaKanah explains the mitzvot according to Kabbalah and is traditionally attributed to the Tanna Rabbi Nechunya ben HaKanah, but most scholars hold that it was written much later, in the Middle Ages, by an author whose name is unknown. Present its claims about its own origin as claims.
 
 ## Part 2. Waiting for your decision
 
-Editions held out of the library until you decide: translations whose translators we could not identify, scholars' editions, and works whose fit with the mesorah we were unsure of. RabAI does not use them.
+Editions held out of the library until you decide: translations whose translators we could not identify, scholars' editions, and works whose fit with the mesorah we were unsure of. RabbAI does not use them.
 
 ### Tanakh and its commentaries (waiting)
 
@@ -111,7 +111,7 @@ Editions held out of the library until you decide: translations whose translator
   - Why it waits: For the board (library question 9). The second Aramaic targum on Esther, printed in the Mikraot Gedolot, but on Sefaria only in a scholar's edition (Berlin, 1898; editor to confirm). Sefaria lists no license; the printing is public domain by age. Paulus Cassel's English is in excluded.yaml.
 - **Tafsir Rasag (Rav Saadia Gaon's Arabic translation of the Torah)**. Rav Saadia Gaon, 882-942, Babylonia. `tafsir-rasag`
   - Edition: Judeo-Arabic text in Hebrew letters (Paris, 1893)
-  - Why it waits: For the board (library question 9). Joseph Derenbourg's scholarly edition, from the same editor as the Rambam's introduction to Seder Tahorot that the canon already holds back (to confirm). Arabic, not Hebrew, so RabAI could quote it only with care.
+  - Why it waits: For the board (library question 9). Joseph Derenbourg's scholarly edition, from the same editor as the Rambam's introduction to Seder Tahorot that the canon already holds back (to confirm). Arabic, not Hebrew, so RabbAI could quote it only with care.
 - **The commentary on Ezra and Nehemiah attributed to Rav Saadia Gaon**. Attributed to Rav Saadia Gaon. `saadia-gaon-on-ezra-nehemiah`
   - Edition: Hebrew text (Oxford, 1882)
   - Why it waits: For the board (library question 9). A scholar's edition, printed in Oxford in 1882 from a manuscript. It was long attributed to Rav Saadia Gaon, but Sefaria notes that scholars now credit it to someone else (to confirm).
@@ -163,7 +163,7 @@ Editions held out of the library until you decide: translations whose translator
   - Why it waits: Sefaria does not name the translators. Held until the board reviews it.
 - **Mishnat Eretz Yisrael (a commentary on the Mishnah)** (משנת ארץ ישראל). Shmuel Safrai, Ze'ev Safrai and Chana Safrai, published 2008-2023, Eretz Yisrael. `mishnat-eretz-yisrael`
   - Edition: Hebrew text
-  - Why it waits: For the board. A modern commentary by university scholars that, as Sefaria describes it, combines traditional explanation with academic history, set against life in Eretz Yisrael in the time of the Mishnah. The board should weigh its historical method before RabAI uses it (library question 9).
+  - Why it waits: For the board. A modern commentary by university scholars that, as Sefaria describes it, combines traditional explanation with academic history, set against life in Eretz Yisrael in the time of the Mishnah. The board should weigh its historical method before RabbAI uses it (library question 9).
 - **Heinrich Guggenheimer's notes on the Jerusalem Talmud**. Heinrich W. Guggenheimer. `guggenheimer-notes-on-yerushalmi`
   - Edition: English notes (De Gruyter, 1999-2015)
   - Why it waits: Held for the board together with the same scholar's translation and Hebrew text of the Yerushalmi (talmud-yerushalmi), which the canon already holds back.
@@ -210,7 +210,7 @@ Editions held out of the library until you decide: translations whose translator
   - Why it waits: The work is Orthodox. The board confirms the translation.
 - **Books of Rav Shimon Gershon Rosenberg (Rav Shagar)**. Rabbi Shimon Gershon Rosenberg (Rav Shagar), 1949-2007, Eretz Yisrael. `rav-shagar`
   - Edition: Hebrew text
-  - Why it waits: For the board. Rav Shagar was a rosh yeshiva and a thinker in the Religious Zionist world whose engagement with postmodern philosophy is debated; the board should decide whether, and how, RabAI uses his books.
+  - Why it waits: For the board. Rav Shagar was a rosh yeshiva and a thinker in the Religious Zionist world whose engagement with postmodern philosophy is debated; the board should decide whether, and how, RabbAI uses his books.
 - **Mussar works found on Sefaria only in a modern scholar's edition (Menorat HaMaor of Rabbi Yisrael Alnaqua, Shekel HaKodesh, Yesod HaYirah, Mivchar HaPeninim)**. `mussar-scholars-editions`
   - Edition: Hebrew text, scholars' editions
   - Why it waits: For the board (library questions 9 and 12). Rabbi Yisrael Alnaqua's Menorat HaMaor (14th century; not Rabbi Yitzchak Aboab's better-known book of that name) exists on Sefaria only in H. G. Enelow's edition, and Enelow was a Reform rabbi (to confirm). Shekel HaKodesh (by Rabbi Yosef Kimchi, as Sefaria says) and Yesod HaYirah were edited and translated by Rabbi Sir Hermann Gollancz, whose background the board was already asked about. Mivchar HaPeninim, a book of maxims attributed to Rabbi Shlomo ibn Gabirol, was edited and translated by B. H. Ascher (background to confirm).
@@ -234,7 +234,7 @@ Editions held out of the library until you decide: translations whose translator
   - Why it waits: For the board (library question 9): the Shach's own words, but printed as an appendix to a scholar's edition of Shevet Yehudah (Hanover, 1855; editor to confirm). Sefaria lists no license; the printing is public domain by age.
 - **From Sinai to Ethiopia (Rabbi Dr. Sharon Shalom on the tradition of Ethiopian Jewry)**. Rabbi Dr. Sharon Shalom, published 2012 (English, 2016), Eretz Yisrael. `from-sinai-to-ethiopia`
   - Edition: English, translated by Jessica Setbon (Gefen, 2016)
-  - Why it waits: For the board. A study of the customs of Beta Israel, kept apart from the rabbinic tradition for centuries, with a section setting them out as a code. Useful for describing that tradition; the board should decide how RabAI presents it beside halacha.
+  - Why it waits: For the board. A study of the customs of Beta Israel, kept apart from the rabbinic tradition for centuries, with a section setting them out as a code. Useful for describing that tradition; the board should decide how RabbAI presents it beside halacha.
 
 ### Prayer (waiting)
 
@@ -260,7 +260,7 @@ Editions held out of the library until you decide: translations whose translator
 
 ## Part 3. Left out, and why
 
-These stay out of the library. RabAI never quotes them as authority, though it may describe their authors' views as other positions when someone asks. Many sit beside Orthodox editions on Sefaria, which is why the library lists editions one by one and never imports a whole collection.
+These stay out of the library. RabbAI never quotes them as authority, though it may describe their authors' views as other positions when someone asks. Many sit beside Orthodox editions on Sefaria, which is why the library lists editions one by one and never imports a whole collection.
 
 ### Left out; you may reconsider
 
@@ -372,9 +372,9 @@ These stay out of the library. RabAI never quotes them as authority, though it m
 - **Targum Sheni on Esther, translated by Paulus Cassel (1888)** `cassel-targum-sheni`
   - Why: Translated with notes by Paulus Cassel, who left Judaism for Christianity; his book also discusses Mithra and Zoroaster. Not from inside the mesorah.
 
-## Part 4. How RabAI opens the commentaries
+## Part 4. How RabbAI opens the commentaries
 
-When RabAI opens a text, it opens the commentaries printed with it in this order, each book giving a line or two before the next is opened. For a question of halacha it starts from the seif of the Shulchan Aruch, keeps the Mechaber's ruling and the Rema's gloss apart, and names which layer each point comes from. It also opens the same siman in the Tur, the Beit Yosef and the Aruch HaShulchan, the halacha in the Rambam, and, for Sephardic practice, the Kaf HaChayim and the Ben Ish Chai. For a practical question it explains the positions and tells the person to ask their rav. Is this the right order? Are the right commentaries named first?
+When RabbAI opens a text, it opens the commentaries printed with it in this order, each book giving a line or two before the next is opened. For a question of halacha it starts from the seif of the Shulchan Aruch, keeps the Mechaber's ruling and the Rema's gloss apart, and names which layer each point comes from. It also opens the same siman in the Tur, the Beit Yosef and the Aruch HaShulchan, the halacha in the Rambam, and, for Sephardic practice, the Kaf HaChayim and the Ben Ish Chai. For a practical question it explains the positions and tells the person to ask their rav. Is this the right order? Are the right commentaries named first?
 
 This order is a draft, waiting for your review.
 
@@ -444,13 +444,13 @@ This order is a draft, waiting for your review.
 2. Next: Malbim; Ibn Ezra; Ralbag; Abarbanel.
 3. Then any other commentary printed with it, and last the cross-references.
 
-## Part 5. Websites RabAI may search
+## Part 5. Websites RabbAI may search
 
-When the library doesn't cover a question, or for a practical halacha question, RabAI may look online. A page it finds is never a source: RabAI opens the texts the page relies on in its own library, checks the page against them, and rests its answer on the texts. It keeps nothing it finds.
+When the library doesn't cover a question, or for a practical halacha question, RabbAI may look online. A page it finds is never a source: RabbAI opens the texts the page relies on in its own library, checks the page against them, and rests its answer on the texts. It keeps nothing it finds.
 
 This list waits for your review.
 
-### The only sites RabAI searches about Torah, halacha or belief
+### The only sites RabbAI searches about Torah, halacha or belief
 
 - **Din Online** (dinonline.org): Rabbis' answers to halacha questions, with sources
 - **Halachipedia** (halachipedia.com): Summaries of halacha topics with their sources
@@ -490,7 +490,7 @@ This list waits for your review.
 - **Reconstructing Judaism** (reconstructingjudaism.org): A non-Orthodox movement
 - **ALEPH** (aleph.org): A non-Orthodox movement
 - **My Jewish Learning** (myjewishlearning.com): Presents every movement's views side by side
-- **Sefaria** (sefaria.org): Hosts non-Orthodox editions and community source sheets; RabAI reads its whitelisted editions through the library instead
+- **Sefaria** (sefaria.org): Hosts non-Orthodox editions and community source sheets; RabbAI reads its whitelisted editions through the library instead
 - **Mi Yodeya** (judaism.stackexchange.com): Anonymous community answers
 - **Bible Odyssey** (bibleodyssey.org): Academic Bible criticism
 - **Got Questions** (gotquestions.org): Christian teaching about the Bible
@@ -502,7 +502,7 @@ This list waits for your review.
 
 ## Part 6. Not in the library yet
 
-Editions the canon wants but RabAI can't use yet: copyrighted translations that need the publisher's agreement, and texts with no copy we may use (no open license yet, or a typing still to be found).
+Editions the canon wants but RabbAI can't use yet: copyrighted translations that need the publisher's agreement, and texts with no copy we may use (no open license yet, or a typing still to be found).
 
 ### Needs the publisher's agreement
 
@@ -579,11 +579,11 @@ Editions the canon wants but RabAI can't use yet: copyrighted translations that 
 
 ## Part 7. Earlier questions for the board
 
-Notes in this list that mention a "library question" refer to these, from our comparison of the library with Mercava's catalog (docs/library-comparison.md, section 3, where each is set out in full). Notes that mention an "open question" refer to the board's questions on the rest of RabAI, in the founding spec (docs/founding-spec.md), among them the default halachic baseline, women's voices, and reference works by authors outside Orthodoxy.
+Notes in this list that mention a "library question" refer to these, from our comparison of the library with Mercava's catalog (docs/library-comparison.md, section 3, where each is set out in full). Notes that mention an "open question" refer to the board's questions on the rest of RabbAI, in the founding spec (docs/founding-spec.md), among them the default halachic baseline, women's voices, and reference works by authors outside Orthodoxy.
 
 ### Kabbalah
 
-1. How should RabAI treat Kabbalah?
+1. How should RabbAI treat Kabbalah?
 2. The Zohar itself isn't on Mercava's list as transcribed, and Sefaria has no openly licensed Hebrew of it (the Sulam edition and the others are marked "unknown").
 3. Mitpachat Sefarim is Rabbi Yaakov Emden's attack on the Sabbatean movement, and in it he disputes how old parts of the Zohar are.
 
@@ -591,7 +591,7 @@ Notes in this list that mention a "library question" refer to these, from our co
 
 4. The Ralbag (Rabbi Levi ben Gershom): his Tanach commentary is printed in Mikraot Gedolot, but later authorities sharply criticized some of his philosophy.
 5. Rabbi Yosef ibn Yahya (Bologna, 1538): his writings are described as controversial, but we couldn't check the details here.
-6. Teshuvot Min HaShamayim, answers a Tosafist recorded receiving in dreams: how should RabAI present them?
+6. Teshuvot Min HaShamayim, answers a Tosafist recorded receiving in dreams: how should RabbAI present them?
 7. The Radziner Rebbe's tekhelet (Ein HaTekhelet, Ptil Tekhelet): his identification of the tekhelet dye was not accepted by many authorities.
 
 ### Works whose author is uncertain
@@ -616,7 +616,7 @@ Notes in this list that mention a "library question" refer to these, from our co
 
 ## Part 8. The whole library, book by book
 
-Every book RabAI reads, in the order of a beit midrash's shelves and, within each area, of the generations. These are published Orthodox editions, each listed in the canon by name. RabAI quotes and cites only these. Every citation it shows is checked against the passage it came from, and every passage carries its edition's name.
+Every book RabbAI reads, in the order of a beit midrash's shelves and, within each area, of the generations. These are published Orthodox editions, each listed in the canon by name. RabbAI quotes and cites only these. Every citation it shows is checked against the passage it came from, and every passage carries its edition's name.
 
 ### Tanakh and its commentaries
 
@@ -905,7 +905,7 @@ The Oral Torah: the Mishnah and Tosefta, the Talmud Bavli and Yerushalmi, the Mi
 - **Talmud Yerushalmi** (תלמוד ירושלמי). core. `talmud-yerushalmi`
   - Reads: Hebrew/Aramaic text of the first printing (Venice, 1523). The Bomberg printing, the basis of every later edition. Public domain by age. Sefaria's digital copy lists its license as unknown, so it enters the testing library on the age of the printing alone (founding spec, "Testing library").
   - Reads: Koren Talmud Yerushalmi, Hebrew/Aramaic (William Davidson digital edition). Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the plan skips it until that is confirmed.
-  - Reads: Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz). Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the plan skips it until that is confirmed. Until then RabAI translates the Yerushalmi itself and says so.
+  - Reads: Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz). Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the plan skips it until that is confirmed. Until then RabbAI translates the Yerushalmi itself and says so.
   - Waiting for your decision: The Jerusalem Talmud, translated by Heinrich W. Guggenheimer (Part 2).
   - Waiting for your decision: Hebrew/Aramaic text edited by Heinrich W. Guggenheimer (Part 2).
 - **Midrash (Midrash Rabbah, Tanchuma, Mechilta, Sifra, Sifrei)** (מדרש). core. `midrash`
@@ -1265,7 +1265,7 @@ The Oral Torah: the Mishnah and Tosefta, the Talmud Bavli and Yerushalmi, the Mi
 
 - **Ohr LaYesharim on the Jerusalem Talmud** (אור לישרים). Rabbi Yehoshua Buch (Machon HaYerushalmi). `ohr-layesharim`
   - Reads: Hebrew text (Machon HaYerushalmi). A contemporary Hebrew commentary that explains the Yerushalmi line by line, on twelve tractates so far. Shared on Sefaria by Machon HaYerushalmi under a non-commercial license. Reviewers confirm the details.
-  - Note: Explains the Yerushalmi's plain meaning, which helps RabAI translate the Yerushalmi accurately where no English translation is available.
+  - Note: Explains the Yerushalmi's plain meaning, which helps RabbAI translate the Yerushalmi accurately where no English translation is available.
 - **Dor Revi'i on Chullin** (דור רביעי). Moshe Shmuel Glasner. `dor-revii-on-chullin`
   - Reads: Hebrew text
   - Note: Rabbi Glasner's introduction makes an argument about why the Oral Torah was not to be written down that later authorities have discussed (to confirm). The commentary itself is classic lomdus; the board may want to read the introduction before approving.
@@ -1743,7 +1743,7 @@ The codes, the commentaries on them, the responsa, and practical handbooks.
 - **Teshuvot Min HaShamayim** (שאלות ותשובות מן השמים). Jacob of Marvege, written c. 1270-1330, Marvejols, France. Ashkenazi and Sephardi practice. `teshuvot-min-hashamayim`
   - Kept with a caution (Part 1).
   - Reads: Hebrew text
-  - Note: Debated (library question 6): answers that the Tosafist Rabbi Yaakov of Marvege recorded receiving in dreams. The board decides how RabAI presents them.
+  - Note: Debated (library question 6): answers that the Tosafist Rabbi Yaakov of Marvege recorded receiving in dreams. The board decides how RabbAI presents them.
 - **The Rambam's responsa and letters** (תשובות ואגרות הרמב״ם). Moses ben Maimon (Rambam), Egypt. Ashkenazi and Sephardi practice. `teshuvot-vigrot-harambam`
   - Reads: Hebrew text
 - **Responsa of the Rashba** (שו״ת הרשב״א). Shlomo ibn Adret (Rashba), Barcelona. Ashkenazi and Sephardi practice. `teshuvot-harashba`
@@ -1876,7 +1876,7 @@ The codes, the commentaries on them, the responsa, and practical handbooks.
   - Reads: English text. Essays that review the halachic literature on questions of the day. Volume IV has no license listed on Sefaria yet and stays out until it does. Practical questions still go to a person's own rav.
 - **Sefer Puah (halacha and medicine: family life, family purity and fertility)** (ספר פוע״ה). Rabbi Gavriel Goldman and Rabbi Menachem Burstein (Machon Puah), published 2014-2024, Jerusalem. Ashkenazi and Sephardi practice. `sefer-puah`
   - Reads: Hebrew text
-  - Note: From Machon Puah, which advises couples on fertility questions according to halacha (to confirm). On these questions RabAI always sends a person to their rav.
+  - Note: From Machon Puah, which advises couples on fertility questions according to halacha (to confirm). On these questions RabbAI always sends a person to their rav.
 
 #### Other works
 
@@ -1990,7 +1990,7 @@ Hashkafah, the works of mussar, and the works of Chassidus.
   - Note: Widely read English Torah thought. The board may want to approve specific works rather than all of them, since a few positions in his writings drew criticism.
 - **Em HaBanim Semeichah** (אם הבנים שמחה). Yisachar Shlomo Teichtal. Religious Zionist. `em-habanim-semecha`
   - Reads: Hebrew text. The Budapest 1943 printing. Sefaria lists this printing as public domain although it is less than 95 years old; that is enough for private testing, but worth confirming before any public use.
-  - Note: Written in Budapest during the war by a Chassidic rav, arguing for joining the return to the Land of Israel. It is one side of a disagreement within Orthodoxy; RabAI presents it as that view, beside the others (founding spec, principle 3).
+  - Note: Written in Budapest during the war by a Chassidic rav, arguing for joining the return to the Land of Israel. It is one side of a disagreement within Orthodoxy; RabbAI presents it as that view, beside the others (founding spec, principle 3).
 - **Works of Rabbi Moshe Avigdor Amiel** (כתבי הרב משה אביגדור עמיאל). Moshe Amiel, Antwerp and Tel Aviv. Religious Zionist. `rav-amiel`
   - Reads: Hebrew text. Sefaria lists these printings (1933-2014) as public domain; the author died in 1946. Sefaria lists this printing as public domain although it is less than 95 years old; that is enough for private testing, but worth confirming before any public use.
 - **Rav Kook's Midbar Shur, Middot HaRe'iyah, Musar Avikha and Ma'amar HaDor** (מדבר שור; מידות הראי״ה; מוסר אביך; מאמר הדור). Abraham Isaac HaCohen Kook, Eretz Yisrael. Religious Zionist. `rav-kook-shorter-works`
@@ -1998,7 +1998,7 @@ Hashkafah, the works of mussar, and the works of Chassidus.
 - **Milchamot HaShem (Rabbi Yichya Qafih)** (מלחמות השם). Yichya Qafih, begun in 1914, printed in Jerusalem in 1931, Yemen. Sephardi. `milchamot-hashem-qafih`
   - Kept with a caution (Part 1).
   - Reads: Hebrew text. The author's own text, from Hebrew Wikisource (CC-BY-SA, 0.8 MB: his introduction and ten chapters). Rabbi Qafih was a Yemenite rabbi and teacher of halacha; the debate is over this book's claims, not over the edition (to confirm with the board).
-  - Note: Moved from excluded.yaml on 2026-10-10 by the maintainer's direction: RabAI may discuss it, with all the caution the Orthodox community gives it, and explain why the community rejected it. Unlike Mitpachat Sefarim, which questions some passages of the Zohar, it rejects the Zohar as a whole. On Sefaria under Kabbalah as "The Wars of God"; its version is named simply "ויקיטקסט" (Wikisource). The history in the caution comes from secondary accounts found in a web search (Wikipedia's articles on the book and on Rabbi Qafih, the Posen Library, Sefaria's topic page on him), which differ on details: the board should confirm it.
+  - Note: Moved from excluded.yaml on 2026-10-10 by the maintainer's direction: RabbAI may discuss it, with all the caution the Orthodox community gives it, and explain why the community rejected it. Unlike Mitpachat Sefarim, which questions some passages of the Zohar, it rejects the Zohar as a whole. On Sefaria under Kabbalah as "The Wars of God"; its version is named simply "ויקיטקסט" (Wikisource). The history in the caution comes from secondary accounts found in a web search (Wikipedia's articles on the book and on Rabbi Qafih, the Posen Library, Sefaria's topic page on him), which differ on details: the board should confirm it.
 - **More books of Rabbi Jonathan Sacks (in English, and in Hebrew translation)**. Rabbi Lord Jonathan Sacks, 1948-2020, United Kingdom. Modern Orthodox. `rabbi-sacks-more-books`
   - Reads: English text (Maggid)
   - Reads: Hebrew translations (Maggid and others). Translated into Hebrew, most by Tsur Ehrlich. Radical Then, Radical Now was published in Hebrew by the Shalem Center (2007; translator to confirm).
@@ -2301,7 +2301,7 @@ Hashkafah, the works of mussar, and the works of Chassidus.
 
 ### Kabbalah
 
-Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built on them. RabAI presents them as what the kabbalists teach.
+Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built on them. RabbAI presents them as what the kabbalists teach.
 
 #### The texts
 
@@ -2309,20 +2309,20 @@ Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built 
 
 - **Sefer Yetzirah (with the Vilna Gaon's version)** (ספר יצירה). Attributed to Avraham Avinu (by tradition). `sefer-yetzirah`
   - Reads: Hebrew text
-  - Note: The Warsaw 1884 printing with its commentaries. Isidor Kalisch's 1877 English is barred in excluded.yaml. Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+  - Note: The Warsaw 1884 printing with its commentaries. Isidor Kalisch's 1877 English is barred in excluded.yaml. Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 - **Sefer HaBahir** (ספר הבהיר). Attributed to Rabbi Nechunya ben HaKanah. `sefer-habahir`
   - Kept with a caution (Part 1).
   - Reads: Hebrew text
-  - Note: Debated (library question 8): traditionally attributed to Rabbi Nechunya ben HaKanah. Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+  - Note: Debated (library question 8): traditionally attributed to Rabbi Nechunya ben HaKanah. Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 - **Sefer HaZohar** (ספר הזהר). Attributed to Rabbi Shimon bar Yochai. `zohar`
   - Reads: Aramaic text, vocalized (Torat Emet's Zohar Menukad). On Sefaria as "Vocalized Zohar, Israel 2013" (14.9 MB; every section of the Zohar and the three volumes of addenda). Its Idra Zuta matches Torat Emet's "Zohar Menukad" word for word (9,099 of 9,099 words), so the file appears to be Torat Emet's vocalized Zohar. Sefaria lists its license as unknown; it is in the testing library by Torat Emet's written permission (canon/permissions.yaml, reported by the maintainer on 2026-10-10). Who vocalized it is not known (to confirm), nor whether Torat Emet holds its rights or distributes it by someone else's leave; settle both before a public launch. It is a modern edition, not a copy of an old printing: vowels, punctuation, about 1,100 "other reading" notes (נ"א) and about 15,000 Bible and cross-references in parentheses.
   - Note: Library question 2. The main Zohar on Sefaria is the title "Zohar", arranged by parasha (with the Idra Rabba, Idra Zuta and Sifra DiTzniuta as sections, and the Ra'aya Mehemna and the other inserted tracts inside the parashiyot). None of its Hebrew files has an open license on Sefaria; the vocalized text is in by Torat Emet's written permission. Torat Emet's Hebrew translation of the Zohar ("Hebrew Translation" on Sefaria) is left out until its translator is known and the board has seen it. The only open English, Soncino's (1931-1934), is in excluded.yaml (soncino-zohar). Kabbalah waits on library questions 1 to 3.
 - **Zohar Chadash** (זוהר חדש). Attributed to Rabbi Shimon bar Yochai. `zohar-chadash`
   - Reads: Hebrew text
-  - Note: Sefaria has no openly licensed Hebrew of the Zohar itself (library question 2). Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+  - Note: Sefaria has no openly licensed Hebrew of the Zohar itself (library question 2). Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 - **Tikkunei Zohar** (תקוני הזהר). Attributed to Rabbi Shimon bar Yochai. `tikkunei-zohar`
   - Reads: Hebrew text
-  - Note: Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+  - Note: Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 
 *Acharonim (about 1550-1900)*
 
@@ -2351,13 +2351,13 @@ Sefer Yetzirah, the Zohar and its commentaries, the Arizal, and the works built 
 - **The Arizal's teachings as written by Rabbi Chaim Vital (Etz Chaim, Pri Etz Chaim, the Shemonah She'arim and Sha'arei Kedushah)** (כתבי האר״י). Rabbi Chaim Vital, Safed. `kitvei-arizal`
   - Reads: Hebrew text. Eight titles are digital transcriptions from hebrew.grimoar.cz; three are Jerusalem printings of 1863-1909. Where the same text appears in both (Rabbi Shmuel Vital's introduction), the transcription agrees with the 1872 printing in about 97% of words once the printing's abbreviations are written out; one section of Sha'ar Ma'amarei Razal and one passage of Sha'ar HaKavanot appear twice.
   - Reads: Sha'arei Kedushah (Gates of Holiness), translated by Rabbi Amiram Markel. Rabbis Amiram and Yehudah Markel translate Chabad and other Chassidic classics into English, among them the Mitteler Rebbe's The Gateway to Understanding (to confirm).
-  - Note: Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+  - Note: Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 - **Chesed LeAvraham** (חסד לאברהם). Abraham Azulai, written c. 1618-1622, Gaza. `chesed-leavraham`
   - Reads: Hebrew text. A digital transcription from hebrew.grimoar.cz with the introduction, all seven "springs" (ma'ayanot) and Breichat Avraham. No other copy exists on Sefaria to compare it with, and a modern editor added a few corrections in square brackets beside the original words in round brackets.
 - **Mitpachat Sefarim (Rabbi Yaakov Emden)** (מטפחת ספרים). Yaakov Emden, written c. 1733-1767. `mitpachat-sefarim`
   - Kept with a caution (Part 1).
   - Reads: Hebrew text
-  - Note: Debated (library question 3): Rabbi Yaakov Emden's attack on the Sabbatean movement, in which he disputes how old parts of the Zohar are. The board decides whether and how RabAI presents that view.
+  - Note: Debated (library question 3): Rabbi Yaakov Emden's attack on the Sabbatean movement, in which he disputes how old parts of the Zohar are. The board decides whether and how RabbAI presents that view.
 - **Shomer Emunim (Rabbi Yosef Ergas)** (שומר אמונים). Joseph ben Emanuel Ergas. `shomer-emunim-ergas`
   - Reads: Hebrew text
 - **Shuvi Shuvi HaShulamit (the Ben Ish Chai)** (שובי שובי השולמית). Yosef Hayyim. Sephardi. `shuvi-shuvi-hashulamit`
@@ -2499,7 +2499,7 @@ Dictionaries of the Hebrew and Aramaic of the texts, grammar, and guides to the 
 
 - **Machberet Menachem** (מחברת מנחם). Menachem ben Saruk, 10th century. `machberet-menachem`
   - Reads: Hebrew text. The London 1854 printing. Public domain.
-  - Note: An early dictionary of Biblical Hebrew, arranged by root. Rashi often cites it by name ("Menachem"), so it lets RabAI show where Rashi's explanation of a word comes from.
+  - Note: An early dictionary of Biblical Hebrew, arranged by root. Rashi often cites it by name ("Menachem"), so it lets RabbAI show where Rashi's explanation of a word comes from.
 
 *Rishonim (about 1040-1550)*
 
@@ -2519,7 +2519,7 @@ Dictionaries of the Hebrew and Aramaic of the texts, grammar, and guides to the 
 
 - **HeAruch** (הערוך). Rabbi Natan ben Yechiel of Rome, about 1035-1106. `aruch`
   - Reads: Hebrew text, Lublin 1883 printing. An earlier printing, without the notes Alexander Kohut added in his Aruch HaShalem. The board decides which edition to use; this one is public domain and is used for testing.
-  - Note: The classic dictionary of the words of the Talmud and Midrash, written by a Rishon. The first place RabAI looks for the meaning of a word in the Gemara.
+  - Note: The classic dictionary of the words of the Talmud and Midrash, written by a Rishon. The first place RabbAI looks for the meaning of a word in the Gemara.
 - **Darkhei HaTalmud** (דרכי התלמוד). Isaac Canpanton, written c. 1400-1460. `darkhei-hatalmud`
   - Reads: Hebrew text
 
@@ -2535,7 +2535,7 @@ Dictionaries of the Hebrew and Aramaic of the texts, grammar, and guides to the 
 *20th and 21st centuries*
 
 - **A Dictionary of the Targumim, the Talmud Babli and Yerushalmi, and the Midrashic Literature**. Marcus Jastrow, 1829-1903. `jastrow`
-  - Reads: The original edition (1886-1903) [English] (used only for what words mean). The London 1903 printing, digitized in Sefaria's dictionary data. Public domain by age. In the private testing library as a word tool only (Josh, 2026-10-06): RabAI may use it for what a word means, never for history or belief.
+  - Reads: The original edition (1886-1903) [English] (used only for what words mean). The London 1903 printing, digitized in Sefaria's dictionary data. Public domain by age. In the private testing library as a word tool only (Josh, 2026-10-06): RabbAI may use it for what a word means, never for history or belief.
   - Note: The standard English dictionary of Talmudic Aramaic and Hebrew, used widely in yeshivos and by English-speaking learners. Its author was not Orthodox: he is generally counted among the founders of what became Conservative Judaism (reviewers confirm). Proposed for word meanings only, never as a source for history or belief, with the Aruch, Rashi and Targum preferred wherever they differ. The board decides (founding spec, open question 13).
 
 #### Other works
@@ -2546,7 +2546,7 @@ Dictionaries of the Hebrew and Aramaic of the texts, grammar, and guides to the 
 
 ### Articles from organizations' websites
 
-Teachers' explanations for today's readers, copied by the organization's written permission. RabAI never treats them as sources: only the texts confirm a point.
+Teachers' explanations for today's readers, copied by the organization's written permission. RabbAI never treats them as sources: only the texts confirm a point.
 
 - **Aish.com: Ask the Rabbi**. Aish.com's rabbis. For people new to observance. `aish-ask-the-rabbi`
   - Reads: Aish.com, Ask the Rabbi (English)

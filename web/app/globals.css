@@ -1,4 +1,4 @@
-/* RabAI: Chat and Learn. A source opens beside the conversation (computer) or as a sheet (phone); until then there is no text panel. */
+/* RabbAI: Chat and Learn. A source opens beside the conversation (computer) or as a sheet (phone); until then there is no text panel. */
 :root {
   --bg: #F6F2E9;
   --surface: #FFFDF8;
@@ -158,7 +158,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .teachers .note { margin: 0 0 8px; }
 .teachers .follow { margin-top: 6px; }
 .cite.article { background: var(--surface); border-color: var(--line); color: var(--ink); text-align: start; }
-/* Pages RabAI looked up online (lib/engine/online.ts): links to their own sites, apart from the texts. */
+/* Pages RabbAI looked up online (lib/engine/online.ts): links to their own sites, apart from the texts. */
 .online-notes { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line); }
 .online-notes .label-sm { margin-top: 10px; }
 .online-notes .note { margin: 0 0 8px; }
@@ -178,7 +178,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 .rav-note .rav-icon { color: var(--accent); flex: none; margin-top: 1px; }
 .msg-ai .body .rav-note p { margin: 0; }
 .rav-note strong { color: var(--accent); }
-/* What RabAI is doing while it works: each step as it happens, the earlier ones checked off. */
+/* What RabbAI is doing while it works: each step as it happens, the earlier ones checked off. */
 .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--font-voice); font-size: 16px; }
 .steps li { display: flex; align-items: baseline; gap: 8px; }
 .steps .tick { width: 18px; flex: none; display: inline-grid; place-items: center; color: var(--accent); font-family: var(--font-ui); font-size: 14px; font-weight: 700; }
@@ -323,7 +323,7 @@ p.muted { margin: 0; }
 .msg-ai .body .helpful-fine { font-size: 12.5px; margin: 0; }
 .msg-ai .body .helpful-thanks { margin-top: 8px; font-family: var(--font-ui); font-size: 13px; color: var(--muted); }
 
-/* ---------- what RabAI keeps (app/privacy) ---------- */
+/* ---------- what RabbAI keeps (app/privacy) ---------- */
 .privacy { min-height: 100dvh; padding: calc(24px + env(safe-area-inset-top, 0px)) 16px 32px; display: grid; justify-items: center; }
 .privacy-card { width: 100%; max-width: 680px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); font-family: var(--font-voice); font-size: 17px; line-height: 1.6; }
 .privacy-card h1 { font-size: 26px; line-height: 1.3; margin: 8px 0; font-weight: 600; }
@@ -338,7 +338,7 @@ p.muted { margin: 0; }
 .unlock-card .brand.signin h1 { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
 @media (max-width: 559px) { .privacy { padding: 0; } .privacy-card { border-radius: 0; border: 0; box-shadow: none; padding: 16px; } }
 
-/* ---------- RabAI's sources (app/sources) ---------- */
+/* ---------- RabbAI's sources (app/sources) ---------- */
 .sources-card { max-width: 760px; }
 .sources-card h2 { font-size: 20px; margin: 28px 0 8px; }
 .sources-card h3 { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--muted); margin: 18px 0 6px; }
@@ -676,7 +676,7 @@ a.settings-row { text-decoration: none; }
 @media (hover: hover) { .starter:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); } }
 .msg-ai .body .welcome-rav { font-family: var(--font-ui); font-size: 13.5px; color: var(--muted); }
 .msg-ai .body .welcome-hi { font-size: 21px; font-weight: 600; line-height: 1.35; margin-bottom: 6px; }
-/* On a phone the bar already shows RabAI's mark, so the welcome uses the whole width. */
+/* On a phone the bar already shows RabbAI's mark, so the welcome uses the whole width. */
 @media (max-width: 560px) {
   .msg-ai.welcome { grid-template-columns: minmax(0, 1fr); }
   .msg-ai.welcome > .mark { display: none; }
@@ -796,7 +796,7 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
 .daf-printed .rashi.placed .tall, .daf-printed .tosafot.placed .tall { font-family: var(--font-vilna), var(--font-he); font-weight: 400; }
 .daf-printed .placed .tall .dwi { font-size: 1em; }
 .daf-text .dseg { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; }
-/* RabAI's phrases (components/flow-phrases.tsx): each phrase's color fills behind its words. The
+/* RabbAI's phrases (components/flow-phrases.tsx): each phrase's color fills behind its words. The
    spans have no size of their own, so no word moves; the ring for the phrase being stepped through
    is a shadow, which takes no room either. */
 .daf-text .dphr { box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 3px; box-shadow: var(--phr-mark, 0 0 #0000), var(--phr-ring, 0 0 #0000); }
@@ -869,7 +869,7 @@ button.legend-chip[aria-pressed="true"] { border-color: var(--page-ink); box-sha
   .daf-body.with-panel .daf-main { padding-bottom: 48dvh; }
 }
 
-/* RabAI's own translation of a passage: always set apart from the library's text, and labeled. */
+/* RabbAI's own translation of a passage: always set apart from the library's text, and labeled. */
 :root { --rabai: #8A4B08; --rabai-bg: #FBF1E4; }
 @media (prefers-color-scheme: dark) { :root { --rabai: #F2B66B; --rabai-bg: #33260F; } }
 .tr-offer { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }

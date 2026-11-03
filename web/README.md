@@ -1,6 +1,6 @@
-# RabAI web app
+# RabbAI web app
 
-The first version of the app: ask RabAI a question, tap a source to open the text, and ask about
+The first version of the app: ask RabbAI a question, tap a source to open the text, and ask about
 any line. Built for phones first, with a two-column layout on a computer.
 
 **This is a private development build.** The texts in it were typed by the team for testing and
@@ -9,9 +9,9 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
 
 ## What it does
 
-- **Chat and Learn.** A switch at the top flips between talking with RabAI (about Torah or
+- **Chat and Learn.** A switch at the top flips between talking with RabbAI (about Torah or
   anything else) and learning texts. The text panel appears only once a source is opened.
-- **Ask.** RabAI answers from the passages it finds in the library, and every passage it relies
+- **Ask.** RabbAI answers from the passages it finds in the library, and every passage it relies
   on becomes a button. Answers are short and plain; "Tell me more" asks for a fuller one, and
   "Say it more simply" for a simpler one. The answer appears as it is written, with the question
   held at the top of the screen; nothing moves while it is written. Ask turns into Stop, which
@@ -25,7 +25,7 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   (`lib/answer-jobs.ts`, `/api/ask/job`).
 - **Pictures.** Up to four pictures with a question: the picture button, paste, or drag one in.
   Each is made smaller on the device (sharp enough for small print), checked by its own bytes on
-  the server, and read with the question by RabAI and by its planning step. It is sent again with
+  the server, and read with the question by RabbAI and by its planning step. It is sent again with
   the next few questions while the page is open. The server never keeps a picture; the chat
   keeps a small preview on the device, and an account keeps only the number of pictures
   (`lib/pictures.ts`).
@@ -53,41 +53,41 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   entry with the full notice. Above the tabs, how the word breaks down: the letters in front
   ("and", "the", "from"), the ending, and for a conjugated word a guess at its root, marked as a
   guess, with what was changed. The arrows beside the word move to the next or previous word.
-  This uses no AI. When no dictionary has the word, "Ask RabAI about this word" becomes the main
-  button; RabAI explains only when tapped. (`/api/word?w=` does the lookup.) Where the team's
+  This uses no AI. When no dictionary has the word, "Ask RabbAI about this word" becomes the main
+  button; RabbAI explains only when tapped. (`/api/word?w=` does the lookup.) Where the team's
   word notes cover a word, the card also shows its parts, its root and every other place the
   root appears in the library (computed from the text, never typed by hand), and Gemara phrases
-  such as תנו רבנן are explained; "Ask RabAI about this word" sends those passages along so
-  RabAI can cite them.
+  such as תנו רבנן are explained; "Ask RabbAI about this word" sends those passages along so
+  RabbAI can cite them.
 - **Ask about a line.** Tap a line (not a word) for the same card on its Ask tab: Explain
   this, Word by word, What do the commentaries say, Where is this used in halacha, or your own
   question. The answer appears in the card; the text never moves.
-- **Try it yourself.** "Let me try translating" on any line: RabAI checks the person's own
+- **Try it yourself.** "Let me try translating" on any line: RabbAI checks the person's own
   translation gently.
 - **See the page.** A Gemara text in the testing library opens as the printed page: the
   Gemara in the middle, Rashi on the inner side and Tosafot on the outer side, wrapping around
   each other the way the Vilna Shas is set (Rashi moves sides between amud a and amud b). Every
   word can be tapped: the same card opens in a side panel (a sheet on a phone), with the word
   and its meanings first, then the line's translation, the Rashi and Tosafot on that line
-  (lightly shaded on the page) or the line a comment explains, and questions to ask RabAI; the
+  (lightly shaded on the page) or the line a comment explains, and questions to ask RabbAI; the
   line's Hebrew and its four mark colors sit at the bottom. The tapped word is solid blue and its
   line a soft tint; a mark is a highlighter stroke along the bottom of the words. On a phone the
   page opens fitted to the screen: pinch to zoom, or double-tap a spot to zoom into it (and again
   to see the whole page). "The Gemara alone, larger" (under View) sets just the Gemara in one
   column; its Rashi and Tosafot stay in the card. "Show the flow" colors each phrase by what it does (question, answer,
-  proof, challenge...), as RabAI's outline, labeled not yet reviewed; it runs only when asked
-  and is kept on the device. RabAI names each phrase by the numbers of the library's own words,
+  proof, challenge...), as RabbAI's outline, labeled not yet reviewed; it runs only when asked
+  and is kept on the device. RabbAI names each phrase by the numbers of the library's own words,
   never by retyping them, and gives a phrase English only when it is an exact stretch of the
   library's English for the line. The legend's colors are filters (show only the questions, say),
   and "Step through" goes phrase by phrase in a bar below the page: the phrase is ringed on the
-  page, with its kind, RabAI's note, and the library's English for it (or for the whole line).
+  page, with its kind, RabbAI's note, and the library's English for it (or for the whole line).
   When the library has no English for a line, a Rashi or a Tosafot,
-  "Translate this" gives RabAI's own translation, and "Word by word" sets RabAI's English under
-  each of the library's words, with the tapped word outlined. Both are labeled as RabAI's, not
+  "Translate this" gives RabbAI's own translation, and "Word by word" sets RabbAI's English under
+  each of the library's words, with the tapped word outlined. Both are labeled as RabbAI's, not
   from the library and not yet reviewed. They are made from the library's own sources (the line
   a comment explains with its Orthodox English, the other commentaries on that line, and the
   dictionaries), and "Other readings" lists another way a given source reads a phrase, with its
-  words quoted and checked like a citation. Each translation is kept in RabAI's translation
+  words quoted and checked like a citation. Each translation is kept in RabbAI's translation
   library, so a passage is translated once for everyone (see below), and on the device
   (`/api/translate`). The person can mark lines in four colors. The shape follows the
   printed page, but lines break where the screen breaks them. A link like `/?daf=Berakhot 2a`
@@ -112,10 +112,10 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   ("Kiddushin 40b") all work (`lib/library/catalog.ts`). My words (saved only on the device) and
   the Gemara's key words each have their own screen.
 - **Settings** (the gear at the top): "Help me grow closer to HaShem", off unless the person
-  turns it on, "About you", and a note on what RabAI is and where things are kept.
-- **About you.** The person can tell RabAI how much they have learned, how well they read Hebrew,
-  their community and what they want to learn, and see what RabAI has noticed while they learn
-  (the books they read, the words they look up more than once). RabAI uses it only to pitch its
+  turns it on, "About you", and a note on what RabbAI is and where things are kept.
+- **About you.** The person can tell RabbAI how much they have learned, how well they read Hebrew,
+  their community and what they want to learn, and see what RabbAI has noticed while they learn
+  (the books they read, the words they look up more than once). RabbAI uses it only to pitch its
   explanations, never to change what the sources say. It stays on the device, and the person can
   change it, forget it, or turn remembering off. See `docs/learner-profiles.md`.
 
@@ -129,7 +129,7 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
    holds. The app opens those places, follows Sefaria's cross-references (commentaries first),
    and searches the library for the key words in Hebrew and English, up to 24 passages. When
    a passage has no English (much of the Yerushalmi), it adds up to 8 dictionary entries for
-   its words (Jastrow, the Radak's Sefer HaShorashim), so RabAI can translate it and say the
+   its words (Jastrow, the Radak's Sefer HaShorashim), so RabbAI can translate it and say the
    translation is its own. With
    the development texts, `lib/library/index.ts` searches them in memory, up to 10 passages.
 3. **Looking things up online** (`lib/engine/online.ts`). When the lookup step decides a question
@@ -141,7 +141,7 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
    or belief, or the wider web, never the sites listed there as not for the web, for everyday
    facts. It reports what the pages say, citing them, and names the classic texts they rely on.
    Only the pages' own words go on: the cited sentences, with a little of the page around them.
-   The lookup step then finds those texts in the library, and they are opened so RabAI can check
+   The lookup step then finds those texts in the library, and they are opened so RabbAI can check
    the pages against them. The pages go to the model last, as documents titled "Found online",
    and the app lists them under the answer, apart from the texts. Nothing found online is kept.
    A lookup gives up after 45 seconds, and the answer goes on without it. A line action in the
@@ -192,12 +192,12 @@ The live app is at https://rab-ai-ecru.vercel.app (locked with an access code).
 2. At vercel.com, sign in with the GitHub account that owns this repo and choose
    **Import Project → Import**. When Vercel asks for GitHub access, give it this repository
    only.
-3. Pick `RabAI`, then set **Root Directory** to `web`. Vercel detects Next.js.
+3. Pick `RabbAI`, then set **Root Directory** to `web`. Vercel detects Next.js.
 4. Under **Environment Variables**, add:
    - `ANTHROPIC_API_KEY`: the key from step 1. Paste it only into Vercel, never into a chat or
      a file in the repo.
    - `RABAI_ACCESS_CODE`: a code of your choosing, such as a few words. Share it only with the
-     people testing RabAI.
+     people testing RabbAI.
 5. Deploy, open the link, enter the access code, and ask one of the starter questions.
 
 ### Keeping it private
@@ -233,7 +233,7 @@ allows up to 300 seconds, which needs Vercel's Fluid compute; `vercel.json` turn
 
 Looking things up uses Anthropic's web search and web fetch. They work unless someone turned
 them off in the Anthropic Console's organization settings; if they are off, a lookup fails, and
-RabAI answers from its library and says it couldn't check online. A search costs a cent, and
+RabbAI answers from its library and says it couldn't check online. A search costs a cent, and
 reading the pages costs more: with the defaults, a lookup costs roughly 10 to 30 cents. Lookups
 run only when the lookup step asks for one, with at most three searches and two pages read.
 
@@ -299,9 +299,9 @@ The copier asks one thing at a time and pauses between requests, keeps to the si
 robots.txt, and names itself honestly (RabAIBot). If a site shows robots a check it can't pass
 (Chabad.org does), ask the site to let RabAIBot through; never work around it.
 
-## RabAI's translation library
+## RabbAI's translation library
 
-Every translation RabAI makes is kept in its own database, `rabai-translations`, in the same
+Every translation RabbAI makes is kept in its own database, `rabai-translations`, in the same
 Turso group as the testing library. A passage is translated once and then served to everyone
 from there, without calling the model. Rebuilding the testing library never touches it. Each
 row records the exact text it translated (a check value of its words), so a translation is
@@ -310,7 +310,7 @@ and a review status, "unreviewed" until the rabbinic board reviews it. Without i
 still translates when asked and keeps the result on the device.
 
 It can also be filled ahead of time, at half the price of translating live, with the
-"RabAI's translation library" workflow (Actions, then Run workflow):
+"RabbAI's translation library" workflow (Actions, then Run workflow):
 
 1. **Once:** add a GitHub secret `ANTHROPIC_API_KEY` (a key from your own Anthropic account,
    with a monthly spend limit set there). Then run the workflow with mode **setup**. It creates
@@ -349,7 +349,7 @@ that calls the API is replaced (`scripts/translate-here.ts`):
 3. `collect` checks the answers exactly like a batch fill and keeps them in a translation library
    on that computer.
 4. `seal` seals them with the inbox's public key into `translations-inbox/`, and the push starts
-   the "RabAI's translation inbox" workflow (`.github/workflows/translations-inbox.yml`). Only that
+   the "RabbAI's translation inbox" workflow (`.github/workflows/translations-inbox.yml`). Only that
    workflow can open the files (its private key stays in the translation library's database), so
    unreviewed translations are never public. It checks each translation against the testing
    library's text again, keeps it, and removes the file.
@@ -360,7 +360,7 @@ nothing.
 
 ## Accounts and "Was this helpful?"
 
-With an account, a person's chats and what RabAI knows about them ("About you") follow them to
+With an account, a person's chats and what RabbAI knows about them ("About you") follow them to
 every device they sign in on. Sign-in is by a link sent to their email; there are no passwords.
 Without accounts switched on, the app works exactly as before, with everything kept on the device.
 
@@ -392,7 +392,7 @@ Setting it up once:
    it shows; Resend sends to other people's addresses only from a verified domain. Under API
    Keys, create a key with sending access.
 3. **Vercel.** Add `RESEND_API_KEY` (that key) and `RABAI_MAIL_FROM` (for example
-   `RabAI <signin@your-domain>`), then redeploy. Sign-in then appears under the gear, Your
+   `RabbAI <signin@your-domain>`), then redeploy. Sign-in then appears under the gear, Your
    account.
 
 | Setting | Needed for | What it is |

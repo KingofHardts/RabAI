@@ -391,7 +391,7 @@ export function useAccount(host: AccountHost): { state: AccountState; api: Accou
           const data = (await res.json().catch(() => ({}))) as { error?: string };
           return { error: data.error ?? "Something went wrong. Please try again." };
         } catch {
-          return { error: "Couldn't reach RabAI. Check your connection and try again." };
+          return { error: "Couldn't reach RabbAI. Check your connection and try again." };
         }
       },
       async signOut() {

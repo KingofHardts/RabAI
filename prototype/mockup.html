@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>body{margin:0}[hidden]{display:none!important}</style>
-<title>RabAI Prototype</title>
+<title>RabbAI Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
@@ -206,7 +206,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
       <div class="brand">
         <div class="mark" aria-hidden="true">ר</div>
         <div>
-          <h1>RabAI</h1>
+          <h1>RabbAI</h1>
           <div class="sub">An AI Torah teacher</div>
         </div>
         <span class="badge">Mockup · sample content</span>
@@ -266,11 +266,11 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 
     <div class="composer">
       <form id="ask-form">
-        <label for="ask-input" class="visually-hidden" style="position:absolute;left:-9999px">Ask RabAI</label>
+        <label for="ask-input" class="visually-hidden" style="position:absolute;left:-9999px">Ask RabbAI</label>
         <input id="ask-input" placeholder="Ask about Torah, halacha, or any text…" autocomplete="off">
         <button class="send" type="submit">Ask</button>
       </form>
-      <p class="fine">RabAI is an AI Torah teacher, not a rav. For a question about your own situation, ask your rav.</p>
+      <p class="fine">RabbAI is an AI Torah teacher, not a rav. For a question about your own situation, ask your rav.</p>
     </div>
   </section>
 
@@ -380,7 +380,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
     }
   };
 
-  var FALLBACK = "In the full app, RabAI explains any line you choose, using only the approved sources, and keeps the text in view while you talk.";
+  var FALLBACK = "In the full app, RabbAI explains any line you choose, using only the approved sources, and keeps the text in view while you talk.";
 
   // ---------------- reader ----------------
   var reader = document.getElementById("reader");
@@ -574,7 +574,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
       var s = document.getElementById("scroll"); s.scrollTop = s.scrollHeight;
     } else if (f.hasAttribute("data-askline")) {
       var i = f.querySelector("input"); var q2 = i.value.trim(); if (!q2) return;
-      f.outerHTML = '<p style="margin:8px 0 0"><i>“' + esc(q2) + '”</i></p><p style="margin:6px 0 0">In the real app, RabAI answers here, attached to this line, from the approved sources.</p>';
+      f.outerHTML = '<p style="margin:8px 0 0"><i>“' + esc(q2) + '”</i></p><p style="margin:6px 0 0">In the real app, RabbAI answers here, attached to this line, from the approved sources.</p>';
     }
   });
 })();

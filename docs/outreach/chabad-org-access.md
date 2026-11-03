@@ -2,7 +2,7 @@
 
 Draft for Josh to send, after Chabad.org's written OK (2026-10-10, `canon/permissions.yaml`,
 `chabad-org`). Chabad.org couldn't send an export, and its website shows every robot a Cloudflare
-check that a copying program can't pass, and shouldn't try to. This asks them to let RabAI's copier
+check that a copying program can't pass, and shouldn't try to. This asks them to let RabbAI's copier
 through. Fill in the bracketed parts, and keep contact details out of this public repo.
 
 If they choose a secret header, they send its name and value to Josh, who adds them as a GitHub
@@ -12,11 +12,11 @@ added to the canon for the board, as Aish.com's were.
 
 ---
 
-**Subject:** RabAI: letting our copier through Cloudflare
+**Subject:** RabbAI: letting our copier through Cloudflare
 
 Shalom [name],
 
-Thank you again for allowing RabAI to use Chabad.org's articles for private study. Since an
+Thank you again for allowing RabbAI to use Chabad.org's articles for private study. Since an
 export isn't possible, we'd like to copy the articles from the website itself, slowly and
 politely. Your site's Cloudflare check stops automated visitors, which is right, so we're asking
 you to let ours through.
@@ -29,7 +29,7 @@ What it is:
 - It names itself honestly. Every request carries this user agent:
   `RabAIBot/1.0 (private Torah-learning tool, used with the site's written permission; +https://github.com/KingofHardts/RabAI)`
 - It reads only the sections we list, and keeps only each article's text, title, author and
-  address, in a private database used by RabAI's locked test app. Nothing is published.
+  address, in a private database used by RabbAI's locked test app. Nothing is published.
 - After the first copy, it only checks for new and changed articles, a few times a month.
 
 Either of these would work on your side:

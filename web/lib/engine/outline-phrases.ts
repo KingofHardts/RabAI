@@ -1,18 +1,18 @@
 import { lettersOf, pieceWords } from "../library/daf";
 
 /*
- * RabAI's outline of an amud, read and checked: what each phrase of the Gemara does (asks,
+ * RabbAI's outline of an amud, read and checked: what each phrase of the Gemara does (asks,
  * answers, proves, challenges...), so the page can color the flow of the argument phrase by phrase.
  * This file has no model calls, so the app can use its types and checks on the device; outline.ts
  * asks the model.
  *
- * The outline is RabAI's reading of the text, not a source, and the app labels it as not yet
+ * The outline is RabbAI's reading of the text, not a source, and the app labels it as not yet
  * reviewed by the rabbinic board. Two rules keep it tied to the library:
  *   - A phrase is a run of the library's own words, named by their positions in the line
  *     (pieceWords, the same numbering the page and the word-by-word list use). The model never
  *     retypes the Aramaic.
  *   - A phrase's English is shown only when it is an exact stretch of the library's English for the
- *     line. RabAI may point at the library's English; it may not write it.
+ *     line. RabbAI may point at the library's English; it may not write it.
  */
 
 export const OUTLINE_KINDS = ["mishnah", "question", "answer", "statement", "proof", "challenge", "resolution", "story"] as const;
@@ -37,7 +37,7 @@ export interface OutlinePhrase {
   /** Just past the last word. */
   to: number;
   kind: OutlineKind;
-  /** What the phrase does, in a few plain words (RabAI's). */
+  /** What the phrase does, in a few plain words (RabbAI's). */
   note: string;
   /** The words of the library's English for the line that translate this phrase, when they checked. */
   en?: string;
@@ -84,8 +84,8 @@ export function cleanNote(raw: unknown): string {
 }
 
 /**
- * The library's English for a phrase: the words RabAI quoted, if they are an exact stretch of the
- * line's English (spaces counted as one). Anything else gives nothing, so no English RabAI wrote
+ * The library's English for a phrase: the words RabbAI quoted, if they are an exact stretch of the
+ * line's English (spaces counted as one). Anything else gives nothing, so no English RabbAI wrote
  * can be shown as the library's.
  */
 export function phraseEnglish(quote: unknown, lineEn: string): string | undefined {
@@ -259,7 +259,7 @@ export interface PhraseAt {
 
 /** What the page needs to color the flow. */
 export interface FlowView {
-  /** RabAI's phrases for each Gemara line, by its reference. */
+  /** RabbAI's phrases for each Gemara line, by its reference. */
   phrases: Readonly<Record<string, readonly OutlinePhrase[]>>;
   /** Color only this kind; null for every kind. */
   only: OutlineKind | null;

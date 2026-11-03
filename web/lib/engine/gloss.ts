@@ -1,7 +1,7 @@
 import { lettersOf, pieceWords } from "../library/daf";
 
 /*
- * RabAI's translation of one passage, read and lined up with the library's own words. This file
+ * RabbAI's translation of one passage, read and lined up with the library's own words. This file
  * has no model calls, so the app can use its types and checks on the device; translate.ts asks
  * the model.
  *
@@ -18,20 +18,20 @@ export interface GlossRow {
   at: number;
   /** How many of the passage's words this row holds. */
   n: number;
-  /** RabAI's English; null where it gave none. */
+  /** RabbAI's English; null where it gave none. */
   en: string | null;
-  /** For a short form (abbreviation): the words it stands for, as RabAI read them. */
+  /** For a short form (abbreviation): the words it stands for, as RabbAI read them. */
   expanded?: string;
 }
 
 /**
- * Another way to read part of the passage, as one of the sources RabAI was given reads it. Kept
+ * Another way to read part of the passage, as one of the sources RabbAI was given reads it. Kept
  * only when the source was among those given and the quoted words are really in it.
  */
 export interface Reading {
   /** The words of the passage the other reading is about. */
   phrase: string;
-  /** The other reading, in RabAI's words. */
+  /** The other reading, in RabbAI's words. */
   reading: string;
   /** The source that reads it so. */
   ref: string;
@@ -39,7 +39,7 @@ export interface Reading {
   quote: string;
 }
 
-/** A source RabAI was given to translate from: shown as "Based on ..." beside the translation. */
+/** A source RabbAI was given to translate from: shown as "Based on ..." beside the translation. */
 export interface TranslationBasis {
   ref: string;
   /** What it is, for the person: "The library's English (William Davidson Edition)", "Jastrow". */
@@ -48,10 +48,10 @@ export interface TranslationBasis {
 
 export interface Translation {
   ref: string;
-  /** RabAI's translation of the whole passage. Null when the library already has English. */
+  /** RabbAI's translation of the whole passage. Null when the library already has English. */
   general: string | null;
   /**
-   * Word by word, in the library's own words. Null when RabAI's list didn't match the text;
+   * Word by word, in the library's own words. Null when RabbAI's list didn't match the text;
    * missing when it hasn't been asked for yet.
    */
   words?: GlossRow[] | null;
@@ -74,7 +74,7 @@ export function plainForCheck(text: string): string {
 }
 
 /**
- * The readings worth showing: each names a source RabAI was given and quotes at least two of its
+ * The readings worth showing: each names a source RabbAI was given and quotes at least two of its
  * words that really appear in it. Anything else is dropped, the way the answer engine drops a
  * citation it can't check.
  */

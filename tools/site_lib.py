@@ -376,7 +376,7 @@ def clean_title(raw: str) -> str:
 
     A colon separates a reference's levels ("Genesis 1:1") and the app reads a long dash between
     numbers as a range ("Genesis 1:1\u20135"), so a colon becomes " - " and every kind of dash a
-    plain hyphen. Curly quotes become straight ones, the way RabAI writes a reference back.
+    plain hyphen. Curly quotes become straight ones, the way RabbAI writes a reference back.
     """
     text = html.unescape(re.sub(r"<[^>]+>", "", raw or ""))
     text = BIDI.sub("", text).translate(QUOTES)

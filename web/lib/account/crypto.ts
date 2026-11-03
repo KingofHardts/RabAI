@@ -3,7 +3,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 /*
  * The small pieces of cryptography accounts need (docs/learner-profiles.md, phase 2). Server only.
  *
- * - The email address is never stored. RabAI keeps an HMAC of it ("email check") made with a
+ * - The email address is never stored. RabbAI keeps an HMAC of it ("email check") made with a
  *   server secret, RABAI_AUTH_SECRET, so the same address finds the same account, and the stored
  *   value can't be turned back into the address or matched against a list of addresses without
  *   the secret.

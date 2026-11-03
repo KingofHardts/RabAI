@@ -644,7 +644,7 @@ works:
         license: verify
         notes: >-
           Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the
-          plan skips it until that is confirmed. Until then RabAI translates the Yerushalmi
+          plan skips it until that is confirmed. Until then RabbAI translates the Yerushalmi
           itself and says so.
         sefaria_versions:
           - version: "William Davidson Edition - English"
@@ -713,7 +713,7 @@ works:
           - version: "Machon HaYerushalmi, Rabbi Yehoshua Buch, 2004"
             license: "CC-BY-NC"
     notes: >-
-      Explains the Yerushalmi's plain meaning, which helps RabAI translate the Yerushalmi
+      Explains the Yerushalmi's plain meaning, which helps RabbAI translate the Yerushalmi
       accurately where no English translation is available.
 
   - id: midrash
@@ -3102,7 +3102,7 @@ works:
 
   # ---------------------------------------------------------------------------
   # Proposed for teaching people to read the texts themselves (Josh, 2026-10-06).
-  # Dictionaries of roots and words, so RabAI can teach the language from the mesorah's own
+  # Dictionaries of roots and words, so RabbAI can teach the language from the mesorah's own
   # tools. The traditional works come first; Jastrow is proposed for review, not assumed.
   # Each needs board review.
 
@@ -3130,7 +3130,7 @@ works:
             license: "Public Domain"
     notes: >-
       An early dictionary of Biblical Hebrew, arranged by root. Rashi often cites it by name
-      ("Menachem"), so it lets RabAI show where Rashi's explanation of a word comes from.
+      ("Menachem"), so it lets RabbAI show where Rashi's explanation of a word comes from.
 
   - id: radak-sefer-hashorashim
     title: "Sefer HaShorashim"
@@ -3187,7 +3187,7 @@ works:
             license: "Public Domain"
     notes: >-
       The classic dictionary of the words of the Talmud and Midrash, written by a Rishon. The
-      first place RabAI looks for the meaning of a word in the Gemara.
+      first place RabbAI looks for the meaning of a word in the Gemara.
 
   - id: jastrow
     title: "A Dictionary of the Targumim, the Talmud Babli and Yerushalmi, and the Midrashic Literature"
@@ -3206,7 +3206,7 @@ works:
         license: verify
         notes: >-
           The London 1903 printing, digitized in Sefaria's dictionary data. Public domain by age.
-          In the private testing library as a word tool only (Josh, 2026-10-06): RabAI may use it
+          In the private testing library as a word tool only (Josh, 2026-10-06): RabbAI may use it
           for what a word means, never for history or belief.
         word_tool_only: true
         sefaria_lexicon:
@@ -13068,7 +13068,7 @@ works:
     notes: >-
       Debated (library question 7): the Radziner Rebbe identified the tekhelet dye with a
       cuttlefish dye, an identification many authorities did not accept. The board decides
-      whether and how RabAI uses these books.
+      whether and how RabbAI uses these books.
 
   - id: hilkhot-talmud-torah-shulchan-arukh-harav
     title: "Hilkhot Talmud Torah (Shulchan Arukh HaRav)"
@@ -14092,7 +14092,7 @@ works:
             license: "Public Domain"
     notes: >-
       Debated (library question 6): answers that the Tosafist Rabbi Yaakov of Marvege recorded
-      receiving in dreams. The board decides how RabAI presents them.
+      receiving in dreams. The board decides how RabbAI presents them.
 
   - id: teshuvot-vigrot-harambam
     title: "The Rambam's responsa and letters"
@@ -15686,7 +15686,7 @@ works:
             license: "Public Domain"
     notes: >-
       Written in Budapest during the war by a Chassidic rav, arguing for joining the return to
-      the Land of Israel. It is one side of a disagreement within Orthodoxy; RabAI presents it
+      the Land of Israel. It is one side of a disagreement within Orthodoxy; RabbAI presents it
       as that view, beside the others (founding spec, principle 3).
 
   - id: rav-amiel
@@ -17789,7 +17789,7 @@ works:
             license: "Public Domain"
     notes: >-
       The Warsaw 1884 printing with its commentaries. Isidor Kalisch's 1877 English is
-      barred in excluded.yaml. Kabbalah waits on library questions 1 to 3 (how RabAI treats
+      barred in excluded.yaml. Kabbalah waits on library questions 1 to 3 (how RabbAI treats
       Kabbalah).
 
   - id: raavad-on-sefer-yetzirah
@@ -17951,7 +17951,7 @@ works:
             license: "CC-BY-SA"
     notes: >-
       Debated (library question 8): traditionally attributed to Rabbi Nechunya ben HaKanah.
-      Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+      Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 
   - id: zohar
     title: "Sefer HaZohar"
@@ -18043,7 +18043,7 @@ works:
             permission: torat-emet
     notes: >-
       Sefaria has no openly licensed Hebrew of the Zohar itself (library question 2). Kabbalah
-      waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+      waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 
   - id: tikkunei-zohar
     title: "Tikkunei Zohar"
@@ -18070,7 +18070,7 @@ works:
           - version: "Constantinople, 1740"
             license: "CC-BY-NC"
     notes: >-
-      Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+      Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 
   - id: beur-hagra-on-sifra-detzniuta
     title: "The Vilna Gaon's commentary on Sifra DeTzniuta"
@@ -18352,7 +18352,7 @@ works:
           - version: "Gates of Holiness, translated by Rabbi Amiram Markel, 2013"
             license: "CC-BY"
     notes: >-
-      Kabbalah waits on library questions 1 to 3 (how RabAI treats Kabbalah).
+      Kabbalah waits on library questions 1 to 3 (how RabbAI treats Kabbalah).
 
   - id: beur-eser-sefirot
     title: "Be'ur Eser Sefirot (Rabbi Azriel of Gerona)"
@@ -18514,7 +18514,7 @@ works:
     notes: >-
       Debated (library question 3): Rabbi Yaakov Emden's attack on the Sabbatean movement, in
       which he disputes how old parts of the Zohar are. The board decides whether and how
-      RabAI presents that view.
+      RabbAI presents that view.
 
   - id: milchamot-hashem-qafih
     title: "Milchamot HaShem (Rabbi Yichya Qafih)"
@@ -18556,7 +18556,7 @@ works:
           - version: "ויקיטקסט"
             license: "CC-BY-SA"
     notes: >-
-      Moved from excluded.yaml on 2026-10-10 by the maintainer's direction: RabAI may discuss it,
+      Moved from excluded.yaml on 2026-10-10 by the maintainer's direction: RabbAI may discuss it,
       with all the caution the Orthodox community gives it, and explain why the community rejected
       it. Unlike Mitpachat Sefarim, which questions some passages of the Zohar, it rejects the
       Zohar as a whole. On Sefaria under Kabbalah as "The Wars of God"; its version is named
@@ -20044,7 +20044,7 @@ works:
     notes: >-
       For the board (library question 9). Joseph Derenbourg's scholarly edition, from the same
       editor as the Rambam's introduction to Seder Tahorot that the canon already holds back (to
-      confirm). Arabic, not Hebrew, so RabAI could quote it only with care.
+      confirm). Arabic, not Hebrew, so RabbAI could quote it only with care.
 
   - id: targum-sheni-on-esther
     title: "Targum Sheni on Esther"
@@ -20318,7 +20318,7 @@ works:
     notes: >-
       For the board. A modern commentary by university scholars that, as Sefaria describes it,
       combines traditional explanation with academic history, set against life in Eretz Yisrael
-      in the time of the Mishnah. The board should weigh its historical method before RabAI uses
+      in the time of the Mishnah. The board should weigh its historical method before RabbAI uses
       it (library question 9).
 
   - id: guggenheimer-notes-on-yerushalmi
@@ -20573,7 +20573,7 @@ works:
             license: "CC-BY-NC"
     notes: >-
       From Machon Puah, which advises couples on fertility questions according to halacha (to
-      confirm). On these questions RabAI always sends a person to their rav.
+      confirm). On these questions RabbAI always sends a person to their rav.
 
   - id: nishmat-habayit
     title: "Nishmat HaBayit (responsa on family purity and women's health)"
@@ -21319,7 +21319,7 @@ works:
     notes: >-
       For the board. Rav Shagar was a rosh yeshiva and a thinker in the Religious Zionist world
       whose engagement with postmodern philosophy is debated; the board should decide whether,
-      and how, RabAI uses his books.
+      and how, RabbAI uses his books.
 
   - id: polonsky-on-arpilei-tohar
     title: "Pinchas Polonsky's commentary on selected paragraphs of Rav Kook's Arpilei Tohar"
@@ -21368,7 +21368,7 @@ works:
     notes: >-
       For the board. A study of the customs of Beta Israel, kept apart from the rabbinic tradition
       for centuries, with a section setting them out as a code. Useful for describing that
-      tradition; the board should decide how RabAI presents it beside halacha.
+      tradition; the board should decide how RabbAI presents it beside halacha.
 
   - id: jewish-spiritual-heroes
     title: "The Jewish Spiritual Heroes (Gershom Bader's lives of the Tannaim and Amoraim)"

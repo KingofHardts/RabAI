@@ -33,9 +33,9 @@ test("the testing library reads its tested editions; a public app reads only app
   assert.equal(sourceCounts("approved").read, 0);
 });
 
-test("asked about its library, RabAI is given the whole list, and told it is a proposal", () => {
+test("asked about its library, RabbAI is given the whole list, and told it is a proposal", () => {
   const text = libraryOverview("testing");
-  assert.match(text, /## RabAI's own library/);
+  assert.match(text, /## RabbAI's own library/);
   assert.match(text, /the rabbinic board has not approved it yet/);
   assert.match(text, /Mishnah Berurah/);
   assert.match(text, /### Kept with a caution/);
@@ -44,7 +44,7 @@ test("asked about its library, RabAI is given the whole list, and told it is a p
   assert.match(text, /A line of the Gemara \(Talmud Bavli\)\. First: Rashi, Tosafot\./, "the order it opens the commentaries in");
   assert.match(text, /dinonline\.org/, "the websites it may search");
   assert.match(text, /never about the people who wrote it or the communities that use it/);
-  // A book that is left out is never listed among the ones RabAI reads.
+  // A book that is left out is never listed among the ones RabbAI reads.
   const readPart = text.slice(text.indexOf("### The works you read"), text.indexOf("### Kept with a caution"));
   assert.ok(!readPart.includes("Siddur Sim Shalom"));
   assert.equal(libraryOverview("testing"), text, "the same text every time, so it can be cached");
@@ -71,7 +71,7 @@ test("the books a question names are found by title, Hebrew name, author or edit
   assert.equal(fold("Ha'amek Davar"), "amek davar");
 });
 
-test("the books named are given with every edition and whether RabAI reads it", () => {
+test("the books named are given with every edition and whether RabbAI reads it", () => {
   const details = libraryDetails("testing", "Is the Mishnah Berurah in English?");
   assert.match(details, /Mishnah Berurah \(משנה ברורה\)/);
   assert.match(details, /Hebrew text, standard \[Hebrew\/Aramaic\]: read now/);
@@ -99,7 +99,7 @@ test("plain questions about the library are recognized without the planner", () 
   }
 });
 
-test("the planner says when a question is about RabAI's library", () => {
+test("the planner says when a question is about RabbAI's library", () => {
   assert.equal(parseLookupPlan('{"refs": [], "library": true}').library, true);
   assert.equal(parseLookupPlan('{"refs": [], "library": "yes"}').library, false, "true itself, not truthy");
   assert.equal(parseLookupPlan('{"refs": []}').library, false);
@@ -110,10 +110,10 @@ test("a library question gets the list after the cached instructions, cached its
   const { params } = planRequest({ question: "Do you have the Mishnah Berurah?" }, lib, config, [], { library: true });
   const system = params.system as Array<{ text: string; cache_control?: unknown }>;
   assert.equal(system.length, 4);
-  assert.match(system[2].text, /## RabAI's own library/);
+  assert.match(system[2].text, /## RabbAI's own library/);
   assert.ok(system[2].cache_control, "the list is the same for every such question, so it is cached");
   const settings = system[3].text;
-  assert.match(settings, /This question is about RabAI's own library/);
+  assert.match(settings, /This question is about RabbAI's own library/);
   assert.match(settings, /Books this question names[\s\S]*Mishnah Berurah/);
   assert.ok(!/No passages were found/.test(settings), "an empty search is not reported as a missing Torah source");
 

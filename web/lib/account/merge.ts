@@ -7,9 +7,9 @@ import { MAX_CHATS, type SavedChat } from "../saved-chats";
  * copy and on the device when the account answers, so both sides settle on the same result.
  *
  * The profile
- * - What they told RabAI, and the remember switch: each comes from the copy where it changed last
+ * - What they told RabbAI, and the remember switch: each comes from the copy where it changed last
  *   (statedAt, rememberAt). A tie on the switch keeps remembering off if either copy has it off.
- * - What RabAI noticed: forgetting wins. Only what was noticed after the latest "forget" in either
+ * - What RabbAI noticed: forgetting wins. Only what was noticed after the latest "forget" in either
  *   copy is kept (observedSince). A copy that forgot earlier can still add a book or word it noticed
  *   after that, but counted once, since its older counts may be from before the forget; its other
  *   counts are left out.
@@ -77,7 +77,7 @@ function mergeObserved(a: LearnerProfile, b: LearnerProfile, mode: MergeMode): {
 }
 
 /**
- * One profile from two. `base` wins ties on what the person told RabAI (pass the account's copy as
+ * One profile from two. `base` wins ties on what the person told RabbAI (pass the account's copy as
  * base on the server, and the device's own copy as base on the device).
  */
 export function mergeProfiles(base: LearnerProfile, other: LearnerProfile, mode: MergeMode = "sync"): LearnerProfile {
@@ -99,8 +99,8 @@ export function mergeProfiles(base: LearnerProfile, other: LearnerProfile, mode:
 
 /**
  * What a device's copy says when nothing about the person is taken from it: only the switch, and
- * any forgetting (when it last forgot what RabAI noticed, and, if it holds nothing the person told
- * RabAI, when that was cleared). Times only; no books, words, counts or answers.
+ * any forgetting (when it last forgot what RabbAI noticed, and, if it holds nothing the person told
+ * RabbAI, when that was cleared). Times only; no books, words, counts or answers.
  */
 function switchAndForgetting(p: LearnerProfile): LearnerProfile {
   return {

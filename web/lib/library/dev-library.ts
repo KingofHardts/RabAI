@@ -10,7 +10,7 @@ import type { Passage, Work } from "./types";
  */
 
 const DEV_EDITION = "Development text, typed from the standard text. To be replaced by the approved edition.";
-const DEV_TRANSLATION = { by: "RabAI team (placeholder)", status: "development" as const };
+const DEV_TRANSLATION = { by: "RabbAI team (placeholder)", status: "development" as const };
 
 export const DEV_WORKS: Work[] = [
   { id: "bereishit", title: "Bereishit", he: "בראשית", canonId: "tanakh", kind: "text", edition: DEV_EDITION, translation: DEV_TRANSLATION, library: "development", aliases: ["genesis", "bereishis", "bereshit", "creation"] },

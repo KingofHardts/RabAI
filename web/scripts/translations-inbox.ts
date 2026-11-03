@@ -1,6 +1,6 @@
 /*
  * The import side of the translation inbox (see scripts/translate-here.ts). Runs in GitHub Actions
- * ("RabAI's translation inbox" workflow), connected to the testing library (read) and RabAI's
+ * ("RabbAI's translation inbox" workflow), connected to the testing library (read) and RabbAI's
  * translation library (read and write) by tools/translations_setup.py --inbox.
  *
  *   npx tsx scripts/translations-inbox.ts key      Make the inbox's key pair the first time: the
@@ -71,7 +71,7 @@ async function main() {
   if (mode !== "import") throw new Error("Say key or import.");
 
   const files = existsSync(INBOX) ? readdirSync(INBOX).filter((f) => f.endsWith(".sealed")).sort() : [];
-  say("### RabAI's translation inbox");
+  say("### RabbAI's translation inbox");
   if (!files.length) {
     say("- No sealed files to import.");
     return;

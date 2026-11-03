@@ -77,7 +77,7 @@ export function isHttps(request: Request): boolean {
 }
 
 /**
- * Whether a request that changes something came from RabAI's own pages. A browser always says
+ * Whether a request that changes something came from RabbAI's own pages. A browser always says
  * where a form or fetch came from; a request from another site is refused, so no other site can
  * sign someone in or out, or change their account.
  */

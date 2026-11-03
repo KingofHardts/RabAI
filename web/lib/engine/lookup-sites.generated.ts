@@ -274,7 +274,7 @@ export const NOT_FOR_WEB: BarredSite[] = [
   {
     "domain": "sefaria.org",
     "name": "Sefaria",
-    "reason": "Hosts non-Orthodox editions and community source sheets; RabAI reads its whitelisted editions through the library instead"
+    "reason": "Hosts non-Orthodox editions and community source sheets; RabbAI reads its whitelisted editions through the library instead"
   },
   {
     "domain": "judaism.stackexchange.com",

@@ -3,7 +3,7 @@ import { gunzipSync, gzipSync } from "node:zlib";
 
 /*
  * Sealed files for the translation inbox (scripts/translate-here.ts and
- * scripts/translations-inbox.ts). Translations made inside a Claude Code session travel to RabAI's
+ * scripts/translations-inbox.ts). Translations made inside a Claude Code session travel to RabbAI's
  * translation library through the public GitHub repository, so they are sealed first: anyone can
  * seal a file with the inbox's public key, and only the import job, which holds the private key in
  * the translation library's own database, can open it. Unreviewed translations are never public.

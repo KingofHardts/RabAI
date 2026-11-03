@@ -24,7 +24,7 @@ export interface DafPageProps {
   selectedRef: string | null;
   linkedRefs: ReadonlySet<string>;
   activeWord: { ref: string; index: number } | null;
-  /** RabAI's outline, when "Show the flow" is on: its phrases, the kind shown, and the current phrase. */
+  /** RabbAI's outline, when "Show the flow" is on: its phrases, the kind shown, and the current phrase. */
   flow: FlowView | null;
   /** The person's own marks: a color name for each line or comment they marked. */
   marks: Readonly<Record<string, string>>;

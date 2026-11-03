@@ -4,28 +4,28 @@
  */
 
 export function signInEmail(link: string): { subject: string; text: string; html: string } {
-  const subject = "Your sign-in link for RabAI";
+  const subject = "Your sign-in link for RabbAI";
   const text = [
     "Shalom,",
     "",
-    "Here is your link to sign in to RabAI:",
+    "Here is your link to sign in to RabbAI:",
     link,
     "",
     "It works once, for the next 15 minutes. Open it on the device you want to sign in on.",
     "",
     "If you didn't ask for this, you can ignore this email. Nothing happens without the link.",
     "",
-    "RabAI",
+    "RabbAI",
   ].join("\n");
   const safe = link.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const html = `<!doctype html><html><body style="font-family: Georgia, serif; font-size: 17px; line-height: 1.6; color: #1F1B16; background: #FBF8F1; padding: 24px;">
 <p>Shalom,</p>
-<p>Here is your link to sign in to RabAI:</p>
-<p><a href="${safe}" style="display: inline-block; background: #22508C; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 999px; font-family: Arial, sans-serif; font-size: 15px;">Sign in to RabAI</a></p>
+<p>Here is your link to sign in to RabbAI:</p>
+<p><a href="${safe}" style="display: inline-block; background: #22508C; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 999px; font-family: Arial, sans-serif; font-size: 15px;">Sign in to RabbAI</a></p>
 <p style="font-size: 14px; color: #5b5346;">Or copy this address into your browser:<br>${safe}</p>
 <p>It works once, for the next 15 minutes. Open it on the device you want to sign in on.</p>
 <p>If you didn't ask for this, you can ignore this email. Nothing happens without the link.</p>
-<p>RabAI</p>
+<p>RabbAI</p>
 </body></html>`;
   return { subject, text, html };
 }

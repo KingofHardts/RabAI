@@ -1,5 +1,5 @@
 /**
- * Which of a text's cross-references RabAI opens first, the way a learner opens the books.
+ * Which of a text's cross-references RabbAI opens first, the way a learner opens the books.
  *
  * A seif of the Shulchan Aruch is read with the commentaries printed around it, the main ones
  * first: on Orach Chayim the Mishnah Berurah and the Biur Halacha, then the Magen Avraham and
@@ -31,7 +31,7 @@ import {
   TORAH_ORDER,
 } from "./reading-order.generated";
 
-/** A link from a line RabAI opened (the anchor) to another line. */
+/** A link from a line RabbAI opened (the anchor) to another line. */
 export interface LinkPair {
   anchor: string;
   other: string;
@@ -341,7 +341,7 @@ interface Candidate {
 
 /**
  * The other lines of these links, in the order to open them, at most `limit`. The anchors are
- * the lines RabAI opened, first first; a line linked from several anchors is placed by its best
+ * the lines RabbAI opened, first first; a line linked from several anchors is placed by its best
  * link, and the anchors themselves are never returned.
  */
 export function orderLinked(pairs: LinkPair[], anchors: string[], limit: number): string[] {

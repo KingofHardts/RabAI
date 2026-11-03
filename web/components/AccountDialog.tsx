@@ -5,7 +5,7 @@ import type { AccountApi, AccountState } from "./use-account";
 
 /*
  * "Your account": sign in by email link, and once signed in: download, sign out, or delete
- * (docs/learner-profiles.md, phase 2). RabAI doesn't keep the email address, so it never shows it
+ * (docs/learner-profiles.md, phase 2). RabbAI doesn't keep the email address, so it never shows it
  * once the link is sent.
  */
 
@@ -77,12 +77,12 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
         ) : status === "signed-in" ? (
           <>
             <p className="account-lead">
-              <strong>You&rsquo;re signed in.</strong> Your chats and what RabAI knows about you are kept in your account, and
+              <strong>You&rsquo;re signed in.</strong> Your chats and what RabbAI knows about you are kept in your account, and
               follow you to your other devices.
             </p>
             {state.syncError && (
               <p className="note">
-                Couldn&rsquo;t save to your account just now. Your changes are kept on this device and will be saved when RabAI
+                Couldn&rsquo;t save to your account just now. Your changes are kept on this device and will be saved when RabbAI
                 can reach your account.
               </p>
             )}
@@ -99,7 +99,7 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
             {confirm === "signout" && (
               <div className="account-confirm" role="group" aria-label="Sign out">
                 <p>
-                  Sign out on this device? Your chats and what RabAI knows about you stay in your account, and are taken off this
+                  Sign out on this device? Your chats and what RabbAI knows about you stay in your account, and are taken off this
                   device.
                 </p>
                 <div className="account-actions">
@@ -116,7 +116,7 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
               {confirm === "delete" ? (
                 <div className="account-confirm">
                   <p>
-                    <strong>Delete your account?</strong> This deletes your chats and everything RabAI knows about you, from your
+                    <strong>Delete your account?</strong> This deletes your chats and everything RabbAI knows about you, from your
                     account and from this device. It can&rsquo;t be undone.
                   </p>
                   <div className="account-actions">
@@ -156,8 +156,8 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
         ) : (
           <>
             <p className="account-lead">
-              Sign in, and your chats and what RabAI knows about you follow you to your phone and your computer. There&rsquo;s no
-              password: RabAI emails you a link.
+              Sign in, and your chats and what RabbAI knows about you follow you to your phone and your computer. There&rsquo;s no
+              password: RabbAI emails you a link.
             </p>
             <form className="account-form" onSubmit={send}>
               <label htmlFor="account-email">Your email</label>
@@ -176,7 +176,7 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
                 aria-describedby={error ? "account-error" : "account-hint"}
               />
               <p id="account-hint" className="muted">
-                Your address is used only to send the link. RabAI doesn&rsquo;t keep it.
+                Your address is used only to send the link. RabbAI doesn&rsquo;t keep it.
               </p>
               <button className="btn primary" type="submit" disabled={pending || !email.trim()}>
                 {pending ? "Sending…" : "Send me a link"}
@@ -193,7 +193,7 @@ export default function AccountDialog({ state, api, onClose }: { state: AccountS
 
         <p className="account-foot">
           <a href="/privacy" target="_blank" rel="noopener">
-            What RabAI keeps, and why
+            What RabbAI keeps, and why
           </a>
         </p>
       </div>

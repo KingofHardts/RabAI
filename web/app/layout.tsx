@@ -3,7 +3,7 @@ import "./globals.css";
 import { dafFontVariables } from "./daf-fonts";
 
 export const metadata: Metadata = {
-  title: "RabAI",
+  title: "RabbAI",
   description: "An AI Torah teacher that answers from the Orthodox mesorah and opens the sources with you, and someone to talk with about anything.",
   robots: { index: false, follow: false },
 };

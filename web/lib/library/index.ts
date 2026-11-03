@@ -267,7 +267,7 @@ export function search(lib: Library, query: string, opts: SearchOptions = {}): P
   for (const hit of best) {
     if (picked.size >= limit) break;
     add(hit.passage);
-    // Keep each text with its commentary, so RabAI can explain the commentary on its line.
+    // Keep each text with its commentary, so RabbAI can explain the commentary on its line.
     if (hit.passage.on) add(getPassage(lib, hit.passage.on));
     else for (const c of commentariesOn(lib, hit.passage.ref)) if (hit.score >= 4) add(c);
   }

@@ -1,15 +1,15 @@
 /*
- * What RabAI knows about the person it is learning with (docs/learner-profiles.md).
+ * What RabbAI knows about the person it is learning with (docs/learner-profiles.md).
  *
  * Two parts, kept on the person's device, and in their account when they sign in
  * (lib/account/, which merges the copies with mergeProfiles in lib/account/merge.ts):
- * - What they told RabAI ("About you" in settings): how much they have learned, their community,
+ * - What they told RabbAI ("About you" in settings): how much they have learned, their community,
  *   how well they read Hebrew, how they like answers, what they want to learn.
- * - What RabAI noticed while they learned: the books and sections they read, the words they
+ * - What RabbAI noticed while they learned: the books and sections they read, the words they
  *   looked up, and whether they asked for simpler or deeper answers. Only learning activity is
  *   kept: never health, feelings, observance, or anything else about their life.
  *
- * The person can see all of it, change it, and turn remembering off. RabAI uses it only to choose
+ * The person can see all of it, change it, and turn remembering off. RabbAI uses it only to choose
  * its level, words and examples, never to change what the Torah says (core premises, "What you
  * know about the person"). Pure functions only: the app reads and writes localStorage, and the
  * server builds the lines the model sees from a checked copy (profileSummary).
@@ -88,8 +88,8 @@ export interface LearnerProfile {
   updatedAt: number;
   /**
    * When each part last changed, so two copies (this device and the person's account) can be
-   * merged without losing a change: what they told RabAI, the remember switch, and when they last
-   * asked RabAI to forget what it noticed. 0 when never.
+   * merged without losing a change: what they told RabbAI, the remember switch, and when they last
+   * asked RabbAI to forget what it noticed. 0 when never.
    */
   statedAt: number;
   rememberAt: number;
@@ -215,7 +215,7 @@ export function withRemember(profile: LearnerProfile, on: boolean, now = Date.no
   return { ...profile, remember: on, updatedAt: now, rememberAt: now };
 }
 
-/** Forget everything RabAI noticed, keeping what the person said about themselves. */
+/** Forget everything RabbAI noticed, keeping what the person said about themselves. */
 export function forgetNoticed(profile: LearnerProfile, now = Date.now()): LearnerProfile {
   return { ...profile, observed: emptyProfile().observed, updatedAt: now, observedSince: now };
 }

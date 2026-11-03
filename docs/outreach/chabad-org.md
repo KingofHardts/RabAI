@@ -5,15 +5,15 @@ repo. Once sent, set `status: contacted` for `chabad-org` in `canon/partners.yam
 
 ---
 
-**Subject:** Including Chabad.org's Torah in RabAI, a free Orthodox learning app
+**Subject:** Including Chabad.org's Torah in RabbAI, a free Orthodox learning app
 
 Shalom [name],
 
 For many Jews, Chabad.org is the first place they turn with a question about Judaism. I'm
 writing about a project built to serve the same people, and I'd be grateful for your guidance.
 
-RabAI is a free Torah learning app. Someone asks a question, about a pasuk, a halacha, a
-holiday, or something they've always wondered, and RabAI answers like a warm rebbe would,
+RabbAI is a free Torah learning app. Someone asks a question, about a pasuk, a halacha, a
+holiday, or something they've always wondered, and RabbAI answers like a warm rebbe would,
 from inside the Orthodox mesorah. Every answer rests on real sources: the app shows the exact
 words it relies on and opens the text so people can read it themselves. It never quotes a
 source it doesn't have, and for anything about a person's own situation it sends them to
@@ -36,7 +36,7 @@ Here's how we'd use it, and the limits we'd keep:
 - You could see how it appears through a private login, flag anything, and have it removed at
   any time.
 
-RabAI is free; we accept voluntary donations. Every quote would send people to chabad.org,
+RabbAI is free; we accept voluntary donations. Every quote would send people to chabad.org,
 where they can keep learning and find their local Chabad House.
 
 Could we find 20 minutes to talk?

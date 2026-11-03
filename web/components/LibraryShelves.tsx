@@ -213,7 +213,7 @@ export default function LibraryShelves({
             </button>
           )}
           <button type="button" className="btn quiet" disabled={pending} onClick={() => onLearn(b.title)}>
-            Learn it with RabAI
+            Learn it with RabbAI
           </button>
         </div>
 

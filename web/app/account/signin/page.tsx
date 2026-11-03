@@ -6,17 +6,17 @@ import { tokenShape } from "@/lib/account/crypto";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sign in · RabAI",
+  title: "Sign in · RabbAI",
   // The link's token is in this page's address: never send it on to another site. ("no-referrer"
   // would also blank the Origin of the page's own Sign in button, which the server checks.)
   referrer: "same-origin",
 };
 
 const PROBLEMS: Record<string, string> = {
-  used: "This link has already been used. Each link works once. You can ask for a new one in RabAI: the gear at the top, then Your account.",
-  expired: "This link has expired. Links work for 15 minutes. You can ask for a new one in RabAI: the gear at the top, then Your account.",
-  unknown: "This link isn't one RabAI can use. It may have been copied only in part. You can ask for a new one in RabAI.",
-  invalid: "This link isn't complete. It may have been copied only in part. You can ask for a new one in RabAI.",
+  used: "This link has already been used. Each link works once. You can ask for a new one in RabbAI: the gear at the top, then Your account.",
+  expired: "This link has expired. Links work for 15 minutes. You can ask for a new one in RabbAI: the gear at the top, then Your account.",
+  unknown: "This link isn't one RabbAI can use. It may have been copied only in part. You can ask for a new one in RabbAI.",
+  invalid: "This link isn't complete. It may have been copied only in part. You can ask for a new one in RabbAI.",
   busy: "There were too many tries from here. Please wait a little and try the link again.",
   off: "Accounts aren't switched on yet.",
   elsewhere: "That didn't come from this page. Please open the link from your email again.",
@@ -39,18 +39,18 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
           <div className="mark" aria-hidden="true">
             ר
           </div>
-          <h1>Sign in to RabAI</h1>
+          <h1>Sign in to RabbAI</h1>
         </div>
         {problem ? (
           <>
             <p role="alert">{problem}</p>
             <p className="unlock-links">
-              <Link href="/">Back to RabAI</Link>
+              <Link href="/">Back to RabbAI</Link>
             </p>
           </>
         ) : (
           <>
-            <p>Press the button to finish signing in on this device. Your chats and what RabAI knows about you will follow you here.</p>
+            <p>Press the button to finish signing in on this device. Your chats and what RabbAI knows about you will follow you here.</p>
             <form method="post" action="/api/account/signin" className="unlock-form">
               <input type="hidden" name="token" value={token} />
               <button className="send" type="submit">
@@ -58,7 +58,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
               </button>
             </form>
             <p className="unlock-links">
-              <Link href="/privacy">What RabAI keeps, and why</Link>
+              <Link href="/privacy">What RabbAI keeps, and why</Link>
             </p>
           </>
         )}

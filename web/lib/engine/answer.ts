@@ -21,7 +21,7 @@ export const LINE_ACTIONS: readonly LineAction[] = ["explain", "words", "comment
 export interface Turn {
   role: "user" | "assistant";
   text: string;
-  /** Pictures the person sent with this earlier question, sent again so RabAI can still see them. */
+  /** Pictures the person sent with this earlier question, sent again so RabbAI can still see them. */
   pictures?: QuestionPicture[];
 }
 
@@ -37,7 +37,7 @@ export interface AskInput {
   growth?: boolean;
   /** The person asked to go deeper: think harder and allow a fuller answer. */
   deep?: boolean;
-  /** What the person told RabAI about themselves and what they have been learning (checked). */
+  /** What the person told RabbAI about themselves and what they have been learning (checked). */
   profile?: LearnerProfile;
   /** Pictures the person attached to the question (lib/pictures.ts), already checked. */
   pictures?: QuestionPicture[];
@@ -45,7 +45,7 @@ export interface AskInput {
 
 /** Progress reports while an answer is being made, for a live screen. */
 export interface AskHooks {
-  /** A short note on what RabAI is doing, such as "Looking in the library". */
+  /** A short note on what RabbAI is doing, such as "Looking in the library". */
   onStatus?: (text: string) => void;
   /** Each new piece of the answer's text as the model writes it. */
   onText?: (delta: string) => void;
@@ -74,16 +74,16 @@ export interface AskResult {
    * one's rav under the answer.
    */
   practical?: boolean;
-  /** What RabAI looked up online for this answer, when it did. */
+  /** What RabbAI looked up online for this answer, when it did. */
   online?: OnlineReport;
   /**
-   * A question about RabAI's own library (which books it reads, what it leaves out). The app
+   * A question about RabbAI's own library (which books it reads, what it leaves out). The app
    * shows a link to the full sources list under the answer.
    */
   aboutLibrary?: boolean;
 }
 
-/** The pages RabAI looked up online for an answer, shown apart from the texts. */
+/** The pages RabbAI looked up online for an answer, shown apart from the texts. */
 export interface OnlineReport {
   /** "torah": trusted Orthodox sites only. "general": the open web, for everyday facts. */
   kind: "torah" | "general";
@@ -140,7 +140,7 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelCl
 
 const APP_INSTRUCTIONS = `## How this app works
 
-You are answering inside the RabAI app. The person sees your answer in a conversation, and
+You are answering inside the RabbAI app. The person sees your answer in a conversation, and
 every source you cite becomes a button that opens the text itself in a reader beside it.
 
 Sources:
@@ -168,8 +168,8 @@ Sources:
   was not written by an Orthodox author: use it only for what a word means, never for history
   or belief, and where the Aruch, Rashi, the Targum or the Radak explain a word differently,
   follow them.
-- Documents titled "Found online: ..." are pages RabAI looked up for this question: from a
-  trusted Orthodox website on RabAI's list or, for an everyday fact, from the open web. Each holds
+- Documents titled "Found online: ..." are pages RabbAI looked up for this question: from a
+  trusted Orthodox website on RabbAI's list or, for an everyday fact, from the open web. Each holds
   only the page's own words. They are not sources. Follow "Looking things up" in your
   instructions: rest your answer on the texts, check each page's points against them, and say
   plainly what you couldn't confirm. Cite a page where you use its words; the app lists the pages
@@ -301,9 +301,9 @@ function documentContext(passage: Passage, lib: Library): string {
     `The first part is the original text; the second is an English translation.`,
     work ? `Edition: ${work.edition}` : "",
     work?.translation.status === "development"
-      ? "The English is a development placeholder by the RabAI team, not an approved translation."
+      ? "The English is a development placeholder by the RabbAI team, not an approved translation."
       : work?.translation.status === "rabai"
-        ? "The English is RabAI's own translation."
+        ? "The English is RabbAI's own translation."
         : work
           ? `Translation: ${work.translation.by}.`
           : "",
@@ -357,7 +357,7 @@ export interface LookupNotes {
   online?: OnlineFindings;
   /** The library's texts opened because a page found online relies on them. */
   checked?: string[];
-  /** The person asks about RabAI's own library: RabAI is given the sources list (lib/sources). */
+  /** The person asks about RabbAI's own library: RabbAI is given the sources list (lib/sources). */
   library?: boolean;
 }
 
@@ -374,10 +374,10 @@ export function lookupSettings(notes: LookupNotes): string[] {
   const where = o.kind === "torah" ? "trusted Orthodox websites" : "the web";
   if (o.status === "failed") {
     lines.push(
-      `RabAI tried to look this up on ${where}, but the search didn't work just now. If the texts you were given don't cover the question, say that you couldn't check online right now.`,
+      `RabbAI tried to look this up on ${where}, but the search didn't work just now. If the texts you were given don't cover the question, say that you couldn't check online right now.`,
     );
   } else if (o.status === "none") {
-    lines.push(`RabAI looked this up on ${where} and found nothing useful. Answer from the texts you were given, or say that you don't have a source.`);
+    lines.push(`RabbAI looked this up on ${where} and found nothing useful. Answer from the texts you were given, or say that you don't have a source.`);
   } else if (o.kind === "torah") {
     const checked = notes.checked ?? [];
     lines.push(
@@ -402,11 +402,11 @@ export function searchQuery(input: AskInput): string {
   return `${buildQuestion(input)}\n${lastUser}`.trim();
 }
 
-/** The person's pictures, introduced so RabAI knows they are the person's and not documents. */
+/** The person's pictures, introduced so RabbAI knows they are the person's and not documents. */
 export function picturesContent(pictures: QuestionPicture[]) {
   const image = (p: QuestionPicture) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.data } });
   if (pictures.length === 1) return [{ type: "text" as const, text: "The picture the person sent:" }, image(pictures[0])];
-  // Each picture labeled, so RabAI can say which one it means ("in your second picture").
+  // Each picture labeled, so RabbAI can say which one it means ("in your second picture").
   return [
     { type: "text" as const, text: `The pictures the person sent (${pictures.length}):` },
     ...pictures.flatMap((p, i) => [{ type: "text" as const, text: `Picture ${i + 1}:` }, image(p)]),
@@ -428,7 +428,7 @@ export function planRequest(
   const history = (input.history ?? []).slice(-LIMITS.historyTurns);
   const lastUser = [...history].reverse().find((t) => t.role === "user")?.text ?? "";
   const query = searchQuery(input);
-  // For a word question, every place its root appears in the library comes along, so RabAI can
+  // For a word question, every place its root appears in the library comes along, so RabbAI can
   // show real connections and cite them.
   const connections = !retrieved && input.action === "word" && input.word ? connectionsFor(lib, input.word) : null;
   const related = connections?.passages ?? [];
@@ -456,7 +456,7 @@ export function planRequest(
       ? "No passages were found in the library for this question. For a Torah question, say so; for everyday conversation, answer without them and do not mention it."
       : "",
     notes.library
-      ? "This question is about RabAI's own library: answer it from \"RabAI's own library\" above, unless the person is really asking something else."
+      ? "This question is about RabbAI's own library: answer it from \"RabbAI's own library\" above, unless the person is really asking something else."
       : "",
     notes.library ? libraryDetails(lib.mode, query) : "",
     connections && input.word ? wordStudyNote(input.word, input.focusRef, connections.label, related, documents) : "",
@@ -517,7 +517,7 @@ export function planRequest(
     system: [
       { type: "text", text: CORE_PREMISES },
       { type: "text", text: APP_INSTRUCTIONS, cache_control: { type: "ephemeral" } },
-      // The sources list, when the person asks about RabAI's library: the same for every such
+      // The sources list, when the person asks about RabbAI's library: the same for every such
       // question, so it is cached too.
       ...(notes.library ? [{ type: "text" as const, text: libraryOverview(lib.mode), cache_control: { type: "ephemeral" as const } }] : []),
       { type: "text", text: settings },
@@ -551,7 +551,7 @@ export async function ask(
         safety: notice,
         libraryMode: lib.mode,
         droppedCitations: 0,
-        notice: "RabAI can't reach its library right now. Please try again in a moment.",
+        notice: "RabbAI can't reach its library right now. Please try again in a moment.",
       };
     }
     hooks.onStatus?.("Looking in the library");
@@ -577,13 +577,13 @@ export async function ask(
         safety: notice,
         libraryMode: lib.mode,
         droppedCitations: 0,
-        notice: "RabAI couldn't search its library just now. Please try again in a moment.",
+        notice: "RabbAI couldn't search its library just now. Please try again in a moment.",
       };
     }
   }
 
   // Without the lookup step (the development and approved libraries), a plainly worded question
-  // about RabAI's own library still gets the sources list. A line action is about its line.
+  // about RabbAI's own library still gets the sources list. A line action is about its line.
   if (lib.mode !== "testing" && !input.action && asksAboutLibrary(buildQuestion(input))) notes.library = true;
 
   const plan = planRequest(input, lib, engineConfig(), retrieved, notes);
@@ -606,7 +606,7 @@ export async function ask(
       ...base,
       status: "no_key",
       notice:
-        "RabAI isn't connected to its model yet, so it can't answer. These are the passages it found for your question. (Add ANTHROPIC_API_KEY to the server's settings.)",
+        "RabbAI isn't connected to its model yet, so it can't answer. These are the passages it found for your question. (Add ANTHROPIC_API_KEY to the server's settings.)",
     };
   }
 
@@ -626,7 +626,7 @@ export async function ask(
     return {
       ...base,
       status: "error",
-      notice: "Something went wrong reaching RabAI. Please try again in a moment.",
+      notice: "Something went wrong reaching RabbAI. Please try again in a moment.",
     };
   }
 
@@ -645,7 +645,7 @@ export async function ask(
     console.warn(`[rabai] dropped ${mapped.dropped} unverifiable citation(s)`);
   }
   if (!answerText(mapped).trim()) {
-    return { ...base, status: "error", model: message.model, notice: "RabAI didn't finish its answer. Please try asking again." };
+    return { ...base, status: "error", model: message.model, notice: "RabbAI didn't finish its answer. Please try asking again." };
   }
   return {
     ...base,

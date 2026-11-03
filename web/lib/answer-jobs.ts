@@ -7,7 +7,7 @@ import { peopleExec, type Exec } from "./account/people";
  * you"). Server only.
  *
  * When the app asks a question, it names the answer with a long random id it chose itself. The
- * answer is then written on the server whether or not the page stays open: what RabAI is doing,
+ * answer is then written on the server whether or not the page stays open: what RabbAI is doing,
  * the text so far, and at the end the checked answer are kept under a hash of that id, so the page
  * can come back and pick them up. The page removes the answer as soon as it has it; anything left
  * over is deleted after a day.
@@ -37,7 +37,7 @@ export type JobStatus = "running" | "done" | "stopped" | "failed";
 
 export interface JobView {
   status: JobStatus;
-  /** Notes on what RabAI is doing, such as "Looking in the library". */
+  /** Notes on what RabbAI is doing, such as "Looking in the library". */
   steps: string[];
   /** The answer's text so far (live text, without citations). */
   text: string;

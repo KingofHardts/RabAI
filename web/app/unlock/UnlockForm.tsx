@@ -25,7 +25,7 @@ export default function UnlockForm({ next }: { next: string }) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       setError(data.error ?? "Something went wrong. Please try again.");
     } catch {
-      setError("Couldn't reach RabAI. Check your connection and try again.");
+      setError("Couldn't reach RabbAI. Check your connection and try again.");
     }
     setPending(false);
   }
@@ -50,7 +50,7 @@ export default function UnlockForm({ next }: { next: string }) {
         </p>
       ) : null}
       <button className="send" type="submit" disabled={pending || !code.trim()}>
-        {pending ? "Checking…" : "Open RabAI"}
+        {pending ? "Checking…" : "Open RabbAI"}
       </button>
     </form>
   );

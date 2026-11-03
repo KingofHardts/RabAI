@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs what RabAI's checks need, so a new Claude Code cloud session can run
+# Installs what RabbAI's checks need, so a new Claude Code cloud session can run
 # tools/validate.py, the app's tests and its type check right away.
 set -euo pipefail
 

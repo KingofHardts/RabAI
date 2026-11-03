@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Set up RabAI's translation library on Turso, and connect the app and the batch job to it.
+"""Set up RabbAI's translation library on Turso, and connect the app and the batch job to it.
 
-RabAI's translation library keeps every translation RabAI makes (web/lib/library/translations.ts),
+RabbAI's translation library keeps every translation RabbAI makes (web/lib/library/translations.ts),
 so a passage is translated once for everyone. It is its own database, "rabai-translations", in the
 same Turso group as the testing library. Rebuilding the testing library replaces only
 "rabai-library", so the translations are never lost. This script never deletes anything.
@@ -78,7 +78,7 @@ def connect_app(token: str, org: str, url: str) -> None:
     mask(vercel)
     if not vercel:
         summary("- No VERCEL_TOKEN secret, so the app was not connected. See web/README.md, "
-                "\"RabAI's translation library\".")
+                "\"RabbAI's translation library\".")
         return
     # The app reads and writes this database (it keeps each new translation), so its token is
     # read and write, and it can reach only this database.
@@ -91,7 +91,7 @@ def setup(token: str, org: str) -> int:
     group = turso_group(token, org)
     hostname, created = ensure_database(token, org, group)
     url = f"libsql://{hostname}"
-    summary("## RabAI's translation library")
+    summary("## RabbAI's translation library")
     summary(f"- Database: `{url}` ({'created now, empty' if created else 'already there, kept as it is'}).")
     summary("- The app makes its tables the first time it uses it.")
     connect_app(token, org, url)
@@ -104,7 +104,7 @@ def run_inbox(token: str, org: str) -> int:
     group = turso_group(token, org)
     hostname, created = ensure_database(token, org, group)
     if created:
-        summary("## RabAI's translation library")
+        summary("## RabbAI's translation library")
         summary(f"- Database `libsql://{hostname}` created now, empty.")
         connect_app(token, org, f"libsql://{hostname}")
     return run_env(token, org)

@@ -19,7 +19,7 @@ import {
 } from "@/lib/learner-profile";
 
 /*
- * "About you": what the person tells RabAI about themselves, and everything RabAI has noticed
+ * "About you": what the person tells RabbAI about themselves, and everything RabbAI has noticed
  * while they learned, which they can see, change, and forget (docs/learner-profiles.md).
  */
 
@@ -81,7 +81,7 @@ export default function AboutYou({
           </button>
         </div>
         <p className="muted">
-          RabAI uses this to explain things at your level, with words and examples that fit you. It never changes what the
+          RabbAI uses this to explain things at your level, with words and examples that fit you. It never changes what the
           sources say.{" "}
           {signedIn
             ? "It is kept in your account, so it follows you to your other devices, and you can change or forget any of it."
@@ -97,7 +97,7 @@ export default function AboutYou({
         </p>
 
         <label className="about-field">
-          <span>What should RabAI call you? (optional)</span>
+          <span>What should RabbAI call you? (optional)</span>
           <input
             ref={first}
             type="text"
@@ -166,15 +166,15 @@ export default function AboutYou({
           <input type="checkbox" checked={profile.remember} onChange={(e) => onRemember(e.target.checked)} />
           <span>
             <strong>Remember what I learn</strong>
-            <span className="muted">The books you read and the words you look up, so RabAI can help you review and pick up where you are.</span>
+            <span className="muted">The books you read and the words you look up, so RabbAI can help you review and pick up where you are.</span>
           </span>
         </label>
 
-        <section className="about-noticed" aria-label="What RabAI has noticed">
-          <h3>What RabAI has noticed</h3>
+        <section className="about-noticed" aria-label="What RabbAI has noticed">
+          <h3>What RabbAI has noticed</h3>
           {!profile.remember ? (
             <p className="muted">
-              Remembering is off. RabAI notices nothing and sends nothing about you with your questions
+              Remembering is off. RabbAI notices nothing and sends nothing about you with your questions
               {signedIn ? ", and saves nothing new about you to your account" : ""}.
             </p>
           ) : !o.books.length && !o.words.length && !o.questions ? (
@@ -199,7 +199,7 @@ export default function AboutYou({
                 {o.simpler + o.deeper > 0 ? `; asked for simpler ${o.simpler} time${o.simpler === 1 ? "" : "s"} and deeper ${o.deeper} time${o.deeper === 1 ? "" : "s"}` : ""}.
               </p>
               <button type="button" className="btn quiet" onClick={onForgetNoticed}>
-                Forget what RabAI noticed
+                Forget what RabbAI noticed
               </button>
             </>
           )}
@@ -208,7 +208,7 @@ export default function AboutYou({
         <div className="about-foot">
           {confirmAll ? (
             <>
-              <span>Forget everything here, including what you told RabAI?</span>
+              <span>Forget everything here, including what you told RabbAI?</span>
               <button type="button" className="btn danger" onClick={() => { onForgetAll(); setConfirmAll(false); setName(""); }}>
                 Forget it all
               </button>

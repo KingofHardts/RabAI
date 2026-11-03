@@ -10,7 +10,7 @@ import type { TestingStore } from "../lib/library/testing";
 import type { Passage } from "../lib/library/types";
 
 /*
- * RabAI's translation library: the readings check, the store, the sources a translation is made
+ * RabbAI's translation library: the readings check, the store, the sources a translation is made
  * from, and the batch job that fills the library. The texts are short test lines, not an edition.
  */
 

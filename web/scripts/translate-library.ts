@@ -1,5 +1,5 @@
 /*
- * Fill RabAI's translation library ahead of time (see lib/engine/translate-batch.ts).
+ * Fill RabbAI's translation library ahead of time (see lib/engine/translate-batch.ts).
  *
  * Usage, from web/:
  *   npx tsx scripts/translate-library.ts estimate --books "Rashi on Berakhot" [--like "Rashi on %"] [--works rishonim-shas] [--words] [--model claude-opus-5-5]
@@ -13,9 +13,9 @@
  * collect   keeps the results of batches sent earlier that weren't collected yet.
  *
  * Settings (environment): the testing library (TURSO_DATABASE_URL and TURSO_AUTH_TOKEN, or
- * RABAI_LIBRARY_DB_URL), RabAI's translation library (TRANSLATIONS_DATABASE_URL and
+ * RABAI_LIBRARY_DB_URL), RabbAI's translation library (TRANSLATIONS_DATABASE_URL and
  * TRANSLATIONS_AUTH_TOKEN, or RABAI_TRANSLATIONS_DB_URL), and ANTHROPIC_API_KEY. In GitHub
- * Actions, the "RabAI's translation library" workflow sets them all.
+ * Actions, the "RabbAI's translation library" workflow sets them all.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { appendFileSync } from "node:fs";
@@ -106,7 +106,7 @@ async function main() {
   const store = testingStore();
   if (!store) throw new Error("Set the testing library (TURSO_DATABASE_URL or RABAI_LIBRARY_DB_URL).");
   const library = translationStore();
-  if (!library) throw new Error("Set RabAI's translation library (TRANSLATIONS_DATABASE_URL or RABAI_TRANSLATIONS_DB_URL).");
+  if (!library) throw new Error("Set RabbAI's translation library (TRANSLATIONS_DATABASE_URL or RABAI_TRANSLATIONS_DB_URL).");
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const anthropic = apiKey ? new Anthropic({ apiKey }) : null;
   const waitMinutes = Number(opt("wait-minutes") ?? 300);
@@ -168,7 +168,7 @@ async function main() {
   const measured = await measuredRate(await library.jobs(), sel);
   const rate = measured ?? assumedRate;
 
-  say(`### RabAI's translation library: ${mode}`);
+  say(`### RabbAI's translation library: ${mode}`);
   say(`- Books: ${titles.length <= 8 ? titles.join(", ") : `${titles.slice(0, 8).join(", ")} and ${titles.length - 8} more`}`);
   say(`- Passages${sel.want.words ? "" : " without English"}: ${counted.passages.toLocaleString()}, about ${counted.words.toLocaleString()} Hebrew words (some may already be translated${sel.want.words ? "; the estimate counts a general translation for every one, so it runs high where the library has English" : ""}).`);
   say(`- Making: the general translation${sel.want.words ? " and word by word" : ""}, with ${model}, at batch prices.`);

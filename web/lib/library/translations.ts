@@ -4,12 +4,12 @@ import { wordsFingerprint } from "./daf";
 import { passageWords, readKeptTranslation, type Translation } from "../engine/gloss";
 
 /*
- * RabAI's translation library: every translation RabAI makes (lib/engine/translate.ts) is kept
+ * RabbAI's translation library: every translation RabbAI makes (lib/engine/translate.ts) is kept
  * here, so a passage is translated once for everyone, and a batch job can fill it ahead of time
  * (scripts/translate-library.ts). It is its own database, apart from the testing library, so a
  * rebuild of the testing library never loses it, and the app can write to it.
  *
- * Every translation here is RabAI's own and is labeled as not yet reviewed by the rabbinic board
+ * Every translation here is RabbAI's own and is labeled as not yet reviewed by the rabbinic board
  * wherever it is shown. Each row records the text it translated (a check value of its words), so
  * a translation of an older text is never shown beside a newer one.
  */
@@ -226,7 +226,7 @@ export function createTranslationStore(exec: Exec): TranslationStore {
 
 let cached: { url: string; store: TranslationStore } | null = null;
 
-/** RabAI's translation library, or null when the app isn't connected to one. */
+/** RabbAI's translation library, or null when the app isn't connected to one. */
 export function translationStore(env: Record<string, string | undefined> = process.env): TranslationStore | null {
   const url = translationsDbUrl(env);
   if (!url) return null;

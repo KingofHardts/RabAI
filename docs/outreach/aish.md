@@ -5,14 +5,14 @@ repo. Once sent, set `status: contacted` for `aish` in `canon/partners.yaml`.
 
 ---
 
-**Subject:** Including Aish's Torah in RabAI, a free Orthodox learning app
+**Subject:** Including Aish's Torah in RabbAI, a free Orthodox learning app
 
 Shalom [name],
 
 I'm reaching out about a project I think fits Aish's mission, and I'd love your guidance on it.
 
-RabAI is a free Torah learning app. Someone asks a question, about a pasuk, a Gemara, a
-halacha, or something they've always wondered, and RabAI answers like a warm rebbe would,
+RabbAI is a free Torah learning app. Someone asks a question, about a pasuk, a Gemara, a
+halacha, or something they've always wondered, and RabbAI answers like a warm rebbe would,
 from inside the Orthodox mesorah. Every answer rests on real sources: the app shows the exact
 words it relies on and opens the text so people can read it themselves. It never quotes a
 source it doesn't have, and for anything about a person's own situation it sends them to
@@ -35,7 +35,7 @@ Here's how we'd use it, and the limits we'd keep:
 - You could see how it appears through a private login, flag anything, and have it removed at
   any time.
 
-RabAI is free; we accept voluntary donations. Every quote would send people back to aish.com.
+RabbAI is free; we accept voluntary donations. Every quote would send people back to aish.com.
 
 Could we find 20 minutes to talk? [If someone at Aish already knows me: mention them here.]
 

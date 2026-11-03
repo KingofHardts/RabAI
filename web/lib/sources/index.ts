@@ -7,28 +7,28 @@ export { SOURCES, fold };
 export type * from "./types";
 
 /*
- * What RabAI reads, and what it leaves out, from the same list the rabbinic board reviews
- * (docs/sources-for-review.md, made from the canon by tools/review_list.py). RabAI is given this
+ * What RabbAI reads, and what it leaves out, from the same list the rabbinic board reviews
+ * (docs/sources-for-review.md, made from the canon by tools/review_list.py). RabbAI is given this
  * when someone asks about its own library, and the Sources page (app/sources) shows it.
  */
 
-/** Whether RabAI reads this edition in this mode. */
+/** Whether RabbAI reads this edition in this mode. */
 export function readsEdition(e: SourceEdition, mode: LibraryMode): boolean {
   if (mode === "approved") return e.approved;
   return e.state === "testing";
 }
 
-/** The editions of a work RabAI reads in this mode. */
+/** The editions of a work RabbAI reads in this mode. */
 export function editionsRead(w: SourceWork, mode: LibraryMode): SourceEdition[] {
   return w.editions.filter((e) => readsEdition(e, mode));
 }
 
 export interface SourceCounts {
-  /** Works with at least one edition RabAI reads. */
+  /** Works with at least one edition RabbAI reads. */
   read: number;
   /** Works with an edition waiting for the board. */
   waiting: number;
-  /** Works RabAI wants but doesn't read yet: no usable copy, or the publisher's agreement is needed. */
+  /** Works RabbAI wants but doesn't read yet: no usable copy, or the publisher's agreement is needed. */
   notYet: number;
   cautions: number;
   leftOut: number;
@@ -69,7 +69,7 @@ const STATE_WORDS: Record<SourceEdition["state"], string> = {
   testing: "read now (private testing library, not yet approved by the board)",
   held: "waiting for the rabbinic board's decision",
   needs_agreement: "not used: copyrighted, needs the publisher's agreement",
-  no_copy: "not used: no copy RabAI may use yet",
+  no_copy: "not used: no copy RabbAI may use yet",
 };
 
 function editionWords(e: SourceEdition, mode: LibraryMode): string {
@@ -213,7 +213,7 @@ function readingOrderLines(data: SourcesData): string[] {
 const overviews = new Map<LibraryMode, string>();
 
 /**
- * What RabAI is told when someone asks about its own library: which books it reads, what waits
+ * What RabbAI is told when someone asks about its own library: which books it reads, what waits
  * for the board, what is left out and why, the order it opens the commentaries in, and the
  * websites it may search. The same for every question in a mode, so it can be cached; the books a
  * question names are added by libraryDetails.
@@ -228,9 +228,9 @@ export function libraryOverview(mode: LibraryMode, data: SourcesData = SOURCES):
 function buildOverview(mode: LibraryMode, data: SourcesData): string {
   const counts = sourceCounts(mode, data);
   const lines: string[] = [];
-  lines.push("## RabAI's own library (for this question)");
+  lines.push("## RabbAI's own library (for this question)");
   lines.push(
-    "The person may be asking about you and your library: which books you read, whether a book is in your library, what you leave out and why, which commentaries you open, or which websites you search. If they are, answer from this list, which is made from RabAI's canon, the same list the rabbinic board is reviewing. If they are asking something else, ignore this section.",
+    "The person may be asking about you and your library: which books you read, whether a book is in your library, what you leave out and why, which commentaries you open, or which websites you search. If they are, answer from this list, which is made from RabbAI's canon, the same list the rabbinic board is reviewing. If they are asking something else, ignore this section.",
   );
   lines.push(
     [
@@ -239,7 +239,7 @@ function buildOverview(mode: LibraryMode, data: SourcesData): string {
       "- Say a book is in your library only if it is listed below as one you read. If a book isn't listed at all, say it isn't in your library, and that you haven't been given it rather than that it was rejected.",
       "- Say plainly that this list is a proposal: the rabbinic board has not approved it yet.",
       "- When you say why something is left out or waits, say it respectfully and briefly: about whether a book or a translation fits an Orthodox library, never about the people who wrote it or the communities that use it.",
-      "- Keep it short and plain: answer what they asked, give a few examples, and don't list every book unless they ask for a whole area. The full list, with every edition and the reasons, is on the Sources page (the gear at the top, then \"RabAI's sources\"); the app shows a link to it under your answer.",
+      "- Keep it short and plain: answer what they asked, give a few examples, and don't list every book unless they ask for a whole area. The full list, with every edition and the reasons, is on the Sources page (the gear at the top, then \"RabbAI's sources\"); the app shows a link to it under your answer.",
     ].join("\n"),
   );
 
@@ -251,7 +251,7 @@ function buildOverview(mode: LibraryMode, data: SourcesData): string {
     );
   } else if (mode === "development") {
     lines.push(
-      "What you read: this copy of RabAI is running on a few development texts typed by the team, for testing. The list below is the library RabAI is being built to read (its private testing library).",
+      "What you read: this copy of RabbAI is running on a few development texts typed by the team, for testing. The list below is the library RabbAI is being built to read (its private testing library).",
     );
   } else {
     lines.push(
@@ -301,7 +301,7 @@ function buildOverview(mode: LibraryMode, data: SourcesData): string {
   if (notYet.length) {
     lines.push("### Editions you don't read yet");
     lines.push(
-      "Wanted, but either copyrighted (RabAI needs the publisher's agreement, and hasn't asked or heard back yet) or with no copy RabAI may use. When the work itself is listed above, you read it in another edition.",
+      "Wanted, but either copyrighted (RabbAI needs the publisher's agreement, and hasn't asked or heard back yet) or with no copy RabbAI may use. When the work itself is listed above, you read it in another edition.",
     );
     for (const w of notYet) {
       const missing = w.editions.filter((e) => e.state === "needs_agreement" || e.state === "no_copy");
@@ -313,7 +313,7 @@ function buildOverview(mode: LibraryMode, data: SourcesData): string {
 
   lines.push("### Left out, and why");
   lines.push(
-    "Left out of the library on purpose. RabAI may still describe such a view when someone asks, labeled for what it is, but never cites it as a source. \"The board may reconsider\" means the board may bring it back.",
+    "Left out of the library on purpose. RabbAI may still describe such a view when someone asks, labeled for what it is, but never cites it as a source. \"The board may reconsider\" means the board may bring it back.",
   );
   for (const x of data.leftOut) {
     lines.push(`- ${x.title}: ${shorten(x.reason, 170)}${x.mayReconsider ? " (The board may reconsider.)" : ""}`);
@@ -343,7 +343,7 @@ function buildOverview(mode: LibraryMode, data: SourcesData): string {
 export function libraryDetails(mode: LibraryMode, question: string, data: SourcesData = SOURCES): string {
   const named = worksNamed(question, data);
   if (!named.length) return "";
-  const lines = ["Books this question names, from RabAI's own library, with each edition and whether you read it:"];
+  const lines = ["Books this question names, from RabbAI's own library, with each edition and whether you read it:"];
   for (const w of named) {
     const about = [w.author ? `by ${w.author}` : "", w.dates ?? "", w.region ?? ""].filter(Boolean).join(", ");
     lines.push(`- ${w.title}${w.hebrew ? ` (${w.hebrew})` : ""}${about ? `, ${about}` : ""}.`);

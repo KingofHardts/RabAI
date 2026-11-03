@@ -41,8 +41,8 @@ export interface LookupPlan {
   /** Searches for the online lookup, as a person would type them. */
   queries: string[];
   /**
-   * The person asks about RabAI's own library: which books it reads, whether a book is in it,
-   * what it leaves out and why. RabAI is then given the sources list (lib/sources).
+   * The person asks about RabbAI's own library: which books it reads, whether a book is in it,
+   * what it leaves out and why. RabbAI is then given the sources list (lib/sources).
    */
   library: boolean;
 }
@@ -121,12 +121,12 @@ Chaim, the works on bitachon (trust in HaShem).
 Also give a few short phrases (two to four words) likely to appear in the sources: Hebrew or
 Aramaic without vowels, and English as the translations would put it.
 
-Then say what kind of question it is, and whether RabAI should also look online:
+Then say what kind of question it is, and whether RabbAI should also look online:
 - "practical": true when the person asks what to do in a real situation, theirs or someone's
   (may I, can I, is it allowed, what do I do if, which blessing, how long do I wait, is this
   product kosher, what time is candle lighting). False for learning questions ("why does the
   Gemara say", "what is the reason for"), even about halacha.
-- "online": "torah" when RabAI should also check what trusted Orthodox websites say: for every
+- "online": "torah" when RabbAI should also check what trusted Orthodox websites say: for every
   practical question; for anything the classic books won't name directly (electricity and
   technology, medicine, a product or brand, a hechsher, today's customs and calendar, a
   contemporary posek's ruling, a recent rabbi, an organization or an event); or when the person
@@ -135,7 +135,7 @@ Then say what kind of question it is, and whether RabAI should also look online:
 - "queries": for an online lookup, one to three short searches, the way a person would type
   them into a search engine (for example "using a microwave on Shabbat", "Star-K dishwasher
   Shabbos").
-- "library": true when the person asks about RabAI itself and its own library: which books,
+- "library": true when the person asks about RabbAI itself and its own library: which books,
   editions, translations or commentaries it uses, whether a book is in its library, what it
   leaves out and why, which websites it searches, or how it chooses its sources ("what sources
   do you use?", "do you have the Zohar?", "why don't you use that translation?"). False when they
@@ -247,7 +247,7 @@ export function fallbackPlan(question: string): LookupPlan {
 const SOURCE_WORDS = "sources?|books?|seforim|sefarim|texts?|editions?|translations?|commentar(?:y|ies)|meforshim|websites?|sites?|library";
 
 /**
- * Whether a question plainly asks about RabAI's own library ("what sources do you use?", "is the
+ * Whether a question plainly asks about RabbAI's own library ("what sources do you use?", "is the
  * Kuzari in your library?", "what do you leave out?"). Used when the planner isn't available; the
  * planner itself decides otherwise. Asking for sources on a topic ("do you have a source for
  * waiting six hours?") is not a library question.
@@ -255,12 +255,12 @@ const SOURCE_WORDS = "sources?|books?|seforim|sefarim|texts?|editions?|translati
 export function asksAboutLibrary(question: string): boolean {
   const t = question.slice(0, 600);
   if (new RegExp(`\\byour\\s+(?:own\\s+)?(?:${SOURCE_WORDS}|canon|bookshelf|whitelist|list)\\b`, "i").test(t)) return true;
-  if (/\brabai'?s\s+(?:own\s+)?(?:library|sources|books|canon|bookshelf)\b/i.test(t)) return true;
-  if (new RegExp(`\\b(?:which|what)\\s+(?:${SOURCE_WORDS})\\s+(?:do|does|did|will|can|are)\\s+(?:you|rabai)\\b`, "i").test(t)) return true;
-  if (/\b(?:leave|leaves|left)\s+out\b|\bexclud(?:e|es|ed|ing)\b/i.test(t) && /\b(?:you|your|rabai)\b/i.test(t)) return true;
+  if (/\brabb?ai'?s\s+(?:own\s+)?(?:library|sources|books|canon|bookshelf)\b/i.test(t)) return true;
+  if (new RegExp(`\\b(?:which|what)\\s+(?:${SOURCE_WORDS})\\s+(?:do|does|did|will|can|are)\\s+(?:you|rabb?ai)\\b`, "i").test(t)) return true;
+  if (/\b(?:leave|leaves|left)\s+out\b|\bexclud(?:e|es|ed|ing)\b/i.test(t) && /\b(?:you|your|rabb?ai)\b/i.test(t)) return true;
   if (/\bsources?\s+(?:for|on|about|that)\b/i.test(t)) return false;
   return new RegExp(
-    `\\b(?:do|does|did|can)\\s+(?:you|rabai)\\s+(?:use|have|include|read|rely on|trust|search|quote|cite|consult|open)\\b[^?.!]{0,60}\\b(?:${SOURCE_WORDS})\\b`,
+    `\\b(?:do|does|did|can)\\s+(?:you|rabb?ai)\\s+(?:use|have|include|read|rely on|trust|search|quote|cite|consult|open)\\b[^?.!]{0,60}\\b(?:${SOURCE_WORDS})\\b`,
     "i",
   ).test(t);
 }
@@ -287,13 +287,13 @@ export async function planLookups(
 
 /**
  * The library's places for texts a page found online relies on ("Shulchan Aruch O.C. 318:4"),
- * named by the same planner with the same cached catalog, so RabAI can open them and check the
+ * named by the same planner with the same cached catalog, so RabbAI can open them and check the
  * page against them.
  */
 export async function placesForTexts(texts: string[], store: TestingStore, client: LookupClient | null): Promise<string[]> {
   if (!client || !texts.length) return [];
   const request = [
-    "This is not the person's question. A trusted Orthodox website relies on the texts below. Name each one as a place in the library, exactly as the library names it, so RabAI can open it and check the website against it.",
+    "This is not the person's question. A trusted Orthodox website relies on the texts below. Name each one as a place in the library, exactly as the library names it, so RabbAI can open it and check the website against it.",
     ...texts.map((t) => `- ${t}`),
     'Fill in "refs" only. Leave the phrase lists and "queries" empty, "practical" false, and "online" "".',
   ].join("\n");
@@ -386,7 +386,7 @@ export async function retrieveFromTesting(
   }
 
   // Passages with no English (much of the Yerushalmi, the Rishonim, the Acharonim) are
-  // translated by RabAI itself. Give it the dictionaries' entries for their words: first the
+  // translated by RabbAI itself. Give it the dictionaries' entries for their words: first the
   // entries that cite these very lines, then entries whose headword matches a word.
   const untranslated = [...out.values()].filter((p) => p.he.trim() && !p.en.trim() && !p.source?.dictionary).slice(0, 3);
   if (untranslated.length) {

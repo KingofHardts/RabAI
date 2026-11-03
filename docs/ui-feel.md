@@ -1,6 +1,6 @@
-# How RabAI should feel: research and changes (October 2026)
+# How RabbAI should feel: research and changes (October 2026)
 
-Josh asked (2026-10-16) for three things: pictures that RabAI can read, answers that are never
+Josh asked (2026-10-16) for three things: pictures that RabbAI can read, answers that are never
 lost when you leave the page, and a careful look at how the app feels, with research behind it,
 so that what should be obvious is obvious. This document records what we read, what we
 concluded, and what changed. The earlier study of the reading screens is in
@@ -65,7 +65,7 @@ writing down every place we hesitated; the sources above mostly confirmed it.
    and the answer grows underneath it, as in a book. The screen never moves under someone who is
    reading. Following the end of a growing answer, which many apps do, pushes the beginning off
    the screen while the person is reading it.
-3. **Calm, not busy.** Show what RabAI is doing in plain words, not a spinner. Say "you can
+3. **Calm, not busy.** Show what RabbAI is doing in plain words, not a spinner. Say "you can
    leave" only after a few seconds, when it is useful. Mark a finished answer quietly ("Answered
    while you were away", "New answer" in the list of chats) instead of interrupting.
 4. **Always a way forward.** Stop puts the question back in the box, so it can be changed and
@@ -80,7 +80,7 @@ writing down every place we hesitated; the sources above mostly confirmed it.
    2576 pixels on the long side, which matters for a photo of a whole page of small print. Pictures
    come before the question, each labeled when there are several. Claude doesn't name people in
    pictures, and can misread blurry, rotated or very small pictures, so the core premises ask
-   RabAI to say what it reads and what it can't make out.
+   RabbAI to say what it reads and what it can't make out.
 
 ## What changed
 
@@ -95,9 +95,9 @@ Stop stops the answer on the server too, and keeps nothing of it.
 
 **Pictures.** Up to four pictures with a question, from the picture button, paste, or drag and
 drop. Each is made smaller on the device (sharp enough for small print), checked again on the
-server, read with the question by RabAI and by its planning step, and sent again with the next
+server, read with the question by RabbAI and by its planning step, and sent again with the next
 few questions in the chat while the page is open. The server never keeps a picture; the chat keeps
-a small preview on the device. The rules RabAI follows with pictures are drafted for the board in
+a small preview on the device. The rules RabbAI follows with pictures are drafted for the board in
 the core premises ("Pictures the person sends").
 
 **The chat.**

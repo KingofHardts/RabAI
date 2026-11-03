@@ -1,6 +1,6 @@
-name: RabAI's translation inbox
+name: RabbAI's translation inbox
 
-# Imports translations made inside a Claude Code session (web/scripts/translate-here.ts) into RabAI's
+# Imports translations made inside a Claude Code session (web/scripts/translate-here.ts) into RabbAI's
 # translation library. They arrive as sealed files in translations-inbox/: only this job can open
 # them, with the private key it keeps in the translation library's own database, so unreviewed
 # translations are never public. Each translation is checked again against the testing library's

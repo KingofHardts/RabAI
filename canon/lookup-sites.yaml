@@ -1,13 +1,13 @@
-# Websites RabAI may search when a question isn't covered by its library, or when someone asks
+# Websites RabbAI may search when a question isn't covered by its library, or when someone asks
 # a practical halacha question (founding spec, "Looking things up online"; core premises, "Looking
 # things up"). Josh's direction (2026-10-13), pending the board, which decides the lists.
 #
-# A page found online is never a source. RabAI opens the texts the page relies on in its own
+# A page found online is never a source. RabbAI opens the texts the page relies on in its own
 # library, checks the page against them, and rests its answer on the texts. The app shows the
 # pages under their own heading, apart from the texts. Nothing found online is stored.
 #
-# trusted:     the only sites RabAI searches for anything about Torah, halacha or Jewish belief.
-# not_for_web: never searched, even when RabAI looks up an everyday fact on the open web.
+# trusted:     the only sites RabbAI searches for anything about Torah, halacha or Jewish belief.
+# not_for_web: never searched, even when RabbAI looks up an everyday fact on the open web.
 #
 # A domain covers its subdomains. Write bare domains: no https://, no paths, ASCII only.
 # After editing, run: python3 tools/validate.py --write-sites
@@ -191,7 +191,7 @@ not_for_web:
 
   - domain: sefaria.org
     name: Sefaria
-    reason: Hosts non-Orthodox editions and community source sheets; RabAI reads its whitelisted editions through the library instead
+    reason: Hosts non-Orthodox editions and community source sheets; RabbAI reads its whitelisted editions through the library instead
 
   - domain: judaism.stackexchange.com
     name: Mi Yodeya

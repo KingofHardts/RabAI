@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { phraseClass, phraseId, phraseOfWord, type FlowView } from "@/lib/engine/outline-phrases";
 
 /*
- * Wrapping the Gemara's words in RabAI's phrases, so each phrase's color runs behind its words and
+ * Wrapping the Gemara's words in RabbAI's phrases, so each phrase's color runs behind its words and
  * the spaces between them. Used by the flowing page, the printed page and the Gemara alone.
  *
  * Only inline spans are added, with no size of their own: no word moves. The space (or, on the

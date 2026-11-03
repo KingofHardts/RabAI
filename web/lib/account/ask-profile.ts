@@ -12,7 +12,7 @@ import { currentSession } from "./session";
  *   (profileSummary is empty).
  * - Not signed in, or if the account can't be read just now, the device's copy is used, as before.
  *
- * Either way it only shapes how RabAI explains, never what the sources say; the server always
+ * Either way it only shapes how RabbAI explains, never what the sources say; the server always
  * rebuilds the lines the model sees from a checked copy (profileSummary).
  */
 export async function profileForAsk(

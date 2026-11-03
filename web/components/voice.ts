@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /*
- * Talking with RabAI: the browser's own speech recognition for the microphone, and its own
+ * Talking with RabbAI: the browser's own speech recognition for the microphone, and its own
  * voices for reading answers aloud. Nothing is sent anywhere else, and nothing is recorded.
  *
  * Lessons built in (from building voice typing before):
@@ -119,7 +119,7 @@ export function useDictation(onText: (text: string) => void) {
         if (session.current !== mine) return;
         const code = String(e?.error ?? "");
         if (code === "not-allowed" || code === "service-not-allowed") {
-          setError("RabAI needs permission to use your microphone. You can allow it in your browser's settings.");
+          setError("RabbAI needs permission to use your microphone. You can allow it in your browser's settings.");
         } else if (code === "no-speech") {
           setError("I didn't hear anything. Tap the microphone and try again.");
         } else if (code === "audio-capture") {

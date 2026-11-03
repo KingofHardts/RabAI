@@ -791,7 +791,7 @@ test("ask: a line action in the reader never looks anything up online", async ()
   assert.ok(!systems.some((s) => s.startsWith("You look things up")));
 });
 
-test("ask: without the library database, RabAI says so instead of answering from memory", async () => {
+test("ask: without the library database, RabbAI says so instead of answering from memory", async () => {
   const result = await ask({ question: "How does the Torah begin?" }, null, loadLibrary("testing"), null);
   assert.equal(result.status, "error");
   assert.match(result.notice ?? "", /can't reach its library/);

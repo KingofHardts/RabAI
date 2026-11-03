@@ -1,7 +1,7 @@
 # Printed-page layouts (`tools/daf_layout.py`)
 
 The app's Gemara page shows each amud line for line as the Vilna Shas prints it, so a word found on
-a line of a printed Gemara is in the same place in RabAI. The library has the words of the Gemara,
+a line of a printed Gemara is in the same place in RabbAI. The library has the words of the Gemara,
 Rashi and Tosafot, but not where the printed lines break. This tool reads that from scans of the
 Romm Vilna printing.
 

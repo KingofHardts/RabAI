@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Check that RabAI is working, piece by piece, without printing any secret.
+"""Check that RabbAI is working, piece by piece, without printing any secret.
 
 Runs in GitHub Actions (.github/workflows/health.yml), started by hand. It reports to the run's
 summary:
 
 1. Turso: the plan, whether reads or writes are blocked, this month's usage against the plan's
-   limits, and each RabAI database.
+   limits, and each RabbAI database.
 2. Vercel: the latest production deploy, and which settings exist (names and kinds only).
 3. The settings, used the way the app uses them. Each value is masked in the log before it is
    used, and none is ever printed:
@@ -15,10 +15,10 @@ summary:
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
    the articles' sections (with how many paragraphs the first articles of each open with), the
    Sources page opens, and five real questions are answered: one from the library, one about
-   RabAI's own sources (which books it uses and leaves out), one with a picture (two plain colors,
-   to show that a picture reaches RabAI), one the asking page leaves halfway and comes back for
+   RabbAI's own sources (which books it uses and leaves out), one with a picture (two plain colors,
+   to show that a picture reaches RabbAI), one the asking page leaves halfway and comes back for
    (to show the answer is kept while nobody is waiting), and one practical halacha question that
-   RabAI looks up online on the trusted Orthodox sites (together about the cost of six questions
+   RabbAI looks up online on the trusted Orthodox sites (together about the cost of six questions
    in the app). Only whether each step worked is printed, never the answer, and never an
    article's title or words (only counts; for the lookup, the names of the trusted sites it used).
 
@@ -67,9 +67,9 @@ SETTINGS = (
     "RABAI_COLLECTION_DB_URLS",
 )
 QUESTION = "What is the first word of the Torah, and what does it mean?"
-# A question about RabAI's own library: RabAI should answer it from its sources list.
+# A question about RabbAI's own library: RabbAI should answer it from its sources list.
 SOURCES_QUESTION = "Which books do you use for halacha, and which do you leave out?"
-# A practical question the classic books don't name directly: RabAI should look it up online.
+# A practical question the classic books don't name directly: RabbAI should look it up online.
 PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
 # Asked with a picture that is red on the left and blue on the right.
 PICTURE_QUESTION = "What two colors are in this picture?"
@@ -433,7 +433,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     except ValueError:
         problem(f"The library list answered HTTP {status} with something that isn't JSON.")
 
-    # The Sources page: every book RabAI reads, what waits for the board, and what it leaves out.
+    # The Sources page: every book RabbAI reads, what waits for the board, and what it leaves out.
     # Only counts are printed.
     status, raw = fetch("/sources")
     page = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else ""
@@ -472,7 +472,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     except ValueError:
         problem(f"\"Translate this\" answered HTTP {status} with something that isn't JSON.")
 
-    # "Show the flow": RabAI's colored outline of a page (a model call, up to a few minutes).
+    # "Show the flow": RabbAI's colored outline of a page (a model call, up to a few minutes).
     status, raw = fetch("/api/daf/outline", {"ref": "Berakhot 2a"}, timeout=330)
     try:
         out = json.loads(raw)
@@ -520,7 +520,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         return r
 
     def leave_midway(question: str) -> None:
-        """Ask, leave as a closed tab would once RabAI starts, and come back for the answer."""
+        """Ask, leave as a closed tab would once RabbAI starts, and come back for the answer."""
         job = base64.urlsafe_b64encode(os.urandom(18)).decode().rstrip("=")
         req = urllib.request.Request(APP + "/api/ask", data=json.dumps({"question": question, "stream": True, "job": job}).encode(),
                                      method="POST")
@@ -529,7 +529,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         heard = []
         try:
             with opener.open(req, timeout=120) as resp:
-                # Read until RabAI says what it is doing, then hang up.
+                # Read until RabbAI says what it is doing, then hang up.
                 while True:
                     line = resp.readline()
                     if not line:
@@ -590,29 +590,29 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
 
     live_answer(QUESTION, "a live answer")
 
-    # A question about RabAI's own library: the lookup step should mark it, so RabAI answers from
+    # A question about RabbAI's own library: the lookup step should mark it, so RabbAI answers from
     # its sources list (and the app links to the Sources page). Only yes or no is printed.
-    r = live_answer(SOURCES_QUESTION, "a question about RabAI's own sources")
+    r = live_answer(SOURCES_QUESTION, "a question about RabbAI's own sources")
     if r is not None:
-        summary(f"  - Answered from RabAI's sources list: {'yes' if r.get('aboutLibrary') else 'no'}.")
+        summary(f"  - Answered from RabbAI's sources list: {'yes' if r.get('aboutLibrary') else 'no'}.")
         if not r.get("aboutLibrary"):
-            problem("A question about which books RabAI uses wasn't recognized as one about its own library, "
-                    "so RabAI wasn't given its sources list.")
+            problem("A question about which books RabbAI uses wasn't recognized as one about its own library, "
+                    "so RabbAI wasn't given its sources list.")
 
-    # A picture: two plain colors, so whether RabAI saw it can be checked without printing a word
+    # A picture: two plain colors, so whether RabbAI saw it can be checked without printing a word
     # of the answer (only yes or no).
     r = live_answer(PICTURE_QUESTION, "a question with a picture", pictures=[{"data": two_color_picture()}])
     if r is not None:
         words = answer_words(r)
         saw = "red" in words and "blue" in words
-        summary(f"  - RabAI named the picture's two colors: {'yes' if saw else 'no'}.")
+        summary(f"  - RabbAI named the picture's two colors: {'yes' if saw else 'no'}.")
         if r.get("status") == "answered" and not saw:
             problem("A question with a picture was answered, but the answer didn't name the picture's two colors "
-                    "(did the picture reach RabAI?).")
+                    "(did the picture reach RabbAI?).")
 
     leave_midway(LEAVE_QUESTION)
 
-    # A practical question: RabAI should look it up on the trusted Orthodox sites, open the texts
+    # A practical question: RabbAI should look it up on the trusted Orthodox sites, open the texts
     # the pages rely on, and show the note to ask one's rav. Only counts and the sites' names
     # (from canon/lookup-sites.yaml) are printed.
     r = live_answer(PRACTICAL_QUESTION, "a practical question")
@@ -629,7 +629,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     if not r.get("practical"):
         problem("The lookup step didn't mark a practical halacha question as practical, so no note to ask a rav was shown.")
     if not online:
-        problem("RabAI didn't look a practical halacha question up online (is RABAI_ONLINE off, or the app public?).")
+        problem("RabbAI didn't look a practical halacha question up online (is RABAI_ONLINE off, or the app public?).")
     elif online.get("status") == "failed":
         problem("The online lookup failed. Check that web search is allowed in the Anthropic organization's settings.")
 
@@ -657,7 +657,7 @@ def check_browser(code: str | None, articles: bool = False) -> None:
 
 
 def main() -> int:
-    summary("# Is RabAI working?")
+    summary("# Is RabbAI working?")
     try:
         check_turso()
     except Exception as e:  # noqa: BLE001
@@ -691,7 +691,7 @@ def main() -> int:
             value("RABAI_COLLECTION_DB_TOKEN") or value("TURSO_AUTH_TOKEN"),
             # Per section: how many articles, and how many are one paragraph or under 400 characters
             # (a section of short teasers would show here). Then titles and paragraphs that have lost
-            # their article's details (RabAI would not know they are articles): there should be none.
+            # their article's details (RabbAI would not know they are articles): there should be none.
             # Only section names and numbers.
             count=(
                 "SELECT (SELECT value FROM meta WHERE key = 'site') || ', ' || (SELECT COUNT(*) FROM articles)"
@@ -711,7 +711,7 @@ def main() -> int:
         )
         lost = re.search(r"titles without an article: (\d+)", answer or "")
         if lost and int(lost.group(1)):
-            problem(f"Website collection {i} has {lost.group(1)} titles that lost their article's details; RabAI would "
+            problem(f"Website collection {i} has {lost.group(1)} titles that lost their article's details; RabbAI would "
                     "not know they are articles. The next run of the collection copy removes them.")
     if "RABAI_COLLECTION_DB_URLS" in by_name and not collection_urls:
         summary("- The website collections: their setting couldn't be read here, so they weren't tested.")

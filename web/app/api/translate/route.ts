@@ -16,7 +16,7 @@ export const maxDuration = 120;
 const seen = new Map<string, { t: Translation; check: string; hasEnglish: boolean }>();
 const MAX_KEPT = 300;
 
-const FAILED = "RabAI couldn't translate this just now. Please try again.";
+const FAILED = "RabbAI couldn't translate this just now. Please try again.";
 
 /** Whether a kept translation already has what was asked for. */
 function enough(t: Translation, hasEnglish: boolean, words: boolean): boolean {
@@ -25,10 +25,10 @@ function enough(t: Translation, hasEnglish: boolean, words: boolean): boolean {
 
 /**
  * POST /api/translate {"ref": "Rashi on Berakhot 2a:1:1", "context": ["Berakhot 2a:1"], "words": true}
- * → RabAI's translation of the passage: a general translation when the library has no English, and,
+ * → RabbAI's translation of the passage: a general translation when the library has no English, and,
  * with "words", word by word. Called only when the person taps Translate or Word by word.
  *
- * Translations are kept in RabAI's translation library (when the app is connected to it), so a
+ * Translations are kept in RabbAI's translation library (when the app is connected to it), so a
  * passage is translated once for everyone; a kept translation is used only if it was made from the
  * same text. `context` names up to two passages (the line before a line of Gemara) to read it with.
  */
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     const recent = seen.get(ref);
     if (recent && recent.check === check && enough(recent.t, hasEnglish, words)) return NextResponse.json(recent.t);
 
-    // RabAI's translation library: made once, kept for everyone.
+    // RabbAI's translation library: made once, kept for everyone.
     const library = translationStore();
     let kept: Translation | undefined;
     if (library) {

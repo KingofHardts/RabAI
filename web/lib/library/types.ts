@@ -1,7 +1,7 @@
 /** Where an English translation came from. */
 export type TranslationStatus =
   | "approved" // an approved, license-cleared published translation
-  | "rabai" // RabAI's own translation, labeled as such wherever it appears
+  | "rabai" // RabbAI's own translation, labeled as such wherever it appears
   | "development" // a placeholder typed by the team while building; never shipped publicly
   | "testing"; // a published translation in the private testing library, not yet approved by the board
 
@@ -51,7 +51,7 @@ export interface Passage {
   source?: PassageSource;
   /**
    * A page found online for this one answer (lib/engine/online.ts): never stored, and never a
-   * source. RabAI checks it against the library's texts, and the app shows it apart from them.
+   * source. RabbAI checks it against the library's texts, and the app shows it apart from them.
    */
   online?: OnlineSource;
 }
@@ -81,7 +81,7 @@ export interface PassageSource {
   licenses: string[];
   /** A dictionary entry (Jastrow, Radak's Sefer HaShorashim, the Aruch). */
   dictionary?: boolean;
-  /** A dictionary RabAI may use only for what words mean, never for history or belief. */
+  /** A dictionary RabbAI may use only for what words mean, never for history or belief. */
   wordToolOnly?: boolean;
   /** The canon category of the work, e.g. "kabbalah". */
   category?: string;
@@ -90,7 +90,7 @@ export interface PassageSource {
    * its caution and never relied on alone for halacha.
    */
   standing?: "debated";
-  /** Why it is debated, in plain English, for the person and for RabAI. */
+  /** Why it is debated, in plain English, for the person and for RabbAI. */
   caution?: string;
   /**
    * From canon/vocabulary.yaml: uncertain_author, unusual_source, disputed_claims, criticized_views,

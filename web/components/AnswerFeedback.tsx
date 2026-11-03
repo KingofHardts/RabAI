@@ -54,7 +54,7 @@ export default function AnswerFeedback({ question, answer, sources }: { question
         setError(data.error ?? "Your feedback couldn't be sent just now.");
       }
     } catch {
-      setError("Couldn't reach RabAI. Please try again.");
+      setError("Couldn't reach RabbAI. Please try again.");
     }
     setSending(false);
   }
@@ -62,7 +62,7 @@ export default function AnswerFeedback({ question, answer, sources }: { question
   if (mode === "thanks") {
     return (
       <p className="helpful-thanks" role="status">
-        Thank you. This helps make RabAI better.
+        Thank you. This helps make RabbAI better.
       </p>
     );
   }

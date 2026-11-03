@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname, search } = request.nextUrl;
   if (pathname.startsWith("/api/")) {
-    const error = g.kind === "closed" ? "RabAI isn't open yet." : "This preview is private. Enter the access code first.";
+    const error = g.kind === "closed" ? "RabbAI isn't open yet." : "This preview is private. Enter the access code first.";
     return NextResponse.json({ error }, { status: 401 });
   }
 

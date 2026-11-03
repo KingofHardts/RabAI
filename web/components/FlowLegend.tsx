@@ -43,7 +43,7 @@ export default function FlowLegend({ counts, only, onOnly, stepping, onStep }: F
       <button type="button" className="rb-btn flow-step-btn" aria-pressed={stepping} onClick={onStep}>
         Step through
       </button>
-      <span className="legend-note">RabAI’s outline, not yet reviewed by the rabbinic board.</span>
+      <span className="legend-note">RabbAI’s outline, not yet reviewed by the rabbinic board.</span>
     </div>
   );
 }

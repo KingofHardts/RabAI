@@ -1,4 +1,4 @@
-# RabAI — rules for working in this repo
+# RabbAI — rules for working in this repo
 
 A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 `docs/founding-spec.md` before changing anything.
@@ -24,8 +24,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   and must say so until a reviewer has.
 - **Two tiers.** A work marked `standing: debated` in the canon (uncertain author, unusual source,
   disputed claim, criticized views) stays in the library with a plain-English `caution`. The build
-  carries it to every passage, RabAI is told it with the passage, and the app shows it beside the
-  text. Never drop a caution, and never let RabAI rest a halachic answer on a debated book alone.
+  carries it to every passage, RabbAI is told it with the passage, and the app shows it beside the
+  text. Never drop a caution, and never let RabbAI rest a halachic answer on a debated book alone.
   A debated book whose main claims Orthodox authorities rejected (caution kind `rejected_views`,
   such as Milchamot HaShem) is presented only as its author's claims, together with the answer
   Orthodox authorities gave, and never framed as a kabbalist's teaching.
@@ -39,13 +39,13 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - Keep the docs in step with the data: a new tag value goes in `canon/vocabulary.yaml`, and a
   new decision goes in `docs/founding-spec.md`.
 - After changing `canon/canon.yaml`, `canon/excluded.yaml`, `canon/reading-order.yaml` (the order
-  RabAI opens the commentaries in) or `canon/lookup-sites.yaml`, run
+  RabbAI opens the commentaries in) or `canon/lookup-sites.yaml`, run
   `python3 tools/validate.py --write` and commit what it regenerates: the sources list the board
   reviews (`docs/sources-for-review.md`) and the app's copies
   (`web/lib/sources/sources.generated.ts`, `web/lib/library/reading-order.generated.ts`,
   `web/lib/engine/lookup-sites.generated.ts`). The validator fails when one is out of date.
-- RabAI's manner is described by qualities, never by a person: never name a living rabbi in the
-  model's instructions, never have RabAI speak in a real rabbi's name or say what one would
+- RabbAI's manner is described by qualities, never by a person: never name a living rabbi in the
+  model's instructions, never have RabbAI speak in a real rabbi's name or say what one would
   think, and never quote one unless a source it was given has the words
   (`docs/character-notes.md`).
 
@@ -78,7 +78,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Nothing it copies is printed in a log, committed, or kept as an artifact. Every reference in a
   collection starts with the site's name ("Aish.com, ..."), so `combineStores` sends it to that
   database. A collection's paragraphs are read only together with their article's row (an inner
-  join in `rowSelect`), so none can reach RabAI looking like a book of the library; keep it so. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabAI is told each
+  join in `rowSelect`), so none can reach RabbAI looking like a book of the library; keep it so. Articles are added after the texts (`LOOKUP_LIMITS.articles`) and RabbAI is told each
   is a teacher's explanation, not a source and never a ruling, and that only the texts confirm a
   point (`articleContext`). Under an answer the app shows the articles it used under their own
   heading, apart from the texts (`TeacherNotes`); never show an article as one of the sources. The
@@ -90,18 +90,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   come with the final, checked answer.
 - Word meanings (`/api/word`, the word card) come only from the library's dictionaries, each
   labeled with its dictionary. A guessed root is always shown as a guess, with what was changed.
-  RabAI explains a word only when the person taps "Ask RabAI about this word"; never call the
+  RabbAI explains a word only when the person taps "Ask RabbAI about this word"; never call the
   model when a word is tapped.
 - The printed-page view (`web/components/DafPage.tsx`, `web/lib/library/daf.ts`,
   `/api/daf`) shows one amud of the Bavli with the Rashi and Tosafot on it, from the testing
   library. Its layout is ported from daf-renderer (MIT); keep `web/THIRD-PARTY-NOTICES.md`.
-  "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabAI's outline of the
+  "Show the flow" (`/api/daf/outline`, `web/lib/engine/outline.ts`) is RabbAI's outline of the
   argument: run it only when the person asks, keep it on the device, and always label it as
   not yet reviewed by the rabbinic board (founding spec, open question 15). It colors phrases,
   which the model names only by the library's word numbers, and a phrase's English is shown only
   when it is an exact stretch of the library's English for the line (`outline-phrases.ts`).
 - "Translate this" and "Word by word" on the page view (`/api/translate`,
-  `web/lib/engine/translate.ts`, `web/lib/engine/gloss.ts`) are RabAI's own translation: run
+  `web/lib/engine/translate.ts`, `web/lib/engine/gloss.ts`) are RabbAI's own translation: run
   them only when the person taps (or in a batch the maintainer runs), and always label them as
   not from the library and not yet reviewed by the rabbinic board (founding spec, open question
   16). The Hebrew in a word-by-word list always comes from the library's text; the model's list
@@ -110,7 +110,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   comment explains with its Orthodox English, other commentaries on that same line, the
   dictionaries). An "other reading" is shown only when its source was given and its quoted words
   are in that source (`checkReadings` in `gloss.ts`, the same idea as `citations.ts`).
-- RabAI's translation library (`web/lib/library/translations.ts`, database `rabai-translations`)
+- RabbAI's translation library (`web/lib/library/translations.ts`, database `rabai-translations`)
   keeps each translation tied to the exact text it translated (`textCheck`); never show one
   beside a text whose check differs. Never set a translation's `review` to anything but
   `unreviewed` yourself; only record a review the maintainer reports from the board. Never
@@ -123,7 +123,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   `translations-inbox/` (`web/lib/library/inbox-seal.ts`), which only the inbox workflow
   (`.github/workflows/translations-inbox.yml`) can open. Never commit an unsealed translation or
   a request file; `library/session-translations/` stays on the session's computer.
-- The learner profile (`web/lib/learner-profile.ts`, "About you") shapes only how RabAI explains,
+- The learner profile (`web/lib/learner-profile.ts`, "About you") shapes only how RabbAI explains,
   never what the sources say. It keeps learning activity only, never anything else about a
   person's life. The person can see, change and forget all of it, and turn remembering off; with
   it off, nothing is noticed or sent. The server always rebuilds the lines the model sees from a
@@ -158,7 +158,7 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   most four, made smaller on the device, and checked by their own bytes on the server (never by
   the kind they claim). The server never keeps a picture: not in the answer store, not in an
   account (which keeps only how many there were), never in a log. A picture is never a source,
-  and RabAI never identifies people in one (core premises, "Pictures the person sends").
+  and RabbAI never identifies people in one (core premises, "Pictures the person sends").
 - Answers that wait for you (`web/lib/answer-jobs.ts`, `/api/ask/job`, founding spec "Answers
   that wait for you"): `/api/ask` keeps writing an answer after the page leaves (`after()`), and
   keeps only its progress and the checked answer, under a hash of a random id the asking device
@@ -187,9 +187,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - An answer to a practical halacha question (`practical` in the lookup plan) always shows the
   note to ask one's rav (`RavNote`). Never remove it; its wording is the board's (open
   question 9).
-- What RabAI says about its own sources comes only from the generated sources list
-  (`web/lib/sources`). When the lookup plan marks a question as about RabAI's library
-  (`library`, or `asksAboutLibrary` without the planner), RabAI is given the list
+- What RabbAI says about its own sources comes only from the generated sources list
+  (`web/lib/sources`). When the lookup plan marks a question as about RabbAI's library
+  (`library`, or `asksAboutLibrary` without the planner), RabbAI is given the list
   (`libraryOverview`, the same for every such question, so it is cached) and the books the
   question names (`libraryDetails`), and the app links to the Sources page (`app/sources`) under
   the answer. Never import `lib/sources/index.ts` into a client component: the list is large, and
@@ -212,18 +212,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Settings in Vercel:** `ANTHROPIC_API_KEY` and `RABAI_ACCESS_CODE` are required. The
   optional ones are listed in `web/README.md`, including `TURSO_DATABASE_URL` and
   `TURSO_AUTH_TOKEN` for the testing library, and `TRANSLATIONS_DATABASE_URL` and
-  `TRANSLATIONS_AUTH_TOKEN` for RabAI's translation library. Never print, log, or commit their
+  `TRANSLATIONS_AUTH_TOKEN` for RabbAI's translation library. Never print, log, or commit their
   values, and never ask anyone to paste a key or code into a chat.
 - **The testing library's hosting:** the "Build the testing library" workflow
   (`.github/workflows/library-build.yml`, run by hand) builds it and uploads it to Turso with
   `tools/library_upload.py`, using the repo secrets `TURSO_API_TOKEN` and, optionally,
   `VERCEL_TOKEN` and `TURSO_ORG`. The repo is public, so its Actions logs are public: mask any
   token made during a run (`::add-mask::`) and never echo one.
-- **RabAI's translation library:** the "RabAI's translation library" workflow
+- **RabbAI's translation library:** the "RabbAI's translation library" workflow
   (`.github/workflows/translations.yml`, run by hand) creates the database and connects the app
   (`tools/translations_setup.py`), estimates costs, and fills it in batches. Filling needs the
   repo secret `ANTHROPIC_API_KEY` as well as the Turso and Vercel ones.
-- **Is it working?** The "Is RabAI working?" workflow (`.github/workflows/health.yml`, run by
+- **Is it working?** The "Is RabbAI working?" workflow (`.github/workflows/health.yml`, run by
   hand) checks every piece from GitHub: Turso's plan, usage and databases, the Vercel deploys and
   settings (names only), and the live app, by request and in a real browser on a phone and a
   computer (`tools/health_check.py`, `tools/health_browser.cjs`). It prints no secrets and no
@@ -238,10 +238,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   maintainer reads them in the Vercel dashboard.
 - **Keep it separate from Senior Stylist.** Don't use Senior Stylist's accounts, keys, data, or
   rules here. In particular:
-  - Work on RabAI in a session that has only this repo. A session that also has Senior
+  - Work on RabbAI in a session that has only this repo. A session that also has Senior
     Stylist's repo loads Senior Stylist's rules.
   - The Vercel and Supabase connectors in the maintainer's Claude account belong to Senior
-    Stylist. Never use them for RabAI. Check RabAI deploys through the GitHub commit status
+    Stylist. Never use them for RabbAI. Check RabbAI deploys through the GitHub commit status
     above.
   - Pushes from Claude's cloud sessions currently arrive as the `SeniorStylist` GitHub
     account, which has write access to this repo. That changes only if the maintainer moves
@@ -251,9 +251,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 
 ## Where things stand (2026-10-16)
 
-Moving RabAI off Senior Stylist:
-- The maintainer is creating a RabAI cloud environment (Custom network access with the default
-  list, plus `rab-ai-ecru.vercel.app` and `www.sefaria.org`) and will start RabAI sessions
+Moving RabbAI off Senior Stylist:
+- The maintainer is creating a RabbAI cloud environment (Custom network access with the default
+  list, plus `rab-ai-ecru.vercel.app` and `www.sefaria.org`) and will start RabbAI sessions
   there with only this repo.
 - GitHub: decided (maintainer, 2026-10-06) to keep `SeniorStylist` as a collaborator, so
   Claude's sessions keep pushing as that account.
@@ -262,12 +262,12 @@ Moving RabAI off Senior Stylist:
   list affects only Claude's working sessions, not what the live app can reach.
 - To confirm: `ANTHROPIC_API_KEY` in the `rab-ai` Vercel project should come from the
   maintainer's own Anthropic account, not Senior Stylist's.
-- Vercel: the Vercel connector holds one account (Senior Stylist's), so RabAI uses a personal
-  Vercel token stored on the RabAI environment as an API credential for `api.vercel.com`.
+- Vercel: the Vercel connector holds one account (Senior Stylist's), so RabbAI uses a personal
+  Vercel token stored on the RabbAI environment as an API credential for `api.vercel.com`.
   Sessions call the Vercel API with `curl` and never see the token.
 
 Done 2026-10-16, at Josh's request:
-- Pictures with a question: RabAI reads up to four (photo, paste, or drag), and the planning step
+- Pictures with a question: RabbAI reads up to four (photo, paste, or drag), and the planning step
   reads them too. The core premises' "Pictures the person sends" and open question 19 are for the
   board.
 - Answers that wait for you: leaving, reloading or closing the page no longer loses an answer.
@@ -276,7 +276,7 @@ Done 2026-10-16, at Josh's request:
 - A pass over how the chat feels, written up with its sources in `docs/ui-feel.md`: the question
   stays at the top while the answer is written, Copy and Try again, a "you can leave" note, chats
   that show "Answering" and "New answer", a New chat button on phones, and tidier bars.
-- The "Is RabAI working?" check now asks with a picture, leaves a question halfway and comes back
+- The "Is RabbAI working?" check now asks with a picture, leaves a question halfway and comes back
   for it, and reloads the phone's page while it answers. All three passed on 2026-10-16 (the
   answer left after 1 second was finished and picked up 63 seconds later).
 
@@ -288,9 +288,9 @@ Done 2026-10-13, at Josh's request:
 - Halacha answers read a seif with the commentaries printed around it, in the order in
   `canon/reading-order.yaml` (proposed, for the board).
 - The sources list for the rabbis (`docs/sources-for-review.md`, also published as a private
-  page and a PDF for Josh to share), made from the canon and checked on every commit. RabAI can
+  page and a PDF for Josh to share), made from the canon and checked on every commit. RabbAI can
   answer "what sources do you use, and what do you leave out?", and the app has a Sources page
-  (the gear, then "RabAI's sources").
+  (the gear, then "RabbAI's sources").
 - A draft character section for the board, "The kind of teacher you are", inspired by Rav
   Yitzchak Berkovits as Josh asked (`docs/character-notes.md`, open question 18).
 
@@ -299,7 +299,7 @@ Open items:
   passages, 5,599 books, 813 editions, 4,432 MB (on 2026-10-11 it was 3,031,757 passages, 5,470
   books, 768 editions, 4,212 MB). The canon lists 815 editions for it besides the website
   sections; the two Koren Yerushalmi editions are skipped until Sefaria's Shekalim file lists a
-  license. The "Is RabAI working?" check passed everything afterwards (library, articles, Sources
+  license. The "Is RabbAI working?" check passed everything afterwards (library, articles, Sources
   page, Gemara page, words, translations, the flow, three answers including "which books do you
   use?" answered from the sources list, on a phone and a computer). Its one problem was the
   expected storage overage (below). The "Make the printed-page layouts" workflow ran on
@@ -341,7 +341,7 @@ Open items:
   skipped. It uses the session's plan, not the API. In a session that also has Senior Stylist's
   repo, every helper agent starts with about 400,000 tokens of Senior Stylist's instructions,
   which is nearly all of its cost (about 600,000 tokens a helper, measured 2026-10-12), so
-  translate from a RabAI-only session, and reuse helpers instead of starting new ones.
+  translate from a RabbAI-only session, and reuse helpers instead of starting new ones.
 - Still missing because Sefaria lists no license on their files: 24 files, among them the Hebrew
   of the Ramban on Shemot (`python3 tools/library_plan.py` lists them). The maintainer reported on
   2026-10-10 that Sefaria is adding license labels. Sefaria's export (last made 2026-10-01) is
@@ -363,7 +363,7 @@ Open items:
   Cloudflare settings instead. Keep the access code to a small circle while these permissions are
   private only.
 - Under an answer, the app shows the articles it used under their own heading, apart from the
-  texts, and RabAI is told that only the texts confirm a point (core premise drafted 2026-10-11,
+  texts, and RabbAI is told that only the texts confirm a point (core premise drafted 2026-10-11,
   for the board).
 - TorahAnytime gave permission (reported 2026-10-11; `canon/permissions.yaml`, private use). Its
   site has no sitemap, feed or search a robot can use; speaker pages (`/speakers/<id>`) list
@@ -371,19 +371,19 @@ Open items:
   lists in the browser (`tools/site_map.py`, "Map a source's website"). Nothing is copied yet:
   the plan is a "Shiurim on this daf" list (title, speaker, date, a link that plays on
   TorahAnytime), best from a data feed TorahAnytime could send.
-- Looking things up online (Josh's direction, 2026-10-13) is built: RabAI searches the trusted
+- Looking things up online (Josh's direction, 2026-10-13) is built: RabbAI searches the trusted
   Orthodox sites in `canon/lookup-sites.yaml` (or the wider web for everyday facts), opens the
   texts the pages rely on in the library, checks the pages against them, and shows an "ask your
   rav" note under practical halacha answers. The sites list, the core premises' "Looking things
   up" and the note's wording wait for the board (open questions 9 and 17). It needs web search
   allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
-  RabAI working?" workflow asks one practical question and reports whether the lookup ran.
+  RabbAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
 - On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
   transcription service on the server, which needs the maintainer's choice of provider.
 
 Done 2026-10-06:
-- Tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabAI only when
+- Tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabbAI only when
   asked).
 - Saved chats with categories, and "pick up where you left off", on the device. Accounts, so
   chats follow the person between devices, come later.
@@ -393,7 +393,7 @@ Done 2026-10-06:
   either those line breaks (from scans) or correcting each page by hand, as Mercava did.
 
 Next, as the maintainer asked (2026-10-06), roughly in this order:
-1. **A chavrusa mode.** RabAI learns a daf with you on the printed page: points things out, asks
+1. **A chavrusa mode.** RabbAI learns a daf with you on the printed page: points things out, asks
    you questions, and tracks what you've learned and where you need practice.
 2. **More color** across the app, used to mean something (for example, sources, questions,
    your own words).

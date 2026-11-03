@@ -1,7 +1,7 @@
-# RabAI — the app
+# RabbAI — the app
 
 **Draft v0.1.** This describes the product built on top of the founding spec. The founding
-spec ([`founding-spec.md`](founding-spec.md)) still governs what RabAI may say. This page is
+spec ([`founding-spec.md`](founding-spec.md)) still governs what RabbAI may say. This page is
 about what people can do with it and how it should feel.
 
 ## The idea in one sentence
@@ -27,7 +27,7 @@ commentaries gathered around it.
 
 ### The voice: a kind rebbe
 
-**Decided (Josh, 2026-10-06).** It calls itself **RabAI**, and it should feel as human and warm
+**Decided (Josh, 2026-10-06).** It calls itself **RabbAI**, and it should feel as human and warm
 as possible: like a kind rebbe who wants to help his students. It enjoys questions, notices
 effort, speaks personally, and always ends with an invitation to keep learning.
 
@@ -35,9 +35,9 @@ One line it never crosses: it never pretends to be a person or a rabbi, and neve
 life story. If someone asks, it says kindly that it is an AI. The full voice rules are in
 [`prompts/core-premises.md`](../prompts/core-premises.md) under "How you speak".
 
-## How RabAI thinks
+## How RabbAI thinks
 
-**Decided (Josh, 2026-10-06).** RabAI thinks like someone who has spent decades learning
+**Decided (Josh, 2026-10-06).** RabbAI thinks like someone who has spent decades learning
 Gemara at every level, and understands how that learning shapes a person's mind to think in
 the Torah's terms: in the words of the Tanya, to grasp HaShem's will and wisdom and be clothed
 in it.
@@ -60,7 +60,7 @@ Two features grow out of this:
 ## Who it is for
 
 **Everyone (decided, Josh, 2026-10-06).** Beginners and experienced learners use the same app.
-RabAI meets each person where they are: it notices their level from how they ask, answers
+RabbAI meets each person where they are: it notices their level from how they ask, answers
 simply when it can't tell, and follows when someone asks for "simpler" or "deeper". People can
 also set their level once in settings.
 
@@ -74,7 +74,7 @@ also set their level once in settings.
 ## What people can do
 
 ### 1. Ask
-A conversation. RabAI gives a short answer first, then the sources, then offers to go deeper.
+A conversation. RabbAI gives a short answer first, then the sources, then offers to go deeper.
 Every source in an answer is a tappable chip, for example *Rashi on Bereishit 1:1*.
 
 ### 2. See the source
@@ -87,7 +87,7 @@ Tapping a source opens the **reader**:
 - The edition and translator named on every text.
 
 ### 3. Ask about any line
-Select a word, a line or a passage, and RabAI offers:
+Select a word, a line or a passage, and RabbAI offers:
 
 - **Explain this**
 - **Word by word**, translating and explaining each word
@@ -99,7 +99,7 @@ The answer appears attached to that line, so the text stays in view.
 
 ### 4. Learn together (chavruta mode)
 Pick a text: this week's parsha, a perek of Mishnah, a daf of Gemara, a siman of halacha.
-RabAI goes through it line by line with you. It asks you what you think before it explains,
+RabbAI goes through it line by line with you. It asks you what you think before it explains,
 notices what you find hard, and adjusts to your level, with or without Hebrew.
 
 ### 5. Follow the thread
@@ -108,14 +108,14 @@ Rambam, the Shulchan Aruch, and the Mishnah Berurah. "Trace this halacha from th
 today" shows the chain as a path you can walk, one source at a time.
 
 ### 6. Daily learning
-Parsha, Daf Yomi, Halacha Yomit, Rambam Yomi. RabAI offers to learn today's portion with you.
+Parsha, Daf Yomi, Halacha Yomit, Rambam Yomi. RabbAI offers to learn today's portion with you.
 
 ### 7. Growing closer to HaShem (only by choice)
 Already specified in the founding spec: off unless the person chooses it, one small step at a
 time, never guilt.
 
 ### 8. Learn to read the texts (only for people who want it)
-Many people want to read the words themselves one day. RabAI teaches the language the way the
+Many people want to read the words themselves one day. RabbAI teaches the language the way the
 mesorah always has, by letting the texts explain one another:
 
 - **Tap a word.** In the reader, tap any word to see how it is built, its root, and every
@@ -123,11 +123,11 @@ mesorah always has, by letting the texts explain one another:
   ב-ד-ל ("separate") in Bereishit is the root of Havdalah. The connections are computed from
   the library's own text, so each one is real and opens with a tap.
 - **The mesorah's own translators first.** Onkelos, Rashi, Metzudat Tzion, the Radak's Sefer
-  HaShorashim and the Aruch explain words; RabAI teaches through them and cites them. Other
+  HaShorashim and the Aruch explain words; RabbAI teaches through them and cites them. Other
   dictionaries are tools for word meanings only, if the board allows them at all.
 - **The Gemara's key words.** The handful of Aramaic phrases that carry the give and take of
   every sugya (תנו רבנן, מאי טעמא, תא שמע, קשיא), and what each does in the argument.
-- **Try it yourself.** Translate a line in your own words; RabAI starts with what you got right
+- **Try it yourself.** Translate a line in your own words; RabbAI starts with what you got right
   and corrects one or two things at a time, kindly.
 - **My words.** Save words as you learn them and review them later. Saved only on the
   person's device.
@@ -136,7 +136,7 @@ mesorah always has, by letting the texts explain one another:
 
 ### 9. Keep and share
 Save sources, add notes, build a personal source sheet, and share a source with someone. A
-shared item always shows the source itself, not only RabAI's words about it.
+shared item always shows the source itself, not only RabbAI's words about it.
 
 ## Guardrails people will notice
 
@@ -190,15 +190,15 @@ interface, voice, and iPhone and Android apps.
 
 **Made (Josh, 2026-10-06)**
 
-1. **Name and voice.** RabAI, warm and personal like a kind rebbe, honest that it is an AI.
+1. **Name and voice.** RabbAI, warm and personal like a kind rebbe, honest that it is an AI.
 2. **Platform.** A web app built for phones first, with a full computer layout. iPhone and
    Android apps come later.
 3. **Money.** Free to use, supported by donations. See "Free with donations" in
    [`licensing.md`](licensing.md) for what that means for the texts.
-4. **Audience.** Everyone, with RabAI adapting to each person's level.
+4. **Audience.** Everyone, with RabbAI adapting to each person's level.
 5. **Integrity first.** Keeping faith with the Orthodox texts and mesorah comes before every
    other goal. See "The first principle" in the founding spec.
-6. **Learning to read.** RabAI helps people who want it learn to read and translate the texts,
+6. **Learning to read.** RabbAI helps people who want it learn to read and translate the texts,
    through the connections between them, starting from the mesorah's own translators and
    dictionaries. Jastrow and the Radak's Sefer HaShorashim are proposed for the library; Jastrow
    waits on the board (open question 13).

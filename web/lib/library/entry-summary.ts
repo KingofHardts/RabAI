@@ -1,7 +1,7 @@
 /*
  * A dictionary entry's first meaning, on one line, cut from the dictionary's own text. The word
  * card shows this for each entry and opens the whole entry on a tap. Nothing here is written by
- * RabAI: the line is the start of the entry, with the headword and the etymology in front of the
+ * RabbAI: the line is the start of the entry, with the headword and the etymology in front of the
  * first meaning left out.
  */
 

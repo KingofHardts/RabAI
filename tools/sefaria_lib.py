@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "library" / "sefaria-cache"
 EXPORT = "https://storage.googleapis.com/sefaria-export/"
 LIST_API = "https://storage.googleapis.com/storage/v1/b/sefaria-export/o"
-HEADERS = {"User-Agent": "RabAI-library (https://github.com/KingofHardts/RabAI)"}
+HEADERS = {"User-Agent": "RabbAI-library (https://github.com/KingofHardts/RabAI)"}
 
 # Folder names the export uses for each edition language.
 LANG_DIRS = {"he": "Hebrew", "en": "English"}

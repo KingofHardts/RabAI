@@ -30,11 +30,11 @@ function docIndex(params: MessageCreateParamsNonStreaming, ref: string): number 
 }
 
 test("the core premises are loaded from prompts/core-premises.md", () => {
-  assert.match(CORE_PREMISES, /^You are RabAI/);
+  assert.match(CORE_PREMISES, /^You are RabbAI/);
   assert.match(CORE_PREMISES, /Never invent a\s+source/);
 });
 
-test("RabAI can talk about anything, through a Torah lens", () => {
+test("RabbAI can talk about anything, through a Torah lens", () => {
   assert.match(CORE_PREMISES, /## Talking about anything/);
   assert.match(CORE_PREMISES, /b'tzelem Elokim/);
   const { params } = planRequest({ question: "Can you help me write a thank-you note to my neighbor?" }, lib, config);
@@ -226,7 +226,7 @@ test("an article cited in an answer is marked, so the app shows it apart from th
   assert.equal(mapped.sources.find((s) => !s.article)?.ref, "Rambam, Hilchot Teshuvah 2:2");
 });
 
-test("a word question attaches every place the root appears and names them for RabAI", () => {
+test("a word question attaches every place the root appears and names them for RabbAI", () => {
   const { params, documents } = planRequest(
     { question: "", action: "word", word: "ויבדל", focusRef: "Bereishit 1:4" },
     lib,
@@ -242,7 +242,7 @@ test("a word question attaches every place the root appears and names them for R
   assert.match(content[content.length - 1].text ?? "", /What does the word ויבדל mean in Bereishit 1:4\?/);
 });
 
-test("a word with no other appearances tells RabAI not to name any", () => {
+test("a word with no other appearances tells RabbAI not to name any", () => {
   const { params } = planRequest({ question: "", action: "word", word: "תהום", focusRef: "Bereishit 1:2" }, lib, config);
   assert.match((params.system as Array<{ text: string }>)[2].text, /do not name other places it appears/);
 });
@@ -253,7 +253,7 @@ test("checking a translation quotes the person's attempt", () => {
   assert.match(q, /the taste of Beis Shammai/);
 });
 
-test("what the person told RabAI travels in the settings, after the cached instructions, and only when remembering is on", async () => {
+test("what the person told RabbAI travels in the settings, after the cached instructions, and only when remembering is on", async () => {
   const { emptyProfile, withStated } = await import("../lib/learner-profile");
   const profile = withStated(emptyProfile(), { level: "new", hebrew: "some" });
   const { params } = planRequest({ question: "What is the Shema?", profile }, lib, config);
@@ -266,7 +266,7 @@ test("what the person told RabAI travels in the settings, after the cached instr
   assert.match(CORE_PREMISES, /What you know about the person/);
 });
 
-test("a debated source reaches RabAI with its caution; Kabbalah is framed as the kabbalists' teaching", () => {
+test("a debated source reaches RabbAI with its caution; Kabbalah is framed as the kabbalists' teaching", () => {
   const base = {
     ref: "Sefer HaBahir 1", work: "sefer-habahir", section: "Sefer HaBahir", sectionHe: "ספר הבהיר", order: 1,
     label: "1", labelHe: "ספר הבהיר", he: "אמר רבי נחוניא בן הקנה", en: "",
@@ -289,7 +289,7 @@ test("a debated source reaches RabAI with its caution; Kabbalah is framed as the
   assert.doesNotMatch(plain, /Caution|kabbalists/);
 });
 
-test("a rejected book reaches RabAI as the author's claims, with the answer Orthodox authorities gave", () => {
+test("a rejected book reaches RabbAI as the author's claims, with the answer Orthodox authorities gave", () => {
   const context = testingContext({
     ref: "The Wars of God 1:2", work: "milchamot-hashem-qafih", section: "The Wars of God 1", sectionHe: "מלחמות השם א",
     order: 1, label: "1:2", labelHe: "א:ב", he: "יתבונן המשכיל", en: "",

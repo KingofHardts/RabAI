@@ -1,6 +1,6 @@
 // Open the live app in a real browser, the way a person does, and report what happened.
 //
-// Run by tools/health_check.py in the "Is RabAI working?" workflow. Reads the access code from
+// Run by tools/health_check.py in the "Is RabbAI working?" workflow. Reads the access code from
 // RABAI_CODE (already masked in the log) and Playwright from PW_PATH. Prints one line per finding,
 // starting with "OK " or "PROBLEM ". It never prints the code or any words of an answer: only
 // whether an answer appeared, how long it took, and the app's own notices and page errors.
@@ -101,7 +101,7 @@ async function run(name, options, ask) {
       const started = Date.now();
       await page.fill("#ask-input", QUESTION);
       await page.click(".composer form button[type=submit]");
-      // Leave in the middle, the way a person reloads or comes back to a closed tab: once RabAI is
+      // Leave in the middle, the way a person reloads or comes back to a closed tab: once RabbAI is
       // writing, reload the page. The answer should still arrive.
       let reloaded = false;
       const writing = await page.waitForSelector(".msg-ai.bare.live", { timeout: 30000 }).then(() => true).catch(() => false);
@@ -125,8 +125,8 @@ async function run(name, options, ask) {
         const away = await page.locator(".away-note").count();
         const how = reloaded
           ? away
-            ? " (the page was reloaded while RabAI was writing, and the answer came back)"
-            : " (the page was reloaded while RabAI was writing)"
+            ? " (the page was reloaded while RabbAI was writing, and the answer came back)"
+            : " (the page was reloaded while RabbAI was writing)"
           : writing
             ? " (it finished before the page could be reloaded)"
             : "";

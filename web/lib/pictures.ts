@@ -3,7 +3,7 @@
  * the app, which shrinks each picture on the device before sending it, and the server, which
  * checks what arrives. Pure functions only.
  *
- * A picture is read by RabAI for this question and the next few in the same chat. It is never
+ * A picture is read by RabbAI for this question and the next few in the same chat. It is never
  * kept on the server: not with the answer while it is written (lib/answer-jobs.ts), not anywhere.
  * The device keeps a small preview of it with the saved chat.
  */
@@ -20,7 +20,7 @@ export interface QuestionPicture {
 export const PICTURE_LIMITS = {
   /** Pictures with one question. */
   perQuestion: 4,
-  /** Pictures from earlier in the chat sent again with a follow-up, so RabAI can still see them. */
+  /** Pictures from earlier in the chat sent again with a follow-up, so RabbAI can still see them. */
   inHistory: 4,
   /**
    * The longest side the app sends. Claude's newer models read a picture at up to 2576 pixels on

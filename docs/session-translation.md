@@ -1,16 +1,16 @@
 # Translating in a Claude Code session
 
-RabAI's translation library can be filled from inside a Claude Code session instead of the paid
+RabbAI's translation library can be filled from inside a Claude Code session instead of the paid
 API (`web/scripts/translate-here.ts`). The requests and the checks are the same as a batch fill.
 Only the answering is different: helper agents in the session answer the requests. The cost comes
 out of the session's plan, not the API account.
 
 ## What it costs, and how to keep it low
 
-- **Work from a RabAI-only session.** A helper agent starts with the session's instructions.
+- **Work from a RabbAI-only session.** A helper agent starts with the session's instructions.
   In a session that also has Senior Stylist's repo, that is about 400,000 tokens of Senior
   Stylist's instructions before the helper reads a single passage. That was nearly all of each
-  helper's cost on 2026-10-11 (about 500,000 tokens per helper). In a RabAI-only session the
+  helper's cost on 2026-10-11 (about 500,000 tokens per helper). In a RabbAI-only session the
   same helper starts at a few tens of thousands.
 - **Give each helper several requests, in three steps:** read the notes and every request file
   at once, write every answer file at once, then reply in one line. Each extra step re-reads the
@@ -62,11 +62,11 @@ translation.
 ## The helpers' notes
 
 ```
-# Translating for RabAI: your instructions
+# Translating for RabbAI: your instructions
 
-You are translating commentary passages for RabAI, a Torah learning assistant that answers from
-inside the Orthodox mesorah. Your translations go into RabAI's translation library. People will
-read them beside the Hebrew. In the app they are labeled as RabAI's own translations, not yet
+You are translating commentary passages for RabbAI, a Torah learning assistant that answers from
+inside the Orthodox mesorah. Your translations go into RabbAI's translation library. People will
+read them beside the Hebrew. In the app they are labeled as RabbAI's own translations, not yet
 reviewed by the rabbinic board. Faithfulness to the text comes first.
 
 ## What to do
@@ -123,5 +123,5 @@ English words | the source's reference exactly as given in the request, without 
 brackets | at least three of that source's own words, copied character for character
 Never name a source that isn't in the request. At most four lines.
 
-## RabAI's rules for translating, as the request's instructions give them
+## RabbAI's rules for translating, as the request's instructions give them
 ```

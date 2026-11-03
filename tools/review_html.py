@@ -216,7 +216,7 @@ def page(data: dict, counts) -> str:
     made = f"{today.day} {today.strftime('%B %Y')}"
     out: list[str] = []
     add = out.append
-    add("<title>RabAI's Sources</title>")
+    add("<title>RabbAI's Sources</title>")
     add('<link rel="preconnect" href="https://fonts.googleapis.com">')
     add('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
     add(
@@ -240,21 +240,21 @@ def page(data: dict, counts) -> str:
     add("<main>")
     add('<header class="top">')
     add('<p class="eyebrow">For the rabbinic board</p>')
-    add("<h1>RabAI's sources</h1>")
-    add('<p class="subtitle">What RabAI reads, and what it leaves out</p>')
-    add(f'<p class="made">Made from RabAI\'s canon on {h(made)}. Nothing in it is approved yet: the board decides what RabAI may use.</p>')
+    add("<h1>RabbAI's sources</h1>")
+    add('<p class="subtitle">What RabbAI reads, and what it leaves out</p>')
+    add(f'<p class="made">Made from RabbAI\'s canon on {h(made)}. Nothing in it is approved yet: the board decides what RabbAI may use.</p>')
     add("</header>")
 
     add('<section id="glance"><h2 class="part first">At a glance</h2>')
     first, second = intro(data)
     add(f'<p class="lede">{h(first)}</p><p>{h(second)}</p>')
     add('<div class="glance">')
-    add(f'<div class="figure reads"><b>{c["readEditions"]:,}</b><span>editions of {c["readWorks"]:,} works RabAI reads</span></div>')
+    add(f'<div class="figure reads"><b>{c["readEditions"]:,}</b><span>editions of {c["readWorks"]:,} works RabbAI reads</span></div>')
     add(f'<div class="figure caution"><b>{c["cautioned"]}</b><span>kept with a caution</span></div>')
     add(f'<div class="figure held"><b>{c["held"]}</b><span>editions waiting for your decision</span></div>')
     add(f'<div class="figure out"><b>{c["leftOut"]}</b><span>editions and collections left out</span></div>')
     add("</div>")
-    add('<div class="table-wrap"><table><thead><tr><th>Area</th><th class="n">Works RabAI reads</th><th class="n">Editions</th></tr></thead><tbody>')
+    add('<div class="table-wrap"><table><thead><tr><th>Area</th><th class="n">Works RabbAI reads</th><th class="n">Editions</th></tr></thead><tbody>')
     for area, works, editions in area_rows(data):
         add(f'<tr><td><a href="#area-{h(area["id"])}">{h(area["title"])}</a></td><td class="n">{works:,}</td><td class="n">{editions:,}</td></tr>')
     add("</tbody></table></div>")
@@ -338,7 +338,7 @@ def page(data: dict, counts) -> str:
         s = data["sites"]
         if s["status"] != "approved":
             add("<p><b>This list waits for your review.</b></p>")
-        add('<h3>The only sites RabAI searches about Torah, halacha or belief</h3><ul class="sites">')
+        add('<h3>The only sites RabbAI searches about Torah, halacha or belief</h3><ul class="sites">')
         for site in s["trusted"]:
             add(f'<li><b>{h(site["name"])}</b> <span class="domain">{h(site["domain"])}</span><br>{h(site["offers"])}</li>')
         add('</ul><h3>Never searched, even for everyday facts</h3><ul class="sites">')

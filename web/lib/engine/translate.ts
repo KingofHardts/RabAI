@@ -16,11 +16,11 @@ import {
 } from "./gloss";
 
 /*
- * RabAI's own translations: a translation of a passage the library has no English for (much of
+ * RabbAI's own translations: a translation of a passage the library has no English for (much of
  * Rashi and Tosafot), and a word-by-word translation of any passage. They are made from the
  * library's own sources (the Orthodox English of the line a comment explains, the other
- * commentaries on it, and the dictionaries) and kept in RabAI's translation library
- * (lib/library/translations.ts), so each passage is translated once. They are RabAI's reading,
+ * commentaries on it, and the dictionaries) and kept in RabbAI's translation library
+ * (lib/library/translations.ts), so each passage is translated once. They are RabbAI's reading,
  * not a source: the app labels them as not from the library and not yet reviewed by the
  * rabbinic board.
  *
@@ -31,7 +31,7 @@ import {
 /** What a source is to the passage being translated. */
 export type SourceRole = "explains" | "before" | "commentary" | "dictionary";
 
-/** A passage from the library given to RabAI to translate from. */
+/** A passage from the library given to RabbAI to translate from. */
 export interface TranslationSource {
   ref: string;
   role: SourceRole;
@@ -59,7 +59,7 @@ export interface TranslateWant {
 
 const TRANSLATE_INSTRUCTIONS = `## Translating a passage
 
-You are adding to RabAI's library of translations: translations of passages the library has no
+You are adding to RabbAI's library of translations: translations of passages the library has no
 English for, and word-by-word translations, made once and kept so people can learn from them.
 You are given the passage's reference and its Hebrew or Aramaic, and sources from the library to
 translate from:

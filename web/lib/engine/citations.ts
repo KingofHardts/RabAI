@@ -27,7 +27,7 @@ export interface AnswerCitation {
   quote: string;
   /** The passage is an article by today's teachers (a website collection), not one of the texts. */
   article?: boolean;
-  /** The passage is a page RabAI looked up online for this answer, not one of the texts. */
+  /** The passage is a page RabbAI looked up online for this answer, not one of the texts. */
   online?: boolean;
 }
 
@@ -46,7 +46,7 @@ export interface AnswerSource {
    */
   article?: { site: string; title: string; author?: string };
   /**
-   * A page RabAI looked up online for this answer (lib/engine/online.ts): never a source. The app
+   * A page RabbAI looked up online for this answer (lib/engine/online.ts): never a source. The app
    * shows these apart from the texts, with a link to the page.
    */
   online?: { site: string; title: string; url: string; kind: "torah" | "general" };
