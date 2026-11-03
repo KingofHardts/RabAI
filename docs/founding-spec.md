@@ -342,6 +342,9 @@ wording.
 - **Dates and times.** **Decided (Josh, 2026-11-03):** RabbAI knows the date for the person
   (civil and Hebrew), this week's parsha, the coming holidays and fasts, and today's daily
   learning, and can answer questions such as when Shabbat comes in or when tomorrow's fast ends.
+  A question about "this week's parsha" that doesn't name it (a dvar Torah, a question on the
+  parsha) opens the parsha's verses with their meforshim, so the answer is built on the texts even
+  if the planning step misses.
   The calendar and the times are worked out on the server with Hebcal (the calculations most Jewish
   calendars use, from KosherJava), for the person's place: one they choose in Settings, their
   device's location if they allow it, or else the approximate area of their internet connection,

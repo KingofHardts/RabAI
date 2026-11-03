@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { calendarInfo, calendarNoteForLookup, calendarSettings, candleMinutesFor, dafRef, daySummary, yearAhead } from "../lib/calendar/calendar";
+import { calendarInfo, calendarNoteForLookup, calendarSettings, candleMinutesFor, dafRef, daySummary, parshaRefsFor, yearAhead } from "../lib/calendar/calendar";
 import { asksAboutCalendar, parsePlace, parsePrefs, parseWhenAndWhere, placeFromHeaders, whenForRequest, type Place } from "../lib/calendar/place";
 import { calendarNotes, planRequest } from "../lib/engine/answer";
 import { loadLibrary } from "../lib/library/index";
@@ -212,4 +212,33 @@ test("the day summary gives a fast coming in the next two days, with its times",
   assert.match(day.soon?.ends?.time ?? "", /pm$/);
   // Nothing within two days of an ordinary Tuesday in Cheshvan.
   assert.equal(daySummary(calendarInfo({ now: at("2026-11-03T14:00:00-05:00"), place: BALTIMORE })).soon, undefined);
+});
+
+test("a question on this week's parsha opens its verses, even if the lookup step misses", () => {
+  const info = calendarInfo({ now: at("2026-11-03T14:00:00-05:00"), place: BALTIMORE });
+  assert.equal(info.parsha?.name, "Chayei Sara");
+  const opens = (q: string) => parshaRefsFor(q, info);
+  for (const q of [
+    "Can you give me a short dvar Torah on this week's parsha?",
+    "dvar torah on the parsha",
+    "what's this weeks parshah about",
+    "Parshas Hashavua thoughts",
+    "a thought on the weekly portion",
+    "what is the torah portion this week",
+    "a vort on the parsha of the week",
+    "help me memorize this week's parsha",
+  ]) {
+    assert.deepEqual(opens(q), ["Genesis 23:1"], q);
+  }
+  // A parsha named in the question is the lookup step's to open; and nothing about the parsha, nothing.
+  for (const q of [
+    "a dvar Torah on the parsha of Noach",
+    "this week's parsha, Chayei Sarah: why did Avraham buy the cave?",
+    "a dvar torah for a bar mitzvah on the parsha Re'eh",
+    "I'm learning Parshas Lech Lecha",
+    "What does Rashi say on Genesis 1:1?",
+  ]) {
+    assert.deepEqual(opens(q), [], q);
+  }
+  assert.deepEqual(parshaRefsFor("this week's parsha", null), []);
 });

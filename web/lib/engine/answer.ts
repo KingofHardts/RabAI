@@ -11,7 +11,7 @@ import { asksAboutLibrary, retrieveFromTesting } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
-import { calendarInfo, calendarNoteForLookup, calendarSettings, yearAhead, type CalendarInfo, type YearItem } from "../calendar/calendar";
+import { calendarInfo, calendarNoteForLookup, calendarSettings, parshaRefsFor, yearAhead, type CalendarInfo, type YearItem } from "../calendar/calendar";
 import { asksAboutCalendar, type WhenAndWhere } from "../calendar/place";
 import { amudOf, chavrusaSettings, nextLineRef, type ChavrusaSession } from "../chavrusa";
 
@@ -601,9 +601,15 @@ export async function ask(
         ? `The person is learning ${session.text} with RabbAI as a chavrusa${session.at ? `; the last line reached is ${session.at}` : ""}.`
         : "";
       const preface = [calendar ? calendarNoteForLookup(calendar) : "", sessionNote].filter(Boolean).join("\n");
+      // Also open: in a session, the next line; for "this week's parsha", its opening verse, so its
+      // meforshim open even if the lookup step misses (lib/calendar, parshaRefsFor).
+      const alsoRefs = [
+        ...(session?.at ? [nextLineRef(session.at)] : []),
+        ...(page || input.action ? [] : parshaRefsFor(input.question, calendar)),
+      ].filter((r): r is string => !!r);
       const found = await retrieveFromTesting(searchQuery(input), store, client, {
         focusRef: input.focusRef ?? session?.at ?? session?.text,
-        ...(session?.at ? { alsoRefs: [nextLineRef(session.at)].filter((r): r is string => !!r) } : {}),
+        ...(alsoRefs.length ? { alsoRefs } : {}),
         ...(page ? { onlyPage: page } : {}),
         pictures: input.pictures,
         extraPhrases: input.action === "word" && input.word ? [input.word] : [],

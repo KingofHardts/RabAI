@@ -1,4 +1,4 @@
-import { HDate, HebrewCalendar, Location, Sedra, Zmanim, flags, DailyLearning, type Event } from "@hebcal/core";
+import { HDate, HebrewCalendar, Location, Sedra, Zmanim, flags, DailyLearning, parshiot, type Event } from "@hebcal/core";
 import "@hebcal/learning";
 import { getLeyningForParsha } from "@hebcal/leyning";
 import { kmBetween, validTimeZone, type DaySummary, type Place, type TimesPrefs } from "./place";
@@ -497,6 +497,27 @@ export function calendarSettings(info: CalendarInfo, opts: { times?: boolean; ye
     if (opts.year?.length) lines.push(`The year ahead (the date each day falls on): ${opts.year.map((yI) => `${yI.title}: ${yI.day}`).join("; ")}.`);
   }
   return lines.join("\n");
+}
+
+/** "This week's parsha", "the weekly portion", "parshas hashavua", "the parsha this week" and the like. */
+const THIS_WEEKS_PARSHA =
+  /\b(?:this\s+week'?s?|this|the(?:\s+weekly)?|weekly)\s+(?:torah\s+)?(?:par(?:a)?sh[a-z]*|sedra|sidra|portion)\b|\bpar(?:a)?sh[a-z]*\s+ha[-\s]?shavu'?a\b|\b(?:par(?:a)?sh[a-z]*|portion|sedra)\s+(?:of|for)\s+(?:this|the)\s+week\b/i;
+
+/** Every weekly parsha's name, as a pattern that allows a space for a hyphen and an "h" at the end. */
+const PARSHA_NAMES = parshiot.map(
+  (name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/['’]/g, "['’]?").replace(/[-\s]/g, "[-\\s]?")}h?\\b`, "i"),
+);
+
+/**
+ * The first verse of this week's parsha, when a question asks about "this week's parsha" without
+ * naming one (a dvar Torah, a question on the parsha), so its verses and their meforshim open even
+ * if the lookup step misses. Empty otherwise, and for a holiday's reading.
+ */
+export function parshaRefsFor(question: string, info: CalendarInfo | null): string[] {
+  const ref = info?.parsha?.ref;
+  if (!ref || info?.parsha?.holiday || !THIS_WEEKS_PARSHA.test(question)) return [];
+  if (PARSHA_NAMES.some((name) => name.test(question))) return [];
+  return [ref];
 }
 
 /**

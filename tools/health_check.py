@@ -14,13 +14,15 @@ summary:
    - the Anthropic key answers a one-word request (a fraction of a cent).
 4. The live app: the lock page answers, the access code opens it, the library lists its books and
    the articles' sections (with how many paragraphs the first articles of each open with), the
-   Sources page opens, and five real questions are answered: one from the library, one about
+   Sources page opens, and seven real questions are answered: one from the library, one about
    RabbAI's own sources (which books it uses and leaves out), one with a picture (two plain colors,
-   to show that a picture reaches RabbAI), one the asking page leaves halfway and comes back for
-   (to show the answer is kept while nobody is waiting), and one practical halacha question that
-   RabbAI looks up online on the trusted Orthodox sites (together about the cost of six questions
-   in the app). Only whether each step worked is printed, never the answer, and never an
-   article's title or words (only counts; for the lookup, the names of the trusted sites it used).
+   to show that a picture reaches RabbAI), a dvar Torah on this week's parsha (to show RabbAI knows
+   the parsha and builds on the texts rather than articles), one asked as if out loud in Talk (to
+   show the answer is short), one the asking page leaves halfway and comes back for (to show the
+   answer is kept while nobody is waiting), and one practical halacha question that RabbAI looks up
+   online on the trusted Orthodox sites (together about the cost of eight questions in the app).
+   Only whether each step worked is printed, never the answer, and never an article's title or
+   words (only counts; for the lookup, the names of the trusted sites it used).
 
 This repository is public, and so are its Actions logs: nothing here prints a key, a code, a
 token, a question's answer or anything about a person.
@@ -75,6 +77,10 @@ PRACTICAL_QUESTION = "May I use an electric hot water urn on Shabbat?"
 PICTURE_QUESTION = "What two colors are in this picture?"
 # Asked by a page that leaves halfway and comes back for the answer.
 LEAVE_QUESTION = "Why is the Shema said twice a day?"
+# RabbAI should know this week's parsha without being told it, and build on the texts.
+DVAR_QUESTION = "Can you give me a short dvar Torah on this week's parsha?"
+# Asked as if out loud in Talk: the answer should be a few short sentences.
+TALK_QUESTION = "Why do we light candles before Shabbat?"
 
 
 def two_color_picture(width: int = 256, height: int = 256) -> str:
@@ -487,10 +493,11 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         problem(f"\"Show the flow\" answered HTTP {status} with something that isn't JSON "
                 f"(after {seen.get('seconds', 0):.0f} seconds, x-vercel-error = {h.get('x-vercel-error', 'none')}).")
 
-    def live_answer(question: str, label: str, pictures: list | None = None) -> dict | None:
+    def live_answer(question: str, label: str, pictures: list | None = None, talking: bool = False) -> dict | None:
         """Ask for a live (streamed) answer: one JSON object per line. Returns the checked result."""
         seen.pop("cut", None)
-        body = {"question": question, "stream": True, **({"pictures": pictures} if pictures else {})}
+        body = {"question": question, "stream": True, **({"pictures": pictures} if pictures else {}),
+                **({"talking": True} if talking else {})}
         status, raw = fetch("/api/ask", body, timeout=300)
         h = seen.get("headers", {})
         if status != 200:
@@ -609,6 +616,42 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         if r.get("status") == "answered" and not saw:
             problem("A question with a picture was answered, but the answer didn't name the picture's two colors "
                     "(did the picture reach RabbAI?).")
+
+    # A dvar Torah on this week's parsha, not named in the question: RabbAI should know which parsha
+    # it is, and build on the texts (the verses, their meforshim, the Midrash) rather than articles.
+    # Only yes or no, and counts, are printed.
+    status, raw = fetch("/api/calendar", {"when": {"tz": "America/New_York"}})
+    parsha: dict = {}
+    if status == 200:
+        try:
+            parsha = json.loads(raw).get("parsha") or {}
+        except ValueError:
+            parsha = {}
+    r = live_answer(DVAR_QUESTION, "a dvar Torah on this week's parsha")
+    if r is not None:
+        sources = [x for x in (r.get("sources") or []) if isinstance(x, dict)]
+        articles = sum(1 for x in sources if x.get("article"))
+        texts = sum(1 for x in sources if not x.get("article") and not x.get("online"))
+        words = answer_words(r)
+        names = [re.sub(r"[^a-z]", "", w.lower()) for w in str(parsha.get("name") or "").split()]
+        named = any(n and n in re.sub(r"[^a-z]", "", words) for n in names) or (bool(parsha.get("he")) and str(parsha["he"]) in words)
+        summary(f"  - Named this week's parsha: {'yes' if named else 'no'}; {texts} texts and {articles} articles cited.")
+        if r.get("status") == "answered":
+            if not named:
+                problem("A dvar Torah on \"this week's parsha\" didn't name the parsha (does RabbAI get today's date?).")
+            if texts == 0:
+                problem("A dvar Torah on the parsha cited no texts from the library.")
+            elif articles > texts:
+                problem("A dvar Torah on the parsha cited more articles than texts.")
+
+    # A question asked out loud in Talk: the answer should be short and easy to hear (core premises,
+    # "Talking out loud"). Only its length is printed.
+    r = live_answer(TALK_QUESTION, "a question asked out loud (Talk)", talking=True)
+    if r is not None:
+        spoken = len(answer_words(r).split())
+        summary(f"  - The spoken answer: {spoken} words.")
+        if r.get("status") == "answered" and spoken > 220:
+            problem(f"An answer for Talk was {spoken} words long; spoken answers should be a few short sentences.")
 
     leave_midway(LEAVE_QUESTION)
 
