@@ -270,7 +270,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Is it working?** The "Is RabbAI working?" workflow (`.github/workflows/health.yml`, run by
   hand) checks every piece from GitHub: Turso's plan, usage and databases, the Vercel deploys and
   settings (names only), and the live app, by request and in a real browser on a phone and a
-  computer (`tools/health_check.py`, `tools/health_browser.cjs`). It prints no secrets and no
+  computer (`tools/health_check.py`, `tools/health_browser.cjs`), including the Daven tab (today's
+  folds in the Amidah, dark-mode contrast), the offline worker and whether RabbAI's voice is set up. It prints no secrets and no
   answer text. This session can't reach the live app; run the workflow instead.
 - **Website collections:** the "Copy a website's sections (collections)" workflow
   (`.github/workflows/collections.yml`, run by hand) copies a site's canon sections into its own
@@ -500,6 +501,10 @@ Open items:
   ElevenLabs' Voice Design are in `docs/siddur-audio-and-transliteration.md`. That page also lists
   publishers to ask for a transliterated siddur and for recordings of the prayers. For the board:
   open questions 23 (folding, the davening notes) and 24 (the voice, God's names when reading).
+- The health check of 2026-11-04 (second round) passed everything except Turso's storage (above)
+  and, once in two runs, the dvar Torah question's lookup plan, which couldn't be read (the answer
+  still named the parsha and cited 4 texts). Worth watching; if it recurs, look at the plan's
+  fallback reason (`lookupFallback`).
 - On iPhones, the browser's speech recognition can be unreliable. The fix is a transcription
   service; `docs/transcription-research.md` (2026-11-04) compares them and recommends Soniox,
   with ElevenLabs Scribe v2 Realtime second, after a short test on our own recordings. Building it
