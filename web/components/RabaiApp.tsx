@@ -44,11 +44,13 @@ import {
   setPreferredVoice,
   setSpeechRate,
   speak,
+  speakLive,
   stopSpeaking,
   unlockSpeech,
   useDictation,
+  type LiveSpeech,
 } from "./voice";
-import { useTalk, type TalkControls } from "./talk";
+import { setCutInByVoice, useTalk, type TalkControls } from "./talk";
 import { micOpen, secondsLeft, TALK_TIMING, tapAction, wordsOf } from "@/lib/talk";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
@@ -438,6 +440,23 @@ function readSavedWords(): SavedWord[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Ask the server to warm RabbAI's caches (app/api/ask/warm), so the first question is quick: when
+ * the person starts Talk or a chavrusa session, or begins to type. At most every twenty minutes from
+ * a device; nothing about the person is sent.
+ */
+function warmUp(kind: "talk" | "ask"): void {
+  try {
+    const key = `rabai_warm_${kind}`;
+    const last = Number(window.localStorage.getItem(key) ?? 0);
+    if (Date.now() - last < 20 * 60_000) return;
+    window.localStorage.setItem(key, String(Date.now()));
+  } catch {
+    /* storage can be unavailable: warm anyway */
+  }
+  void fetch("/api/ask/warm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) }).catch(() => undefined);
 }
 
 function plainAnswer(result: AskResult | undefined): string {
@@ -1241,6 +1260,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [ownVoiceList, setOwnVoiceList] = useState<OwnVoices | null>(null);
   const ownVoice = !!ownVoiceList?.available;
   const [hebrewSay, setHebrewSay] = useState<"sephardi" | "ashkenazi">("sephardi");
+  /** Talk: whether the person can cut in by talking while RabbAI speaks (components/talk.ts). */
+  const [cutIn, setCutIn] = useState(true);
   /** True while the words in the box came from the microphone. */
   const spokenInput = useRef(false);
   const dictation = useDictation(
@@ -1561,6 +1582,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const say = readStored("rabai_voice_hebrew", ["sephardi", "ashkenazi"] as const, "sephardi");
     setHebrewSay(say);
     setHebrewPronunciation(say);
+    const cut = readStored("rabai_cut_in", ["on", "off"] as const, "on") === "on";
+    setCutIn(cut);
+    setCutInByVoice(cut);
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
@@ -2152,6 +2176,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const spokenJobs = useRef(new Set<string>());
   /** Questions asked in Talk: their answers are read aloud, and then RabbAI listens again. */
   const talkJobs = useRef(new Set<string>());
+  /** The Talk question whose answer is being read now (an earlier one the person cut in on is not). */
+  const talkCurrent = useRef<string | null>(null);
+  /** A Talk question said while the answer before it was still being written: sent when it is done. */
+  const queuedTalk = useRef<{ q: string; cutIn: string } | null>(null);
+  /** Each live answer's text so far, so it can be read aloud as it is written. */
+  const liveText = useRef(new Map<string, string>());
+  /** Answers to questions asked out loud, read as they are written (components/voice.ts). */
+  const liveSpoken = useRef(new Map<string, LiveSpeech>());
   /** The pictures sent during this visit, by their preview: sent again with follow-up questions. */
   const sentPictures = useRef(new Map<string, QuestionPicture>());
 
@@ -2226,10 +2258,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       if (result.topic) notice({ kind: "topic", topic: result.topic });
       // The page has it now: nothing more is kept on the server.
       void fetch(`/api/ask/job?id=${encodeURIComponent(jobId)}`, { method: "DELETE" }).catch(() => undefined);
-      // A question asked out loud gets its answer read aloud.
-      if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) listen(`m${placeholder.id}`, plainAnswer(result));
-      if (talkJobs.current.delete(jobId)) {
-        if (placeholder && result.status === "answered") talkRef.current?.answer(`m${placeholder.id}`, plainAnswer(result));
+      // A question asked out loud gets its answer read aloud (already begun while it was written).
+      const written = liveText.current.get(jobId) ?? "";
+      liveText.current.delete(jobId);
+      const reading = liveSpoken.current.get(jobId);
+      liveSpoken.current.delete(jobId);
+      if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) {
+        if (reading) reading.finish(written || plainAnswer(result));
+        else listen(`m${placeholder.id}`, plainAnswer(result));
+      } else if (reading) stopSpeaking();
+      if (talkJobs.current.delete(jobId) && talkCurrent.current === jobId) {
+        talkCurrent.current = null;
+        if (placeholder && result.status === "answered") talkRef.current?.answer(`m${placeholder.id}`, written || plainAnswer(result));
         else talkRef.current?.answerFailed(result.status === "answered" ? undefined : "RabbAI couldn't answer that just now; the note is in the chat. Tap to talk to go on.");
       }
       if (document.hidden) document.title = "Answered · RabbAI";
@@ -2245,7 +2285,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       controllers.current.delete(jobId);
       dropLive(jobId);
       spokenJobs.current.delete(jobId);
-      if (talkJobs.current.delete(jobId)) talkRef.current?.answerFailed();
+      liveText.current.delete(jobId);
+      if (liveSpoken.current.has(jobId)) {
+        liveSpoken.current.delete(jobId);
+        stopSpeaking();
+      }
+      if (talkJobs.current.delete(jobId) && talkCurrent.current === jobId) {
+        talkCurrent.current = null;
+        talkRef.current?.answerFailed();
+      }
       settleInChat(chat, jobId, (m) => ({ id: m.id, role: "ai", result: errorResult(notice) }));
     },
     [settleInChat, errorResult],
@@ -2391,6 +2439,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           onText: (delta) => {
             streamed = true;
             update((j) => ({ ...j, text: j.text + delta }));
+            // Read aloud as it is written: in Talk, and for a question asked out loud.
+            const soFar = (liveText.current.get(jobId) ?? "") + delta;
+            liveText.current.set(jobId, soFar);
+            const id = messagesRef.current.find((m) => m.pending?.id === jobId)?.id;
+            if (id === undefined) return;
+            if (talkJobs.current.has(jobId) && talkCurrent.current === jobId) talkRef.current?.answerText(`m${id}`, soFar);
+            else if (spokenJobs.current.has(jobId) && canSpeak()) {
+              let reading = liveSpoken.current.get(jobId);
+              if (!reading && /[.!?;:]\s/.test(soFar)) {
+                setSpeaking(`m${id}`);
+                reading = speakLive(() => {
+                  if (speakingRef.current === `m${id}`) setSpeaking(null);
+                });
+                liveSpoken.current.set(jobId, reading);
+              }
+              reading?.update(soFar);
+            }
           },
         });
         if (end && "result" in end) finishJob(jobId, chat, end.result, { streamed });
@@ -2403,7 +2468,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         controllers.current.delete(jobId);
       }
     },
-    [finishJob, watchJob, refuseJob],
+    [finishJob, watchJob, refuseJob, setSpeaking],
   );
 
   // When the app opens: pick up the answers that were still being written when it was last open.
@@ -2451,7 +2516,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
    * @param opts.base The conversation to ask in, when not the one on screen (Try again).
    */
   const send = useCallback(
-    (question: string, opts: { deep?: boolean; spoken?: boolean; talk?: boolean; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {}): boolean => {
+    (
+      question: string,
+      opts: { deep?: boolean; spoken?: boolean; talk?: boolean; interrupted?: string; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {},
+    ): boolean => {
       const q = question.trim();
       const pics = opts.pictures ?? [];
       if (!q && !pics.length) return false;
@@ -2506,8 +2574,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       spokenInput.current = false;
       setMode("chat");
       notice({ kind: "question" });
-      if (opts.talk) talkJobs.current.add(jobId);
-      else if (opts.spoken) spokenJobs.current.add(jobId);
+      if (opts.talk) {
+        talkJobs.current.add(jobId);
+        talkCurrent.current = jobId;
+      } else if (opts.spoken) spokenJobs.current.add(jobId);
+      // The sources of the answer just before, so a short follow-up can go straight to them.
+      const lastAnswer = [...base].reverse().find((m) => m.role === "ai" && m.result?.status === "answered")?.result;
+      const lastRefs = lastAnswer
+        ? [...new Set([...lastAnswer.sources.filter((x) => !x.article && !x.online).map((x) => x.ref), ...lastAnswer.retrieved])].slice(0, 12)
+        : [];
       void streamJob(jobId, chat, at, {
         question: q,
         ...(pics.length ? { pictures: pics.map((p) => p.full) } : {}),
@@ -2517,6 +2592,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         profile: profileRef.current.remember ? profileRef.current : undefined,
         ...(chavrusaRef.current ? { chavrusa: chavrusaRef.current } : {}),
         ...(opts.talk ? { talking: true } : {}),
+        ...(opts.talk && opts.interrupted ? { interrupted: opts.interrupted } : {}),
+        ...(lastRefs.length ? { lastRefs } : {}),
       });
       return true;
     },
@@ -2524,7 +2601,24 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   );
 
   // Talk: what the person says is sent as their question, and the answer is read aloud.
-  const talkSend = useCallback((q: string) => send(q, { talk: true }), [send]);
+  const talkSend = useCallback(
+    (q: string, cutIn: string) => {
+      // Said while the answer before is still being written (the person cut in): sent when it is done.
+      if (messagesRef.current.some((m) => m.pending)) {
+        queuedTalk.current = { q, cutIn };
+        talkCurrent.current = null;
+        return true;
+      }
+      return send(q, { talk: true, interrupted: cutIn });
+    },
+    [send],
+  );
+  useEffect(() => {
+    const queued = queuedTalk.current;
+    if (!queued || messages.some((m) => m.pending)) return;
+    queuedTalk.current = null;
+    if (!send(queued.q, { talk: true, interrupted: queued.cutIn })) talkRef.current?.answerFailed("That couldn't be sent just now. Tap to talk to try again.");
+  }, [messages, send]);
   const talk = useTalk({ onSend: talkSend, onSpeaking: setSpeaking });
   talkRef.current = talk;
   const talkOn = talk.state.phase !== "off";
@@ -2547,6 +2641,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (talkCovered && talkLive) pauseTalk("Paused while something else was open. Tap to talk.");
   }, [talkCovered, talkLive, pauseTalk]);
   const startTalk = () => {
+    warmUp("talk");
     if (listening) dictation.cancel();
     setComposerNote(null);
     talk.start();
@@ -2592,6 +2687,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   /** Start a chavrusa session in a new chat: RabbAI opens it the way the person chose. */
   const startChavrusa = (session: ChavrusaSession) => {
+    warmUp("talk");
     setChavrusaSetup(null);
     if (dafRef) closeDaf();
     showChat(null, [], session);
@@ -4774,6 +4870,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </div>
                   </div>
                 )}
+                {talkOk && (
+                  <div className="settings-line">
+                    <span id="cut-in-label">In Talk, cut in by talking</span>
+                    <div className="seg" role="radiogroup" aria-labelledby="cut-in-label">
+                      {(
+                        [
+                          [true, "On"],
+                          [false, "Off"],
+                        ] as const
+                      ).map(([v, label]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          role="radio"
+                          aria-checked={cutIn === v}
+                          className={cutIn === v ? "on" : ""}
+                          title={v ? "Start talking while RabbAI speaks, and it stops to listen (a tap always works)" : "Only a tap stops RabbAI while it speaks"}
+                          onClick={() => {
+                            setCutIn(v);
+                            setCutInByVoice(v);
+                            store("rabai_cut_in", v ? "on" : "off");
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="settings-group">About RabbAI</p>
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
                   <strong>RabbAI&apos;s sources</strong>
@@ -5447,6 +5572,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 id="ask-input"
                 ref={textareaRef}
                 rows={1}
+                onFocus={() => warmUp(chavrusaRef.current ? "talk" : "ask")}
                 value={input}
                 onChange={(e) => onComposerChange(e.target.value)}
                 onKeyDown={onComposerKey}

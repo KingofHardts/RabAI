@@ -38,11 +38,15 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
 - **Talk.** While the box is empty, Ask becomes Talk: a conversation out loud, as in ChatGPT's
   voice mode (`components/talk.ts`, the turn-taking in `lib/talk.ts`). RabbAI listens and shows
   the words; when you pause, a countdown sends them ("Keep talking" to say more, a tap to send at
-  once); the answer appears in the chat, checked as always, and is read aloud; a tap stops it, and
-  RabbAI listens again (on an iPhone, after a tap). The microphone is closed while RabbAI answers
-  or speaks, when something covers the chat, when the page is hidden, and after half a minute of
-  quiet. RabbAI is told the person is talking, and answers in short spoken turns (core premises,
-  "Talking out loud").
+  once); the answer appears in the chat, checked as always, and is read aloud while it is written,
+  a sentence at a time. You can cut in with a tap, or by starting to talk (not on an iPhone; a
+  setting turns it off), and RabbAI stops, listens, and knows where you cut in. Then it listens
+  again (on an iPhone, after a tap). The microphone is closed while RabbAI answers, when something
+  covers the chat, when the page is hidden, and after half a minute of quiet; while RabbAI speaks it
+  listens only for you cutting in. RabbAI is told the person is talking, and answers in short
+  spoken turns (core premises, "Talking out loud" and "Talking like a person"). A short follow-up
+  goes straight to the sources of the answer before, so it comes quickly
+  (`docs/faster-rabbai.md`).
 - **Highlight and ask.** Highlight any words in an answer or a text, and an "Ask about this"
   button appears.
 - **Read.** Tapping a source opens the page or chapter with the cited line highlighted: beside
@@ -233,6 +237,9 @@ Optional settings:
 | `RABAI_LIBRARY` | automatic | `testing` when a library database is set, `development` otherwise. `approved` uses only board-approved, license-cleared editions (empty until the board approves). |
 | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | none | The private testing library and a read-only token for it. The build workflow sets them (see below). `RABAI_LIBRARY_DB_URL` and `RABAI_LIBRARY_DB_TOKEN` also work, for example `file:../library/rabai-library.db` on your computer. |
 | `RABAI_COLLECTION_DB_URLS` | none | The website collections' databases (Aish.com and the like), comma-separated. The collections workflow sets it. Read only beside the testing library, never on a public app. `RABAI_COLLECTION_DB_TOKEN` is their read token; without it the testing library's token is used (one Turso group-wide read-only token reads both). |
+| `RABAI_TALK_MODEL` | `claude-sonnet-5-5` | The faster model for a conversation's turns (Talk and chavrusa sessions). |
+| `RABAI_TALK_EFFORT` | `low` | How hard it thinks on those turns. |
+| `RABAI_CACHE_TTL` | `1h` | How long the instructions and the catalog stay cached between questions (`5m` for five minutes). |
 | `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
 | `RABAI_ONLINE` | `on` | Looking things up online: `on`, `torah` (only the trusted Orthodox sites, never the wider web), or `off`. A public app (`RABAI_PUBLIC=true`) looks nothing up until the board approves the sites list. |
 | `RABAI_RESEARCH_MODEL` | `claude-sonnet-5-5` | The model that looks things up online. |

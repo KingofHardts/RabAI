@@ -7,7 +7,7 @@ import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from 
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
 import { testingStore, type TestingStore } from "../library/testing";
-import { asksAboutLibrary, retrieveFromTesting, type LookupFallback } from "./lookup";
+import { asksAboutLibrary, quickFollowUp, retrieveFollowUp, retrieveFromTesting, type LookupFallback, type Retrieved } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
@@ -53,11 +53,35 @@ export interface AskInput {
   chavrusa?: ChavrusaSession;
   /** The person is talking out loud (Talk): their words came from speech recognition, and the answer is read aloud. */
   talking?: boolean;
+  /**
+   * The sources of the answer just before this question (its cited texts first), so a short
+   * follow-up in a conversation can go straight to them (lookup.ts, quickFollowUp).
+   */
+  lastRefs?: string[];
+  /** In Talk, the person cut in while RabbAI was speaking: the last words they heard. */
+  interrupted?: string;
+}
+
+/** A turn of a conversation: Talk, or a chavrusa session (not a line action, not "go deeper"). */
+export function conversationTurn(input: Pick<AskInput, "talking" | "chavrusa" | "action" | "deep">): boolean {
+  return !input.action && !input.deep && (!!input.talking || !!input.chavrusa);
+}
+
+/** What RabbAI is told when the person cut in while it was speaking. */
+export function interruptedSetting(heard: string): string {
+  return `The person cut in while your last answer was being read aloud; the last words they heard were: "${heard}". They may not have heard the rest. Answer what they say now, briefly, and don't repeat what you already said unless they ask.`;
 }
 
 /** What RabbAI is told when the person is talking out loud; "Talking out loud" in the core premises says how to answer. */
 export const TALKING_SETTING =
   'The person is talking with you out loud (see "Talking out loud"): their words came from their device\'s speech recognition, and your answer will be read aloud.';
+
+/**
+ * What RabbAI is told on a conversation's turn (Talk or a chavrusa session); "Talking like a person"
+ * in the core premises says how.
+ */
+export const CONVERSATION_SETTING =
+  'This is a conversation, not a question and answer (see "Talking like a person"): one short turn, usually two to four sentences, then let them answer.';
 
 /** Progress reports while an answer is being made, for a live screen. */
 export interface AskHooks {
@@ -108,6 +132,26 @@ export interface AskResult {
    * ("Is RabbAI working?"); nothing shows it to the person.
    */
   lookupFallback?: LookupFallback;
+  /**
+   * How long each step took, in milliseconds, for the live check ("Is RabbAI working?"); nothing
+   * shows it to the person.
+   */
+  timings?: AnswerTimings;
+  /** A follow-up answered from the conversation's sources, without the lookup step. */
+  quick?: boolean;
+}
+
+export interface AnswerTimings {
+  /** The lookup step (0 when it was skipped). */
+  plan: number;
+  /** Opening, following and searching in the library. */
+  library: number;
+  /** Looking things up online, when it ran. */
+  online?: number;
+  /** From the start until the answer's first words. */
+  firstWords?: number;
+  /** From the start until the answer was finished and checked. */
+  total: number;
 }
 
 /** The pages RabbAI looked up online for an answer, shown apart from the texts. */
@@ -134,13 +178,44 @@ type Effort = (typeof EFFORTS)[number];
  * Medium effort keeps everyday answers quick; a request to go deeper raises it to high.
  * RABAI_EFFORT overrides the everyday level.
  */
-export function engineConfig() {
+export interface EngineConfig {
+  model: string;
+  effort: Effort;
+  maxTokens: number;
+  talkModel?: string;
+  talkEffort?: Effort;
+  talkMaxTokens?: number;
+  cacheTtl?: "5m" | "1h";
+}
+
+export function engineConfig(): EngineConfig {
   const effort = (process.env.RABAI_EFFORT ?? "medium") as Effort;
+  const talkEffort = (process.env.RABAI_TALK_EFFORT ?? "low") as Effort;
   return {
     model: process.env.RABAI_MODEL || DEFAULT_MODEL,
     effort: EFFORTS.includes(effort) ? effort : ("medium" as Effort),
     maxTokens: 16000,
+    /**
+     * A conversation's turns (Talk, a chavrusa session) are short and must come quickly: a faster
+     * model at low effort, with room for a short turn and its thinking.
+     */
+    talkModel: process.env.RABAI_TALK_MODEL || "claude-sonnet-5-5",
+    talkEffort: EFFORTS.includes(talkEffort) ? talkEffort : ("low" as Effort),
+    talkMaxTokens: 6000,
+    /**
+     * How long the instructions stay cached between questions. An hour, so a person who comes back
+     * after a few minutes doesn't wait for them to be read again ("5m" for five minutes).
+     */
+    cacheTtl: (process.env.RABAI_CACHE_TTL === "5m" ? "5m" : "1h") as "5m" | "1h",
   };
+}
+
+/** The model, effort and room for this question. */
+export function modelFor(input: Pick<AskInput, "talking" | "chavrusa" | "action" | "deep">, config: EngineConfig = engineConfig()) {
+  if (conversationTurn(input)) {
+    return { model: config.talkModel ?? config.model, effort: config.talkEffort ?? config.effort, maxTokens: config.talkMaxTokens ?? config.maxTokens };
+  }
+  return { model: config.model, effort: effortFor(input, config.effort), maxTokens: config.maxTokens };
 }
 
 /** The effort for this question: at least "high" when the person asked to go deeper. */
@@ -165,7 +240,7 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelCl
 // ---------------------------------------------------------------------------
 // The app's instructions, added after the core premises
 
-const APP_INSTRUCTIONS = `## How this app works
+export const APP_INSTRUCTIONS = `## How this app works
 
 You are answering inside the RabbAI app. The person sees your answer in a conversation, and
 every source you cite becomes a button that opens the text itself in a reader beside it.
@@ -215,10 +290,12 @@ Shape of an answer:
 - Write so that anyone can follow: someone new to learning, a teenager, or someone reading in
   their second language. Everyday words, short sentences, one idea at a time.
 - Start with the answer itself, warmly, in one or two sentences. Then, only if it helps, a
-  short explanation resting on one or two sources. Stop when the question is answered.
-- Usually 40 to 150 words. A sentence or two for small talk. Go longer only when the settings
-  say the person asked to go deeper, or when they ask for something that needs the length,
-  such as a letter or a study plan.
+  short explanation resting on one or two sources. Stop when the question is answered. Don't
+  restate the question, and don't end with a summary.
+- Usually 30 to 120 words. A sentence or two for small talk. In a conversation (Talk or a
+  chavrusa session; the settings say so), usually two to four sentences. Go longer only when the
+  settings say the person asked to go deeper, or when they ask for something that needs the
+  length, such as being taught a topic, a letter or a study plan.
 - Do not end every answer with an offer. The app shows "Tell me more" and the sources under
   each answer; add one short closing line only when it truly helps.
 - In everyday conversation, answer the way a caring friend who learns Torah would: natural and
@@ -261,6 +338,10 @@ export const LIMITS = {
   historyTurns: 12,
   historyChars: 6000,
   passages: 10,
+  /** Sources of the answer before, sent back for a quick follow-up. */
+  lastRefs: 12,
+  /** The words heard before the person cut in. */
+  interruptedChars: 400,
 };
 
 // ---------------------------------------------------------------------------
@@ -452,7 +533,7 @@ export function picturesContent(pictures: QuestionPicture[]) {
 export function planRequest(
   input: AskInput,
   lib: Library,
-  config = engineConfig(),
+  config: EngineConfig = engineConfig(),
   retrieved?: Passage[],
   notes: LookupNotes = {},
 ): RequestPlan {
@@ -499,6 +580,8 @@ export function planRequest(
     notes.calendar ? calendarSettings(notes.calendar.info, { times: notes.calendar.times, year: notes.calendar.year }) : "",
     input.chavrusa ? chavrusaSettings(input.chavrusa) : "",
     input.talking ? TALKING_SETTING : "",
+    input.talking && input.interrupted ? interruptedSetting(input.interrupted) : "",
+    conversationTurn(input) ? CONVERSATION_SETTING : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
     input.profile ? profileSummary(input.profile) : "",
   ]
@@ -541,20 +624,21 @@ export function planRequest(
     ],
   });
 
+  const chosen = modelFor(input, config);
   const params: MessageCreateParamsNonStreaming = {
-    model: config.model,
-    max_tokens: config.maxTokens,
+    model: chosen.model,
+    max_tokens: chosen.maxTokens,
     thinking: { type: "adaptive" },
-    output_config: { effort: effortFor(input, config.effort) },
+    output_config: { effort: chosen.effort },
     // If the model declines, the API re-runs the request on Anthropic's recommended fallback.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     system: [
       { type: "text", text: CORE_PREMISES },
-      { type: "text", text: APP_INSTRUCTIONS, cache_control: { type: "ephemeral" } },
+      { type: "text", text: APP_INSTRUCTIONS, cache_control: { type: "ephemeral", ttl: config.cacheTtl ?? "1h" } },
       // The sources list, when the person asks about RabbAI's library: the same for every such
       // question, so it is cached too.
-      ...(notes.library ? [{ type: "text" as const, text: libraryOverview(lib.mode), cache_control: { type: "ephemeral" as const } }] : []),
+      ...(notes.library ? [{ type: "text" as const, text: libraryOverview(lib.mode), cache_control: { type: "ephemeral" as const, ttl: config.cacheTtl ?? "1h" } }] : []),
       { type: "text", text: settings },
     ],
     messages,
@@ -572,6 +656,10 @@ export async function ask(
 ): Promise<AskResult> {
   const safety = checkSafety(`${input.question}\n${(input.history ?? []).filter((t) => t.role === "user").slice(-1)[0]?.text ?? ""}`);
   const notice = safety.concern ? safetyNotice(safety.concern) : null;
+  const started = Date.now();
+  let firstWords: number | undefined;
+  let stepTimes: Retrieved["timings"];
+  let quick = false;
 
   let retrieved: Passage[] | undefined;
   let lookedUp: string[] | undefined;
@@ -614,17 +702,32 @@ export async function ask(
         ...(session?.at ? [nextLineRef(session.at)] : []),
         ...(page || input.action ? [] : parshaRefsFor(input.question, calendar)),
       ].filter((r): r is string => !!r);
-      const found = await retrieveFromTesting(searchQuery(input), store, client, {
-        focusRef: input.focusRef ?? session?.at ?? session?.text,
-        ...(alsoRefs.length ? { alsoRefs } : {}),
-        ...(page ? { onlyPage: page } : {}),
-        pictures: input.pictures,
-        extraPhrases: input.action === "word" && input.word ? [input.word] : [],
-        // A line action on the reader is about that line; it never needs the web.
-        research: input.action ? null : client,
-        onStatus: hooks.onStatus,
-        ...(preface ? { preface } : {}),
-      });
+      // A short follow-up in a conversation goes straight to the sources it is about: the line the
+      // session is on and the next, and the answer just before (lookup.ts, quickFollowUp).
+      const sessionRefs = session?.at ? [session.at, nextLineRef(session.at)].filter((r): r is string => !!r) : [];
+      const followRefs = [...new Set([...(input.focusRef ? [input.focusRef] : []), ...sessionRefs, ...(input.lastRefs ?? [])])].slice(0, 14);
+      quick =
+        conversationTurn(input) &&
+        (input.history ?? []).some((t) => t.role === "assistant") &&
+        quickFollowUp({ question: input.question, conversation: true, refs: followRefs, pictures: input.pictures?.length });
+      let found: Retrieved;
+      if (quick) {
+        hooks.onStatus?.("Looking at what we were learning");
+        found = await retrieveFollowUp(searchQuery(input), store, { refs: followRefs, anchors: sessionRefs, ...(page ? { onlyPage: page } : {}) });
+      } else {
+        found = await retrieveFromTesting(searchQuery(input), store, client, {
+          focusRef: input.focusRef ?? session?.at ?? session?.text,
+          ...(alsoRefs.length ? { alsoRefs } : {}),
+          ...(page ? { onlyPage: page } : {}),
+          pictures: input.pictures,
+          extraPhrases: input.action === "word" && input.word ? [input.word] : [],
+          // A line action on the reader is about that line; it never needs the web.
+          research: input.action ? null : client,
+          onStatus: hooks.onStatus,
+          ...(preface ? { preface } : {}),
+        });
+      }
+      stepTimes = found.timings;
       topic = found.plan.topic;
       lookupFallback = found.plan.fallback;
       retrieved = found.documents;
@@ -672,6 +775,18 @@ export async function ask(
     // A question flagged for safety is never remembered as a topic.
     ...(topic && !notice ? { topic } : {}),
     ...(lookupFallback ? { lookupFallback } : {}),
+    ...(quick ? { quick: true } : {}),
+  };
+  const timings = (): AnswerTimings => ({
+    plan: stepTimes?.plan ?? 0,
+    library: stepTimes?.library ?? 0,
+    ...(stepTimes?.online !== undefined ? { online: stepTimes.online } : {}),
+    ...(firstWords !== undefined ? { firstWords } : {}),
+    total: Date.now() - started,
+  });
+  const onText = (delta: string) => {
+    if (firstWords === undefined) firstWords = Date.now() - started;
+    hooks.onText?.(delta);
   };
 
   if (!client) {
@@ -693,7 +808,7 @@ export async function ask(
   );
   let message: BetaMessage;
   try {
-    message = await client.create(plan.params, hooks.onText, hooks.signal ? { signal: hooks.signal } : undefined);
+    message = await client.create(plan.params, onText, hooks.signal ? { signal: hooks.signal } : undefined);
   } catch (err) {
     console.error("[rabai] model call failed:", err instanceof Error ? err.message : err);
     return {
@@ -727,6 +842,7 @@ export async function ask(
     sources: mapped.sources,
     droppedCitations: mapped.dropped,
     model: message.model,
+    timings: timings(),
     ...(notes.online ? { online: onlineReport(notes, plan.documents, mapped.sources) } : {}),
   };
 }

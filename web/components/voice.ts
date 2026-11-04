@@ -531,8 +531,209 @@ export function stopSpeaking(): void {
   speakingToken += 1;
   fetches?.abort();
   fetches = null;
+  liveBusy = false;
   stopPlaying?.();
   if (canSpeak()) window.speechSynthesis.cancel();
+}
+
+/** Whether RabbAI's voice is reading, or about to (a live reading still waiting for words or audio). */
+let liveBusy = false;
+export function voiceBusy(): boolean {
+  if (liveBusy) return true;
+  if (player && !player.paused && !player.ended && player.src !== SILENT_WAV) return true;
+  return canSpeak() && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+}
+
+// ---- Reading an answer while it is still being written ----
+
+/** A reading that follows an answer as it is written: whole sentences are read as they arrive. */
+export interface LiveSpeech {
+  /** The answer's text so far. */
+  update(text: string): void;
+  /** The answer is complete (its whole text): read the rest, then end. */
+  finish(text: string): void;
+  /** What has been read aloud so far: the pieces whose reading began. */
+  heard(): string;
+}
+
+/** Where a piece of a live reading can end: after a sentence, or a line. */
+const SENTENCE_END = /[.!?;:]["'”’)\]]*\s+|\n+/g;
+
+/**
+ * The next piece of a live reading from `text` after `from`: whole sentences only (unless the
+ * answer is finished), the first piece as soon as it has one sentence, later ones once they have
+ * enough to sound natural or the voice is about to run out. Null when nothing is ready yet.
+ */
+export function nextLivePiece(text: string, from: number, opts: { first: boolean; finished: boolean; idle: boolean }): { piece: string; end: number } | null {
+  const rest = text.slice(from);
+  if (!rest.trim()) return null;
+  const ends: number[] = [];
+  for (const m of rest.matchAll(SENTENCE_END)) {
+    const e = (m.index ?? 0) + m[0].length;
+    if (e > 900) break;
+    ends.push(e);
+  }
+  let e: number | undefined;
+  if (opts.finished) {
+    // The rest of a finished answer, in natural pieces.
+    e = rest.length <= 900 || !ends.length ? rest.length : ends[ends.length - 1];
+  } else if (opts.first) {
+    // The first sentence, as soon as it is written (a word or two waits for a little more).
+    e = ends.find((x) => x >= 12);
+  } else {
+    // Later: everything ready when the voice is about to run out, else a good-sized piece.
+    const last = ends[ends.length - 1];
+    e = last !== undefined && (opts.idle || last >= 160) ? last : undefined;
+  }
+  if (e === undefined) return null;
+  const piece = rest.slice(0, e).trim();
+  return { piece: /[\p{L}\p{N}]/u.test(piece) ? piece : "", end: from + e };
+}
+
+/**
+ * Read an answer aloud while it is being written (Talk, and questions asked out loud), so the
+ * person hears the first sentence a moment after it is written. In RabbAI's own voice when it is
+ * set up and chosen, else the device's. `onEnd` is called once, when the reading ends or another
+ * reading stops it.
+ */
+export function speakLive(onEnd: () => void): LiveSpeech {
+  stopSpeaking();
+  const mine = speakingToken;
+  liveBusy = true;
+  primeAudio();
+  let text = "";
+  let cut = 0;
+  let finished = false;
+  let ended = false;
+  const pieces: string[] = [];
+  const started: string[] = [];
+  let wake: (() => void) | null = null;
+  const poke = () => {
+    const w = wake;
+    wake = null;
+    w?.();
+  };
+  const end = () => {
+    if (ended) return;
+    ended = true;
+    if (mine === speakingToken) liveBusy = false;
+    onEnd();
+  };
+
+  /** Cut whatever pieces are ready. `idle`: the voice has nothing left to read. */
+  const cutPieces = (idle: boolean) => {
+    for (;;) {
+      const next = nextLivePiece(text, cut, { first: pieces.length === 0, finished, idle: idle && pieces.length === started.length });
+      if (!next) return;
+      cut = next.end;
+      if (next.piece) pieces.push(next.piece);
+      if (!finished) return;
+    }
+  };
+
+  const useOwn = !preferredVoice || preferredVoice.startsWith(OWN_VOICE);
+  void (async () => {
+    const own = useOwn ? await ownVoices() : NO_OWN_VOICES;
+    if (mine !== speakingToken) return end();
+    const chosen = preferredVoice.slice(OWN_VOICE.length);
+    const voice = own.voices.some((v) => v.id === chosen) ? chosen : own.defaultVoice;
+    const ctrl = new AbortController();
+    if (own.available) fetches = ctrl;
+    const audio = new Map<number, Promise<Blob>>();
+    const fetchPiece = (i: number) => {
+      if (audio.has(i)) return audio.get(i)!;
+      const said = speechText(pieces[i], hebrewSay, "natural");
+      const p = fetch("/api/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: said.slice(0, 1200), ...(voice ? { voice } : {}), ...(i > 0 ? { previous: speechText(pieces[i - 1], hebrewSay, "natural").slice(-400) } : {}) }),
+        signal: ctrl.signal,
+      }).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.blob();
+      });
+      p.catch(() => undefined);
+      audio.set(i, p);
+      return p;
+    };
+    let ownWorks = own.available;
+    for (let i = 0; ; i++) {
+      // Wait for the next piece to be ready.
+      for (;;) {
+        if (mine !== speakingToken) return end();
+        cutPieces(true);
+        if (i < pieces.length) break;
+        if (finished) return end();
+        await new Promise<void>((resolve) => (wake = resolve));
+      }
+      if (mine !== speakingToken) return end();
+      started.push(pieces[i]);
+      if (ownWorks) {
+        // While this piece is fetched and played, the next one is fetched too, so there is no gap.
+        let blob: Blob | null = null;
+        try {
+          blob = await fetchPiece(i);
+        } catch {
+          blob = null;
+        }
+        if (mine !== speakingToken) return end();
+        cutPieces(false);
+        if (i + 1 < pieces.length) fetchPiece(i + 1);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const played = await playUrl(url, mine);
+          URL.revokeObjectURL(url);
+          if (mine !== speakingToken) return end();
+          if (played) continue;
+        }
+        // RabbAI's voice couldn't be reached: the device's voice reads from here on.
+        ownWorks = false;
+      }
+      await speakDeviceNow(pieces[i], mine);
+      if (mine !== speakingToken) return end();
+    }
+  })();
+
+  return {
+    update(t: string) {
+      if (finished || ended) return;
+      text = t;
+      poke();
+    },
+    finish(t: string) {
+      if (ended) return;
+      text = t.length >= text.length ? t : text;
+      finished = true;
+      poke();
+    },
+    heard() {
+      return started.join(" ");
+    },
+  };
+}
+
+/** Read one piece with the device's voices and wait until it is done (or stopped). */
+function speakDeviceNow(text: string, mine: number): Promise<void> {
+  return new Promise((resolve) => {
+    if (!canSpeak()) return resolve();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearInterval(watch);
+      resolve();
+    };
+    // Some phones never say that reading ended: watch for the voice going quiet.
+    const began = Date.now();
+    let quiet = 0;
+    const watch = setInterval(() => {
+      if (mine !== speakingToken) return finish();
+      const synth = window.speechSynthesis;
+      if (synth.speaking || synth.pending) quiet = 0;
+      else if (Date.now() - began > 1200 && ++quiet >= 2) finish();
+    }, 400);
+    speakDevice(text, mine, finish);
+  });
 }
 
 /**

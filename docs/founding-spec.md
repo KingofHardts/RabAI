@@ -397,6 +397,32 @@ wording.
     premises, "Talking out loud"). Open question 22 asks the board about that section.
   - A dependable back-and-forth on iPhones would need a transcription service on the server; that
     needs Josh's choice of provider.
+  - **Decided (Josh, 2026-11-04, a conversation you can interrupt):** Talk is a real back-and-forth,
+    like learning with a chavrusa. The answer is read aloud as it is written, a sentence at a time,
+    so the person hears RabbAI a moment after it starts; the text read is the same text shown live
+    on the screen, and the sources still come with the final, checked answer. The person can cut in
+    with a tap, or by starting to talk (where the browser can listen while it speaks; not iPhones,
+    and a setting turns it off). While RabbAI speaks, the microphone listens only for this, and
+    ignores words that match what RabbAI is saying. RabbAI is told the last words the person heard,
+    and answers what they say now without starting over. A question said while the answer before
+    it is still being written is sent as soon as that answer is done.
+- **Faster answers, and short natural turns.** **Decided (Josh, 2026-11-04):** answers must come
+  much faster without losing their care and correctness, and in a conversation RabbAI should sound
+  like a person: short turns, one point at a time, like a chavrusa when learning together and a
+  teacher when asked to teach. What this round does (the full list of 100 ways, with what is built
+  and what is next, is in `docs/faster-rabbai.md`):
+  - A conversation's turns (Talk and chavrusa sessions) use a faster model at low effort; ordinary
+    questions keep the strongest model, and "go deeper" thinks hard.
+  - A short follow-up in a conversation skips the lookup step: RabbAI opens the sources of the answer
+    just before, the line the session is on and the next, and searches the question's words. A
+    question that names a new book, asks halacha, or needs the calendar is planned as before, so a
+    practical question still gets its lookup and the note to ask one's rav.
+  - The long instructions and the catalog are cached for an hour, and warmed ahead of the first
+    question when the person starts Talk or a chavrusa session or begins to type. A warm-up sends
+    only the instructions; nothing about the person.
+  - Every answer times its steps for the live check; the person never sees it.
+  - The core premises gain "Talking like a person", a voice for each chavrusa way, and a teacher's
+    way for "teach me"; talking out loud asks for one to three sentences (open question 25).
 - **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**
   - The Learn search finds what is inside the siddurs, not only book names: "Mincha",
     "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
@@ -657,3 +683,8 @@ These need a decision before launch. Each one changes behavior.
     right, including for a verse or blessing quoted in an answer? And is the default voice (a kind,
     warm older man's voice, described as a teacher; `web/lib/voice/provider.ts` and
     `web/lib/voice/voices.ts`) fitting, and is it fitting to offer women's voices too?
+25. **Talking like a person.** The core premises now ask for short, natural turns in a conversation
+    ("Talking like a person": one point, then stop; two to four sentences; one to three when
+    talking out loud), give each chavrusa way its own voice, and describe a teacher's way of
+    teaching when the person asks to be taught. Are these right, and do the examples of how each
+    way sounds fit? Brief turns must never be careless: does the section say that clearly enough?

@@ -64,6 +64,12 @@ function parse(body: unknown): AskInput | string {
   const allPictures = [...pictures, ...history.flatMap((t) => t.pictures ?? [])];
   if (picturesSize(allPictures) > PICTURE_LIMITS.totalChars) return "Those pictures are too large together. Please send fewer, or smaller ones.";
 
+  // The sources of the answer just before (cited first), for a quick follow-up (lib/engine/lookup.ts).
+  const lastRefs = Array.isArray(b.lastRefs)
+    ? [...new Set(b.lastRefs.filter((r): r is string => typeof r === "string" && r.trim().length > 0 && r.length <= 160).map((r) => r.trim()))].slice(0, LIMITS.lastRefs)
+    : [];
+  // In Talk: the last words the person heard before they cut in.
+  const interrupted = typeof b.interrupted === "string" ? b.interrupted.replace(/\s+/g, " ").trim().slice(-LIMITS.interruptedChars) : "";
   const profile = b.profile && typeof b.profile === "object" ? parseProfile(b.profile) : undefined;
   const chavrusa = action ? null : parseChavrusa(b.chavrusa);
   return {
@@ -78,6 +84,8 @@ function parse(body: unknown): AskInput | string {
     ...(profile ? { profile } : {}),
     ...(chavrusa ? { chavrusa } : {}),
     ...(!action && b.talking === true ? { talking: true } : {}),
+    ...(lastRefs.length ? { lastRefs } : {}),
+    ...(!action && b.talking === true && interrupted ? { interrupted } : {}),
   };
 }
 

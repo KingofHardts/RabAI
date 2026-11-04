@@ -88,6 +88,7 @@ LEAVE_QUESTION = "Why is the Shema said twice a day?"
 DVAR_QUESTION = "Can you give me a short dvar Torah on this week's parsha?"
 # Asked as if out loud in Talk: the answer should be a few short sentences.
 TALK_QUESTION = "Why do we light candles before Shabbat?"
+TALK_FOLLOW_UP = "Why two of them?"
 
 
 def two_color_picture(width: int = 256, height: int = 256) -> str:
@@ -534,11 +535,13 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         problem(f"\"Show the flow\" answered HTTP {status} with something that isn't JSON "
                 f"(after {seen.get('seconds', 0):.0f} seconds, x-vercel-error = {h.get('x-vercel-error', 'none')}).")
 
-    def live_answer(question: str, label: str, pictures: list | None = None, talking: bool = False) -> dict | None:
+    def live_answer(question: str, label: str, pictures: list | None = None, talking: bool = False,
+                    history: list | None = None, last_refs: list | None = None) -> dict | None:
         """Ask for a live (streamed) answer: one JSON object per line. Returns the checked result."""
         seen.pop("cut", None)
         body = {"question": question, "stream": True, **({"pictures": pictures} if pictures else {}),
-                **({"talking": True} if talking else {})}
+                **({"talking": True} if talking else {}), **({"history": history} if history else {}),
+                **({"lastRefs": last_refs} if last_refs else {})}
         status, raw = fetch("/api/ask", body, timeout=300)
         h = seen.get("headers", {})
         if status != 200:
@@ -568,7 +571,15 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         # The lookup step plans which texts to open; when its plan can't be used, RabbAI searches the
         # question's words instead, and practical questions lose the online lookup and the rav note.
         fell_back = LOOKUP_FALLBACKS.get(str(r.get("lookupFallback") or ""))
-        summary(f"  - The lookup step: {fell_back or 'planned it'}.")
+        summary(f"  - The lookup step: {'skipped (a quick follow-up from the sources before)' if r.get('quick') else (fell_back or 'planned it')}.")
+        # How long each step took (seconds), measured on the server: the lookup step, the library,
+        # an online lookup, the answer's first words, and the whole answer.
+        t = r.get("timings") if isinstance(r.get("timings"), dict) else {}
+        if t:
+            def sec(k: str) -> str:
+                return f"{float(t[k]) / 1000:.1f}" if isinstance(t.get(k), (int, float)) else "-"
+            summary(f"  - Timing (seconds): lookup step {sec('plan')}, library {sec('library')}, online {sec('online')}, "
+                    f"first words {sec('firstWords')}, whole answer {sec('total')}.")
         if fell_back:
             problem(f"For {label}, the lookup step {fell_back}, so RabbAI searched the question's words instead.")
         return r
@@ -697,8 +708,21 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     if r is not None:
         spoken = len(answer_words(r).split())
         summary(f"  - The spoken answer: {spoken} words.")
-        if r.get("status") == "answered" and spoken > 220:
+        if r.get("status") == "answered" and spoken > 120:
             problem(f"An answer for Talk was {spoken} words long; spoken answers should be a few short sentences.")
+        # A short follow-up in the same conversation: it should skip the lookup step and go straight
+        # to the sources of the answer before, so it comes quickly.
+        if r.get("status") == "answered":
+            refs = [x.get("ref") for x in (r.get("sources") or []) if isinstance(x, dict) and x.get("ref")]
+            refs += [x for x in (r.get("retrieved") or []) if isinstance(x, str)]
+            follow = live_answer(TALK_FOLLOW_UP, "a follow-up out loud (Talk)", talking=True,
+                                 history=[{"role": "user", "text": TALK_QUESTION}, {"role": "assistant", "text": answer_words(r)}],
+                                 last_refs=list(dict.fromkeys(refs))[:12])
+            if follow is not None:
+                words = len(answer_words(follow).split())
+                summary(f"  - The follow-up's answer: {words} words.")
+                if not follow.get("quick"):
+                    problem("A short follow-up in Talk went through the lookup step instead of using the sources before.")
 
     leave_midway(LEAVE_QUESTION)
 

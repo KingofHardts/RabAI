@@ -172,10 +172,26 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - Talk (`web/components/talk.ts`, its turn-taking in `web/lib/talk.ts`; founding spec "Talking out
   loud") is a conversation out loud that the person turns on themselves. It sends what they said
   only after a pause and a visible countdown they can stop, and its microphone is closed while
-  RabbAI answers or speaks, when something covers the chat, when the page is hidden, and after a
-  long quiet. Its questions go through the usual path (`send` in `RabaiApp.tsx`), so the answers
-  are checked like any other, and only the final, checked answer is read aloud. The model is told
-  only that the person is talking (`TALKING_SETTING`); how to answer is in the core premises.
+  RabbAI answers, when something covers the chat, when the page is hidden, and after a long quiet
+  (while RabbAI speaks, it listens only for the person cutting in). Its questions go through the usual path (`send` in `RabaiApp.tsx`), so the answers
+  are checked like any other. The answer is read aloud as it is written, a sentence at a time
+  (`speakLive` in `components/voice.ts`): only the text already shown live on the screen is read,
+  and the sources still come with the final, checked answer. The person can cut in with a tap, or
+  by talking (not on iPhones; Settings can turn it off): while RabbAI speaks, the microphone
+  listens only for a cut-in and ignores words that match what RabbAI is saying (`isCuttingIn` in
+  `components/talk.ts`). The next question carries the last words they heard (`interrupted`). The
+  model is told only that the person is talking (`TALKING_SETTING`) and where they cut in
+  (`interruptedSetting`); how to answer is in the core premises.
+- Speed (`docs/faster-rabbai.md`, founding spec "Faster answers, and short natural turns"): a
+  conversation's turns (Talk, chavrusa) use `RABAI_TALK_MODEL` (Claude Sonnet 5.5) at low effort,
+  ordinary questions the strongest model. A short follow-up in a conversation skips the lookup step
+  and opens the sources of the answer before (`quickFollowUp` and `retrieveFollowUp` in
+  `lookup.ts`); anything that names a new book, asks halacha or needs the calendar must still go
+  through the lookup step (keep `NEW_LOOK` broad), so a practical question keeps its lookup and the
+  rav note. The instructions and the catalog are cached for an hour, and warmed before a first
+  question (`lib/engine/warm.ts`, `/api/ask/warm`): a warm-up sends only the instructions, never
+  anything about the person. Each answer reports `timings` for the health check; never show them
+  to the person or log a question with them.
 - Pictures with a question (`web/lib/pictures.ts`, founding spec "Pictures with a question"): at
   most four, made smaller on the device, and checked by their own bytes on the server (never by
   the kind they claim). The server never keeps a picture: not in the answer store, not in an
@@ -299,6 +315,19 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   the checks run right away.
 
 ## Where things stand (2026-11-04)
+
+Done 2026-11-04 (third round), at Josh's request ("respond a lot faster", "a good back and forth
+like a chavrusa that you can interrupt", "shorter answers", "find 100 ways"):
+- `docs/faster-rabbai.md`: 100 ways to make RabbAI faster and better to talk with, each marked built,
+  next, later, or waiting for Josh or the board.
+- Faster: conversation turns on Claude Sonnet 5.5 at low effort; short follow-ups skip the lookup
+  step and reuse the last answer's sources; one-hour caches, warmed ahead of the first question;
+  each answer timed for the health check (which now also times a follow-up in Talk).
+- Talk reads the answer while it is written, and the person can cut in by tap or by talking;
+  RabbAI is told where they cut in. A question said while the last answer is still being written
+  waits for it. Fixed: RabbAI's own voice was cut off after two seconds in Talk.
+- The core premises gain "Talking like a person", a voice for each chavrusa way and a teacher's
+  way (open question 25, for the board).
 
 Done 2026-11-04 (second round), at Josh's request ("everything we said next", plus decisions):
 - The Daven tab: men's and women's wordings labeled where they differ, with a setting for one;
@@ -500,12 +529,10 @@ Open items:
   allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
   RabbAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
-- RabbAI's own voices need a speech-service key in Vercel (`ELEVENLABS_API_KEY`, recommended, or
-  `OPENAI_API_KEY`); until then answers are read in the device's robotic-sounding voices. With a
-  key, Settings offers the service's voices (men's first, with "Hear it"), defaulting to a kind
-  older man's voice (built 2026-11-04 at Josh's request, tested against a stand-in service only;
-  no ElevenLabs key was available in this session). The steps, costs and a Voice Design
-  description are in `docs/siddur-audio-and-transliteration.md`. That page also lists
+- RabbAI's own voices: Josh set up ElevenLabs (Creator plan, 2026-11-04; `ELEVENLABS_API_KEY` in
+  Vercel). Settings offers the service's voices (men's first, with "Hear it"), defaulting to a kind
+  older man's voice. The steps, costs and a Voice Design description are in
+  `docs/siddur-audio-and-transliteration.md`. That page also lists
   publishers to ask for a transliterated siddur and for recordings of the prayers. For the board:
   open questions 23 (folding, the davening notes) and 24 (the voice, God's names when reading).
 - The health check of 2026-11-04 (second round) passed everything except Turso's storage (above)

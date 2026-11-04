@@ -60,6 +60,8 @@ export interface LookupPlan {
    * failed. Nothing shows it to the person; the live check reports it.
    */
   fallback?: LookupFallback;
+  /** A follow-up in a conversation, answered from its sources without the lookup step. */
+  quick?: boolean;
 }
 
 export type LookupFallback = "cut_off" | "unreadable" | "failed";
@@ -108,6 +110,11 @@ export const LOOKUP_LIMITS = {
   /** Lines taken from each of those places. */
   perChecked: 3,
 };
+
+/** How long the long instructions stay cached: an hour, unless RABAI_CACHE_TTL is "5m". */
+export function cacheTtl(env: Record<string, string | undefined> = process.env): "5m" | "1h" {
+  return env.RABAI_CACHE_TTL === "5m" ? "5m" : "1h";
+}
 
 export function lookupModel(env: Record<string, string | undefined> = process.env): string {
   return env.RABAI_LOOKUP_MODEL || "claude-sonnet-5-5";
@@ -224,7 +231,9 @@ export function lookupRequest(
     model,
     max_tokens: LOOKUP_LIMITS.replyTokens,
     output_config: { effort: "low" },
-    system: [{ type: "text", text: LOOKUP_INSTRUCTIONS + catalog, cache_control: { type: "ephemeral" } }],
+    // The catalog is long (every book in the library): kept cached for an hour, so a question asked
+    // a few minutes after the last one doesn't wait for it to be read again.
+    system: [{ type: "text", text: LOOKUP_INSTRUCTIONS + catalog, cache_control: { type: "ephemeral", ttl: cacheTtl() } }],
     messages: [
       {
         role: "user",
@@ -378,9 +387,20 @@ export async function placesForTexts(texts: string[], store: TestingStore, clien
   return (await planLookups(request, store, client)).refs;
 }
 
+/** How long each step of finding the sources took, in milliseconds (for the live check). */
+export interface RetrieveTimings {
+  /** The lookup step (the planner's model call), or 0 when it was skipped. */
+  plan: number;
+  /** Opening, following and searching in the library. */
+  library: number;
+  /** Looking things up online, when it ran. */
+  online?: number;
+}
+
 export interface Retrieved {
   plan: LookupPlan;
   documents: Passage[];
+  timings?: RetrieveTimings;
   /** What the online lookup found, when one ran. */
   online?: OnlineFindings;
   /** Places opened in the library because a page found online relies on them. */
@@ -425,7 +445,9 @@ export async function retrieveFromTesting(
   client: LookupClient | null,
   opts: RetrieveOptions = {},
 ): Promise<Retrieved> {
+  const started = Date.now();
   const plan = await planLookups(question, store, client, opts.pictures ?? [], opts.preface ?? "");
+  const planned = Date.now();
   const refs = [...(opts.focusRef ? [opts.focusRef] : []), ...(opts.alsoRefs ?? []), ...plan.refs];
   const phrases = [...(opts.extraPhrases ?? []), ...plan.hebrew, ...plan.english];
 
@@ -466,8 +488,11 @@ export async function retrieveFromTesting(
   // pages can be checked against them.
   let online: OnlineFindings | undefined;
   let checked: string[] = [];
+  let onlineMs: number | undefined;
   if (lookingOnline) {
+    const waitFrom = Date.now();
     online = await lookingOnline;
+    onlineMs = Date.now() - waitFrom;
     if (online.texts.length) {
       opts.onStatus?.("Opening the texts those pages rely on");
       try {
@@ -501,5 +526,84 @@ export async function retrieveFromTesting(
   // Pages found online come after everything from the library, marked as found online.
   if (online?.pages.length) add(onlineDocuments(online), out.size + online.pages.length);
   const documents = opts.onlyPage ? [...out.values()].filter((p) => onThePage(p, opts.onlyPage!)) : [...out.values()];
-  return { plan, documents, ...(online ? { online, checked } : {}) };
+  const timings: RetrieveTimings = {
+    plan: planned - started,
+    library: Date.now() - planned - (onlineMs ?? 0),
+    ...(onlineMs !== undefined ? { online: onlineMs } : {}),
+  };
+  return { plan, documents, timings, ...(online ? { online, checked } : {}) };
 }
+
+// ---------------------------------------------------------------------------
+// A follow-up in a conversation: no lookup step
+
+/**
+ * Words that ask for something new: another book, a ruling, a place, the calendar. A follow-up
+ * with these goes through the lookup step as usual, so a practical question still gets its plan
+ * (and the note to ask one's rav), and a new book is found.
+ */
+const NEW_LOOK = new RegExp(
+  [
+    "\\b(?:rambam|ramban|rashba|ritva|rosh|rif|tur|beit yosef|beis yosef|shulchan|shulhan|aruch|arukh|mishnah? berurah?|kitzur|chayei adam|midrash|zohar|tanya|kuzari|yerushalmi|tosefta|sifr[ae]i?|mechilta|mekhilta|targum|ibn ezra|sforno|malbim|or hachaim|kli yakar|maharsha|maharal|chofetz|chafetz|chazon ish|igros|igrot|responsa|teshuvos|teshuvot|rishonim|acharonim|achronim|poskim)\\b",
+    "\\b(?:halach\\w*|halakh\\w*|psak|posek|poskim|ruling|rule|allowed|permitted|forbidden|assur|mutar|kosher|may i|can i|should i|am i allowed|do i have to|must i|is it ok)\\b",
+    "\\b(?:source|sources|mekor|where (?:else|is|does|do)|other (?:opinions?|views?|commentar\\w*)|another (?:opinion|view|source))\\b",
+    "\\b(?:today|tonight|tomorrow|zmanim|shabbos|shabbat|candle|sunset|sunrise|parsha|parshah|daf yomi|holiday|fast)\\b",
+    "רמב|שולחן|משנה ברורה|מדרש|זוהר|הלכה|מקור",
+  ].join("|"),
+  "i",
+);
+
+export interface FollowUpInput {
+  question: string;
+  /** Whether this turn is part of a conversation (Talk or a chavrusa session) that already has an answer. */
+  conversation: boolean;
+  /** The sources of the answer just before, and the line a session is on. */
+  refs: string[];
+  /** Pictures with the question: they need the lookup step's eyes. */
+  pictures?: number;
+}
+
+/**
+ * Whether a turn is a short follow-up in a conversation that can go straight to the sources of the
+ * answer before it, without the lookup step (a model call that takes seconds). Only a short
+ * question that names no new book, asks no halacha and needs no calendar qualifies; anything
+ * else is planned as usual.
+ */
+export function quickFollowUp(f: FollowUpInput): boolean {
+  if (!f.conversation || !f.refs.length || (f.pictures ?? 0) > 0) return false;
+  const q = f.question.trim();
+  if (!q) return false;
+  const words = q.split(/\s+/).length;
+  if (words > 25) return false;
+  if (NEW_LOOK.test(q)) return false;
+  if (asksAboutLibrary(q) || asksAboutCalendar(q)) return false;
+  return true;
+}
+
+/** Open the sources of the conversation so far and search the question's own words, with no lookup step. */
+export async function retrieveFollowUp(
+  question: string,
+  store: TestingStore,
+  opts: { refs: string[]; anchors?: string[]; onlyPage?: string },
+): Promise<Retrieved> {
+  const started = Date.now();
+  const words = fallbackPlan(question);
+  const phrases = [...words.hebrew, ...words.english];
+  const anchors = (opts.anchors ?? []).slice(0, 2);
+  const [opened, searched, linked] = await Promise.all([
+    store.lookup(opts.refs, LOOKUP_LIMITS.perRef, phrases),
+    phrases.length && !opts.onlyPage ? store.search(phrases, 4) : Promise.resolve([] as Passage[]),
+    anchors.length ? store.linked(anchors, LOOKUP_LIMITS.linked) : Promise.resolve([] as Passage[]),
+  ]);
+  const out = new Map<string, Passage>();
+  for (const p of [...opened, ...linked, ...searched]) if (out.size < FOLLOW_UP_DOCUMENTS && !out.has(p.ref)) out.set(p.ref, p);
+  const documents = opts.onlyPage ? [...out.values()].filter((p) => onThePage(p, opts.onlyPage!)) : [...out.values()];
+  return {
+    plan: { ...emptyPlan(), refs: opts.refs, quick: true },
+    documents,
+    timings: { plan: 0, library: Date.now() - started },
+  };
+}
+
+/** The most texts a quick follow-up sends: enough for the conversation, small enough to answer fast. */
+export const FOLLOW_UP_DOCUMENTS = 16;

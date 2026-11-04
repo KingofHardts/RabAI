@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { micOpen, TALK_OFF, TALK_TIMING, talkReducer, tapAction, wordsOf, type TalkEvent, type TalkState } from "@/lib/talk";
-import { canSpeak, recognitionCtor, speak, stopSpeaking, unlockSpeech } from "./voice";
+import { canSpeak, recognitionCtor, speakLive, stopSpeaking, unlockSpeech, type LiveSpeech } from "./voice";
 
 /*
  * Talk: a conversation with RabbAI out loud, in the chat. The turn-taking is in lib/talk.ts; this
@@ -19,8 +19,10 @@ import { canSpeak, recognitionCtor, speak, stopSpeaking, unlockSpeech } from "./
  *   already said is still sent after the countdown.
  * - On iPhones, listening again after reading aloud is unreliable, so there each turn begins with a
  *   tap ("Your turn: tap to talk").
- * - The microphone is closed while RabbAI reads aloud, so it doesn't hear itself.
- * - Some phones never say that reading aloud ended, so a watch notices when the voice goes quiet.
+ * - While RabbAI reads aloud, the microphone listens only for the person cutting in (not on iPhones,
+ *   which can't listen while they speak: there a tap cuts in). What it hears that matches what
+ *   RabbAI is saying is its own voice coming back, and is ignored.
+ * - The answer is read as it is written, a sentence at a time (components/voice.ts, speakLive).
  * - Every opening of the microphone has a number, and anything from an older one is ignored.
  */
 
@@ -44,6 +46,34 @@ export function talkSupported(): boolean {
   return recognitionCtor() !== null && canSpeak();
 }
 
+/** Whether the person may cut in by talking while RabbAI speaks (Settings; on unless turned off). */
+let cutInByVoice = true;
+export function setCutInByVoice(on: boolean): void {
+  cutInByVoice = on;
+}
+
+/** Words people say to stop a speaker, which count even alone. */
+const STOP_WORDS = /^(?:wait|stop|hold on|hang on|sorry|excuse me|one second|one sec|no|but|actually|hmm|um|so|okay|ok)\b/i;
+
+/** The words of a text, lowercase, for comparing what was heard with what RabbAI said. */
+function wordList(text: string): string[] {
+  return text.toLowerCase().match(/[a-z\u05D0-\u05EA']+/g) ?? [];
+}
+
+/**
+ * Whether words heard while RabbAI was speaking are the person cutting in, rather than RabbAI's own
+ * voice coming back through the microphone: they say a stop word, or at least three words, most
+ * of which RabbAI wasn't just saying.
+ */
+export function isCuttingIn(heard: string, saying: string): boolean {
+  const words = wordList(heard);
+  if (!words.length) return false;
+  const said = new Set(wordList(saying));
+  const fresh = words.filter((w) => !said.has(w)).length;
+  if (STOP_WORDS.test(heard.trim()) && fresh >= 1) return true;
+  return words.length >= 3 && fresh / words.length >= 0.5;
+}
+
 /** How often time is checked while the microphone is open. */
 const TICK_MS = 200;
 /** The microphone closing by itself this many times, quickly, with nothing heard: wait for a tap. */
@@ -61,13 +91,22 @@ export interface TalkControls {
   sendNow: () => void;
   /** Close the microphone and stop reading, with a word for the person. */
   pause: (note: string | null) => void;
-  /** The answer to what was sent, to read aloud; `id` is its message. */
+  /** The answer so far, while it is being written: read aloud a sentence at a time. */
+  answerText: (id: string, text: string) => void;
+  /** The whole answer to what was sent, to read aloud (the rest of it); `id` is its message. */
   answer: (id: string, text: string) => void;
   /** No answer came, or there was nothing to read. */
   answerFailed: (note?: string) => void;
 }
 
-export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => boolean; onSpeaking?: (id: string | null) => void }): TalkControls {
+export function useTalk({
+  onSend,
+  onSpeaking,
+}: {
+  /** Send what the person said; `cutIn` is the last of what RabbAI said when they cut in. */
+  onSend: (question: string, cutIn: string) => boolean;
+  onSpeaking?: (id: string | null) => void;
+}): TalkControls {
   const [state, setState] = useState<TalkState>(TALK_OFF);
   const stateRef = useRef<TalkState>(TALK_OFF);
   const onSendRef = useRef(onSend);
@@ -81,7 +120,13 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
   const micSession = useRef(0);
   const restarts = useRef<number[]>([]);
   const speakSession = useRef(0);
-  const speakWatch = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** The reading in progress, and the answer it reads. */
+  const live = useRef<LiveSpeech | null>(null);
+  const liveId = useRef<string | null>(null);
+  /** Answers the person cut in on: whatever more comes of them is not read. */
+  const cutOff = useRef(new Set<string>());
+  /** The microphone listening for the person cutting in while RabbAI speaks. */
+  const bargeRec = useRef<Recognition | null>(null);
   /** Whether the next opening of the microphone comes from a tap (a phone may refuse one that doesn't). */
   const fromTap = useRef(false);
   // `dispatch` and the microphone call each other; a ref breaks the loop.
@@ -100,13 +145,26 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
     }
   }, []);
 
+  const closeBarge = useCallback(() => {
+    const r = bargeRec.current;
+    bargeRec.current = null;
+    if (r) {
+      try {
+        r.abort();
+      } catch {
+        /* already stopped */
+      }
+    }
+  }, []);
+
   const stopReading = useCallback(() => {
     speakSession.current += 1;
-    if (speakWatch.current) clearInterval(speakWatch.current);
-    speakWatch.current = null;
+    closeBarge();
+    live.current = null;
+    liveId.current = null;
     stopSpeaking();
     onSpeakingRef.current?.(null);
-  }, []);
+  }, [closeBarge]);
 
   /** Open the microphone. `carry` is what was already heard this turn, kept when it reopens. */
   const openMic = useCallback(
@@ -191,15 +249,22 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
   /** What happens as Talk moves from one phase to the next. */
   const onChange = useCallback(
     (prev: TalkState, next: TalkState, e: TalkEvent) => {
-      if (prev.phase === "speaking" && next.phase !== "speaking") stopReading();
+      if (prev.phase === "speaking" && next.phase !== "speaking") {
+        // Cutting in: what more comes of this answer is not read.
+        if (e.type === "cutIn" && liveId.current) cutOff.current.add(liveId.current);
+        stopReading();
+      }
       if (e.type === "listen") {
         restarts.current = [];
         openMic("");
+      } else if (e.type === "cutIn") {
+        restarts.current = [];
+        openMic(next.settled);
       } else if (micOpen(prev.phase) && !micOpen(next.phase)) {
         closeMic();
       }
       if (next.phase === "answering" && prev.phase !== "answering") {
-        if (!onSendRef.current(next.asked)) dispatchRef.current({ type: "pause", note: "That couldn't be sent just now. Tap to talk to try again." });
+        if (!onSendRef.current(next.asked, next.cutIn)) dispatchRef.current({ type: "pause", note: "That couldn't be sent just now. Tap to talk to try again." });
       }
       if (next.phase === "off") closeMic();
     },
@@ -246,9 +311,9 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
     () => () => {
       micSession.current += 1;
       speakSession.current += 1;
-      if (speakWatch.current) clearInterval(speakWatch.current);
       try {
         rec.current?.abort();
+        bargeRec.current?.abort();
       } catch {
         /* nothing to stop */
       }
@@ -287,27 +352,72 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
     const { action } = tapAction(stateRef.current);
     if (action === "sendNow") sendNow();
     else if (action === "pause") pause("Paused. Tap to talk when you're ready.");
-    else if (action === "interrupt" || action === "listen") {
+    else if (action === "interrupt") {
+      // A tap cuts in: RabbAI stops, remembers where, and listens.
+      unlockSpeech();
+      fromTap.current = true;
+      dispatchRef.current({ type: "cutIn", heard: live.current?.heard() ?? "", said: "", now: Date.now() });
+    } else if (action === "listen") {
       unlockSpeech();
       listenFromTap();
     }
   }, [sendNow, pause, listenFromTap]);
 
-  const answer = useCallback(
-    (id: string, text: string) => {
-      if (stateRef.current.phase !== "answering") return;
-      if (typeof document !== "undefined" && document.hidden) {
-        dispatchRef.current({ type: "pause", note: "The answer is in the chat. Tap to talk to go on." });
-        return;
-      }
+  /**
+   * While RabbAI speaks, listen for the person cutting in (where the browser can listen and speak at
+   * once; not iPhones). Words that match what RabbAI is saying are its own voice, and are ignored.
+   */
+  const openBarge = useCallback(() => {
+    if (!cutInByVoice || isIOS()) return;
+    const Ctor = recognitionCtor();
+    if (!Ctor) return;
+    closeBarge();
+    const mine = speakSession.current;
+    const r: Recognition = new Ctor();
+    r.lang = "en-US";
+    r.continuous = !isPhone();
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    r.onresult = (e: any) => {
+      if (mine !== speakSession.current || stateRef.current.phase !== "speaking") return;
+      let heard = "";
+      for (let i = 0; i < e.results.length; i++) heard += `${e.results[i][0].transcript} `;
+      const saying = live.current?.heard() ?? "";
+      if (!isCuttingIn(heard, saying.slice(-600))) return;
+      dispatchRef.current({ type: "cutIn", heard: saying, said: heard, now: Date.now() });
+    };
+    r.onend = () => {
+      if (bargeRec.current !== r) return;
+      bargeRec.current = null;
+      // Keep listening for as long as RabbAI speaks (a phone stops after each sentence).
+      if (mine === speakSession.current && stateRef.current.phase === "speaking") setTimeout(() => openBargeRef.current(), 250);
+    };
+    r.onerror = () => undefined;
+    bargeRec.current = r;
+    try {
+      r.start();
+    } catch {
+      bargeRec.current = null;
+    }
+  }, [closeBarge]);
+  const openBargeRef = useRef(openBarge);
+  useEffect(() => {
+    openBargeRef.current = openBarge;
+  }, [openBarge]);
+
+  /** Start reading an answer aloud (its first sentence may be all there is yet). */
+  const beginReading = useCallback(
+    (id: string) => {
       dispatchRef.current({ type: "speak" });
       onSpeakingRef.current?.(id);
       const mine = ++speakSession.current;
-      const done = () => {
+      liveId.current = id;
+      live.current = speakLive(() => {
         if (mine !== speakSession.current) return;
         speakSession.current += 1;
-        if (speakWatch.current) clearInterval(speakWatch.current);
-        speakWatch.current = null;
+        closeBarge();
+        live.current = null;
+        liveId.current = null;
         onSpeakingRef.current?.(null);
         // Then it is their turn: RabbAI listens again, a moment after the voice stops (on an
         // iPhone, once they tap).
@@ -316,22 +426,44 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
           if (isIOS()) dispatchRef.current({ type: "pause", note: null });
           else dispatchRef.current({ type: "listen", now: Date.now() });
         }, TALK_TIMING.afterSpeechMs);
-      };
-      // Some phones never say that reading ended: watch for the voice going quiet. (Set up first:
-      // an answer with nothing to read ends at once.)
-      const began = Date.now();
-      let quiet = 0;
-      speakWatch.current = setInterval(() => {
-        const synth = window.speechSynthesis;
-        if (synth.speaking || synth.pending) {
-          quiet = 0;
-          return;
-        }
-        if (Date.now() - began > 1200 && ++quiet >= 2) done();
-      }, 400);
-      speak(text, done);
+      });
+      openBarge();
     },
-    [],
+    [closeBarge, openBarge],
+  );
+
+  const answerText = useCallback(
+    (id: string, text: string) => {
+      if (cutOff.current.has(id)) return;
+      const phase = stateRef.current.phase;
+      if (phase === "answering") {
+        if (typeof document !== "undefined" && document.hidden) return;
+        // Wait for a first sentence before the voice starts.
+        if (!/[.!?;:]\s/.test(text)) return;
+        beginReading(id);
+      }
+      if (stateRef.current.phase === "speaking" && liveId.current === id) live.current?.update(text);
+    },
+    [beginReading],
+  );
+
+  const answer = useCallback(
+    (id: string, text: string) => {
+      if (cutOff.current.has(id)) return;
+      const phase = stateRef.current.phase;
+      if (phase === "speaking" && liveId.current === id) {
+        live.current?.finish(text);
+        return;
+      }
+      if (phase !== "answering") return;
+      if (typeof document !== "undefined" && document.hidden) {
+        dispatchRef.current({ type: "pause", note: "The answer is in the chat. Tap to talk to go on." });
+        return;
+      }
+      beginReading(id);
+      live.current?.finish(text);
+    },
+    [beginReading],
   );
 
   const answerFailed = useCallback((note?: string) => {
@@ -339,5 +471,5 @@ export function useTalk({ onSend, onSpeaking }: { onSend: (question: string) => 
     dispatchRef.current({ type: "pause", note: note ?? "That answer didn't come through. Tap to talk to try again." });
   }, []);
 
-  return { state, start, end, tap, keepTalking, sendNow, pause, answer, answerFailed };
+  return { state, start, end, tap, keepTalking, sendNow, pause, answerText, answer, answerFailed };
 }

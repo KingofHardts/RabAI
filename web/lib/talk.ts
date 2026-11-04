@@ -5,9 +5,11 @@
  *
  * A turn: RabbAI listens, and what it hears shows as words. When the person pauses, a countdown
  * shows; when it runs out, what they said is sent as their question, unless they keep talking (or
- * press "Keep talking"), or they send it at once. The answer is read aloud, and a tap stops it.
- * Then RabbAI listens again. The microphone is closed while RabbAI answers or speaks, when the
- * person pauses it, and after a long quiet stretch.
+ * press "Keep talking"), or they send it at once. The answer is read aloud as it is written, and
+ * the person can cut in: with a tap, or (where the browser can listen while RabbAI speaks) by
+ * starting to talk. Then RabbAI listens again. The microphone is closed while RabbAI answers, when
+ * the person pauses it, and after a long quiet stretch; while RabbAI speaks it listens only for the
+ * person cutting in.
  */
 
 export const TALK_TIMING = {
@@ -51,6 +53,8 @@ export interface TalkState {
   asked: string;
   /** Why the microphone closed, in a few words for the person; null for an ordinary "your turn". */
   note: string | null;
+  /** When the person cut in while RabbAI was speaking: the last words they heard, sent with their next question. */
+  cutIn: string;
 }
 
 export const TALK_OFF: TalkState = {
@@ -63,6 +67,7 @@ export const TALK_OFF: TalkState = {
   countdownAt: 0,
   asked: "",
   note: null,
+  cutIn: "",
 };
 
 export type TalkEvent =
@@ -74,8 +79,13 @@ export type TalkEvent =
   | { type: "tick"; now: number }
   | { type: "keepTalking"; now: number }
   | { type: "sendNow" }
-  /** The answer came, and is being read aloud. */
+  /** The answer came (or its first sentence did), and is being read aloud. */
   | { type: "speak" }
+  /**
+   * The person cut in while RabbAI was speaking: `heard` is the last of what RabbAI said, and
+   * `said` what the person has said so far (their turn starts with it).
+   */
+  | { type: "cutIn"; heard: string; said: string; now: number }
   /** The microphone can't stay open (the browser stopped it, or a phone won't reopen it by itself). */
   | { type: "micLost"; note: string | null; now: number }
   /** Close the microphone, or stop reading, and wait for a tap. */
@@ -101,6 +111,15 @@ function send(s: TalkState): TalkState {
   return { ...s, phase: "answering", asked: wordsOf(s), settled: "", hearing: "", holding: false, countdownAt: 0, note: null };
 }
 
+/** What is kept of what RabbAI was saying when the person cut in: its last few sentences. */
+export function lastHeard(text: string, max = 300): string {
+  const t = tidy(text);
+  if (t.length <= max) return t;
+  const cut = t.slice(-max);
+  const start = cut.search(/[.!?]\s+\S/);
+  return start >= 0 && start < max - 40 ? cut.slice(start + 1).trim() : cut.trim();
+}
+
 function pause(s: TalkState, note: string | null): TalkState {
   return { ...s, phase: "paused", settled: "", hearing: "", holding: false, countdownAt: 0, note };
 }
@@ -110,7 +129,22 @@ export const QUIET_NOTE = "I closed the microphone after a quiet stretch. Tap to
 export function talkReducer(s: TalkState, e: TalkEvent): TalkState {
   switch (e.type) {
     case "listen":
-      return { ...s, phase: "listening", settled: "", hearing: "", openedAt: e.now, changedAt: e.now, holding: false, countdownAt: 0, note: null };
+      return { ...s, phase: "listening", settled: "", hearing: "", openedAt: e.now, changedAt: e.now, holding: false, countdownAt: 0, note: null, cutIn: "" };
+
+    case "cutIn":
+      if (s.phase !== "speaking") return s;
+      return {
+        ...s,
+        phase: "listening",
+        settled: tidy(e.said),
+        hearing: "",
+        openedAt: e.now,
+        changedAt: e.now,
+        holding: false,
+        countdownAt: 0,
+        note: null,
+        cutIn: lastHeard(e.heard),
+      };
 
     case "heard": {
       if (!micOpen(s.phase)) return s;
@@ -143,7 +177,7 @@ export function talkReducer(s: TalkState, e: TalkEvent): TalkState {
       return micOpen(s.phase) && wordsOf(s) ? send(s) : s;
 
     case "speak":
-      return s.phase === "answering" ? { ...s, phase: "speaking", note: null } : s;
+      return s.phase === "answering" ? { ...s, phase: "speaking", note: null, cutIn: "" } : s;
 
     case "micLost":
       if (!micOpen(s.phase)) return s;
