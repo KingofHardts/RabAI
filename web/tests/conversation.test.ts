@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ask, conversationTurn, CONVERSATION_SETTING, interruptedSetting, modelFor, planRequest, type ModelClient } from "../lib/engine/answer";
+import { ask, conversationTurn, CONVERSATION_SETTING, CONVERSATION_TURN_NOTE, interruptedSetting, modelFor, planRequest, type ModelClient } from "../lib/engine/answer";
 import { quickFollowUp, retrieveFollowUp } from "../lib/engine/lookup";
 import { warmRequests } from "../lib/engine/warm";
 import { CORE_PREMISES } from "../lib/engine/core-premises.generated";
@@ -52,9 +52,16 @@ test("a conversation's turn is told to be short, and where the person cut in", (
   assert.equal(plan.params.model, "fast");
   // The instructions are kept cached for an hour.
   assert.equal(system[1].cache_control?.ttl, "1h");
-  // An ordinary question: no conversation line, the usual model.
+  // The reminder comes right after the question, the last thing the model reads.
+  const lastContent = (p: typeof plan) => {
+    const content = p.params.messages.at(-1)!.content as Array<{ type: string; text?: string }>;
+    return content.at(-1)!;
+  };
+  assert.equal(lastContent(plan).text, CONVERSATION_TURN_NOTE);
+  // An ordinary question: no conversation line, no reminder, the usual model.
   const plain = planRequest({ question: "Why?" }, lib, config, []);
   assert.ok(!(plain.params.system as Array<{ text: string }>).at(-1)!.text.includes(CONVERSATION_SETTING));
+  assert.equal(lastContent(plain).text, "Why?");
   assert.equal(plain.params.model, "big");
   // The core premises say how to talk like a person.
   assert.ok(CORE_PREMISES.includes("## Talking like a person"));

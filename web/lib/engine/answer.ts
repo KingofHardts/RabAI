@@ -80,6 +80,14 @@ export const TALKING_SETTING =
  * What RabbAI is told on a conversation's turn (Talk or a chavrusa session); "Talking like a person"
  * in the core premises says how.
  */
+/**
+ * The same, repeated right after the question on a conversation's turn: the model reads the
+ * documents and the history after the settings, so a reminder next to the question is what keeps
+ * a turn short. It is the app's note, not the person's words, and says so.
+ */
+export const CONVERSATION_TURN_NOTE =
+  "(A note from the app, not from the person: this is a turn in a conversation. Answer in two to four short sentences, under about sixty words, unless they asked you to teach or explain something fully. If more is worth saying, offer it in a few words.)";
+
 export const CONVERSATION_SETTING =
   'This is a conversation, not a question and answer (see "Talking like a person"): one short turn of two to four sentences, under about sixty words, then let them answer. If more is worth saying, offer it in a few words instead of saying it.';
 
@@ -621,6 +629,7 @@ export function planRequest(
       // points at the same document (citations.ts).
       ...(pictures.length ? picturesContent(pictures) : []),
       { type: "text" as const, text: question },
+      ...(conversationTurn(input) ? [{ type: "text" as const, text: CONVERSATION_TURN_NOTE }] : []),
     ],
   });
 
