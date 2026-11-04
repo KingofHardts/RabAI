@@ -465,11 +465,28 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     if status != 200 or "rabbai-data-" not in sw or "addEventListener(\"fetch\"" not in sw:
         problem(f"The offline service worker (/sw.js) answered HTTP {status} without its code.")
 
-    # RabbAI's voice: whether a speech service is set up (yes or no only).
+    # RabbAI's voice: whether a speech service is set up, the voices offered, and one short word
+    # spoken (a few characters of the service's allowance).
     status, raw = fetch("/api/speak")
     try:
-        voice = bool(json.loads(raw).get("available"))
-        summary(f"- RabbAI's own voice: HTTP {status}, " + ("set up." if voice else "not set up (the device's voices are used)."))
+        info = json.loads(raw)
+        voice = bool(info.get("available"))
+        voices = [v for v in info.get("voices") or [] if isinstance(v, dict)]
+        default = next((v for v in voices if v.get("id") == info.get("defaultVoice")), None)
+        if not voice:
+            summary(f"- RabbAI's own voice: HTTP {status}, not set up (the device's voices are used).")
+        else:
+            men = sum(1 for v in voices if v.get("group") == "men")
+            women = sum(1 for v in voices if v.get("group") == "women")
+            summary(f"- RabbAI's own voice: HTTP {status}, set up, {len(voices)} voices ({men} men's, {women} women's); "
+                    f"the default is `{plain(str((default or {}).get('name', '?')))}` ({plain(str((default or {}).get('about', '')))}).")
+            if not voices or not default:
+                problem("RabbAI's voice is set up but offers no voices (the service's voice list couldn't be read).")
+            sstatus, audio = fetch("/api/speak", {"text": "Shalom."}, timeout=60)
+            kind = (seen.get("headers") or {}).get("content-type", "")
+            summary(f"  - Saying one word: HTTP {sstatus}, {len(audio):,} bytes of {plain(kind) or 'unknown'}.")
+            if sstatus != 200 or not kind.startswith("audio/") or len(audio) < 500:
+                problem(f"RabbAI's voice is set up, but saying one word answered HTTP {sstatus} ({plain(kind)}).")
     except ValueError:
         problem(f"The voice check (/api/speak) answered HTTP {status} with something that isn't JSON.")
 

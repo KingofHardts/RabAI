@@ -158,9 +158,13 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   box.
 - Answers are read in RabbAI's own voice (`/api/speak`, `web/lib/voice/`; founding spec "RabbAI's
   voice") when a speech service is set up, else with the device's voices. Only the text being read
-  is sent to the service, after the answer is checked: never the question, a picture or anything
-  about the person, and the text is never logged or kept. The voice is an original one described
-  by its qualities; never clone or imitate a real person's voice. Reading aloud is learning, so
+  is sent to the service (with the end and start of the pieces around it), after the answer is
+  checked: never the question, a picture or anything about the person, and the text is never
+  logged or kept. People choose among the service's voices in Settings (`web/lib/voice/voices.ts`);
+  the default is a kind, warm older man's voice. Only the service's stock voices and voices
+  designed from a description are offered: never clone or imitate a real person's voice, and keep
+  cloned voices out of the list. Natural voices get only the respellings they need
+  (`respell(text, "natural")`). Reading aloud is learning, so
   God's names are said as in learning ("Hashem", "Elokim"; `namesForLearning` in
   `speech-text.ts`): keep that in every voice path (open question 24). Words a voice says wrong go
   in `web/lib/voice/lexicon.ts`; short names that are also English words ("Ran", "Tur") are marked
@@ -496,9 +500,12 @@ Open items:
   allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
   RabbAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
-- RabbAI's own voice needs a speech-service key in Vercel (`ELEVENLABS_API_KEY` and
-  `ELEVENLABS_VOICE_ID`, recommended, or `OPENAI_API_KEY`); the steps and a description for
-  ElevenLabs' Voice Design are in `docs/siddur-audio-and-transliteration.md`. That page also lists
+- RabbAI's own voices need a speech-service key in Vercel (`ELEVENLABS_API_KEY`, recommended, or
+  `OPENAI_API_KEY`); until then answers are read in the device's robotic-sounding voices. With a
+  key, Settings offers the service's voices (men's first, with "Hear it"), defaulting to a kind
+  older man's voice (built 2026-11-04 at Josh's request, tested against a stand-in service only;
+  no ElevenLabs key was available in this session). The steps, costs and a Voice Design
+  description are in `docs/siddur-audio-and-transliteration.md`. That page also lists
   publishers to ask for a transliterated siddur and for recordings of the prayers. For the board:
   open questions 23 (folding, the davening notes) and 24 (the voice, God's names when reading).
 - The health check of 2026-11-04 (second round) passed everything except Turso's storage (above)

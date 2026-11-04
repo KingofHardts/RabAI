@@ -6,7 +6,7 @@
  */
 
 import { transliterate, type Pronunciation } from "../siddur/translit";
-import { respell } from "./lexicon";
+import { respell, type RespellFor } from "./lexicon";
 
 const POINTS = /[ְ-ׇּׁׂ]/;
 /** A run of Hebrew script, with the spaces and punctuation inside it. */
@@ -34,7 +34,11 @@ export function namesForLearning(text: string, forHebrewVoice = false): string {
     .replace(/\bElo(?:h|k)(im|einu|ei|echa|echa|ai)\b/g, (_, end: string) => `Elok${end}`);
 }
 
-export function speechText(text: string, hebrew: Pronunciation = "sephardi"): string {
+/**
+ * `voice` is "natural" for RabbAI's own voice (a speech service), which needs fewer words respelled
+ * than the device's voices (lexicon.ts).
+ */
+export function speechText(text: string, hebrew: Pronunciation = "sephardi", voice: RespellFor = "device"): string {
   let t = text
     .replace(/https?:\/\/\S*[^\s.,;:!?)]/g, "")
     .replace(/\[(\d{1,3})\]/g, "")
@@ -42,7 +46,7 @@ export function speechText(text: string, hebrew: Pronunciation = "sephardi"): st
     .replace(/\s*[•▪●]\s*/g, ". ");
   t = namesForLearning(t);
   t = t.replace(HEBREW_RUN, (run) => (POINTS.test(run) ? ` ${transliterate(run, hebrew)} ` : run));
-  return respell(namesForLearning(t))
+  return respell(namesForLearning(t), voice)
     .replace(/[ \t]+/g, " ")
     .replace(/ ([.,;:!?])/g, "$1")
     .replace(/\n{2,}/g, "\n")

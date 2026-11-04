@@ -31,8 +31,10 @@ the first editions (see [`../docs/library-growth.md`](../docs/library-growth.md)
   (`lib/pictures.ts`).
 - **Voice.** The microphone button types what you say into the box (the browser's own speech
   recognition); you read it and press Ask. A question asked out loud gets its answer read
-  aloud, and every answer has a Listen button (the browser's own voices; Settings chooses the
-  voice and the speed). Nothing is recorded, and RabbAI gets only the words.
+  aloud, and every answer has a Listen button. With a speech service set up (below), answers
+  are read in a natural voice chosen in Settings, with "Hear it" to try one; a kind, calm older
+  man's voice is the default, and women's voices are offered too. Without one, the browser's own
+  voices are used. Nothing is recorded, and RabbAI gets only the words.
 - **Talk.** While the box is empty, Ask becomes Talk: a conversation out loud, as in ChatGPT's
   voice mode (`components/talk.ts`, the turn-taking in `lib/talk.ts`). RabbAI listens and shows
   the words; when you pause, a countdown sends them ("Keep talking" to say more, a tap to send at
@@ -234,6 +236,10 @@ Optional settings:
 | `RABAI_LOOKUP_MODEL` | `claude-sonnet-5-5` | The quick model that decides where to look. |
 | `RABAI_ONLINE` | `on` | Looking things up online: `on`, `torah` (only the trusted Orthodox sites, never the wider web), or `off`. A public app (`RABAI_PUBLIC=true`) looks nothing up until the board approves the sites list. |
 | `RABAI_RESEARCH_MODEL` | `claude-sonnet-5-5` | The model that looks things up online. |
+| `ELEVENLABS_API_KEY` | none | RabbAI's own voice, from ElevenLabs (recommended). The key needs Text to Speech and Voices (read). The voices in the account are offered in Settings. See `docs/siddur-audio-and-transliteration.md`, "Setting up the voice". |
+| `ELEVENLABS_VOICE_ID` | the best older man's voice | The voice used until a person chooses another (for example one made with Voice Design). |
+| `ELEVENLABS_MODEL` | `eleven_v4` | ElevenLabs' model; if it refuses a request, `eleven_v3` is used. |
+| `OPENAI_API_KEY`, `OPENAI_TTS_VOICE`, `OPENAI_TTS_MODEL` | none, `cedar`, `gpt-4o-mini-tts` | RabbAI's own voice from OpenAI instead (cheaper, less natural in Hebrew). `RABAI_VOICE_PROVIDER` (`elevenlabs`, `openai` or `off`) chooses when both are set. |
 | `RABAI_OUTLINE_FIXTURE` | none | On your computer only: a file holding a saved outline reply, used in place of the model for "Show the flow" (`{section}` in the name stands for the page, as in `/tmp/outline-{section}.txt`). The reply is checked exactly like a real one. Ignored on Vercel and in a production build. |
 
 Answers can take 20 to 60 seconds at `high`, and a lookup online adds up to 45. The ask route

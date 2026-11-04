@@ -188,14 +188,17 @@ const HEBREW = /[֐-׿]/;
 const HEBREW_RUN = /[֐-׿][֐-׿\s"'״׳־,.:;]*[֐-׿]|[֐-׿]/g;
 
 /** Male voice names on the common devices, for the warm older voice RabbAI aims for. */
-const MALE = /\b(male|daniel|arthur|aaron|alex|tom|evan|nathan|gordon|oliver|rishi|lee|thomas|james|guy|andrew|brian|christopher|eric|roger|steffan|davis|tony|jason|ryan|william|liam|connor|mitchell|george|david|mark|avri|asaf)\b/;
-const FEMALE = /\b(female|samantha|ava|jenny|karen|moira|tessa|victoria|susan|zira|aria|emma|michelle|sonia|libby|serena|allison|joanna|kate|carmit|hila|catherine|fiona|kathy)\b/;
+const MALE = /\b(male|daniel|arthur|aaron|alex|tom|evan|nathan|gordon|oliver|rishi|lee|thomas|james|guy|andrew|brian|christopher|eric|roger|steffan|davis|tony|jason|ryan|william|liam|connor|mitchell|george|david|mark|avri|asaf|harry|noah|jacob|ethan|adam|matthew|ravi|prabhat|kenneth|duncan|alfie|elliot|reed)\b/;
+const FEMALE = /\b(female|samantha|ava|jenny|karen|moira|tessa|victoria|susan|zira|aria|emma|michelle|sonia|libby|serena|allison|joanna|kate|carmit|hila|catherine|fiona|kathy|zoe|nicky|ellie|martha|sara|sarah|natasha|clara|emily|olivia|isabella|maisie|hazel|heera|neerja|nancy|jane|veena|ana|amy|lisa|joelle|shelley|sandy|flo|grandma|google us english|google uk english female)\b/;
 
-/** Higher is better: natural-sounding voices first, and among them a man's voice. */
+/**
+ * Higher is better: natural-sounding voices first, and among them a man's voice. A man's voice
+ * outranks a woman's of the same quality, so the device's fallback is a man's voice when it has one.
+ */
 function voiceScore(v: SpeechSynthesisVoice, lang: "en" | "he"): number {
   const name = v.name.toLowerCase();
   const tag = v.lang.toLowerCase();
-  const gender = MALE.test(name) ? 2 : FEMALE.test(name) ? -1 : 0;
+  const gender = FEMALE.test(name) ? -3 : MALE.test(name) ? 4 : 0;
   if (lang === "he") return tag.startsWith("he") || tag.startsWith("iw") ? 10 + (/enhanced|premium|natural/.test(name) ? 2 : 0) + gender : -1;
   if (!tag.startsWith("en")) return -1;
   let score = 0;
@@ -210,9 +213,13 @@ function voiceScore(v: SpeechSynthesisVoice, lang: "en" | "he"): number {
   return score;
 }
 
-/** The voice chosen in Settings: empty for the best available (RabbAI's own, when set up), DEVICE_BEST for the device's best, or a device voice's name. */
+/**
+ * The voice chosen in Settings: empty for the best available (RabbAI's own default voice, when set
+ * up), "own:<id>" for one of RabbAI's voices, DEVICE_BEST for the device's best, or a device voice's name.
+ */
 let preferredVoice = "";
 export const DEVICE_BEST = "device";
+export const OWN_VOICE = "own:";
 export function setPreferredVoice(name: string): void {
   preferredVoice = name;
 }
@@ -223,19 +230,41 @@ export function setHebrewPronunciation(p: Pronunciation): void {
   hebrewSay = p;
 }
 
-/** Whether RabbAI's own voice is set up on the server (checked once). */
-let ownVoice: Promise<boolean> | null = null;
-export function ownVoiceAvailable(): Promise<boolean> {
-  if (typeof window === "undefined") return Promise.resolve(false);
-  ownVoice ??= fetch("/api/speak")
-    .then((r) => (r.ok ? (r.json() as Promise<{ available?: boolean }>) : { available: false }))
-    .then((j) => !!j.available)
-    .catch(() => {
-      ownVoice = null;
-      return false;
-    });
-  return ownVoice;
+/** One of RabbAI's own voices, as the server lists them. */
+export interface OwnVoice {
+  id: string;
+  name: string;
+  about: string;
+  group: "men" | "women" | "other";
 }
+export interface OwnVoices {
+  available: boolean;
+  voices: OwnVoice[];
+  defaultVoice: string;
+}
+const NO_OWN_VOICES: OwnVoices = { available: false, voices: [], defaultVoice: "" };
+
+/** RabbAI's own voices, if a speech service is set up on the server (asked once). */
+let ownVoiceList: Promise<OwnVoices> | null = null;
+export function ownVoices(): Promise<OwnVoices> {
+  if (typeof window === "undefined") return Promise.resolve(NO_OWN_VOICES);
+  ownVoiceList ??= fetch("/api/speak")
+    .then((r) => (r.ok ? (r.json() as Promise<Partial<OwnVoices>>) : NO_OWN_VOICES))
+    .then((j) => ({
+      available: !!j.available,
+      voices: Array.isArray(j.voices) ? j.voices.filter((v): v is OwnVoice => !!v && typeof v.id === "string" && typeof v.name === "string") : [],
+      defaultVoice: typeof j.defaultVoice === "string" ? j.defaultVoice : "",
+    }))
+    .catch(() => {
+      ownVoiceList = null;
+      return NO_OWN_VOICES;
+    });
+  return ownVoiceList;
+}
+
+/** A sentence for hearing a voice in Settings: a few of the words and names answers are full of. */
+export const VOICE_SAMPLE =
+  "Shalom, it's good to learn with you. Here Rashi explains the simple meaning, and Tosafot asks a question on it. Let's look at it together, slowly.";
 
 /** The device's English voices, best first, for the choice in Settings. */
 export function englishVoices(): Array<{ name: string; lang: string }> {
@@ -379,20 +408,33 @@ function playUrl(url: string, mine: number): Promise<boolean> {
  * Reads text in RabbAI's own voice. Returns false if nothing could be played (so the device's
  * voice takes over); if a later piece fails, the device's voice reads the rest.
  */
-async function speakOwn(text: string, mine: number, finish: () => void): Promise<boolean> {
-  const chunks = speechChunks(speechText(text, hebrewSay));
+async function speakOwn(text: string, mine: number, finish: () => void, voice: string): Promise<boolean> {
+  // Natural voices need fewer words respelled, and flow better in longer pieces.
+  const chunks = speechChunks(speechText(text, hebrewSay, "natural"), 220, 900);
   if (!chunks.length) {
     finish();
     return true;
   }
   const ctrl = new AbortController();
   fetches = ctrl;
-  const audioFor = (piece: string) =>
-    fetch("/api/speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: piece }), signal: ctrl.signal }).then((r) => {
+  // Each piece is sent with the end of the one before it and the start of the one after, so the
+  // voice carries on across them instead of starting fresh each time.
+  const audioFor = (i: number) =>
+    fetch("/api/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: chunks[i],
+        ...(voice ? { voice } : {}),
+        ...(i > 0 ? { previous: chunks[i - 1].slice(-400) } : {}),
+        ...(i + 1 < chunks.length ? { next: chunks[i + 1].slice(0, 400) } : {}),
+      }),
+      signal: ctrl.signal,
+    }).then((r) => {
       if (!r.ok) throw new Error(String(r.status));
       return r.blob();
     });
-  let next = audioFor(chunks[0]);
+  let next = audioFor(0);
   for (let i = 0; i < chunks.length; i++) {
     let blob: Blob;
     try {
@@ -406,7 +448,7 @@ async function speakOwn(text: string, mine: number, finish: () => void): Promise
     if (mine !== speakingToken) return true;
     // Fetch the next piece while this one plays, so there is no gap between them.
     if (i + 1 < chunks.length) {
-      next = audioFor(chunks[i + 1]);
+      next = audioFor(i + 1);
       next.catch(() => undefined);
     }
     const url = URL.createObjectURL(blob);
@@ -469,15 +511,18 @@ export function speak(text: string, onEnd?: () => void): void {
     finished = true;
     onEnd?.();
   };
-  if (preferredVoice) {
+  if (preferredVoice && !preferredVoice.startsWith(OWN_VOICE)) {
     speakDevice(text, mine, finish);
     return;
   }
   // Inside a tap, this lets the audio play once it arrives (phones require a tap first).
   primeAudio();
-  void ownVoiceAvailable().then(async (own) => {
+  const chosen = preferredVoice.slice(OWN_VOICE.length);
+  void ownVoices().then(async (own) => {
     if (mine !== speakingToken) return;
-    if (own && (await speakOwn(text, mine, finish))) return;
+    // A voice no longer offered falls back to the default one (the server does the same).
+    const voice = own.voices.some((v) => v.id === chosen) ? chosen : own.defaultVoice;
+    if (own.available && (await speakOwn(text, mine, finish, voice))) return;
     if (mine === speakingToken) speakDevice(text, mine, finish);
   });
 }
@@ -496,7 +541,7 @@ export function stopSpeaking(): void {
  */
 export function unlockSpeech(): void {
   primeAudio();
-  void ownVoiceAvailable();
+  void ownVoices();
   if (!canSpeak()) return;
   try {
     const u = new SpeechSynthesisUtterance(" ");

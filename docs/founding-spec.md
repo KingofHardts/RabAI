@@ -464,9 +464,14 @@ wording.
 - **RabbAI's voice.** **Decided (Josh, 2026-11-04):** answers are read aloud in a natural voice that
   sounds like an older, wise teacher, and Hebrew words and rabbis' names are said correctly.
   - RabbAI's own voice comes from a speech service (ElevenLabs or OpenAI) when one is set up in the
-    app's settings; otherwise the device's voices are used, preferring a man's, calmer voice. The
-    voice is an original one, made from a description of its qualities; never a copy of a real
-    person's voice.
+    app's settings; otherwise the device's voices are used, preferring a man's, calmer voice.
+  - **Decided (Josh, 2026-11-04, second round):** the voice must sound human, not robotic, and
+    people choose among several voices, men's and women's, in Settings, with "Hear it" to try one.
+    The default is a kind, warm, comforting older man's voice: the service's voices are ranked by
+    how they are described (older, calm, warm, a narrator's voice first), or the maintainer sets
+    one for everyone. The voices offered are the service's stock voices and voices designed from a
+    description of their qualities; a voice cloned from a particular person is never offered, and
+    RabbAI's voice is never a copy or imitation of a real person's voice.
   - Only the text being read aloud is sent to the speech service, after the answer has been checked
     and shown: never the question, a picture, or anything about the person. Nothing is kept.
   - Before reading, Hebrew with vowels is put in English letters (Israeli or Ashkenazi, a setting),
@@ -649,5 +654,6 @@ These need a decision before launch. Each one changes behavior.
     each is limited to?
 24. **RabbAI's voice.** When an answer is read aloud, the voice says the Name as "Hashem" and Elohim
     as "Elokim", since reading an answer is learning, not prayer (see "RabbAI's voice"). Is that
-    right, including for a verse or blessing quoted in an answer? And is the voice's description
-    (an older man, warm and unhurried, a teacher; `web/lib/voice/provider.ts`) fitting?
+    right, including for a verse or blessing quoted in an answer? And is the default voice (a kind,
+    warm older man's voice, described as a teacher; `web/lib/voice/provider.ts` and
+    `web/lib/voice/voices.ts`) fitting, and is it fitting to offer women's voices too?

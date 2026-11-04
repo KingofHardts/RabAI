@@ -36,7 +36,10 @@ import {
   DEVICE_BEST,
   canSpeak,
   englishVoices,
-  ownVoiceAvailable,
+  OWN_VOICE,
+  ownVoices,
+  type OwnVoices,
+  VOICE_SAMPLE,
   setHebrewPronunciation,
   setPreferredVoice,
   setSpeechRate,
@@ -1235,7 +1238,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [voiceName, setVoiceName] = useState("");
   const [voiceList, setVoiceList] = useState<Array<{ name: string; lang: string }>>([]);
   /** Whether RabbAI's own voice (a speech service) is set up. */
-  const [ownVoice, setOwnVoice] = useState(false);
+  const [ownVoiceList, setOwnVoiceList] = useState<OwnVoices | null>(null);
+  const ownVoice = !!ownVoiceList?.available;
   const [hebrewSay, setHebrewSay] = useState<"sephardi" | "ashkenazi">("sephardi");
   /** True while the words in the box came from the microphone. */
   const spokenInput = useRef(false);
@@ -3025,7 +3029,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const synth = canSpeak() ? window.speechSynthesis : null;
     const loadVoices = () => setVoiceList(englishVoices());
     loadVoices();
-    void ownVoiceAvailable().then(setOwnVoice);
+    void ownVoices().then(setOwnVoiceList);
     synth?.addEventListener?.("voiceschanged", loadVoices);
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -4660,29 +4664,84 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                 )}
                 {speechOk && (voiceList.length > 1 || ownVoice) && (
-                  <div className="settings-line">
+                  <div className="settings-line voice-line">
                     <label htmlFor="voice-pick">Voice</label>
-                    <select
-                      id="voice-pick"
-                      className="voice-pick"
-                      value={voiceName === DEVICE_BEST || voiceList.some((v) => v.name === voiceName) ? voiceName : ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setVoiceName(v);
-                        setPreferredVoice(v);
-                        store("rabai_voice", v);
-                        setSpeaking(null);
-                        speak("Shalom! This is how answers will sound. Rashi and the Rambam, and the Shulchan Aruch.");
-                      }}
-                    >
-                      <option value="">{ownVoice ? "RabbAI's voice" : "The best on this device"}</option>
-                      {ownVoice && <option value={DEVICE_BEST}>The best on this device</option>}
-                      {voiceList.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name} ({v.lang})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="voice-choose">
+                      <select
+                        id="voice-pick"
+                        className="voice-pick"
+                        value={
+                          voiceName === DEVICE_BEST ||
+                          voiceList.some((v) => v.name === voiceName) ||
+                          (voiceName.startsWith(OWN_VOICE) && ownVoiceList?.voices.some((v) => `${OWN_VOICE}${v.id}` === voiceName && v.id !== ownVoiceList.defaultVoice))
+                            ? voiceName
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setVoiceName(v);
+                          setPreferredVoice(v);
+                          store("rabai_voice", v);
+                          setSpeaking(null);
+                          speak(VOICE_SAMPLE);
+                        }}
+                      >
+                        {ownVoice && ownVoiceList ? (
+                          (
+                            [
+                              ["men", "RabbAI's voices: men"],
+                              ["women", "RabbAI's voices: women"],
+                              ["other", "RabbAI's voices: others"],
+                            ] as const
+                          ).map(([group, label]) => {
+                            const inGroup = ownVoiceList.voices.filter((v) => v.group === group);
+                            if (!inGroup.length) return null;
+                            return (
+                              <optgroup key={group} label={label}>
+                                {inGroup.map((v) => {
+                                  const isDefault = v.id === ownVoiceList.defaultVoice;
+                                  return (
+                                    <option key={v.id} value={isDefault ? "" : `${OWN_VOICE}${v.id}`}>
+                                      {v.name}
+                                      {v.about ? ` (${v.about})` : ""}
+                                      {isDefault ? ", recommended" : ""}
+                                    </option>
+                                  );
+                                })}
+                              </optgroup>
+                            );
+                          })
+                        ) : (
+                          <option value="">The best on this device</option>
+                        )}
+                        {ownVoice ? (
+                          <optgroup label="This device's voices">
+                            <option value={DEVICE_BEST}>The best on this device</option>
+                            {voiceList.map((v) => (
+                              <option key={v.name} value={v.name}>
+                                {v.name} ({v.lang})
+                              </option>
+                            ))}
+                          </optgroup>
+                        ) : (
+                          voiceList.map((v) => (
+                            <option key={v.name} value={v.name}>
+                              {v.name} ({v.lang})
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn quiet voice-hear"
+                        onClick={() => {
+                          setSpeaking(null);
+                          speak(VOICE_SAMPLE);
+                        }}
+                      >
+                        Hear it
+                      </button>
+                    </div>
                   </div>
                 )}
                 {speechOk && (

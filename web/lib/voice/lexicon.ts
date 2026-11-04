@@ -6,6 +6,11 @@
  *
  * This is pronunciation only, not Torah content. Add a word when a voice says it wrong; keep "say"
  * in plain letters a voice can read.
+ *
+ * The device's voices get every entry. The natural voices of a speech service (RabbAI's own voice)
+ * already say most of these words well, and respelling them makes speech choppy, so they get only
+ * the entries they need: words written with "ch" (the throaty sound), the short names that are
+ * also English words, and the words marked `natural`.
  */
 
 export interface SayAs {
@@ -15,11 +20,16 @@ export interface SayAs {
   say: string;
   /** Match only as written, capital and all: "Ran" the Rishon, not "he ran". */
   exact?: boolean;
+  /** Respell it for a natural voice too (one that would otherwise say it wrong). */
+  natural?: boolean;
 }
+
+/** Which entries to use: every one (the device's voices), or those a natural voice needs. */
+export type RespellFor = "device" | "natural";
 
 export const SAY_AS: SayAs[] = [
   // The Name and common words
-  { written: ["Hashem"], say: "Ha-Shem" },
+  { written: ["Hashem"], say: "Ha-Shem", natural: true },
   { written: ["Chazal"], say: "Kha-zal" },
   { written: ["halacha", "halachah", "halakha", "halakhah"], say: "ha-la-kha" },
   { written: ["halachic", "halakhic"], say: "ha-la-khic" },
@@ -30,12 +40,12 @@ export const SAY_AS: SayAs[] = [
   { written: ["chavrusa", "chavruta", "chavrutah"], say: "khahv-roo-tah" },
   { written: ["Chumash"], say: "Khoo-mahsh" },
   { written: ["Tanach", "Tanakh"], say: "Tah-nakh" },
-  { written: ["Gemara", "Gemoro"], say: "Geh-mah-rah" },
+  { written: ["Gemara", "Gemoro"], say: "Geh-mah-rah", natural: true },
   { written: ["Mishnah", "Mishna"], say: "Mish-nah" },
   { written: ["Bavli"], say: "Bahv-lee" },
   { written: ["Yerushalmi"], say: "Yeh-roo-shahl-mee" },
   { written: ["daf"], say: "dahf" },
-  { written: ["amud"], say: "ah-mood" },
+  { written: ["amud"], say: "ah-mood", natural: true },
   { written: ["sefer"], say: "seh-fer" },
   { written: ["sefarim", "seforim"], say: "seh-fah-reem" },
   { written: ["mitzvah"], say: "mitz-vah" },
@@ -46,10 +56,10 @@ export const SAY_AS: SayAs[] = [
   { written: ["tefillin"], say: "teh-fee-leen" },
   { written: ["teshuvah", "teshuva"], say: "teh-shoo-vah" },
   { written: ["kavanah", "kavana", "kavannah"], say: "kah-vah-nah" },
-  { written: ["Shema", "Shma"], say: "Sh'mah" },
+  { written: ["Shema", "Shma"], say: "Sh'mah", natural: true },
   { written: ["Amidah"], say: "Ah-mee-dah" },
   { written: ["Kaddish"], say: "Kah-dish" },
-  { written: ["Kiddushin"], say: "Kee-doo-sheen" },
+  { written: ["Kiddushin"], say: "Kee-doo-sheen", natural: true },
   { written: ["Shabbat"], say: "Shah-baht" },
   { written: ["Pesach"], say: "Peh-sakh" },
   { written: ["Chanukah", "Chanukkah", "Hanukkah", "Hanukah"], say: "Kha-noo-kah" },
@@ -86,22 +96,22 @@ export const SAY_AS: SayAs[] = [
   { written: ["Chazon Ish"], say: "Kha-zone Eesh" },
   { written: ["Chasam Sofer", "Chatam Sofer"], say: "Khah-sahm So-fer" },
   { written: ["Tur"], say: "Toor", exact: true },
-  { written: ["Beit Yosef", "Beis Yosef"], say: "Bait Yo-sef" },
+  { written: ["Beit Yosef", "Beis Yosef"], say: "Bait Yo-sef", natural: true },
 
   // Sages and people of the Torah
-  { written: ["Abaye"], say: "Ah-bah-yeh" },
+  { written: ["Abaye"], say: "Ah-bah-yeh", natural: true },
   { written: ["Rava"], say: "Rah-vah" },
   { written: ["Rabba"], say: "Rah-bah" },
   { written: ["Rav"], say: "Rahv" },
   { written: ["Shmuel"], say: "Shmoo-el" },
   { written: ["Yochanan"], say: "Yo-khah-nahn" },
-  { written: ["Reish Lakish"], say: "Raysh Lah-keesh" },
+  { written: ["Reish Lakish"], say: "Raysh Lah-keesh", natural: true },
   { written: ["Shammai"], say: "Shah-my" },
   { written: ["Akiva"], say: "Ah-kee-vah" },
   { written: ["Meir"], say: "May-eer", exact: true },
   { written: ["Moshe"], say: "Mo-sheh" },
   { written: ["Moshe Rabbeinu"], say: "Mo-sheh Rah-bay-noo" },
-  { written: ["Yaakov", "Ya'akov"], say: "Yah-ah-kove" },
+  { written: ["Yaakov", "Ya'akov"], say: "Yah-ah-kove", natural: true },
   { written: ["Yitzchak", "Yitzhak"], say: "Yitz-khahk" },
   { written: ["Avraham"], say: "Ahv-rah-hahm" },
   { written: ["Yehudah", "Yehuda"], say: "Yeh-hoo-dah" },
@@ -113,9 +123,12 @@ export const SAY_AS: SayAs[] = [
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const ENTRIES = SAY_AS.flatMap((e) => e.written.map((w) => ({ w, say: e.say, exact: !!e.exact })));
-const BY_SPELLING = new Map<string, { say: string; written: string; exact: boolean }>();
-for (const e of ENTRIES) BY_SPELLING.set(e.w.toLowerCase().replace(/\s+/g, " "), { say: e.say, written: e.w, exact: e.exact });
+/** Whether a natural voice needs this entry too. */
+const forNatural = (e: SayAs) => !!e.natural || !!e.exact || e.written.some((w) => /ch/i.test(w));
+
+const ENTRIES = SAY_AS.flatMap((e) => e.written.map((w) => ({ w, say: e.say, exact: !!e.exact, natural: forNatural(e) })));
+const BY_SPELLING = new Map<string, { say: string; written: string; exact: boolean; natural: boolean }>();
+for (const e of ENTRIES) BY_SPELLING.set(e.w.toLowerCase().replace(/\s+/g, " "), { say: e.say, written: e.w, exact: e.exact, natural: e.natural });
 
 /**
  * All spellings in one pattern, longest first so "Moshe Rabbeinu" wins over "Moshe". A word counts
@@ -131,10 +144,11 @@ const PATTERN = new RegExp(
 );
 
 /** Respells the known words in English text for a speech voice, keeping a capital where there was one. */
-export function respell(text: string): string {
+export function respell(text: string, voice: RespellFor = "device"): string {
   return text.replace(PATTERN, (all: string, before: string, word: string) => {
     const e = BY_SPELLING.get(word.toLowerCase().replace(/\s+/g, " "));
     if (!e || (e.exact && word.replace(/\s+/g, " ") !== e.written)) return all;
+    if (voice === "natural" && !e.natural) return all;
     const say = /^\p{Lu}/u.test(word) ? e.say[0].toUpperCase() + e.say.slice(1) : e.say[0].toLowerCase() + e.say.slice(1);
     return before + say;
   });

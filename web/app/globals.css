@@ -1285,6 +1285,11 @@ kbd { font-family: var(--font-ui); font-size: 12.5px; padding: 2px 7px; border: 
   .talk-ring { display: none; }
 }
 .voice-pick { max-width: 60%; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 6px 10px; font: inherit; }
+.voice-line { flex-wrap: wrap; }
+.voice-line .voice-choose { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1 1 220px; max-width: 100%; justify-content: flex-end; }
+/* A select is as wide as its longest option unless told otherwise; the voices' descriptions are long. */
+.voice-line .voice-pick { max-width: none; min-width: 0; width: 0; flex: 1 1 auto; text-overflow: ellipsis; }
+.voice-line .voice-hear { flex: none; }
 
 /* A book's sections as an outline (ContentsGrid, lib/library/contents-tree.ts): each top part folds
    open, with headings for the shared parts and the last part on each button. */
