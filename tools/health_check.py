@@ -462,7 +462,7 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     cache_control = (seen.get("headers") or {}).get("cache-control", "")
     summary(f"- The offline service worker: HTTP {status}"
             + (", no-store." if "no-store" in cache_control else f", Cache-Control `{plain(cache_control)}`."))
-    if status != 200 or "rabbai-data-v" not in sw:
+    if status != 200 or "rabbai-data-" not in sw or "addEventListener(\"fetch\"" not in sw:
         problem(f"The offline service worker (/sw.js) answered HTTP {status} without its code.")
 
     # RabbAI's voice: whether a speech service is set up (yes or no only).

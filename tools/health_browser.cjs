@@ -78,6 +78,9 @@ async function checkSources(page, name) {
 // The Daven tab: open Shacharit, count the lines, the folds for today and the notes, switch to the
 // paragraph layout and dark, and check nothing is wider than the screen. Only counts are printed.
 async function checkDaven(page, name) {
+  // From a fresh page: full-screen reading (left open by the Articles walk) hides the tabs on purpose.
+  await page.evaluate(() => window.localStorage.removeItem("rabai_mode"));
+  await page.goto(new URL("/", page.url()).href, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.getByRole("button", { name: "Daven", exact: true }).first().click({ timeout: 30000 });
   await page.waitForSelector(".sd-service", { timeout: 60000 });
   const services = await page.locator(".sd-service").count();
@@ -89,10 +92,23 @@ async function checkDaven(page, name) {
     await page.waitForTimeout(800);
   }
   const lines = await page.locator(".sd-he").count();
-  const folds = await page.locator(".sd-fold, .sd-fold-mini").count();
   const labels = await page.locator(".sd-opt-label").count();
   if (!lines) say("PROBLEM", `${name}: the Daven tab opened Shacharit with no lines.`);
-  else say("OK", `${name}: the Daven tab: ${services} services today; Shacharit shows ${lines} Hebrew lines, ${folds} folded for today, ${labels} men's/women's labels.`);
+  else say("OK", `${name}: the Daven tab: ${services} services today; Shacharit shows ${lines} Hebrew lines, ${labels} men's/women's labels.`);
+  // The Amidah from the jump list, where the days' inserts are folded or shown for today.
+  await page.locator(".sd-where").first().click();
+  const amidah = page.locator(".sd-jump-item", { hasText: /Amida/ }).first();
+  if (await amidah.count()) {
+    await amidah.click();
+    await page.waitForSelector(".sd-sec", { timeout: 60000 });
+    await page.waitForTimeout(2500);
+    const folds = await page.locator(".sd-fold, .sd-fold-mini").count();
+    const inserts = await page.locator(".sd-insert").count();
+    say("OK", `${name}: the Amidah: ${folds} parts folded for today, ${inserts} day's inserts marked.`);
+  } else {
+    await page.keyboard.press("Escape");
+    say("PROBLEM", `${name}: the Daven tab's jump list has no Amidah.`);
+  }
   await page.locator(".sd-aa").first().click();
   await page.locator('.sd-menu [role="radio"]', { hasText: "Paragraph" }).click();
   await page.locator('.sd-menu [role="radio"]', { hasText: "Dark" }).click();
