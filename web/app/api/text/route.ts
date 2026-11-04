@@ -16,9 +16,11 @@ export async function GET(request: Request) {
   if (!ref) return NextResponse.json({ error: "Which text? Pass ?ref=" }, { status: 400 });
   // ?count=1: only how many lines the page or chapter has (a chavrusa's "line 4 of 28").
   const countOnly = params.get("count") === "1";
+  // ?bare=1: the lines only, without commentaries or word study (the siddur in the Daven tab).
+  const bare = params.get("bare") === "1";
 
   const lib = loadLibrary();
-  if (lib.mode === "testing") return testingSection(ref, lib, countOnly);
+  if (lib.mode === "testing") return testingSection(ref, lib, countOnly, bare);
 
   const section = getSection(lib, ref);
   if (!section) return NextResponse.json({ error: `“${ref}” isn't in the library yet.` }, { status: 404 });
@@ -60,12 +62,12 @@ export async function GET(request: Request) {
 }
 
 /** A section from the private testing library, in the same shape the reader uses. */
-async function testingSection(ref: string, lib: Library, countOnly = false) {
+async function testingSection(ref: string, lib: Library, countOnly = false, bare = false) {
   const store = testingStore();
   if (!store) return NextResponse.json({ error: "The library isn't connected right now." }, { status: 503 });
   let found: Awaited<ReturnType<typeof store.section>>;
   try {
-    found = await store.section(ref);
+    found = await store.section(ref, { bare });
   } catch (err) {
     console.error("[rabai] reader lookup failed:", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "The library couldn't open that text just now." }, { status: 502 });
@@ -90,6 +92,24 @@ async function testingSection(ref: string, lib: Library, countOnly = false) {
     library: "testing",
     ...(s.article ? { article: s.article, ...(s.article.author ? { author: s.article.author } : {}) } : {}),
   };
+  if (bare) {
+    return NextResponse.json(
+      {
+        libraryMode: lib.mode,
+        ...(found.prev ? { prev: found.prev } : {}),
+        ...(found.next ? { next: found.next } : {}),
+        book: s.book,
+        section: first.section,
+        sectionHe: first.sectionHe,
+        edition: {
+          he: found.lines.find((l) => l.source?.heEdition)?.source?.heEdition ?? null,
+          en: found.lines.find((l) => l.source?.enEdition)?.source?.enEdition ?? null,
+        },
+        lines: found.lines.map((l) => ({ ref: l.ref, he: l.he, en: l.en })),
+      },
+      { headers: { "Cache-Control": "private, max-age=3600" } },
+    );
+  }
   const all: Passage[] = [...found.lines, ...[...found.commentaries.values()].flat()];
   const { tokens, study } = studyPassages({ ...lib, passages: all }, all);
   const focus = all.find((p) => p.ref === ref)?.ref ?? null;

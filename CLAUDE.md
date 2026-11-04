@@ -202,6 +202,17 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   question names (`libraryDetails`), and the app links to the Sources page (`app/sources`) under
   the answer. Never import `lib/sources/index.ts` into a client component: the list is large, and
   the page's search box uses only `lib/sources/fold.ts`.
+- The Daven tab (`web/components/Siddur.tsx`, founding spec "Finding prayers, and the siddur as a
+  siddur") shows the library's siddur text word for word. Its instructions and marks are the
+  siddur's own (`web/lib/siddur/lines.ts` only finds them; never add an instruction of our own). Its
+  "today" notes and today/not-today marks (`web/lib/calendar/davening.ts`) are RabbAI's reading of
+  the calendar, always labeled as not yet reviewed by the board (open question 23). Never hide a
+  line because of the calendar without the board's approval. "Ask about this" goes through the
+  usual checked path (`send`).
+- A book's lines are ordered by their numbers within a section, and its sections by each
+  edition's order merged (`web/lib/library/merge-order.ts`), never by the library's build number
+  (`seq`) alone: the build numbers each edition in turn, so a section or line found in one
+  language only (Koren's English instructions and Preface) would fall to the end.
 - Before committing app changes: `cd web && npm test && npm run typecheck`.
 - **The online app stays locked** (`web/proxy.ts`, `web/lib/access.ts`): visitors need
   `RABAI_ACCESS_CODE`, and with no code set it stays closed. Never weaken the lock or add a way
@@ -263,8 +274,17 @@ Done 2026-11-04, at Josh's request:
 - The Learn search finds prayers inside the siddurs ("Mincha", "bentching"), "davening" (the day's
   three prayers and the siddurs) and "zmanim" (today's times, once a place is set)
   (`lib/library/prayer-find.ts`). Long section lists show as an outline (`contents-tree.ts`).
-- The siddur as a siddur: a davening view (large Hebrew, a button to the next prayer, the screen
-  kept on), opened from a siddur's page or "Daven from this".
+- A Daven tab beside Chat and Learn: the siddur used as a siddur. The Koren siddur (Rabbi Sacks's
+  translation) is offered first. Prayers flow as you scroll; swipe or the bottom bar moves between
+  blessings. Koren's instructions and its bow, rise and strike-the-chest marks show in place and
+  can be asked about. A card lists today's changes (Hebcal), and lines said only on some days are
+  marked "today" or "not today" (open question 23). Siddurs opened from Learn or a search open
+  there. The 50 features researched are in `docs/siddur-features.md`.
+- Fixed the order of the davening: Koren's English-only instructions had fallen to the end of each
+  prayer, and its Preface after its last section. Fixed the overlapping text in the reader's
+  left margin: a siddur line's whole path had been printed where its number goes.
+- Long names are shortened everywhere ("Siddur Ashkenaz · Barukh She'amar 1"), with the full
+  reference in the tooltip (`lib/library/short-name.ts`).
 - Two panes: Hebrew above, English below, scrolling together line for line
   (`lib/linked-scroll.ts`, `components/use-linked-scroll.ts`).
 - Found what fills Turso's extra storage (old deleted library copies; see Open items) and

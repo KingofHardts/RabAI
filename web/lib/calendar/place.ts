@@ -51,6 +51,27 @@ export interface WhenAndWhere {
 }
 
 /** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */
+/** What changes in the davening today, with the notes in words (calendar/davening.ts). */
+export interface DaySummaryDavening {
+  dow: number;
+  israel: boolean;
+  roshChodesh: boolean;
+  chanukah: boolean;
+  purim: boolean;
+  fast: boolean;
+  tishaBav: boolean;
+  tenDays: boolean;
+  shabbatShuva: boolean;
+  cholHamoed: boolean;
+  yomTov: boolean;
+  omerTonight?: number;
+  tachanun: { shacharit: boolean; mincha: boolean; allCongs: boolean };
+  hallel: 0 | 1 | 2;
+  mashivHaruach: boolean;
+  talUmatar: boolean;
+  notes: string[];
+}
+
 export interface DaySummary {
   /** YYYY-MM-DD where the person is. */
   date: string;
@@ -81,6 +102,8 @@ export interface DaySummary {
   place?: { name: string; from: PlaceSource };
   /** Today's times at the place, when a place is known (the Learn search shows them for "zmanim"). */
   zmanim?: { day: string; items: Array<{ label: string; time: string; note?: string }> };
+  /** What changes in the davening today. */
+  davening?: DaySummaryDavening;
 }
 
 export const CANDLE_MINUTES = [15, 18, 20, 22, 24, 30, 40] as const;

@@ -111,8 +111,8 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
     },
     dictionary: (passages, limit) => main.dictionary(passages, limit),
     wordEntries: (word, limit) => main.wordEntries(word, limit),
-    async section(ref) {
-      return ownerOf(await collections(), ref).section(ref);
+    async section(ref, opts) {
+      return ownerOf(await collections(), ref).section(ref, opts);
     },
     async contents(title) {
       return ownerOf(await collections(), title).contents(title);

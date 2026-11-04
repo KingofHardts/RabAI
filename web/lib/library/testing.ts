@@ -4,6 +4,7 @@ import type { Client, InValue } from "@libsql/client";
 import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config";
 import { combineStores } from "./collections";
 import { codeOf, commentaryBase, commentaryPrefixes, isCommentaryOn, orderLinked, type LinkPair } from "./link-order";
+import { compareLines, mergeOrders } from "./merge-order";
 import type { ArticleListing, ArticleShelf, Passage, PassageSource } from "./types";
 
 export type { ArticleListing, ArticleShelf };
@@ -220,8 +221,20 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
     entry.seq = Math.min(entry.seq, r.seq);
     byRef.set(r.ref, entry);
   }
+  // Sections in reading order; the lines of a section by their numbers, so a line found in only one
+  // language (an instruction in the English of a siddur) stays in its place (merge-order.ts).
+  const sectionSeq = new Map<string, number>();
+  for (const [ref, e] of byRef) {
+    const sec = sectionOf(ref);
+    sectionSeq.set(sec, Math.min(sectionSeq.get(sec) ?? Infinity, e.seq));
+  }
   return [...byRef.entries()]
-    .sort((a, b) => a[1].seq - b[1].seq)
+    .sort((a, b) => {
+      const sa = sectionOf(a[0]);
+      const sb = sectionOf(b[0]);
+      if (sa !== sb) return (sectionSeq.get(sa) ?? 0) - (sectionSeq.get(sb) ?? 0) || a[1].seq - b[1].seq;
+      return compareLines(a[0], b[0], sa) ?? a[1].seq - b[1].seq;
+    })
     .map(([ref, { he, en, seq }]) => {
       const base = (he ?? en)!;
       const loc = locationIn(ref, base.title);
@@ -260,7 +273,8 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
         section: sectionOf(ref),
         sectionHe: base.he_title ? `${base.he_title} ${locationIn(sectionOf(ref), base.title)}`.trim() : sectionOf(ref),
         order: seq,
-        label: loc || base.title,
+        // A named part of a book ("…, Weekday, Shacharit, Modeh Ani 1") without the comma before it.
+        label: loc.replace(/^,\s*/, "") || base.title,
         labelHe: base.he_title ?? base.title,
         he: he ? text(he.text) : "",
         en: en ? text(en.text) : "",
@@ -301,7 +315,8 @@ export interface TestingStore {
    * A whole section for the reader, with each line's commentaries, and the sections before and
    * after it in the same book.
    */
-  section(ref: string): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]>; prev?: string; next?: string } | null>;
+  /** `bare`: the lines only, without their commentaries (the siddur in the Daven tab). */
+  section(ref: string, opts?: { bare?: boolean }): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]>; prev?: string; next?: string } | null>;
   /** A book's sections in order ("Berakhot 2a", "Berakhot 2b", ...), for its table of contents. */
   contents(title: string): Promise<string[]>;
   /**
@@ -662,6 +677,7 @@ export function createTestingStore(db: Db): TestingStore {
   let selectCache: Promise<string> | null = null;
 
   let articlesCache: Promise<boolean> | null = null;
+  const contentsCache = new Map<string, Promise<string[]>>();
 
   /** Whether this database is a website collection (it has the articles table). */
   function hasArticles(): Promise<boolean> {
@@ -679,6 +695,37 @@ export function createTestingStore(db: Db): TestingStore {
       hasArticles(),
     ]).then(([cols, articles]) => rowSelect(cols.some((c) => c.name === "standing"), articles));
     return selectCache;
+  }
+
+  /**
+   * A book's sections in order: each edition's order, merged (merge-order.ts), so a section found in
+   * only one language keeps its place. Kept for the life of the server, since the library doesn't
+   * change while it runs.
+   */
+  function contentsOf(title: string): Promise<string[]> {
+    const cached = contentsCache.get(title);
+    if (cached) return cached;
+    const found = db
+      .all(
+        `SELECT rtrim(rtrim(p.ref, '0123456789'), ':') AS s, p.edition_id AS e, MIN(p.seq) AS q
+         FROM passages p JOIN titles t ON t.id = p.title_id
+         WHERE t.title = ? GROUP BY s, e ORDER BY q LIMIT 8000`,
+        [title],
+      )
+      .then((rows) => {
+        const byEdition = new Map<string, string[]>();
+        for (const r of rows) {
+          const sec = String(r.s).trim();
+          if (!sec) continue;
+          const key = String(r.e);
+          byEdition.set(key, [...(byEdition.get(key) ?? []), sec]);
+        }
+        return mergeOrders([...byEdition.values()]);
+      });
+    contentsCache.set(title, found);
+    if (contentsCache.size > 300) contentsCache.delete(contentsCache.keys().next().value!);
+    found.catch(() => contentsCache.delete(title));
+    return found;
   }
 
   async function rowsWhere(where: string, args: InValue[], limit: number): Promise<Row[]> {
@@ -909,7 +956,7 @@ export function createTestingStore(db: Db): TestingStore {
       });
     },
 
-    async section(ref) {
+    async section(ref, opts = {}) {
       let first = (await lookupOne(ref, 1, null))[0];
       if (!first) return null;
       // A commentary opens on the text it explains: "Rashi on Genesis 1:1:2" -> Genesis 1.
@@ -923,11 +970,12 @@ export function createTestingStore(db: Db): TestingStore {
       }
       const section = sectionOf(first.ref);
       const [lo, hi] = prefixRange(section === first.ref ? section : section + (first.ref.charAt(section.length) || ":"));
-      const rows = await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, first.title], TESTING_LIMITS.section * 3);
-      const lines = groupRows(rows.length ? rows : [first]);
+      // A siddur is read whole: every line of a long service, and long paragraphs uncut.
+      const rows = await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, first.title], TESTING_LIMITS.section * (opts.bare ? 10 : 3));
+      const lines = groupRows(rows.length ? rows : [first], { full: Boolean(opts.bare) });
       const lineRefs = lines.map((l) => l.ref);
       const commentaries = new Map<string, Passage[]>();
-      if (lineRefs.length) {
+      if (lineRefs.length && !opts.bare) {
         const marks = lineRefs.map(() => "?").join(",");
         const [links, printed] = await Promise.all([
           db.all(
@@ -975,19 +1023,25 @@ export function createTestingStore(db: Db): TestingStore {
           [first.title, Math.max(...seqs)],
         ),
       ]);
-      const prev = before[0] ? sectionOf(String(before[0].ref)) : undefined;
-      const next = after.map((r) => sectionOf(String(r.ref))).find((x) => x !== section);
+      let prev = before[0] ? sectionOf(String(before[0].ref)) : undefined;
+      let next = after.map((r) => sectionOf(String(r.ref))).find((x) => x !== section);
+      // The book's own order, merged across its editions, when the section is in it (it is unless the
+      // listing was cut off): a section in only one language keeps its place.
+      try {
+        const order = await contentsOf(first.title);
+        const at = order.indexOf(section);
+        if (at >= 0) {
+          prev = at > 0 ? order[at - 1] : undefined;
+          next = at < order.length - 1 ? order[at + 1] : undefined;
+        }
+      } catch {
+        // The order by numbering above stands.
+      }
       return { lines, commentaries, ...(prev && prev !== section ? { prev } : {}), ...(next ? { next } : {}) };
     },
 
     async contents(title) {
-      const rows = await db.all(
-        `SELECT rtrim(rtrim(p.ref, '0123456789'), ':') AS s, MIN(p.seq) AS q
-         FROM passages p JOIN titles t ON t.id = p.title_id
-         WHERE t.title = ? GROUP BY s ORDER BY q LIMIT 4000`,
-        [title],
-      );
-      return [...new Set(rows.map((r) => String(r.s).trim()).filter(Boolean))];
+      return contentsOf(title);
     },
 
     async daf(section) {

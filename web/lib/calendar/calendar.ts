@@ -1,4 +1,5 @@
 import { HDate, HebrewCalendar, Location, Sedra, Zmanim, flags, DailyLearning, parshiot, type Event } from "@hebcal/core";
+import { daveningDay, daveningNotes, type DaveningDay } from "./davening";
 import "@hebcal/learning";
 import { getLeyningForParsha } from "@hebcal/leyning";
 import { kmBetween, validTimeZone, type DaySummary, type Place, type TimesPrefs } from "./place";
@@ -83,6 +84,8 @@ export interface CalendarInfo {
   zmanim?: { day: string; items: Zman[] };
   /** Tomorrow's main times. */
   tomorrow?: { day: string; items: Zman[] };
+  /** What changes in the davening today (davening.ts). */
+  davening?: DaveningDay;
   /** This week's Shabbat at the place: when to light candles and when it ends. */
   shabbat?: { candles?: string; candlesDay?: string; candleMins?: number; ends?: string; endsDay?: string; endsNote?: string; rabbeinuTam?: string };
 }
@@ -285,6 +288,7 @@ export function calendarInfo(opts: CalendarOptions = {}): CalendarInfo {
     ...(saturday && !shabbatOver ? { parshaNext: parshaFor(new HDate(addDays(day, 1)), il) } : {}),
     upcoming: [],
     learning: [],
+    davening: daveningDay(hd, il, afterSunset),
   };
 
   // This week's Shabbat and the coming days, from today through the number of days asked for.
@@ -579,6 +583,7 @@ export function daySummary(info: CalendarInfo): DaySummary {
     ...(info.zmanim?.items.length
       ? { zmanim: { day: info.zmanim.day, items: info.zmanim.items.map((z) => ({ label: z.label, time: z.time, ...(z.note ? { note: z.note } : {}) })) } }
       : {}),
+    ...(info.davening ? { davening: { ...info.davening, notes: daveningNotes(info.davening) } } : {}),
     ...(soonItem
       ? {
           soon: {

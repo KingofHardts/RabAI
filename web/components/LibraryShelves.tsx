@@ -23,6 +23,7 @@ import ContentsGrid, { listBook } from "./ContentsGrid";
 import { contentsTree, type ContentsNode } from "@/lib/library/contents-tree";
 import { findPrayers, knownPrayer, prayerForHour, siddurOrder, wantsDavening, wantsTimes, type PrayerHit } from "@/lib/library/prayer-find";
 import type { DaySummary } from "@/lib/calendar/place";
+import { shortPlace, shortRef } from "@/lib/library/short-name";
 
 /*
  * The library home (docs/ui-research.md, 3.3): "Continue" cards for recent reading, a search box
@@ -239,7 +240,7 @@ export default function LibraryShelves({
           {last ? (
             <>
               <button type="button" className="btn primary" onClick={() => goTo(last.ref, !!last.page)}>
-                Continue at {sectionIn(b.title, last.title)}
+                Continue at {shortPlace(sectionIn(b.title, last.title) ?? last.title)}
                 {last.page ? " (the page)" : ""}
               </button>
               <button type="button" className="btn" onClick={() => onRead(b.firstRef)}>
@@ -443,7 +444,9 @@ export default function LibraryShelves({
                   style={{ ["--shelf" as string]: b ? shelfColor(b.shelf) : undefined }}
                   onClick={() => (r.page ? onPage(r.ref) : onRead(r.ref))}
                 >
-                  <span className="cc-title">{r.title}</span>
+                  <span className="cc-title" title={r.title}>
+                    {shortRef(r.title)}
+                  </span>
                   {b && (
                     <span className="he cc-he" lang="he" dir="rtl">
                       {b.he}

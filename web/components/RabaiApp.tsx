@@ -38,6 +38,9 @@ import { micOpen, secondsLeft, TALK_TIMING, tapAction, wordsOf } from "@/lib/tal
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
+import Siddur from "./Siddur";
+import { siddurOrder } from "@/lib/library/prayer-find";
+import { shortRef } from "@/lib/library/short-name";
 import ArticleShelves from "./ArticleShelves";
 import ContentsGrid from "./ContentsGrid";
 import DafColumn from "./DafColumn";
@@ -250,7 +253,13 @@ interface Highlight {
   ref?: string;
 }
 
-type Mode = "chat" | "learn";
+type Mode = "chat" | "learn" | "daven";
+
+/** A line's own number for the margin: "Genesis 1:3" -> "3", "…, Modeh Ani 2" -> "2", "Berakhot 2a:5" -> "5". */
+function lineNumber(label: string): string {
+  const last = label.split(":").pop() ?? label;
+  return last.match(/(\d+[ab]?)\s*$/)?.[1] ?? (last.length <= 4 ? last : "");
+}
 
 /** What the library's dictionaries have for a tapped word. */
 interface WordLookup {
@@ -676,7 +685,7 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
           onClick={() => onOpen(c.ref)}
           title={c.quote ? `“${c.quote.length > 160 ? `${c.quote.slice(0, 160)}…` : c.quote}” (open ${c.ref})` : `Open ${c.ref}`}
         >
-          {c.ref}
+          {shortRef(c.ref)}
         </button>,
       );
     }
@@ -772,7 +781,7 @@ function OnlineNotes({ result, onOpen }: { result: AskResult; onOpen: (ref: stri
           <div className="follow">
             {checked.map((r) => (
               <button key={r} type="button" className="cite" onClick={() => onOpen(r)} title={`Open ${r}`}>
-                {r}
+                {shortRef(r)}
               </button>
             ))}
           </div>
@@ -1294,8 +1303,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [lang, setLang] = useState<Lang>("both");
   /** Hebrew in a pane above, the English in a pane below, scrolling together (use-linked-scroll.ts). */
   const [split, setSplit] = useState(false);
-  /** The siddur used for davening: large Hebrew, nothing else on screen, the screen kept on. */
-  const [davening, setDavening] = useState(false);
+  /** A section to open in the Daven tab (its siddur), asked for from elsewhere in the app. */
+  const [davenRequest, setDavenRequest] = useState<{ section: string; n: number } | null>(null);
   const paneHeRef = useRef<HTMLDivElement>(null);
   const paneEnRef = useRef<HTMLDivElement>(null);
 
@@ -1338,35 +1347,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       })),
     [sections],
   );
-  /** The books on the prayer shelf (the siddurs), which can open for davening. */
-  const prayerBooks = useMemo(() => new Set(placeBooks(catalogBooks).filter((b) => b.shelf === "prayer").map((b) => b.title)), [catalogBooks]);
+  /** The siddurs in the library, in the order the Daven tab offers them. */
+  const siddurTitles = useMemo(
+    () => siddurOrder(placeBooks(catalogBooks).filter((b) => b.shelf === "prayer" && !b.commentary).map((b) => b.title)),
+    [catalogBooks],
+  );
   const readerBilingual = !!reader?.lines.some((l) => l.he.trim() && l.en.trim());
   const splitOn = split && readerBilingual && !readerLoading && !readerError;
-  const daveningOn = davening && !!reader?.book && prayerBooks.has(reader.book);
   useLinkedScroll(paneHeRef, paneEnRef, splitOn && readerOpen, reader);
-  // While davening, the screen stays on (where the browser allows it), and is let go after.
-  useEffect(() => {
-    if (!daveningOn || !readerOpen || !("wakeLock" in navigator)) return;
-    let lock: { release: () => Promise<void> } | null = null;
-    let live = true;
-    const take = () => {
-      if (document.visibilityState !== "visible") return;
-      void (navigator as Navigator & { wakeLock: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } }).wakeLock
-        .request("screen")
-        .then((l) => {
-          if (live) lock = l;
-          else void l.release();
-        })
-        .catch(() => {});
-    };
-    take();
-    document.addEventListener("visibilitychange", take);
-    return () => {
-      live = false;
-      document.removeEventListener("visibilitychange", take);
-      void lock?.release().catch(() => {});
-    };
-  }, [daveningOn, readerOpen]);
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
   const [articleShelves, setArticleShelves] = useState<ArticleShelf[]>([]);
   // Saved chats and recent reading, on this device only.
@@ -1548,7 +1536,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     } catch {
       /* nothing kept */
     }
-    setMode(readStored("rabai_mode", ["chat", "learn"] as const, "chat"));
+    setMode(readStored("rabai_mode", ["chat", "learn", "daven"] as const, "chat"));
     setDafVowels(readStored("rabai_daf_vowels", ["on", "off"] as const, "off") === "on");
     setDafColumn(readStored("rabai_daf_column", ["on", "off"] as const, "off") === "on");
     setDafZoomHint(readStored("rabai_daf_zoom_hint", ["seen", "new"] as const, "new") === "new");
@@ -1579,6 +1567,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     if (m === "learn") setLearnView("library");
     setMode(m);
     store("rabai_mode", m);
+  };
+
+  /** The siddur a ref is in, if it is in one: a siddur opens for davening by default. */
+  const siddurOf = (ref: string) => siddurTitles.find((t) => ref === t || ref.startsWith(`${t}, `));
+
+  /** Opens the Daven tab at a section of a siddur. */
+  const openDaven = (section: string) => {
+    setReaderOpen(false);
+    chooseMode("daven");
+    setDavenRequest({ section, n: Date.now() });
   };
 
   // ---- saved chats ----
@@ -2719,7 +2717,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const closeReader = useCallback(() => {
     setReaderOpen(false);
-    setDavening(false);
     lastFocus.current?.focus?.();
   }, []);
 
@@ -2913,7 +2910,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   // ---- learn ----
   useEffect(() => {
-    if (mode !== "learn" || sections) return;
+    // The library list serves Learn, and the Daven tab finds its siddurs in it.
+    if (mode === "chat" || sections) return;
     fetch("/api/library")
       .then((r) => r.json())
       .then((j: { sections: SectionSummary[]; phrases?: PhraseInfo[]; articleShelves?: ArticleShelf[] }) => {
@@ -3425,8 +3423,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <p className="label-sm">{root ? "This root also appears in" : "This phrase also appears in"}</p>
               <div className="follow tight">
                 {elsewhere.map((r) => (
-                  <button key={r} type="button" className="cite" onClick={() => void openReader(r)}>
-                    {r}
+                  <button key={r} type="button" className="cite" onClick={() => void openReader(r)} title={r}>
+                    {shortRef(r)}
                   </button>
                 ))}
               </div>
@@ -3601,7 +3599,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       <div className="reader-continue">
         <button
           type="button"
-          className={`btn${daveningOn ? " primary" : ""}`}
+          className="btn"
           disabled={readerLoading}
           onClick={() => void openReader(reader.next!)}
         >
@@ -3643,7 +3641,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           ) : (
             // The verse or line number sits in the margin; the book is named in the bar above.
             <span className="vnum" title={p.label}>
-              {p.label.split(":").pop()}
+              {lineNumber(p.label)}
             </span>
           )}
           <span className="he" lang="he">
@@ -4432,7 +4430,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   return (
     <div className={`app mode-${mode}${readerOpen ? " with-reader" : ""}${readerOpen && mode === "learn" ? " reader-full" : ""}`}>
-      <section className="convo" aria-label={mode === "chat" ? "Conversation" : "Learn"}>
+      <section className="convo" aria-label={mode === "chat" ? "Conversation" : mode === "daven" ? "Daven" : "Learn"}>
         <header className="top">
           <div className="brand">
             <div className="mark" aria-hidden="true">
@@ -4481,12 +4479,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <NewChatIcon />
               </button>
             )}
-            <div className="mode-switch" role="group" aria-label="Chat or learn">
+            <div className="mode-switch" role="group" aria-label="Chat, learn or daven">
               <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
                 Chat
               </button>
               <button type="button" aria-pressed={mode === "learn"} onClick={() => chooseMode("learn")}>
                 Learn
+              </button>
+              <button type="button" aria-pressed={mode === "daven"} onClick={() => chooseMode("daven")}>
+                Daven
               </button>
             </div>
             <button
@@ -4705,7 +4706,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <PictureIcon /> Drop the picture to add it to your question
               </div>
             )}
-        <div className="scroll" ref={scrollRef} onScroll={onThreadScroll}>
+        {mode === "daven" && (
+          <Siddur
+            siddurs={siddurTitles}
+            ready={sections !== null}
+            day={day}
+            testing={libraryMode === "testing"}
+            request={davenRequest}
+            onAsk={(q) => {
+              chooseMode("chat");
+              void send(q, { fresh: true });
+            }}
+            onLearn={(sec) => void openReader(sec)}
+            onPlace={() => setPlaceOpen(true)}
+          />
+        )}
+        <div className="scroll" ref={scrollRef} onScroll={onThreadScroll} hidden={mode === "daven"}>
           {mode === "chat" && chatsOpen && !chatsColumn ? (
             renderChatsPanel()
           ) : mode === "chat" ? (
@@ -4920,8 +4936,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       {m.result?.status === "no_key" && m.result.retrieved.length > 0 && (
                         <div className="follow">
                           {m.result.retrieved.map((r) => (
-                            <button key={r} type="button" className="cite" onClick={() => void openReader(r)}>
-                              {r}
+                            <button key={r} type="button" className="cite" onClick={() => void openReader(r)} title={r}>
+                              {shortRef(r)}
                             </button>
                           ))}
                         </div>
@@ -4984,7 +5000,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
               <div ref={tailRef} className="tail" style={tailRoom ? { minHeight: tailRoom } : undefined} aria-hidden="true" />
             </div>
-          ) : learnView === "articles" ? (
+          ) : mode === "daven" ? null : learnView === "articles" ? (
             <ArticleShelves shelves={articleShelves} onRead={(ref) => void openReader(ref)} onBack={() => setLearnView("library")} />
           ) : learnView === "words" ? (
             <div className="thread learn-screen">
@@ -5058,7 +5074,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </span>
                     {g.occurrences.length > 0 && (
                       <button type="button" className="cite" onClick={() => void openReader(g.occurrences[0])}>
-                        See it in {g.occurrences[0]}
+                        See it in {shortRef(g.occurrences[0])}
                       </button>
                     )}
                   </li>
@@ -5108,14 +5124,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   label={libraryMode === "testing" ? TESTING_LABEL : undefined}
                   recent={recent}
                   pending={false}
-                  onRead={(ref) => {
-                    setDavening(false);
-                    void openReader(ref);
-                  }}
-                  onDaven={(ref) => {
-                    setDavening(true);
-                    void openReader(ref);
-                  }}
+                  onRead={(ref) => (siddurOf(ref) ? openDaven(ref) : void openReader(ref))}
+                  onDaven={(ref) => openDaven(ref)}
                   onPage={(ref) => void openDaf(ref)}
                   day={day}
                   onPlace={() => setPlaceOpen(true)}
@@ -5565,7 +5575,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   >
                     Editions
                   </button>
-                  {!reader.work.article && !daveningOn && (
+                  {!reader.work.article && (
                     <>
                       {" · "}
                       <button type="button" className="link" onClick={() => openChavrusaSetup({ text: reader.section })}>
@@ -5573,11 +5583,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       </button>
                     </>
                   )}
-                  {reader.book && prayerBooks.has(reader.book) && (
+                  {reader.book && siddurTitles.includes(reader.book) && (
                     <>
                       {" · "}
-                      <button type="button" className="link" aria-pressed={daveningOn} onClick={() => setDavening(!daveningOn)}>
-                        {daveningOn ? "Back to learning view" : "Daven from this"}
+                      <button type="button" className="link" onClick={() => openDaven(reader.section)}>
+                        Daven from this
                       </button>
                     </>
                   )}
@@ -5628,16 +5638,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       <p className="fine-left">Two panes: the Hebrew above and the English below. Scroll either one, and the other keeps your place.</p>
                     </>
                   )}
-                  {reader.book && prayerBooks.has(reader.book) && (
-                    <>
-                      <p className="label-sm">Siddur</p>
-                      <label className="rb-check">
-                        <input type="checkbox" checked={daveningOn} onChange={() => setDavening(!daveningOn)} />
-                        Davening view
-                      </label>
-                      <p className="fine-left">Large Hebrew with nothing else on the page, a button to the next prayer at the end, and the screen kept on.</p>
-                    </>
-                  )}
                   {(() => {
                     const names = [...new Set(reader.lines.flatMap((l) => l.commentaries.map((c) => c.author || c.label)))].sort((a, b) => a.localeCompare(b));
                     return names.length ? (
@@ -5663,7 +5663,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <ContentsGrid book={reader.book ?? ""} current={reader.section} onOpen={(sec) => void openReader(sec)} />
                 </div>
               )}
-              {reader && readerHint && !daveningOn && (
+              {reader && readerHint && (
                 <p className="reader-hint">
                   Tap a word for its meaning, or a line to ask about it.{" "}
                   <button type="button" className="link" onClick={dismissHint}>
@@ -5673,7 +5673,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               )}
             </div>
             <div
-              className={`reader-body${splitOn ? " split" : ` lang-${lang}`}${daveningOn ? " davening" : ""}${selected && !wide ? " with-sheet" : ""}`}
+              className={`reader-body${splitOn ? " split" : ` lang-${lang}`}${selected && !wide ? " with-sheet" : ""}`}
               ref={readerBodyRef}
               data-askable="reader"
             >
@@ -5692,7 +5692,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     {reader.lines.map((line, i) => (
                       <div key={line.ref} data-i={i}>
                         {renderLine(line, false, undefined, { noAnswer: true })}
-                        {!daveningOn && line.commentaries.length > 0 && (
+                        {line.commentaries.length > 0 && (
                           <button
                             type="button"
                             className="comm-count"
@@ -5728,7 +5728,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   return (
                     <div key={line.ref}>
                       {renderLine(line, false)}
-                      {folded > 0 && !daveningOn && (
+                      {folded > 0 && (
                         <button
                           type="button"
                           className="comm-count"
@@ -5738,7 +5738,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           {folded === 1 ? "1 comment" : `${folded} comments`} <span aria-hidden="true">›</span>
                         </button>
                       )}
-                      {shown.length > 0 && !daveningOn && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
+                      {shown.length > 0 && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
                     </div>
                   );
                 })}

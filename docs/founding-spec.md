@@ -401,10 +401,29 @@ wording.
     "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
     daily prayers (the one for this time of day first) and the siddurs; "zmanim", "sunset" or
     "candle lighting" show today's times for the person's place (see "Dates and times").
-  - A siddur can be opened for davening, from its page in the library or from "Daven from this"
-    while reading it: large Hebrew with nothing else around it, a button to the next prayer at
-    the end, and the screen kept on where the browser allows it. It is the same text and edition
-    as the learning view, labeled the same way, and one tap goes back.
+  - **Davening from the siddur: the Daven tab** (beside Chat and Learn), the siddur used as a
+    siddur. A siddur opened from the library or a search opens there; "Learn" opens the same
+    prayer in the reader, with its words and commentaries.
+    - Its home offers the prayer for now (Shabbat's services on Shabbat), "continue where you
+      were", the siddur's other parts (Birkat HaMazon, blessings, the Traveler's Prayer…), today's
+      times and today's changes in the davening.
+    - The prayers flow one into the next as you scroll, within a part of the siddur. A swipe left
+      or right, or the bar at the bottom, moves to the next or previous blessing or prayer. The
+      screen stays on.
+    - The Koren siddur, with Rabbi Sacks's translation, is offered first, because it prints its
+      own instructions (stand with feet together, take three steps, where to bow) and marks for
+      bowing, rising on the toes and striking the chest. They are shown in their place, and a
+      tapped mark shows the siddur's own explanation. Who says a line (Leader, Congregation,
+      Mourner) is labeled.
+    - Lines the siddur says only on some days ("On Rosh Ḥodesh", "In winter") are marked today or
+      not today, from the Hebrew calendar (Hebcal), and a card lists today's changes: Rosh Chodesh,
+      Chanukah, a fast, Hallel, whether Tachanun is said, and the rain phrases by the dates the
+      Koren siddur prints. This is RabbAI's reading of the calendar, labeled as not yet reviewed
+      by the board (open question 23).
+    - "Ask about this" on an instruction or a mark opens the question in the chat, where the
+      answer is checked against the sources like any other.
+    - The text is the library's, word for word; nothing is added to it. The research and the
+      fifty features considered are in [`docs/siddur-features.md`](siddur-features.md).
   - A long list of sections, like a siddur's, shows as an outline by its headings.
 - **Hebrew above, English below.** **Decided (Josh, 2026-11-04):** any text with both languages
   can be read in two panes, the Hebrew above and the English below. Scrolling either one moves
@@ -571,3 +590,10 @@ These need a decision before launch. Each one changes behavior.
     the core premises' section "Talking out loud" right? In particular: short spoken answers,
     checking a word the microphone may have heard wrongly, and writing Hebrew in English letters so
     a voice can read it.
+23. **Today's changes in the Daven tab.** The Daven tab tells the person what changes in the
+    davening today and marks the siddur's lines as said or not said today, from the Hebrew
+    calendar (see "Finding prayers, and the siddur as a siddur"). Are its rules right: Tachanun
+    and Hallel as Hebcal computes them, Mashiv HaRuach from Shemini Atzeret, VeTen Tal UMatar from
+    December 5th outside Israel (6th before a civil leap year) and the 7th of Cheshvan in Israel,
+    and the wording of each note? And should it ever hide what isn't said today, as some siddur
+    apps do (`docs/siddur-features.md`, feature 16)?
