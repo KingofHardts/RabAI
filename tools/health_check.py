@@ -89,6 +89,8 @@ DVAR_QUESTION = "Can you give me a short dvar Torah on this week's parsha?"
 # Asked as if out loud in Talk: the answer should be a few short sentences.
 TALK_QUESTION = "Why do we light candles before Shabbat?"
 TALK_FOLLOW_UP = "Why two of them?"
+# A turn in a conversation aims for under about sixty words (core premises, "Talking like a person").
+TALK_MAX_WORDS = 90
 
 
 def two_color_picture(width: int = 256, height: int = 256) -> str:
@@ -708,8 +710,8 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     if r is not None:
         spoken = len(answer_words(r).split())
         summary(f"  - The spoken answer: {spoken} words.")
-        if r.get("status") == "answered" and spoken > 120:
-            problem(f"An answer for Talk was {spoken} words long; spoken answers should be a few short sentences.")
+        if r.get("status") == "answered" and spoken > TALK_MAX_WORDS:
+            problem(f"An answer for Talk was {spoken} words long; a turn in a conversation should be two to four short sentences.")
         # A short follow-up in the same conversation: it should skip the lookup step and go straight
         # to the sources of the answer before, so it comes quickly.
         if r.get("status") == "answered":
@@ -721,6 +723,8 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
             if follow is not None:
                 words = len(answer_words(follow).split())
                 summary(f"  - The follow-up's answer: {words} words.")
+                if follow.get("status") == "answered" and words > TALK_MAX_WORDS:
+                    problem(f"A follow-up in Talk was {words} words long; a turn in a conversation should be two to four short sentences.")
                 if not follow.get("quick"):
                     problem("A short follow-up in Talk went through the lookup step instead of using the sources before.")
 

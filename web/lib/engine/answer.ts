@@ -81,7 +81,7 @@ export const TALKING_SETTING =
  * in the core premises says how.
  */
 export const CONVERSATION_SETTING =
-  'This is a conversation, not a question and answer (see "Talking like a person"): one short turn, usually two to four sentences, then let them answer.';
+  'This is a conversation, not a question and answer (see "Talking like a person"): one short turn of two to four sentences, under about sixty words, then let them answer. If more is worth saying, offer it in a few words instead of saying it.';
 
 /** Progress reports while an answer is being made, for a live screen. */
 export interface AskHooks {
