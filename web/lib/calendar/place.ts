@@ -79,6 +79,8 @@ export interface DaySummary {
     ends?: { date: string; time: string };
   };
   place?: { name: string; from: PlaceSource };
+  /** Today's times at the place, when a place is known (the Learn search shows them for "zmanim"). */
+  zmanim?: { day: string; items: Array<{ label: string; time: string; note?: string }> };
 }
 
 export const CANDLE_MINUTES = [15, 18, 20, 22, 24, 30, 40] as const;

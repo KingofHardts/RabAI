@@ -66,7 +66,8 @@ import {
   type Activity,
   type LearnerProfile,
 } from "@/lib/learner-profile";
-import type { CatalogBook } from "@/lib/library/catalog";
+import { placeBooks, type CatalogBook } from "@/lib/library/catalog";
+import { useLinkedScroll } from "./use-linked-scroll";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
 import {
   OUTLINE_LABELS,
@@ -1291,6 +1292,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   /** Learn's screens: the library, My words, or the Gemara's key words. */
   const [learnView, setLearnView] = useState<"library" | "words" | "phrases" | "articles">("library");
   const [lang, setLang] = useState<Lang>("both");
+  /** Hebrew in a pane above, the English in a pane below, scrolling together (use-linked-scroll.ts). */
+  const [split, setSplit] = useState(false);
+  /** The siddur used for davening: large Hebrew, nothing else on screen, the screen kept on. */
+  const [davening, setDavening] = useState(false);
+  const paneHeRef = useRef<HTMLDivElement>(null);
+  const paneEnRef = useRef<HTMLDivElement>(null);
 
   const [readerRef, setReaderRef] = useState<string | null>(null);
   const [reader, setReader] = useState<ReaderData | null>(null);
@@ -1331,6 +1338,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       })),
     [sections],
   );
+  /** The books on the prayer shelf (the siddurs), which can open for davening. */
+  const prayerBooks = useMemo(() => new Set(placeBooks(catalogBooks).filter((b) => b.shelf === "prayer").map((b) => b.title)), [catalogBooks]);
+  const readerBilingual = !!reader?.lines.some((l) => l.he.trim() && l.en.trim());
+  const splitOn = split && readerBilingual && !readerLoading && !readerError;
+  const daveningOn = davening && !!reader?.book && prayerBooks.has(reader.book);
+  useLinkedScroll(paneHeRef, paneEnRef, splitOn && readerOpen, reader);
+  // While davening, the screen stays on (where the browser allows it), and is let go after.
+  useEffect(() => {
+    if (!daveningOn || !readerOpen || !("wakeLock" in navigator)) return;
+    let lock: { release: () => Promise<void> } | null = null;
+    let live = true;
+    const take = () => {
+      if (document.visibilityState !== "visible") return;
+      void (navigator as Navigator & { wakeLock: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> } }).wakeLock
+        .request("screen")
+        .then((l) => {
+          if (live) lock = l;
+          else void l.release();
+        })
+        .catch(() => {});
+    };
+    take();
+    document.addEventListener("visibilitychange", take);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", take);
+      void lock?.release().catch(() => {});
+    };
+  }, [daveningOn, readerOpen]);
   const [glossary, setGlossary] = useState<PhraseInfo[]>([]);
   const [articleShelves, setArticleShelves] = useState<ArticleShelf[]>([]);
   // Saved chats and recent reading, on this device only.
@@ -1504,6 +1540,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       /* storage is unavailable */
     }
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
+    setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
     try {
       const kept = JSON.parse(window.localStorage.getItem("rabai_inline_comms") ?? "[]");
@@ -2682,6 +2719,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const closeReader = useCallback(() => {
     setReaderOpen(false);
+    setDavening(false);
     lastFocus.current?.focus?.();
   }, []);
 
@@ -2741,14 +2779,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   useEffect(() => {
     if (!wide || !selected) return;
-    const body = readerBodyRef.current;
-    body?.addEventListener("scroll", placeCard, { passive: true });
+    const scrollers = [readerBodyRef.current, paneHeRef.current, paneEnRef.current].filter((el): el is HTMLDivElement => !!el);
+    scrollers.forEach((el) => el.addEventListener("scroll", placeCard, { passive: true }));
     window.addEventListener("resize", placeCard);
     return () => {
-      body?.removeEventListener("scroll", placeCard);
+      scrollers.forEach((el) => el.removeEventListener("scroll", placeCard));
       window.removeEventListener("resize", placeCard);
     };
-  }, [wide, selected, placeCard]);
+  }, [wide, selected, placeCard, splitOn]);
 
   // On a phone, keep what was tapped in view above the sheet: in the top part of the reader.
   useEffect(() => {
@@ -2803,6 +2841,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const chooseLang = (l: Lang) => {
     setLang(l);
     store("rabai_lang", l);
+    chooseSplit(false);
+  };
+
+  const chooseSplit = (on: boolean) => {
+    setSplit(on);
+    store("rabai_split", on ? "on" : "off");
   };
 
   const toggleInline = (name: string) => {
@@ -3549,7 +3593,25 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     );
   };
 
-  const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string) => {
+  /** At the end of a section: the next one, by its own short name ("Continue: Ashrei"). */
+  const continueButton = () => {
+    if (!reader?.next) return null;
+    const nextName = reader.book && reader.next.startsWith(`${reader.book}, `) ? reader.next.slice(reader.book.length + 2).split(", ").pop() : reader.next;
+    return (
+      <div className="reader-continue">
+        <button
+          type="button"
+          className={`btn${daveningOn ? " primary" : ""}`}
+          disabled={readerLoading}
+          onClick={() => void openReader(reader.next!)}
+        >
+          Continue: {nextName} <span aria-hidden="true">›</span>
+        </button>
+      </div>
+    );
+  };
+
+  const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string, opts?: { noAnswer?: boolean }) => {
     const isSelected = selected === p.ref;
     const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}${p.source?.article ? " article" : ""}`;
     return (
@@ -3609,7 +3671,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           <span className="en">{p.en}</span>
         </div>
         {/* An answer shows in the card while it is open, and under its line after. */}
-        {!isSelected && renderLineAnswer(p.ref)}
+        {!isSelected && !opts?.noAnswer && renderLineAnswer(p.ref)}
       </div>
     );
   };
@@ -5046,8 +5108,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   label={libraryMode === "testing" ? TESTING_LABEL : undefined}
                   recent={recent}
                   pending={false}
-                  onRead={(ref) => void openReader(ref)}
+                  onRead={(ref) => {
+                    setDavening(false);
+                    void openReader(ref);
+                  }}
+                  onDaven={(ref) => {
+                    setDavening(true);
+                    void openReader(ref);
+                  }}
                   onPage={(ref) => void openDaf(ref)}
+                  day={day}
+                  onPlace={() => setPlaceOpen(true)}
                   onLearn={(title) =>
                     void send(
                       `Let's learn ${title} together. Start at the beginning, one line at a time, and ask me what I think before you explain.`,
@@ -5371,17 +5442,41 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   disabled={!reader?.book}
                   onClick={openContents}
                 >
-                  <span className="rb-t">
-                    {/* An article's site is named in the credit line below, so the bar shows just its name. */}
-                    {reader?.work.article && reader.section.startsWith(`${reader.work.article.site}, `)
-                      ? reader.section.slice(reader.work.article.site.length + 2)
-                      : (reader?.section ?? readerRef)}
-                  </span>
-                  {reader && reader.sectionHe && reader.sectionHe !== reader.section && (
-                    <span className="he" lang="he">
-                      {reader.sectionHe}
-                    </span>
-                  )}
+                  {(() => {
+                    // A long section name ("Siddur Ashkenaz, Weekday, Shacharit, Preparatory
+                    // Prayers, Modeh Ani") shows its last part as the title and the rest small.
+                    const parts = reader?.book && reader.section.startsWith(`${reader.book}, `) ? reader.section.slice(reader.book.length + 2).split(", ") : [];
+                    if (parts.length >= 2 && !reader?.work.article)
+                      return (
+                        <>
+                          <span className="rb-crumb">{[reader!.book, ...parts.slice(0, -1)].join(" · ")}</span>
+                          <span className="rb-t">{parts[parts.length - 1]}</span>
+                        </>
+                      );
+                    return (
+                      <span className="rb-t">
+                        {/* An article's site is named in the credit line below, so the bar shows just its name. */}
+                        {reader?.work.article && reader.section.startsWith(`${reader.work.article.site}, `)
+                          ? reader.section.slice(reader.work.article.site.length + 2)
+                          : (reader?.section ?? readerRef)}
+                      </span>
+                    );
+                  })()}
+                  {(() => {
+                    if (!reader?.sectionHe || reader.sectionHe === reader.section) return null;
+                    // With a long English name shortened to its last part, the Hebrew is shortened the
+                    // same way, and left out when it says the same thing.
+                    const he = reader.sectionHe.split(/,\s*/);
+                    const en = reader.section.split(", ");
+                    const short = reader.book && en.length >= 3 && he.length === en.length;
+                    const text = short ? he[he.length - 1] : reader.sectionHe;
+                    if (short && text === en[en.length - 1]) return null;
+                    return (
+                      <span className="he" lang="he">
+                        {text}
+                      </span>
+                    );
+                  })()}
                   {reader?.book && (
                     <span className="rb-caret" aria-hidden="true">
                       ▾
@@ -5411,6 +5506,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 {reader?.libraryMode === "testing" && reader.work.id === "talmud-bavli" && parseAmud(reader.section) && (
                   <button type="button" className="rb-btn" onClick={() => void openDaf(reader.section)} title="See this page as printed">
                     <span aria-hidden="true">▤</span> Page
+                  </button>
+                )}
+                {readerBilingual && (
+                  <button
+                    type="button"
+                    className={`rb-icon rb-split${splitOn ? " on" : ""}`}
+                    aria-pressed={splitOn}
+                    aria-label="Hebrew above, English below, scrolling together"
+                    title="Hebrew above, English below"
+                    onClick={() => chooseSplit(!split)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                      <rect x="3" y="2.5" width="14" height="6.5" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                      <rect x="3" y="11" width="14" height="6.5" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
                   </button>
                 )}
                 <button
@@ -5455,11 +5565,19 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   >
                     Editions
                   </button>
-                  {!reader.work.article && (
+                  {!reader.work.article && !daveningOn && (
                     <>
                       {" · "}
                       <button type="button" className="link" onClick={() => openChavrusaSetup({ text: reader.section })}>
                         Learn this with a chavrusa
+                      </button>
+                    </>
+                  )}
+                  {reader.book && prayerBooks.has(reader.book) && (
+                    <>
+                      {" · "}
+                      <button type="button" className="link" aria-pressed={daveningOn} onClick={() => setDavening(!daveningOn)}>
+                        {daveningOn ? "Back to learning view" : "Daven from this"}
                       </button>
                     </>
                   )}
@@ -5496,6 +5614,30 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       English
                     </button>
                   </div>
+                  {readerBilingual && (
+                    <>
+                      <p className="label-sm">Layout</p>
+                      <div className="seg" role="group" aria-label="Layout">
+                        <button type="button" aria-pressed={!splitOn} onClick={() => chooseSplit(false)}>
+                          One column
+                        </button>
+                        <button type="button" aria-pressed={splitOn} onClick={() => chooseSplit(true)}>
+                          Two panes
+                        </button>
+                      </div>
+                      <p className="fine-left">Two panes: the Hebrew above and the English below. Scroll either one, and the other keeps your place.</p>
+                    </>
+                  )}
+                  {reader.book && prayerBooks.has(reader.book) && (
+                    <>
+                      <p className="label-sm">Siddur</p>
+                      <label className="rb-check">
+                        <input type="checkbox" checked={daveningOn} onChange={() => setDavening(!daveningOn)} />
+                        Davening view
+                      </label>
+                      <p className="fine-left">Large Hebrew with nothing else on the page, a button to the next prayer at the end, and the screen kept on.</p>
+                    </>
+                  )}
                   {(() => {
                     const names = [...new Set(reader.lines.flatMap((l) => l.commentaries.map((c) => c.author || c.label)))].sort((a, b) => a.localeCompare(b));
                     return names.length ? (
@@ -5521,7 +5663,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   <ContentsGrid book={reader.book ?? ""} current={reader.section} onOpen={(sec) => void openReader(sec)} />
                 </div>
               )}
-              {reader && readerHint && (
+              {reader && readerHint && !daveningOn && (
                 <p className="reader-hint">
                   Tap a word for its meaning, or a line to ask about it.{" "}
                   <button type="button" className="link" onClick={dismissHint}>
@@ -5530,13 +5672,49 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </p>
               )}
             </div>
-            <div className={`reader-body lang-${lang}${selected && !wide ? " with-sheet" : ""}`} ref={readerBodyRef} data-askable="reader">
+            <div
+              className={`reader-body${splitOn ? " split" : ` lang-${lang}`}${daveningOn ? " davening" : ""}${selected && !wide ? " with-sheet" : ""}`}
+              ref={readerBodyRef}
+              data-askable="reader"
+            >
               {readerLoading ? (
                 <p className="reader-state">
                   Opening the text<span className="dots" />
                 </p>
               ) : readerError ? (
                 <p className="reader-state">{readerError}</p>
+              ) : reader && splitOn ? (
+                <>
+                  <CautionBanner source={reader.lines[0]?.source} />
+                  {/* Two panes: the Hebrew above, the English below, each line in both and in the
+                      same order, kept at the same place as either is scrolled (use-linked-scroll). */}
+                  <div className="pane pane-he lang-he" ref={paneHeRef} aria-label="Hebrew">
+                    {reader.lines.map((line, i) => (
+                      <div key={line.ref} data-i={i}>
+                        {renderLine(line, false, undefined, { noAnswer: true })}
+                        {!daveningOn && line.commentaries.length > 0 && (
+                          <button
+                            type="button"
+                            className="comm-count"
+                            aria-label={`${line.commentaries.length === 1 ? "One comment" : `${line.commentaries.length} comments`} on ${line.label}`}
+                            onClick={() => openComments(line.ref)}
+                          >
+                            {line.commentaries.length === 1 ? "1 comment" : `${line.commentaries.length} comments`} <span aria-hidden="true">›</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pane-divider" aria-hidden="true" />
+                  <div className="pane pane-en lang-en" ref={paneEnRef} aria-label="English">
+                    {reader.lines.map((line, i) => (
+                      <div key={line.ref} data-i={i}>
+                        {line.en.trim() ? renderLine(line, false) : <p className="pane-none">No English for this line.</p>}
+                      </div>
+                    ))}
+                    {continueButton()}
+                  </div>
+                </>
               ) : reader ? (
                 <>
                 <CautionBanner source={reader.lines[0]?.source} />
@@ -5550,7 +5728,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   return (
                     <div key={line.ref}>
                       {renderLine(line, false)}
-                      {folded > 0 && (
+                      {folded > 0 && !daveningOn && (
                         <button
                           type="button"
                           className="comm-count"
@@ -5560,10 +5738,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           {folded === 1 ? "1 comment" : `${folded} comments`} <span aria-hidden="true">›</span>
                         </button>
                       )}
-                      {shown.length > 0 && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
+                      {shown.length > 0 && !daveningOn && <div className="comms">{shown.map((c) => renderLine(c, true, c.author || c.label))}</div>}
                     </div>
                   );
                 })}
+                {continueButton()}
                 </>
               ) : null}
             </div>

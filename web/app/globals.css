@@ -1264,3 +1264,83 @@ kbd { font-family: var(--font-ui); font-size: 12.5px; padding: 2px 7px; border: 
   .talk-ring { display: none; }
 }
 .voice-pick { max-width: 60%; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 6px 10px; font: inherit; }
+
+/* A book's sections as an outline (ContentsGrid, lib/library/contents-tree.ts): each top part folds
+   open, with headings for the shared parts and the last part on each button. */
+.toc-outline { display: flex; flex-direction: column; gap: 8px; }
+.toc-group { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.toc-group > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 14px; font: 600 15.5px/1.3 var(--font-ui); }
+.toc-group > summary::-webkit-details-marker { display: none; }
+.toc-group > summary::before { content: ""; width: 7px; height: 7px; border-inline-end: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s ease; flex: none; }
+[dir="rtl"] .toc-group > summary::before { transform: rotate(45deg); }
+.toc-group[open] > summary::before { transform: rotate(45deg); }
+.toc-group-name { flex: 1; }
+.toc-group-count { font: 500 12.5px var(--font-ui); color: var(--muted); }
+.toc-group-body { padding: 0 14px 14px; }
+.toc-sub { margin-top: 12px; }
+.toc-sub .toc-sub { margin-top: 10px; padding-inline-start: 12px; border-inline-start: 2px solid var(--line); }
+.toc-sub-head { margin: 0 0 6px; font: 600 13.5px/1.35 var(--font-ui); color: var(--muted); }
+.toc-sub-head .link { font: inherit; color: var(--accent); padding: 0; min-height: 0; }
+.toc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc-chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 8px 14px; min-height: 40px; font: 14.5px/1.3 var(--font-ui); text-align: start; }
+.toc-chip.short { min-width: 48px; border-radius: 8px; padding: 8px 6px; text-align: center; }
+.toc-chip[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+@media (hover: hover) {
+  .toc-chip:not([aria-current]):hover { border-color: var(--accent); color: var(--accent); }
+  .toc-group > summary:hover .toc-group-name { color: var(--accent); }
+}
+
+/* The Learn search's quick finds (lib/library/prayer-find.ts): prayers in the siddurs, the
+   daily prayers for "davening", and today's times for "zmanim", above the books. */
+.quick-finds { margin: 0 0 18px; }
+.quick-finds .lib-h { margin: 0 0 8px; }
+.prayer-hits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.daven-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.times-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px 14px; }
+.times-day { margin: 0 0 6px; font-size: 13.5px; }
+.times-list { margin: 0 0 8px; display: flex; flex-direction: column; }
+.times-list > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.times-list > div:last-child { border-bottom: 0; }
+.times-list dt { font: 14.5px/1.35 var(--font-ui); }
+.times-list dd { margin: 0; font: 600 15px var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.times-note { display: block; font-size: 12.5px; color: var(--muted); }
+.times-shabbat { margin: 4px 0 8px; font-size: 14px; }
+.quick-finds.after-books { margin-top: 18px; }
+
+/* The reader's title for a long section: the last part as the title, the rest small above it. */
+.rb-title:has(.rb-crumb) { flex-wrap: wrap; row-gap: 0; }
+.rb-crumb { flex-basis: 100%; contain: inline-size; font-family: var(--font-ui); font-size: 12px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 979px) {
+  .reader .rb-title:has(.rb-crumb) { grid-template-areas: "k k" "t c" "h h"; }
+  .reader .rb-title .rb-crumb { grid-area: k; font-size: 11.5px; }
+}
+.rb-split { color: var(--muted); }
+.rb-split.on { color: var(--accent); background: var(--tint); }
+
+/* Two panes: the Hebrew above, the English below, scrolling together (use-linked-scroll.ts). */
+.reader-body.split { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.reader-body.split > .caution-banner { margin: 8px 16px 0; flex: none; }
+.reader-body.split .pane { position: relative; flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px 12px; }
+.reader-body.split .pane-en { padding-bottom: 32px; }
+.reader-body.split .pane > [data-i] { padding-block: 1px; }
+.pane-divider { flex: none; height: 0; border-top: 1px solid var(--line); box-shadow: 0 -1px 0 var(--surface), 0 1px 4px rgba(20, 24, 32, .06); position: relative; }
+.pane-divider::after { content: ""; position: absolute; left: 50%; top: -3px; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--line); }
+.pane-none { margin: 4px 0 4px 40px; font-family: var(--font-ui); font-size: 13px; color: var(--muted); padding: 8px 0; }
+.reader-body.with-sheet.split { padding-bottom: 50dvh; }
+@media (max-width: 979px) {
+  .reader-body.split { padding-top: var(--head-h, 110px); }
+  .reader-body.split .pane { padding-inline: 10px; }
+}
+
+/* At the end of a section, the next one. */
+.reader-continue { display: flex; justify-content: center; padding: 18px 0 8px; }
+.reader-continue .btn { min-height: 44px; }
+
+/* The davening view: large Hebrew, nothing else around it. */
+.reader-body.davening .line { padding-inline-start: 12px; }
+.reader-body.davening .line .vnum { display: none; }
+.reader-body.davening .line .he { font-size: calc(27px * var(--text-scale, 1)); line-height: 1.95; }
+.reader-body.davening .line .en { font-size: calc(17px * var(--text-scale, 1)); }
+.reader-body.davening .reader-continue { padding: 28px 0 16px; }
+.reader-body.davening .reader-continue .btn { min-height: 52px; padding-inline: 24px; font-size: 16px; }
+.daven-from { margin: 4px 0 14px; display: grid; gap: 6px; }

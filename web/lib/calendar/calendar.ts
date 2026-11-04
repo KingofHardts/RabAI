@@ -576,6 +576,9 @@ export function daySummary(info: CalendarInfo): DaySummary {
     coming,
     ...(s?.candles && s.ends && s.candlesDay && s.endsDay ? { shabbat: { candles: s.candles, candlesDay: s.candlesDay, ends: s.ends, endsDay: s.endsDay } } : {}),
     ...(info.place ? { place: { name: info.place.name, from: info.place.from } } : {}),
+    ...(info.zmanim?.items.length
+      ? { zmanim: { day: info.zmanim.day, items: info.zmanim.items.map((z) => ({ label: z.label, time: z.time, ...(z.note ? { note: z.note } : {}) })) } }
+      : {}),
     ...(soonItem
       ? {
           soon: {

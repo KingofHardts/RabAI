@@ -19,7 +19,10 @@ import {
 } from "@/lib/library/catalog";
 import { parseAmud } from "@/lib/library/daf";
 import { whenLabel, type RecentReading } from "@/lib/saved-chats";
-import ContentsGrid from "./ContentsGrid";
+import ContentsGrid, { listBook } from "./ContentsGrid";
+import { contentsTree, type ContentsNode } from "@/lib/library/contents-tree";
+import { findPrayers, knownPrayer, prayerForHour, siddurOrder, wantsDavening, wantsTimes, type PrayerHit } from "@/lib/library/prayer-find";
+import type { DaySummary } from "@/lib/calendar/place";
 
 /*
  * The library home (docs/ui-research.md, 3.3): "Continue" cards for recent reading, a search box
@@ -82,6 +85,9 @@ export default function LibraryShelves({
   onPage,
   onLearn,
   extras,
+  day,
+  onPlace,
+  onDaven,
 }: {
   books: CatalogBook[];
   /** The testing library's label, shown under the search box. */
@@ -94,6 +100,12 @@ export default function LibraryShelves({
   onLearn: (title: string) => void;
   /** Shown at the end of the home (My words, the key words). */
   extras?: ReactNode;
+  /** Today, for the times a search for "zmanim" shows. */
+  day?: DaySummary | null;
+  /** Open the place setting, for the day's times. */
+  onPlace?: () => void;
+  /** Open a prayer to daven from (the siddur view); without it, prayers open in the reader. */
+  onDaven?: (ref: string) => void;
 }) {
   const placed = useMemo(() => placeBooks(books), [books]);
   const shelves = useMemo(() => buildShelves(placed), [placed]);
@@ -113,9 +125,40 @@ export default function LibraryShelves({
     if (readStored(OPEN_AS_KEY) === "page") setOpenAs("page");
   }, []);
 
+  // The siddurs' outlines, fetched the first time a search is typed, so prayers inside them can be
+  // found ("Mincha", "bentching"); see lib/library/prayer-find.ts.
+  const siddurs = useMemo(() => siddurOrder(placed.filter((b) => b.shelf === "prayer" && !b.commentary).map((b) => b.title)), [placed]);
+  const [prayerTrees, setPrayerTrees] = useState<Array<{ book: string; nodes: ContentsNode[] }> | null>(null);
+  const wantTrees = query.trim().length >= 3;
+  useEffect(() => {
+    if (!wantTrees || prayerTrees || !siddurs.length) return;
+    let live = true;
+    void Promise.all(
+      siddurs.map(async (book) => {
+        const listing = await listBook(book);
+        if (!("sections" in listing)) return null;
+        const labeled = listing.sections.map((section) => ({ section, label: sectionLabel(book, section) }));
+        const nodes = contentsTree(labeled) ?? labeled.map((l) => ({ name: l.label, section: l.section, children: [] }));
+        return { book, nodes };
+      }),
+    ).then((trees) => {
+      if (live) setPrayerTrees(trees.filter((t): t is { book: string; nodes: ContentsNode[] } => !!t));
+    });
+    return () => {
+      live = false;
+    };
+  }, [wantTrees, prayerTrees, siddurs]);
+  const prayerHits = useMemo(() => (query.trim() && prayerTrees ? findPrayers(prayerTrees, query) : []), [query, prayerTrees]);
+  const davening = query.trim() ? wantsDavening(query) : false;
+  const times = query.trim() ? wantsTimes(query) : false;
+  const daven = (ref: string) => (onDaven ? onDaven(ref) : onRead(ref));
+
   const shelf = shelves.find((s) => s.id === shelfId) ?? shelves.find((s) => s.id === "talmud") ?? shelves[0];
   const part = shelf?.parts[Math.min(partIndex, shelf.parts.length - 1)];
   const search = query.trim() ? searchBooks(placed, query) : null;
+  // Prayers come before the books when a prayer's name was typed, or no book matches it exactly;
+  // otherwise ("Berakhot") the books come first and a few prayers follow.
+  const prayersFirst = prayerHits.length > 0 && (knownPrayer(query) || !search?.books.length || !!search?.closest);
   const main = shelves.filter((s) => MAIN_SHELVES.includes(s.id));
   const more = shelves.filter((s) => !MAIN_SHELVES.includes(s.id));
 
@@ -157,6 +200,12 @@ export default function LibraryShelves({
   };
 
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    // A prayer's name opens the prayer, unless a book matches what was typed exactly.
+    if (e.key === "Enter" && prayerHits[0] && prayersFirst) {
+      e.preventDefault();
+      daven(prayerHits[0].section);
+      return;
+    }
     if (e.key === "Enter" && search?.books[0]) {
       e.preventDefault();
       if (search.place) onRead(placeRef(search.books[0], search.place));
@@ -216,6 +265,7 @@ export default function LibraryShelves({
             Learn it with RabbAI
           </button>
         </div>
+        {b.shelf === "prayer" && !b.commentary && /siddur/i.test(b.title) && <DavenFromBook book={b.title} onDaven={daven} />}
 
         <section className="bp-section">
           <div className="bp-section-head">
@@ -443,8 +493,27 @@ export default function LibraryShelves({
         </div>
       ) : search ? (
         <div className="lib-results">
+          {times && <TimesCard day={day} onPlace={onPlace} />}
+          {davening && siddurs.length > 0 && (
+            <DaveningFinds siddurs={siddurs} trees={prayerTrees} placed={placed} onDaven={daven} onBook={(title) => open({ book: title, from: "search" })} />
+          )}
+          {prayersFirst && (
+            <section className="quick-finds" aria-label="In the siddur">
+              <h3 className="lib-h">In the siddur</h3>
+              <ul className="prayer-hits">
+                {prayerHits.map((h) => (
+                  <li key={`${h.book}|${h.path.join("|")}`}>
+                    <PrayerButton hit={h} onOpen={daven} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {(times || davening || prayersFirst) && search.books.length > 0 && <h3 className="lib-h">Books</h3>}
           {search.books.length === 0 ? (
+            times || davening || prayersFirst ? null : (
             <p className="muted">No book by that name in the library yet. Try a shorter part of the name.</p>
+            )
           ) : (
             <>
               {search.closest && <p className="muted">No book has all of those words. These come closest.</p>}
@@ -492,6 +561,18 @@ export default function LibraryShelves({
               </ul>
             </>
           )}
+          {!prayersFirst && prayerHits.length > 0 && (
+            <section className="quick-finds after-books" aria-label="Also in the siddur">
+              <h3 className="lib-h">Also in the siddur</h3>
+              <ul className="prayer-hits">
+                {prayerHits.slice(0, 3).map((h) => (
+                  <li key={`${h.book}|${h.path.join("|")}`}>
+                    <PrayerButton hit={h} onOpen={daven} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       ) : (
         <div className="lib-body">
@@ -519,5 +600,152 @@ export default function LibraryShelves({
 
       {!query && !page && extras}
     </div>
+  );
+}
+
+/** One prayer found in a siddur: its name, and where it is. */
+function PrayerButton({ hit, onOpen }: { hit: PrayerHit; onOpen: (ref: string) => void }) {
+  const name = hit.path[hit.path.length - 1];
+  const where = [hit.book, ...hit.path.slice(0, -1)].join(" · ");
+  return (
+    <button type="button" className="book-result prayer-hit" onClick={() => onOpen(hit.section)}>
+      <span className="t">{name}</span>
+      <span className="where">{where}</span>
+    </button>
+  );
+}
+
+/** On a siddur's page: the three daily prayers in it, the one for this time of day first in color. */
+function DavenFromBook({ book, onDaven }: { book: string; onDaven: (ref: string) => void }) {
+  const [tree, setTree] = useState<{ book: string; nodes: ContentsNode[] } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void listBook(book).then((listing) => {
+      if (!live || !("sections" in listing)) return;
+      const labeled = listing.sections.map((section) => ({ section, label: sectionLabel(book, section) }));
+      const nodes = contentsTree(labeled);
+      if (nodes) setTree({ book, nodes });
+    });
+    return () => {
+      live = false;
+    };
+  }, [book]);
+  if (!tree) return null;
+  const now = prayerForHour(new Date().getHours());
+  const daily = (["Shacharit", "Mincha", "Maariv"] as const)
+    .map((name) => ({ name, hit: findPrayers([tree], name, 1)[0] }))
+    .filter((d) => d.hit);
+  if (!daily.length) return null;
+  return (
+    <section className="daven-from" aria-label="Daven from this siddur">
+      <p className="label-sm">Daven</p>
+      <div className="daven-row">
+        {daily.map((d) => (
+          <button key={d.name} type="button" className={`btn${d.name === now ? " primary" : ""}`} onClick={() => onDaven(d.hit.section)}>
+            {d.name}
+            {d.name === now ? " (now)" : ""}
+          </button>
+        ))}
+      </div>
+      <p className="fine-left">Opens the davening view: large Hebrew, a button to the next prayer at the end, and the screen kept on.</p>
+    </section>
+  );
+}
+
+/** For "davening": the prayer for this time of day, the three daily prayers, and the siddurs. */
+function DaveningFinds({
+  siddurs,
+  trees,
+  placed,
+  onDaven,
+  onBook,
+}: {
+  siddurs: string[];
+  trees: Array<{ book: string; nodes: ContentsNode[] }> | null;
+  placed: PlacedBook[];
+  onDaven: (ref: string) => void;
+  onBook: (title: string) => void;
+}) {
+  const now = prayerForHour(new Date().getHours());
+  const first = trees?.[0];
+  const daily = (["Shacharit", "Mincha", "Maariv"] as const)
+    .map((name) => ({ name, hit: first ? findPrayers([first], name, 1)[0] : undefined }))
+    .filter((d) => d.hit);
+  const he = new Map(placed.map((b) => [b.title, b.he]));
+  return (
+    <section className="quick-finds" aria-label="Davening">
+      <h3 className="lib-h">Daven{first ? ` from ${first.book}` : ""}</h3>
+      {daily.length > 0 && (
+        <div className="daven-row">
+          {daily.map((d) => (
+            <button key={d.name} type="button" className={`btn${d.name === now ? " primary" : ""}`} onClick={() => onDaven(d.hit!.section)}>
+              {d.name}
+              {d.name === now ? " (now)" : ""}
+            </button>
+          ))}
+        </div>
+      )}
+      <ul className="book-results">
+        {siddurs.map((t) => (
+          <li key={t}>
+            <button type="button" className="book-result" onClick={() => onBook(t)}>
+              <span className="t">{t}</span>
+              {he.get(t) && (
+                <span className="he" lang="he" dir="rtl">
+                  {he.get(t)}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** For "zmanim": today's times at the person's place, or a way to set the place. */
+function TimesCard({ day, onPlace }: { day?: DaySummary | null; onPlace?: () => void }) {
+  const z = day?.zmanim;
+  return (
+    <section className="quick-finds times-card" aria-label="Today's times">
+      <h3 className="lib-h">
+        Today&apos;s times{day?.place ? ` · ${day.place.name}` : ""}
+      </h3>
+      {z ? (
+        <>
+          <p className="muted times-day">{z.day}</p>
+          <dl className="times-list">
+            {z.items.map((t) => (
+              <div key={`${t.label}|${t.time}`}>
+                <dt>
+                  {t.label}
+                  {t.note && <span className="times-note">{t.note}</span>}
+                </dt>
+                <dd>{t.time}</dd>
+              </div>
+            ))}
+          </dl>
+          {day?.shabbat && (
+            <p className="times-shabbat">
+              Shabbat: candles {day.shabbat.candlesDay} at {day.shabbat.candles}; ends {day.shabbat.endsDay} at {day.shabbat.ends}.
+            </p>
+          )}
+          {onPlace && (
+            <button type="button" className="link" onClick={onPlace}>
+              Change the place or the customs used
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="muted">
+          RabbAI needs your place to work out the day&apos;s times.{" "}
+          {onPlace && (
+            <button type="button" className="link" onClick={onPlace}>
+              Set your place
+            </button>
+          )}
+        </p>
+      )}
+    </section>
   );
 }

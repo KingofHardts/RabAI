@@ -396,6 +396,21 @@ wording.
     premises, "Talking out loud"). Open question 22 asks the board about that section.
   - A dependable back-and-forth on iPhones would need a transcription service on the server; that
     needs Josh's choice of provider.
+- **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**
+  - The Learn search finds what is inside the siddurs, not only book names: "Mincha",
+    "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
+    daily prayers (the one for this time of day first) and the siddurs; "zmanim", "sunset" or
+    "candle lighting" show today's times for the person's place (see "Dates and times").
+  - A siddur can be opened for davening, from its page in the library or from "Daven from this"
+    while reading it: large Hebrew with nothing else around it, a button to the next prayer at
+    the end, and the screen kept on where the browser allows it. It is the same text and edition
+    as the learning view, labeled the same way, and one tap goes back.
+  - A long list of sections, like a siddur's, shows as an outline by its headings.
+- **Hebrew above, English below.** **Decided (Josh, 2026-11-04):** any text with both languages
+  can be read in two panes, the Hebrew above and the English below. Scrolling either one moves
+  the other to the same line and as far into it, each at its own speed, so the person never loses
+  their place in either. It shows the library's text and its listed English side by side; nothing
+  is added or changed.
 - **Questions about other views.** When a user asks about non-Orthodox positions or academic
   theories such as the Documentary Hypothesis, the assistant describes them accurately as
   other positions. It never treats them as authority. It presents the Orthodox responses.

@@ -257,7 +257,18 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-11-03)
+## Where things stand (2026-11-04)
+
+Done 2026-11-04, at Josh's request:
+- The Learn search finds prayers inside the siddurs ("Mincha", "bentching"), "davening" (the day's
+  three prayers and the siddurs) and "zmanim" (today's times, once a place is set)
+  (`lib/library/prayer-find.ts`). Long section lists show as an outline (`contents-tree.ts`).
+- The siddur as a siddur: a davening view (large Hebrew, a button to the next prayer, the screen
+  kept on), opened from a siddur's page or "Daven from this".
+- Two panes: Hebrew above, English below, scrolling together line for line
+  (`lib/linked-scroll.ts`, `components/use-linked-scroll.ts`).
+- Found what fills Turso's extra storage (old deleted library copies; see Open items) and
+  compared transcription services (`docs/transcription-research.md`).
 
 Done 2026-11-03, at Josh's request (his brother's suggestions):
 - Renamed RabAI to RabbAI everywhere people see it (the repo, database and code names stay).
