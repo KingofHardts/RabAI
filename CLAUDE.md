@@ -328,6 +328,12 @@ like a chavrusa that you can interrupt", "shorter answers", "find 100 ways"):
   waits for it. Fixed: RabbAI's own voice was cut off after two seconds in Talk.
 - The core premises gain "Talking like a person", a voice for each chavrusa way and a teacher's
   way (open question 25, for the board).
+- On a conversation's turn the app repeats the length in a short note after the question (marked as
+  the app's note), asking for about forty words: the live check measured turns of 117 and 98 words
+  without it and 53 to 72 with it. It flags a Talk turn over 90 words.
+- Live check, after all of this: a Talk follow-up skipped the lookup step and started in 1.5 to 2
+  seconds (3 seconds whole); a first Talk question 5 to 7 seconds; an ordinary question 11 to 17
+  seconds; a practical question with online lookup 28 to 34 seconds to first words.
 
 Done 2026-11-04 (second round), at Josh's request ("everything we said next", plus decisions):
 - The Daven tab: men's and women's wordings labeled where they differ, with a setting for one;
@@ -535,10 +541,12 @@ Open items:
   `docs/siddur-audio-and-transliteration.md`. That page also lists
   publishers to ask for a transliterated siddur and for recordings of the prayers. For the board:
   open questions 23 (folding, the davening notes) and 24 (the voice, God's names when reading).
-- The health check of 2026-11-04 (second round) passed everything except Turso's storage (above)
-  and, once in two runs, the dvar Torah question's lookup plan, which couldn't be read (the answer
-  still named the parsha and cited 4 texts). Worth watching; if it recurs, look at the plan's
-  fallback reason (`lookupFallback`).
+- The health check of 2026-11-04 passed everything except Turso's storage (above) and, about once
+  in four runs, the dvar Torah question's lookup plan, which couldn't be read (reason `unreadable`:
+  the reply came, its JSON didn't parse; the answer still named the parsha and cited its texts).
+  The plan reader now also tries each complete object in the reply, and forgives trailing commas
+  and curly quotes. If it still recurs, the next step is the reply's shape (never its text, which
+  echoes the question).
 - On iPhones, the browser's speech recognition can be unreliable. The fix is a transcription
   service; `docs/transcription-research.md` (2026-11-04) compares them and recommends Soniox,
   with ElevenLabs Scribe v2 Realtime second, after a short test on our own recordings. Building it

@@ -186,3 +186,16 @@ test("warming the caches uses the same instructions, model and effort as the rea
   // Nothing about a person: only the word "warmup".
   assert.equal(answer.messages[0].content, "warmup");
 });
+
+test("the lookup step's plan is read even with a slip around it", async () => {
+  const { parseLookupPlan } = await import("../lib/engine/lookup");
+  // A word in braces after the plan.
+  assert.deepEqual(parseLookupPlan('{"refs": ["Genesis 18:1"], "english": []} I left out {nothing}').refs, ["Genesis 18:1"]);
+  // A comma before a closing bracket, and curly quotes.
+  assert.deepEqual(parseLookupPlan('{"refs": ["Genesis 18:1",], "english": ["hospitality"],}').english, ["hospitality"]);
+  assert.deepEqual(parseLookupPlan("{“refs”: [“Genesis 18:1”]}").refs, ["Genesis 18:1"]);
+  // In a code block, with a sentence before it.
+  assert.deepEqual(parseLookupPlan('Here is the plan:\n```json\n{"refs": ["Rashi on Genesis 18:1:1"], "topic": "Vayera"}\n```').topic, "Vayera");
+  // Gershayim inside Hebrew words still work.
+  assert.deepEqual(parseLookupPlan('{"refs": [], "hebrew": ["רש"י"]}').hebrew, ["רש״י"]);
+});

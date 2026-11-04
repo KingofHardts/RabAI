@@ -273,29 +273,73 @@ function parsePlanJson(raw: string): Record<string, unknown> {
   }
 }
 
+/**
+ * The JSON objects in a reply, each from an opening brace to the brace that closes it (braces in
+ * strings don't count), so a word in braces before or after the plan doesn't spoil it.
+ */
+function jsonObjects(text: string): string[] {
+  const found: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (c === "\\") i++;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"' && depth > 0) inString = true;
+    else if (c === "{") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if (c === "}" && depth > 0) {
+      depth--;
+      if (depth === 0) found.push(text.slice(start, i + 1));
+    }
+  }
+  return found;
+}
+
+/** Small slips a model makes in JSON: curly quotes, and a comma before a closing bracket. */
+function tidyJson(raw: string): string {
+  return raw.replace(/[\u201C\u201D]/g, '"').replace(/,\s*([}\]])/g, "$1");
+}
+
 /** Read the plan from the model's reply, or null when the reply holds no plan at all. */
 export function readLookupPlan(text: string): LookupPlan | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start < 0 || end <= start) return null;
-  try {
-    const json = parsePlanJson(text.slice(start, end + 1));
-    if (!json || typeof json !== "object" || !("refs" in json || "hebrew" in json || "english" in json)) return null;
-    const online: OnlineNeed = json.online === "torah" || json.online === "general" ? json.online : "";
-    return {
-      refs: strings(json.refs, LOOKUP_LIMITS.refs, 100),
-      hebrew: strings(json.hebrew, LOOKUP_LIMITS.hebrew, 60),
-      english: strings(json.english, LOOKUP_LIMITS.english, 60),
-      practical: json.practical === true,
-      online,
-      queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
-      library: json.library === true,
-      calendar: json.calendar === true,
-      topic: typeof json.topic === "string" ? json.topic.replace(/[^\p{L}\p{M}\p{N} ,.'’:()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) : "",
-    };
-  } catch {
-    return null;
+  // The whole span first, as before; then each complete object in the reply, as written and tidied.
+  const spans = [text.slice(start, end + 1), ...jsonObjects(text)];
+  const candidates = [...spans, ...spans.map(tidyJson)];
+  for (const raw of candidates) {
+    let json: Record<string, unknown>;
+    try {
+      json = parsePlanJson(raw);
+    } catch {
+      continue;
+    }
+    if (!json || typeof json !== "object" || Array.isArray(json) || !("refs" in json || "hebrew" in json || "english" in json)) continue;
+    return planFromJson(json);
   }
+  return null;
+}
+
+function planFromJson(json: Record<string, unknown>): LookupPlan {
+  const online: OnlineNeed = json.online === "torah" || json.online === "general" ? json.online : "";
+  return {
+    refs: strings(json.refs, LOOKUP_LIMITS.refs, 100),
+    hebrew: strings(json.hebrew, LOOKUP_LIMITS.hebrew, 60),
+    english: strings(json.english, LOOKUP_LIMITS.english, 60),
+    practical: json.practical === true,
+    online,
+    queries: online ? strings(json.queries, LOOKUP_LIMITS.queries, 120) : [],
+    library: json.library === true,
+    calendar: json.calendar === true,
+    topic: typeof json.topic === "string" ? json.topic.replace(/[^\p{L}\p{M}\p{N} ,.'’:()-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60) : "",
+  };
 }
 
 /** A plan that opens nothing and looks nothing up. */
