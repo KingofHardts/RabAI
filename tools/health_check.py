@@ -456,6 +456,23 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     if status != 200 or not entries:
         problem(f"The Sources page answered HTTP {status} with {entries} entries.")
 
+    # Working offline: the service worker's file, outside the lock and never cached itself.
+    status, raw = fetch("/sw.js")
+    sw = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else ""
+    cache_control = (seen.get("headers") or {}).get("cache-control", "")
+    summary(f"- The offline service worker: HTTP {status}"
+            + (", no-store." if "no-store" in cache_control else f", Cache-Control `{plain(cache_control)}`."))
+    if status != 200 or "rabbai-data-v" not in sw:
+        problem(f"The offline service worker (/sw.js) answered HTTP {status} without its code.")
+
+    # RabbAI's voice: whether a speech service is set up (yes or no only).
+    status, raw = fetch("/api/speak")
+    try:
+        voice = bool(json.loads(raw).get("available"))
+        summary(f"- RabbAI's own voice: HTTP {status}, " + ("set up." if voice else "not set up (the device's voices are used)."))
+    except ValueError:
+        problem(f"The voice check (/api/speak) answered HTTP {status} with something that isn't JSON.")
+
     status, raw = fetch("/api/account")
     summary(f"- The account check: HTTP {status}.")
 

@@ -75,6 +75,60 @@ async function checkSources(page, name) {
   if (wider > 1) say("PROBLEM", `${name}: the Sources page is ${wider}px wider than the screen.`);
 }
 
+// The Daven tab: open Shacharit, count the lines, the folds for today and the notes, switch to the
+// paragraph layout and dark, and check nothing is wider than the screen. Only counts are printed.
+async function checkDaven(page, name) {
+  await page.getByRole("button", { name: "Daven", exact: true }).first().click({ timeout: 30000 });
+  await page.waitForSelector(".sd-service", { timeout: 60000 });
+  const services = await page.locator(".sd-service").count();
+  await page.locator(".sd-service", { hasText: "Shacharit" }).first().click();
+  await page.waitForSelector(".sd-sec", { timeout: 60000 });
+  await page.waitForTimeout(1500);
+  for (let i = 0; i < 4; i++) {
+    await page.locator(".sd-body, .sd-pane.he").first().evaluate((el) => el.scrollBy(0, 4000));
+    await page.waitForTimeout(800);
+  }
+  const lines = await page.locator(".sd-he").count();
+  const folds = await page.locator(".sd-fold, .sd-fold-mini").count();
+  const labels = await page.locator(".sd-opt-label").count();
+  if (!lines) say("PROBLEM", `${name}: the Daven tab opened Shacharit with no lines.`);
+  else say("OK", `${name}: the Daven tab: ${services} services today; Shacharit shows ${lines} Hebrew lines, ${folds} folded for today, ${labels} men's/women's labels.`);
+  await page.locator(".sd-aa").first().click();
+  await page.locator('.sd-menu [role="radio"]', { hasText: "Paragraph" }).click();
+  await page.locator('.sd-menu [role="radio"]', { hasText: "Dark" }).click();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(1000);
+  const paras = await page.locator(".sd-para").count();
+  const theme = await page.evaluate(() => document.documentElement.dataset.theme || "auto");
+  const contrast = await page.evaluate(() => {
+    const el = document.querySelector(".sd-en, .sd-para .sd-en, .sd-tr") || document.querySelector(".sd-he");
+    if (!el) return null;
+    const lum = (c) => {
+      const [r, g, b] = (c.match(/\d+(\.\d+)?/g) || ["0", "0", "0"]).slice(0, 3).map(Number).map((v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    let bg = null;
+    for (let n = el; n && !bg; n = n.parentElement) {
+      const c = getComputedStyle(n).backgroundColor;
+      if (c && !/rgba\(\s*0,\s*0,\s*0,\s*0\)|transparent/.test(c)) bg = c;
+    }
+    const [a, b] = [lum(getComputedStyle(el).color), lum(bg || getComputedStyle(document.body).backgroundColor)];
+    return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 10) / 10;
+  });
+  if (contrast !== null && contrast < 4.5) say("PROBLEM", `${name}: the Daven text in dark mode has contrast ${contrast}:1 (under 4.5:1).`);
+  else say("OK", `${name}: paragraph layout shows ${paras} paragraphs; ${theme} mode, text contrast ${contrast}:1.`);
+  const wider = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (wider > 1) say("PROBLEM", `${name}: the Daven tab is ${wider}px wider than the screen.`);
+  // Back to the usual look for the rest of the test.
+  await page.locator(".sd-aa").first().click();
+  await page.locator('.sd-menu [role="radio"]', { hasText: "Line by line" }).click();
+  await page.locator('.sd-menu [role="radio"]', { hasText: "Auto" }).click();
+  await page.keyboard.press("Escape");
+}
+
 async function run(name, options, ask) {
   const browser = await chromium.launch();
   const context = await browser.newContext(options);
@@ -137,6 +191,11 @@ async function run(name, options, ask) {
       } else {
         say("PROBLEM", `${name}: a question got no answer and no notice within ${seconds} seconds.`);
       }
+    }
+    try {
+      await checkDaven(page, name);
+    } catch (e) {
+      say("PROBLEM", `${name}: the Daven tab: ${e.message.split("\n")[0]}`);
     }
     try {
       await checkSources(page, name);
