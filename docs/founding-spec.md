@@ -421,9 +421,9 @@ wording.
     question when the person starts Talk or a chavrusa session or begins to type. A warm-up sends
     only the instructions; nothing about the person.
   - Every answer times its steps for the live check; the person never sees it.
-  - On a conversation's turn the app repeats the length (two to four short sentences, under about
-    sixty words, unless they asked to be taught) in a short note right after the question, marked as
-    the app's note, because the first live check found the turns about twice that long.
+  - On a conversation's turn the app repeats the length (two or three short sentences, about forty
+    words, unless they asked to be taught) in a short note right after the question, marked as the
+    app's note, because the first live check found the turns about twice the sixty-word aim.
   - The core premises gain "Talking like a person", a voice for each chavrusa way, and a teacher's
     way for "teach me"; talking out loud asks for one to three sentences (open question 25).
 - **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**

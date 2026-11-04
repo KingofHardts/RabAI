@@ -86,7 +86,7 @@ export const TALKING_SETTING =
  * a turn short. It is the app's note, not the person's words, and says so.
  */
 export const CONVERSATION_TURN_NOTE =
-  "(A note from the app, not from the person: this is a turn in a conversation. Answer in two to four short sentences, under about sixty words, unless they asked you to teach or explain something fully. If more is worth saying, offer it in a few words.)";
+  "(A note from the app, not from the person: this is a turn in a conversation. Answer in two or three short sentences, about forty words, unless they asked you to teach or explain something fully. Say the one point that matters most; if more is worth saying, offer it in a few words.)";
 
 export const CONVERSATION_SETTING =
   'This is a conversation, not a question and answer (see "Talking like a person"): one short turn of two to four sentences, under about sixty words, then let them answer. If more is worth saying, offer it in a few words instead of saying it.';
