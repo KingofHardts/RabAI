@@ -39,11 +39,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - Keep the docs in step with the data: a new tag value goes in `canon/vocabulary.yaml`, and a
   new decision goes in `docs/founding-spec.md`.
 - After changing `canon/canon.yaml`, `canon/excluded.yaml`, `canon/reading-order.yaml` (the order
-  RabbAI opens the commentaries in) or `canon/lookup-sites.yaml`, run
+  RabbAI opens the commentaries in), `canon/lookup-sites.yaml` or `canon/davening-notes.yaml`, run
   `python3 tools/validate.py --write` and commit what it regenerates: the sources list the board
   reviews (`docs/sources-for-review.md`) and the app's copies
   (`web/lib/sources/sources.generated.ts`, `web/lib/library/reading-order.generated.ts`,
-  `web/lib/engine/lookup-sites.generated.ts`). The validator fails when one is out of date.
+  `web/lib/engine/lookup-sites.generated.ts`, `web/lib/siddur/davening-notes.generated.ts`). The
+  validator fails when one is out of date.
 - RabbAI's manner is described by qualities, never by a person: never name a living rabbi in the
   model's instructions, never have RabbAI speak in a real rabbi's name or say what one would
   think, and never quote one unless a source it was given has the words
@@ -151,10 +152,19 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   saved chats also in their account when they are signed in.
   A restored answer is the checked answer exactly as it was shown; never rebuild or add
   citations when restoring one.
-- Voice (`web/components/voice.ts`) uses only the browser's own speech recognition and voices.
+- Voice (`web/components/voice.ts`) uses only the browser's own speech recognition.
   Outside Talk, what the microphone hears goes into the text box and is never sent without the
   person pressing Ask. Sending or typing cancels listening, so late words can't land in an emptied
   box.
+- Answers are read in RabbAI's own voice (`/api/speak`, `web/lib/voice/`; founding spec "RabbAI's
+  voice") when a speech service is set up, else with the device's voices. Only the text being read
+  is sent to the service, after the answer is checked: never the question, a picture or anything
+  about the person, and the text is never logged or kept. The voice is an original one described
+  by its qualities; never clone or imitate a real person's voice. Reading aloud is learning, so
+  God's names are said as in learning ("Hashem", "Elokim"; `namesForLearning` in
+  `speech-text.ts`): keep that in every voice path (open question 24). Words a voice says wrong go
+  in `web/lib/voice/lexicon.ts`; short names that are also English words ("Ran", "Tur") are marked
+  `exact`.
 - Talk (`web/components/talk.ts`, its turn-taking in `web/lib/talk.ts`; founding spec "Talking out
   loud") is a conversation out loud that the person turns on themselves. It sends what they said
   only after a pause and a visible countdown they can stop, and its microphone is closed while
@@ -206,9 +216,24 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   siddur") shows the library's siddur text word for word. Its instructions and marks are the
   siddur's own (`web/lib/siddur/lines.ts` only finds them; never add an instruction of our own). Its
   "today" notes and today/not-today marks (`web/lib/calendar/davening.ts`) are RabbAI's reading of
-  the calendar, always labeled as not yet reviewed by the board (open question 23). Never hide a
-  line because of the calendar without the board's approval. "Ask about this" goes through the
-  usual checked path (`send`).
+  the calendar, always labeled as not yet reviewed by the board (open question 23). "Today's
+  davening" (`web/lib/siddur/today.ts`) folds what isn't said today into a labeled line that opens
+  with a tap; it never removes a line (Josh's decision; the board confirms, open question 23).
+  "Ask about this" goes through the usual checked path (`send`).
+- For siddurim that don't print instructions, the only notes on how to daven come from
+  `canon/davening-notes.yaml` (status `proposed`; each labeled as RabbAI's, not yet reviewed, with
+  its suggested sources). A note that could match a line in another prayer is limited with `in` /
+  `not_in` (words in the prayer's name). Transliteration (`web/lib/siddur/translit.ts`) is
+  RabbAI's, from the siddur's vowels, and always labeled so.
+- The Daven tools keep names (Tehillim names, yahrzeits) only on the device; the server gets only a
+  place or a date (`/api/daven/reminders`), never a name. Reminders are calendar files the person
+  adds themselves.
+- Working offline (`web/public/sw.js`, `web/lib/offline.ts`): the service worker keeps only the
+  app's code files, its pages, and library texts read with GET (`/api/text`, `/api/contents`,
+  `/api/library`, `/api/word`), on the device. Never let it keep anything sent with POST, a
+  question, an answer, or an account call, and never serve a kept copy while the network answers
+  (only when it fails). It runs only in a built app. `/sw.js` is outside the lock because it holds
+  no data; keep its cache names in step with `lib/offline.ts`.
 - A book's lines are ordered by their numbers within a section, and its sections by each
   edition's order merged (`web/lib/library/merge-order.ts`), never by the library's build number
   (`seq`) alone: the build numbers each edition in turn, so a section or line found in one
@@ -269,6 +294,26 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   the checks run right away.
 
 ## Where things stand (2026-11-04)
+
+Done 2026-11-04 (second round), at Josh's request ("everything we said next", plus decisions):
+- The Daven tab: men's and women's wordings labeled where they differ, with a setting for one;
+  "Today's davening" folds what isn't said today (Tachanun, the Torah reading, other days' psalms,
+  other nights of the Omer, Al HaNissim…), with customs as settings; layouts (line by line,
+  paragraph, word by word under each word, two panes) one tap away; transliteration (Israeli or
+  Ashkenazi, from the siddur's vowels); guide notes for siddurim without printed instructions
+  (`canon/davening-notes.yaml`); Koren's law references open the laws; tap a word; jump to Barchu,
+  Shema, Kedushah, Aleinu; a bookmark per service; responses marked; festival services offered.
+- Tools on the Daven home: the Omer, Tehillim (monthly or weekly, names for a refuah),
+  reminders for Mincha and Kiddush Levana, yahrzeits (both Adars in a leap year), facing
+  Jerusalem, "which bracha?" (asked in the chat), and a link to find a minyan.
+- Light, Dark or Auto, with readable text in both (the dark-on-dark translation Josh saw is fixed).
+- The siddur works offline ("Keep this siddur on this device").
+- RabbAI's own voice: a speech service through `/api/speak` (ElevenLabs or OpenAI), with Hebrew
+  read in English letters, names respelled, and God's names said as in learning. It waits for a
+  key in Vercel (`docs/siddur-audio-and-transliteration.md`, "Setting up the voice"); until then the
+  device's voice is used, now preferring a man's, calmer voice.
+- Leads for a published transliteration and for recordings of the prayers, for Josh to ask:
+  `docs/siddur-audio-and-transliteration.md`.
 
 Done 2026-11-04, at Josh's request:
 - The Learn search finds prayers inside the siddurs ("Mincha", "bentching"), "davening" (the day's
@@ -450,6 +495,11 @@ Open items:
   allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
   RabbAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
+- RabbAI's own voice needs a speech-service key in Vercel (`ELEVENLABS_API_KEY` and
+  `ELEVENLABS_VOICE_ID`, recommended, or `OPENAI_API_KEY`); the steps and a description for
+  ElevenLabs' Voice Design are in `docs/siddur-audio-and-transliteration.md`. That page also lists
+  publishers to ask for a transliterated siddur and for recordings of the prayers. For the board:
+  open questions 23 (folding, the davening notes) and 24 (the voice, God's names when reading).
 - On iPhones, the browser's speech recognition can be unreliable. The fix is a transcription
   service; `docs/transcription-research.md` (2026-11-04) compares them and recommends Soniox,
   with ElevenLabs Scribe v2 Realtime second, after a short test on our own recordings. Building it

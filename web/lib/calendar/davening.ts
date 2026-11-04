@@ -21,6 +21,18 @@ export interface DaveningDay {
   shabbatShuva: boolean;
   cholHamoed: boolean;
   yomTov: boolean;
+  /** Which festival it is (on Chol HaMoed too), or null. */
+  festival: Festival | null;
+  erevPesach: boolean;
+  erevYomKippur: boolean;
+  /** The 14th or 15th of Adar (Purim, Shushan Purim, or their days in the first Adar of a leap year). */
+  adar1415: boolean;
+  yomHaatzmaut: boolean;
+  yomYerushalayim: boolean;
+  /** The day after a festival, in Israel. */
+  isruChag: boolean;
+  /** "LeDavid HaShem Ori" (Psalm 27): from Rosh Chodesh Elul through Shemini Atzeret (in Israel, Hoshana Raba). */
+  ledavid: boolean;
   /** Tonight's count of the Omer (1–49), when counting goes on tonight. */
   omerTonight?: number;
   tachanun: { shacharit: boolean; mincha: boolean; allCongs: boolean };
@@ -30,6 +42,23 @@ export interface DaveningDay {
   mashivHaruach: boolean;
   /** "Grant dew and rain as a blessing" in the ninth blessing. */
   talUmatar: boolean;
+}
+
+export type Festival = "rosh-hashana" | "yom-kippur" | "sukkot" | "shemini-atzeret" | "pesach" | "shavuot";
+
+/** The festival a date falls in, Chol HaMoed included (a second day only outside Israel). */
+export function festivalOf(hd: HDate, israel: boolean): Festival | null {
+  const m = hd.getMonth();
+  const d = hd.getDate();
+  if (m === months.TISHREI) {
+    if (d === 1 || d === 2) return "rosh-hashana";
+    if (d === 10) return "yom-kippur";
+    if (d >= 15 && d <= 21) return "sukkot";
+    if (d === 22 || (d === 23 && !israel)) return "shemini-atzeret";
+  }
+  if (m === months.NISAN && d >= 15 && d <= (israel ? 21 : 22)) return "pesach";
+  if (m === months.SIVAN && (d === 6 || (d === 7 && !israel))) return "shavuot";
+  return null;
 }
 
 function isLeapCivil(y: number): boolean {
@@ -63,6 +92,20 @@ export function mashivSeason(hd: HDate): boolean {
 }
 
 /**
+ * Hallel, by the calendar: whole on Chanukah and the festivals (the first day or two of Pesach only),
+ * half on Rosh Chodesh and the rest of Pesach. Yom HaAtzma'ut and Yom Yerushalayim are left to the
+ * community's custom (DaveningDay.yomHaatzmaut, .yomYerushalayim), so they aren't counted here.
+ */
+export function hallelOf(hd: HDate, israel: boolean, roshChodesh: boolean, chanukah: boolean): 0 | 1 | 2 {
+  const f = festivalOf(hd, israel);
+  if (chanukah) return 2;
+  if (f === "pesach") return hd.getDate() === 15 || (hd.getDate() === 16 && !israel) ? 2 : 1;
+  if (f === "shavuot" || f === "sukkot" || f === "shemini-atzeret") return 2;
+  if (roshChodesh && hd.getMonth() !== months.TISHREI) return 1;
+  return 0;
+}
+
+/**
  * The day's facts. `afterSunset`: the Hebrew day has begun this evening, so tonight belongs to `hd`.
  */
 export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): DaveningDay {
@@ -78,6 +121,10 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
   // the Hebrew day that begins this evening: after sunset that is `hd` itself.
   const tonight = hd.abs() + (afterSunset ? 0 : 1) - pesachOf(hd).abs();
   const t = HebrewCalendar.tachanun(hd, israel);
+  const adarMonth: number[] = HDate.isLeapYear(hd.getFullYear()) ? [months.ADAR_I, months.ADAR_II] : [months.ADAR_I];
+  // Isru Chag in Israel: the day after Pesach, Shavuot and Sukkot (Shemini Atzeret).
+  const isru =
+    israel && ((month === months.NISAN && day === 22) || (month === months.SIVAN && day === 7) || (month === months.TISHREI && day === 23));
   return {
     dow,
     israel,
@@ -90,9 +137,17 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
     shabbatShuva: tenDays && dow === 6,
     cholHamoed: has(flags.CHOL_HAMOED),
     yomTov: has(flags.CHAG),
+    festival: festivalOf(hd, israel),
+    erevPesach: month === months.NISAN && day === 14,
+    erevYomKippur: month === months.TISHREI && day === 9,
+    adar1415: adarMonth.includes(month) && (day === 14 || day === 15),
+    yomHaatzmaut: desc.some((d) => /^Yom HaAtzma/.test(d)),
+    yomYerushalayim: desc.some((d) => /^Yom Yerushalayim/.test(d)),
+    isruChag: isru,
+    ledavid: month === months.ELUL || (month === months.TISHREI && day <= (israel ? 21 : 22)),
     ...(tonight >= 1 && tonight <= 49 ? { omerTonight: tonight } : {}),
     tachanun: { shacharit: t.shacharit, mincha: t.mincha, allCongs: t.allCongs },
-    hallel: Math.max(0, Math.min(2, HebrewCalendar.hallel(hd, israel))) as 0 | 1 | 2,
+    hallel: hallelOf(hd, israel, has(flags.ROSH_CHODESH), desc.some((d) => /^Chanukah/.test(d))),
     mashivHaruach: mashivSeason(hd),
     talUmatar: talUmatarSeason(hd, israel),
   };
@@ -109,6 +164,8 @@ export function daveningNotes(d: DaveningDay): string[] {
   if (d.tenDays) notes.push("The Ten Days of Repentance: the additions the siddur marks for these days (Zochreinu, HaMelech HaKadosh).");
   if (d.fast && !d.tishaBav) notes.push("A fast day: Aneinu in the Amidah.");
   if (d.tishaBav) notes.push("Tisha B'Av: follow the siddur's order for the day.");
+  if (d.yomHaatzmaut || d.yomYerushalayim)
+    notes.push(`${d.yomHaatzmaut ? "Yom HaAtzma'ut" : "Yom Yerushalayim"}: many congregations say Hallel and leave out Tachanun. Follow your community's custom (Daven settings).`);
   if (d.hallel === 2) notes.push("Whole Hallel after the Amidah.");
   else if (d.hallel === 1) notes.push("Half Hallel after the Amidah.");
   const t = d.tachanun;

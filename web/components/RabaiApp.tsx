@@ -32,7 +32,19 @@ import {
   type SavedPicture,
 } from "@/lib/saved-chats";
 import { PICTURE_LIMITS, questionForPictures, type QuestionPicture } from "@/lib/pictures";
-import { canSpeak, englishVoices, setPreferredVoice, setSpeechRate, speak, stopSpeaking, unlockSpeech, useDictation } from "./voice";
+import {
+  DEVICE_BEST,
+  canSpeak,
+  englishVoices,
+  ownVoiceAvailable,
+  setHebrewPronunciation,
+  setPreferredVoice,
+  setSpeechRate,
+  speak,
+  stopSpeaking,
+  unlockSpeech,
+  useDictation,
+} from "./voice";
 import { useTalk, type TalkControls } from "./talk";
 import { micOpen, secondsLeft, TALK_TIMING, tapAction, wordsOf } from "@/lib/talk";
 import DafPage from "./DafPage";
@@ -71,6 +83,7 @@ import {
 } from "@/lib/learner-profile";
 import { placeBooks, type CatalogBook } from "@/lib/library/catalog";
 import { useLinkedScroll } from "./use-linked-scroll";
+import { registerServiceWorker } from "@/lib/offline";
 import { parseAmud, pieceWords, withoutPoints, type DafData } from "@/lib/library/daf";
 import {
   OUTLINE_LABELS,
@@ -164,6 +177,9 @@ const OPEN_CHAT_KEY = "rabai_open_chat";
 const LOST_NOTICE = "This answer didn't finish. Please try again.";
 const TEXT_SIZES = ["normal", "large", "larger"] as const;
 type TextSize = (typeof TEXT_SIZES)[number];
+/** Light or dark: following the device, or chosen (night mode). Set before paint by app/layout.tsx. */
+const THEMES = ["system", "light", "dark"] as const;
+type Theme = (typeof THEMES)[number];
 const TEXT_SCALE: Record<TextSize, number> = { normal: 1, large: 1.15, larger: 1.3 };
 
 /** Questions typed but not yet sent, per chat, for this tab (kept through a reload, gone with the tab). */
@@ -1180,11 +1196,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [composerNote, setComposerNote] = useState<string | null>(null);
   /** The size of the text in chat and the reader (Settings), and how fast answers are read aloud. */
   const [textSize, setTextSize] = useState<TextSize>("normal");
+  const [theme, setTheme] = useState<Theme>("system");
+  useEffect(() => {
+    if (theme === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  }, [theme]);
   const [readingRate, setReadingRate] = useState<"0.8" | "1" | "1.2">("1");
   useEffect(() => {
     document.documentElement.style.setProperty("--text-scale", String(TEXT_SCALE[textSize]));
   }, [textSize]);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // The service worker keeps the app and opened siddur texts, so the Daven tab works offline.
+  useEffect(() => registerServiceWorker(), []);
   /** Whether the device has a connection (Ask waits without one). */
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -1211,6 +1234,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   /** The voice chosen for reading aloud (empty for the device's best), and the device's English voices. */
   const [voiceName, setVoiceName] = useState("");
   const [voiceList, setVoiceList] = useState<Array<{ name: string; lang: string }>>([]);
+  /** Whether RabbAI's own voice (a speech service) is set up. */
+  const [ownVoice, setOwnVoice] = useState(false);
+  const [hebrewSay, setHebrewSay] = useState<"sephardi" | "ashkenazi">("sephardi");
   /** True while the words in the box came from the microphone. */
   const spokenInput = useRef(false);
   const dictation = useDictation(
@@ -1517,6 +1543,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   useEffect(() => {
     setGrowth(readStored("rabai_growth", ["on", "off"] as const, "off") === "on");
     setTextSize(readStored("rabai_text_size", TEXT_SIZES, "normal"));
+    setTheme(readStored("rabai_theme", THEMES, "system"));
     const rate = readStored("rabai_speech_rate", ["0.8", "1", "1.2"] as const, "1");
     setReadingRate(rate);
     setSpeechRate(Number(rate));
@@ -1527,6 +1554,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     } catch {
       /* storage is unavailable */
     }
+    const say = readStored("rabai_voice_hebrew", ["sephardi", "ashkenazi"] as const, "sephardi");
+    setHebrewSay(say);
+    setHebrewPronunciation(say);
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
@@ -2995,6 +3025,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const synth = canSpeak() ? window.speechSynthesis : null;
     const loadVoices = () => setVoiceList(englishVoices());
     loadVoices();
+    void ownVoiceAvailable().then(setOwnVoice);
     synth?.addEventListener?.("voiceschanged", loadVoices);
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -4584,6 +4615,27 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     ))}
                   </div>
                 </div>
+                <div className="settings-line">
+                  <span id="theme-label">Light or dark</span>
+                  <div className="seg" role="radiogroup" aria-labelledby="theme-label">
+                    {THEMES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        role="radio"
+                        aria-checked={theme === t}
+                        className={theme === t ? "on" : ""}
+                        onClick={() => {
+                          setTheme(t);
+                          store("rabai_theme", t);
+                        }}
+                      >
+                        {t === "system" ? "Auto" : t === "light" ? "Light" : "Dark"}
+                        {t === "system" && <span className="sr-only"> (follow the device)</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {speechOk && (
                   <div className="settings-line">
                     <span id="reading-rate-label">Reading aloud</span>
@@ -4607,29 +4659,60 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </div>
                   </div>
                 )}
-                {speechOk && voiceList.length > 1 && (
+                {speechOk && (voiceList.length > 1 || ownVoice) && (
                   <div className="settings-line">
                     <label htmlFor="voice-pick">Voice</label>
                     <select
                       id="voice-pick"
                       className="voice-pick"
-                      value={voiceList.some((v) => v.name === voiceName) ? voiceName : ""}
+                      value={voiceName === DEVICE_BEST || voiceList.some((v) => v.name === voiceName) ? voiceName : ""}
                       onChange={(e) => {
                         const v = e.target.value;
                         setVoiceName(v);
                         setPreferredVoice(v);
                         store("rabai_voice", v);
                         setSpeaking(null);
-                        speak("Shalom! This is how answers will sound.");
+                        speak("Shalom! This is how answers will sound. Rashi and the Rambam, and the Shulchan Aruch.");
                       }}
                     >
-                      <option value="">The best on this device</option>
+                      <option value="">{ownVoice ? "RabbAI's voice" : "The best on this device"}</option>
+                      {ownVoice && <option value={DEVICE_BEST}>The best on this device</option>}
                       {voiceList.map((v) => (
                         <option key={v.name} value={v.name}>
                           {v.name} ({v.lang})
                         </option>
                       ))}
                     </select>
+                  </div>
+                )}
+                {speechOk && (
+                  <div className="settings-line">
+                    <span id="hebrew-say-label">Hebrew read aloud</span>
+                    <div className="seg" role="radiogroup" aria-labelledby="hebrew-say-label">
+                      {(
+                        [
+                          ["sephardi", "Israeli"],
+                          ["ashkenazi", "Ashkenazi"],
+                        ] as const
+                      ).map(([v, label]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={hebrewSay === v}
+                          className={hebrewSay === v ? "on" : ""}
+                          onClick={() => {
+                            setHebrewSay(v);
+                            setHebrewPronunciation(v);
+                            store("rabai_voice_hebrew", v);
+                            setSpeaking(null);
+                            speak(v === "ashkenazi" ? "Boruch Hashem. Gut Shabbos." : "Baruch Hashem. Shabbat shalom.");
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <p className="settings-group">About RabbAI</p>
@@ -4711,8 +4794,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             siddurs={siddurTitles}
             ready={sections !== null}
             day={day}
+            place={placeSettings.place}
             testing={libraryMode === "testing"}
             request={davenRequest}
+            theme={theme}
+            onTheme={(t) => {
+              setTheme(t);
+              store("rabai_theme", t);
+            }}
             onAsk={(q) => {
               chooseMode("chat");
               void send(q, { fresh: true });

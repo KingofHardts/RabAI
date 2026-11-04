@@ -26,6 +26,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the unlock page itself and the files every page needs.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|unlock|api/unlock).*)"],
+  // Everything except the unlock page itself and the files every page needs. The service worker's
+  // file holds no texts or data; it only keeps what an unlocked visitor already opened.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sw.js|unlock|api/unlock).*)"],
 };

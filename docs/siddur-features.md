@@ -5,6 +5,11 @@ offer, list 50 features, and build the best ones. Each feature says whether it i
 the Daven tab now), **next** (worth building, no decision needed), or **needs a decision** (from
 Josh or the rabbinic board, usually because it would add halacha or texts we don't yet have).
 
+Josh's second round (2026-11-04) asked to build everything marked next, and the decisions on 16,
+27, 38, 43, 46 and 50; the statuses below say what was built. Men's and women's wordings are now
+labeled where they differ, and the decisions are recorded in the founding spec ("The Daven tab,
+second round").
+
 ## What was looked at
 
 - **Printed siddurim.**
@@ -49,8 +54,8 @@ Josh or the rabbinic board, usually because it would add halacha or texts we don
 8. **Find a prayer by any spelling** in Learn: Mincha, Minchah, bentching, Shacharis. It opens in
    the Daven tab. **Built.**
 9. **Jump to the key points** of a service (Barchu, Shema, Amidah, Aleinu, Kaddish) from the bar.
-   **Next.**
-10. **A separate bookmark per service**, so Mincha doesn't lose your Shacharit place. **Next.**
+   **Built** (2026-11-04): the place name at the top of the siddur lists the key points, starred, and the parts further on.
+10. **A separate bookmark per service**, so Mincha doesn't lose your Shacharit place. **Built** (2026-11-04): each service remembers where you were, and the Daven home offers "Continue Shacharit".
 
 ### Knowing what is said today ("smart siddur")
 
@@ -63,13 +68,12 @@ Josh or the rabbinic board, usually because it would add halacha or texts we don
     Chanukah, Between Rosh HaShana and Yom Kippur, In winter… **Built.**
 14. **The Omer**: tonight's count on the today card. **Built.**
 15. **An Omer screen** with the blessing, the count in Hebrew and English, and a nightly reminder.
-    **Next.**
-16. **Hide what isn't said today** (a "today only" view beside the full one). **Needs a
-    decision**: what to hide differs by nusach and custom, so the board should approve the rules.
+    **Built** (2026-11-04): an Omer card on the Daven home opens tonight's count, and a nightly reminder can be added to the calendar.
+16. **Hide what isn't said today** (a "today only" view beside the full one). **Built** (2026-11-04, Josh's direction): "Today's davening" folds what isn't said today into a labeled line that opens with a tap; nothing is removed. Customs are settings. RabbAI's reading of the calendar, for the board (open question 23).
 17. **Israel or outside Israel** from the place set in RabbAI. **Built.**
-18. **Festival services** chosen automatically on Yom Tov and Chol HaMoed. **Next.**
+18. **Festival services** chosen automatically on Yom Tov and Chol HaMoed. **Built** (2026-11-04): on Yom Tov, Chol HaMoed and Rosh Chodesh the Daven home offers the right services (Hallel, Musaf).
 19. **Reminders**: the Omer each night, the time for Kiddush Levana, Mincha before sunset.
-    **Next.** Needs notifications.
+    **Built** (2026-11-04): calendar files for the Omer, Mincha before sunset and Kiddush Levana.
 
 ### Instructions and halacha
 
@@ -82,11 +86,9 @@ Josh or the rabbinic board, usually because it would add halacha or texts we don
     answer is checked against the sources like any other. **Built.**
 24. **Who says each line**: Leader, Congregation, Mourner, קהל, ש״ץ. **Built.**
 25. **Where the leader begins aloud** (Koren's ◂). **Built.**
-26. **"See laws 315–323" opens that law** in Koren's "Gates to Prayer". **Next.**
-27. **Instructions for siddurim that don't print them** (the Metsudah siddurim). **Needs a
-    decision**: we would be writing halacha, so it needs the board, with each instruction cited
-    to the Shulchan Aruch or Mishnah Berurah.
-28. **The congregation's responses highlighted** (Amen, Yehei Shmei Rabba, Kadosh). **Next.**
+26. **"See laws 315–323" opens that law** in Koren's "Gates to Prayer". **Built** (2026-11-04): the laws open in a panel from the same siddur.
+27. **Instructions for siddurim that don't print them** (the Metsudah siddurim). **Built** (2026-11-04): notes from `canon/davening-notes.yaml`, labeled as RabbAI's and limited to the prayers they belong to, for the board (open question 23).
+28. **The congregation's responses highlighted** (Amen, Yehei Shmei Rabba, Kadosh). **Built** (2026-11-04).
 
 ### The text and its translation
 
@@ -94,25 +96,23 @@ Josh or the rabbinic board, usually because it would add halacha or texts we don
 30. **Hebrew, both, or English**, one tap. **Built.**
 31. **Koren's phrase-by-phrase lines** kept as printed. **Built.**
 32. **Large type that follows the text-size setting.** **Built.**
-33. **Hebrew above, English below in two panes**, scrolling together. **Built** in the reader;
-    **next** in the Daven tab.
+33. **Hebrew above, English below in two panes**, scrolling together. **Built**, in the reader
+    and (2026-11-04) in the Daven tab.
 34. **Word by word** (interlinear), from the Metsudah Linear siddurim already in the library.
-    **Next.**
-35. **Tap a word** for its meaning while davening. **Built** in the reader (the Learn button);
-    **next** in the Daven tab itself.
+    **Built** (2026-11-04): word by word under each Hebrew word, from RabbAI's word-by-word lists, made when the person asks and labeled as not yet reviewed.
+35. **Tap a word** for its meaning while davening. **Built**, in the reader and
+    (2026-11-04) in the Daven tab itself.
 36. **Commentary on a prayer**: Learn opens the prayer with its words and commentaries. **Built.**
 37. **Nusach**: Ashkenaz (Koren or Metsudah), Sefard, Edot HaMizrach. **Built.**
-38. **Transliteration.** **Needs a decision**: none is in the library; we would need an edition
-    we may use.
+38. **Transliteration.** **Built** (2026-11-04): Israeli or Ashkenazi, from the siddur's vowels, labeled as RabbAI's. A published transliteration would be better; candidates are in `docs/siddur-audio-and-transliteration.md`.
 
 ### Comfort while davening
 
 39. **The screen stays on** while the siddur is open. **Built.**
 40. **Nothing else on the screen**: the chat stays out of the way. **Built.**
-41. **Night mode** for Maariv and Selichot. **Next.**
-42. **Works offline**, for travel and shuls without signal. **Next.**
-43. **Audio** of the prayers in each nusach (the Koren Tefilla app). **Needs a decision**: it
-    needs recordings and rights.
+41. **Night mode** for Maariv and Selichot. **Built** (2026-11-04): Light, Dark or Auto, with readable contrast in both.
+42. **Works offline**, for travel and shuls without signal. **Built** (2026-11-04): "Keep this siddur on this device", and texts opened are kept.
+43. **Audio** of the prayers in each nusach (the Koren Tefilla app). **Waiting for recordings**: leads for Josh to ask are in `docs/siddur-audio-and-transliteration.md`.
 
 ### Beyond the daily services
 
@@ -120,10 +120,9 @@ Josh or the rabbinic board, usually because it would add halacha or texts we don
     Kiddush, Havdalah, candle lighting**, on the Daven home. **Built.**
 45. **Times today** (latest Shema, Mincha, sunset) on the Daven home, once a place is set.
     **Built.**
-46. **A bracha finder**: which blessing for this food. **Needs a decision**: halacha, with
-    sources, for the board.
+46. **A bracha finder**: which blessing for this food. **Built** (2026-11-04): "Which bracha?" asks in the chat, where the answer is checked against the sources.
 47. **Tehillim**: the day's portion, by day of the month or week, and a list of names for the sick.
-    **Next.**
-48. **Kaddish and yahrzeit reminders.** **Next.** Needs accounts and notifications.
-49. **A Mizrach compass** (the direction to Jerusalem). **Next.**
-50. **A minyan finder.** **Not planned**: it needs a minyan database we don't have.
+    **Built** (2026-11-04).
+48. **Kaddish and yahrzeit reminders.** **Built** (2026-11-04): yahrzeits kept on the device, with the coming dates as a calendar file; only the date is sent.
+49. **A Mizrach compass** (the direction to Jerusalem). **Built** (2026-11-04).
+50. **A minyan finder.** **Built as a link** (2026-11-04): a link to GoDaven, since we have no minyan database.

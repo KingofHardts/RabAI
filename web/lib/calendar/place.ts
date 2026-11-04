@@ -1,3 +1,4 @@
+import type { DaveningDay } from "./davening";
 /*
  * Where the person is, for the calendar and its times (lib/calendar/calendar.ts). Safe to use on
  * the device and on the server; it never imports the calendar library itself.
@@ -50,28 +51,12 @@ export interface WhenAndWhere {
   approx?: boolean;
 }
 
-/** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */
-/** What changes in the davening today, with the notes in words (calendar/davening.ts). */
-export interface DaySummaryDavening {
-  dow: number;
-  israel: boolean;
-  roshChodesh: boolean;
-  chanukah: boolean;
-  purim: boolean;
-  fast: boolean;
-  tishaBav: boolean;
-  tenDays: boolean;
-  shabbatShuva: boolean;
-  cholHamoed: boolean;
-  yomTov: boolean;
-  omerTonight?: number;
-  tachanun: { shacharit: boolean; mincha: boolean; allCongs: boolean };
-  hallel: 0 | 1 | 2;
-  mashivHaruach: boolean;
-  talUmatar: boolean;
+/** What changes in the davening today (lib/calendar/davening.ts), with today's notes in plain words. */
+export interface DaySummaryDavening extends DaveningDay {
   notes: string[];
 }
 
+/** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */
 export interface DaySummary {
   /** YYYY-MM-DD where the person is. */
   date: string;

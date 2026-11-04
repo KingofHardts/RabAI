@@ -22,8 +22,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={dafFontVariables}>
+    <html lang="en" className={dafFontVariables} suppressHydrationWarning>
       <head>
+        {/* The light or dark mode chosen in Settings, set before the page paints so it never flashes. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("rabai_theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
         {/* Fetched with the access cookie, so the private app's lock stays as it is. */}
         <link rel="manifest" href="/rabbai.webmanifest" crossOrigin="use-credentials" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -389,9 +389,10 @@ wording.
     because listening again by itself is unreliable there.
   - The microphone is closed while RabbAI answers and while it speaks, when something covers the
     chat, when the page is hidden, and after half a minute of quiet.
-  - As with the microphone in the question box, only the browser's own speech recognition and
-    voices are used. RabbAI gets only the words; nothing is recorded. Outside Talk, the microphone
-    puts words in the question box, and nothing is sent until the person presses Ask.
+  - As with the microphone in the question box, only the browser's own speech recognition is
+    used. RabbAI gets only the words; nothing is recorded. Outside Talk, the microphone puts words
+    in the question box, and nothing is sent until the person presses Ask. Answers are read in
+    RabbAI's own voice when one is set up (see "RabbAI's voice"), else the device's voice.
   - RabbAI is told when the person is talking, and answers in a way that is good to hear (core
     premises, "Talking out loud"). Open question 22 asks the board about that section.
   - A dependable back-and-forth on iPhones would need a transcription service on the server; that
@@ -425,6 +426,53 @@ wording.
     - The text is the library's, word for word; nothing is added to it. The research and the
       fifty features considered are in [`docs/siddur-features.md`](siddur-features.md).
   - A long list of sections, like a siddur's, shows as an outline by its headings.
+  - **The Daven tab, second round.** **Decided (Josh, 2026-11-04):**
+    - Where men and women say different words (מוֹדֶה / מוֹדָה), each wording is labeled "Men" or
+      "Women" above it, and a setting can show only one. Inserts for some days (the Ten Days of
+      Repentance) and the congregation's responses are marked in the line.
+    - **Today's davening** (on by default; "Everything" turns it off) folds what isn't said today
+      into a labeled line that opens with a tap: Tachanun on a day without it, the Torah reading on
+      a day without one, the other days' psalms, the other nights of the Omer, Al HaNissim outside
+      Chanukah. Nothing is removed, and the label says why. It is RabbAI's reading of the calendar,
+      labeled as not yet reviewed by the board (open question 23). Customs that differ between
+      communities are settings: Hallel and Tachanun on Yom HaAtzma'ut and Yom Yerushalayim, and in
+      Israel, Viduy before Tachanun.
+    - The translation can be shown line by line, as a paragraph, word by word under each Hebrew word
+      (RabbAI's word-by-word lists, made only when the person asks and labeled as not yet
+      reviewed), or in two panes.
+    - Transliteration, Israeli or Ashkenazi, is made from the siddur's own vowels, and labeled as
+      RabbAI's and not yet reviewed by the board. Better would be a published transliterated
+      edition used with permission; [`docs/siddur-audio-and-transliteration.md`](siddur-audio-and-transliteration.md)
+      lists candidates for Josh to ask.
+    - For siddurim that don't print their own instructions, short notes on how to daven (stand,
+      bow, cover the eyes, take three steps) come from [`canon/davening-notes.yaml`](../canon/davening-notes.yaml),
+      each with suggested sources for the board to confirm, and limited to the prayers it belongs
+      to. Each is labeled as RabbAI's note, not yet reviewed (open question 23).
+    - The Koren siddur's references to its laws ("See laws 315–323") open those laws from the same
+      siddur. A tapped Hebrew word shows its meaning from the library's dictionaries, as everywhere.
+      The bar at the top jumps to the key places (Barchu, the Shema, Kedushah, Aleinu, Kaddish),
+      and each service remembers where the person stopped.
+    - The siddur works without a connection: "Keep this siddur on this device" keeps the daily and
+      Shabbat prayers in the browser, and the texts already opened are kept too. Today's changes
+      need a connection, and the siddur says so when there is none.
+    - Tools on the Daven home: counting the Omer, the day's Tehillim (monthly or weekly), reminders
+      for Mincha and Kiddush Levana and yahrzeits as calendar files, facing Jerusalem, "which
+      bracha?" (asked in the chat and answered from the sources) and a link to find a minyan. Names
+      for Tehillim and yahrzeits are kept only on the device; the server is given only a place or a
+      date, never a name. For a passing in Adar, the yahrzeit in a leap year shows both Adars and
+      says customs differ.
+- **RabbAI's voice.** **Decided (Josh, 2026-11-04):** answers are read aloud in a natural voice that
+  sounds like an older, wise teacher, and Hebrew words and rabbis' names are said correctly.
+  - RabbAI's own voice comes from a speech service (ElevenLabs or OpenAI) when one is set up in the
+    app's settings; otherwise the device's voices are used, preferring a man's, calmer voice. The
+    voice is an original one, made from a description of its qualities; never a copy of a real
+    person's voice.
+  - Only the text being read aloud is sent to the speech service, after the answer has been checked
+    and shown: never the question, a picture, or anything about the person. Nothing is kept.
+  - Before reading, Hebrew with vowels is put in English letters (Israeli or Ashkenazi, a setting),
+    and Hebrew words and names are respelled so a voice says them right (`web/lib/voice/lexicon.ts`).
+  - Reading aloud is learning, not prayer, so the voice says God's names as one does when learning:
+    the Name as "Hashem", Elohim as "Elokim" (open question 24).
 - **Hebrew above, English below.** **Decided (Josh, 2026-11-04):** any text with both languages
   can be read in two panes, the Hebrew above and the English below. Scrolling either one moves
   the other to the same line and as far into it, each at its own speed, so the person never loses
@@ -595,5 +643,11 @@ These need a decision before launch. Each one changes behavior.
     calendar (see "Finding prayers, and the siddur as a siddur"). Are its rules right: Tachanun
     and Hallel as Hebcal computes them, Mashiv HaRuach from Shemini Atzeret, VeTen Tal UMatar from
     December 5th outside Israel (6th before a civil leap year) and the 7th of Cheshvan in Israel,
-    and the wording of each note? And should it ever hide what isn't said today, as some siddur
-    apps do (`docs/siddur-features.md`, feature 16)?
+    and the wording of each note? Josh decided (2026-11-04) that the Daven tab folds what isn't
+    said today, never removing it; is that right, and are the rules for what folds right? Are the
+    notes on how to daven in `canon/davening-notes.yaml` right, with their sources and the prayers
+    each is limited to?
+24. **RabbAI's voice.** When an answer is read aloud, the voice says the Name as "Hashem" and Elohim
+    as "Elokim", since reading an answer is learning, not prayer (see "RabbAI's voice"). Is that
+    right, including for a verse or blessing quoted in an answer? And is the voice's description
+    (an older man, warm and unhurried, a teacher; `web/lib/voice/provider.ts`) fitting?

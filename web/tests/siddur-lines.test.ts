@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appliesToday, conditionOf, phrases, readLine, segments, withoutHebrewOpening } from "../lib/siddur/lines";
+import { appliesToday, conditionOf, genderPair, phrases, readLine, segments, withoutHebrewOpening } from "../lib/siddur/lines";
 import type { DaySummaryDavening } from "../lib/calendar/place";
 
 const today: DaySummaryDavening = {
   dow: 3, israel: false, roshChodesh: false, chanukah: false, purim: false, fast: false, tishaBav: false, tenDays: false,
   shabbatShuva: false, cholHamoed: false, yomTov: false, tachanun: { shacharit: true, mincha: true, allCongs: true }, hallel: 0,
-  mashivHaruach: true, talUmatar: false, notes: [],
+  mashivHaruach: true, talUmatar: false, notes: [], festival: null, erevPesach: false, erevYomKippur: false, adar1415: false,
+  yomHaatzmaut: false, yomYerushalayim: false, isruChag: false, ledavid: false,
 };
 
 test("headings, instructions and prayers", () => {
@@ -58,4 +59,57 @@ test("the opening Hebrew words before the English are left out when the Hebrew s
   const segs = withoutHebrewOpening(segments("▾בָּרוּךְ Blessed are You, LORD"));
   assert.equal(segs.map((s) => s.text).join(""), "Blessed are You, LORD");
   assert.equal(withoutHebrewOpening(segments("Blessed are You")).map((s) => s.text).join(""), "Blessed are You");
+});
+
+test("a man's and a woman's wording, printed with a slash, are labeled", () => {
+  // מוֹדֶה/מוֹדָה: the person praying, so "Men" and "Women".
+  const modeh = segments("מוֹדֶה/מוֹדָה/ אֲנִי לְפָנֶֽיךָ");
+  const alt = modeh.find((s) => s.alt === "gender");
+  assert.ok(alt && alt.alt === "gender");
+  assert.deepEqual(alt.options.map((o) => [o.label, o.text]), [["Men", "מוֹדֶה"], ["Women", "מוֹדָה"]]);
+  assert.equal(modeh.map((s) => s.text).join(""), "מוֹדֶה/מוֹדָה/ אֲנִי לְפָנֶֽיךָ");
+  // לַחוֹלֶה/לַחוֹלָה, בֶּן/בַּת: about someone else, so "For a man" and "For a woman".
+  const sick = segments("לַחוֹלֶה/לַחוֹלָה בֶּן/בַּת");
+  assert.deepEqual(sick.filter((s) => s.alt === "gender").map((s) => (s.alt === "gender" ? s.options[0].label : "")), ["For a man", "For a man"]);
+  // Different words with a slash are not one word for a man and a woman (poems, lists).
+  assert.equal(genderPair("אָבִי", "אִמִּי"), null);
+  assert.equal(segments("אֲזַמֵּר בִּשְׁבָחִין / לְמֶעַל גּוֹ פִתְחִין").some((s) => s.alt), false);
+  // The morning blessing: the English prints men's and women's lines, the Hebrew a slash.
+  const line = readLine("K 5", "בָּרוּךְ אַתָּה\nשֶׁלֹּא עָשַֽׂנִי אִשָּׁה. / שֶׁעָשַֽׂנִי כִּרְצוֹנוֹ.", "Blessed are You,\nmen: who has not made me a woman.\nwomen: who has made me according to His will.", true);
+  const he = line.he[1].segs[0];
+  assert.ok(he.alt === "gender");
+  assert.deepEqual(he.options.map((o) => o.label), ["Men", "Women"]);
+  assert.equal(line.en[1].tag?.text, "Men");
+  assert.equal(line.en[2].tag?.text, "Women");
+});
+
+test("words said only at some times are found inside a line", () => {
+  const segs = segments("בָּרוּךְ אַתָּה יהוה, הָאֵל הַקָּדוֹשׁ./בעשרת ימי תשובה: הַמֶּֽלֶךְ הַקָּדוֹשׁ./");
+  const w = segs.find((s) => s.alt === "when");
+  assert.ok(w && w.alt === "when");
+  assert.equal(w.condition, "tenDays");
+  assert.equal(w.words, "הַמֶּֽלֶךְ הַקָּדוֹשׁ.");
+  assert.equal(segs.map((s) => s.text).join(""), "בָּרוּךְ אַתָּה יהוה, הָאֵל הַקָּדוֹשׁ./בעשרת ימי תשובה: הַמֶּֽלֶךְ הַקָּדוֹשׁ./");
+  const en = segments("the holy God. /Between Rosh HaShana and Yom Kippur: the holy King./");
+  assert.equal(en.find((s) => s.alt === "when")?.alt === "when" && (en.find((s) => s.alt === "when") as { condition?: string }).condition, "tenDays");
+});
+
+test("one line with several times is split into a phrase for each", () => {
+  const p = phrases("בחורף: מַשִּׁיב הָרֽוּחַ וּמוֹרִיד הַגֶּֽשֶׁם / בארץ ישראל בקיץ: מוֹרִיד הַטָּל");
+  assert.deepEqual(p.map((x) => x.tag?.condition), ["mashiv", "moridHatal"]);
+  const yv = phrases("בראש חודש: רֹאשׁ הַחֹֽדֶשׁ / בפסח: חַג הַמַּצּוֹת / בסוכות: חַג הַסֻּכּוֹת");
+  assert.deepEqual(yv.map((x) => x.tag?.condition), ["roshChodesh", "pesach", "sukkot"]);
+  assert.equal(yv[1].segs.map((s) => s.text).join("").trim(), "חַג הַמַּצּוֹת");
+  // A time on its own line between slashes keeps none of the slashes in its words.
+  const kaddish = phrases("/בעשרת ימי תשובה: לְעֵֽלָּא לְעֵֽלָּא מִכָּל בִּרְכָתָא/");
+  assert.equal(kaddish[0].tag?.condition, "tenDays");
+  assert.ok(!kaddish[0].segs.map((s) => s.text).join("").includes("/"));
+});
+
+test("the congregation's responses inside the leader's words are found", () => {
+  const segs = segments("שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא (קהל: בְּרִיךְ הוּא) לְעֵֽלָּא");
+  const r = segs.find((s) => s.alt === "response");
+  assert.ok(r && r.alt === "response");
+  assert.equal(r.words, "בְּרִיךְ הוּא");
+  assert.equal(segs.map((s) => s.text).join(""), "שְׁמֵהּ דְּקֻדְשָׁא בְּרִיךְ הוּא (קהל: בְּרִיךְ הוּא) לְעֵֽלָּא");
 });
