@@ -1,0 +1,28 @@
+name: What Turso counts as storage
+
+# Prints, from Turso's own API, everything Turso may count as RabbAI's storage: the
+# organization's usage (as reported, and asked by date), every database with each copy's size,
+# databases and groups deleted in the last few days, and what is left unexplained
+# (tools/turso_storage.py). It only reads, asks nothing of the model, and prints names, dates and
+# numbers, never a token.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read Turso's storage, piece by piece
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+        run: python3 tools/turso_storage.py
