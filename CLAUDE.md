@@ -346,11 +346,14 @@ Open items:
 - **Turso is on the Developer plan (upgraded 2026-10-10): 9 GB, with overages on since
   2026-10-11** (about $0.75 per GB over 9 GB in a month), so going past 9 GB costs money but no
   longer blocks writes. Storage counts every database used in the month, deleted ones included;
-  the period runs to 2026-11-01. This period's storage is 17.2 GB (measured 2026-10-16; about
-  8.2 GB over, roughly $6). The 12.6 GB read right after the 2026-10-14 rebuild hadn't yet counted
-  the new library: Turso's monthly figure lags, so read it a day or two after a rebuild. A library
-  rebuild adds about 4.5 GB each time. Batch canon changes into one rebuild, and check a
-  collection's estimated size before writing it.
+  Turso counts 17.15 GB (about 8.2 GB over, roughly $6 a month) while the four databases hold
+  4.72 GB. The "What Turso counts as storage" workflow (`tools/turso_storage.py`, 2026-11-04)
+  showed the other 12.43 GB belongs to no database Turso lists, never changes, and is the same
+  for any date range: it matches the library copies deleted by the rebuilds of 7 and 11 October,
+  which Turso still counts. It isn't books in use. `docs/outreach/turso-storage-support.md` has
+  the note for Josh to send Turso. Until Turso fixes it, each rebuild adds about 4.5 GB that
+  stays: batch canon changes into one rebuild, and check a collection's estimated size before
+  writing it.
 - Recanati on the Torah is back, with the modern Hebrew translation of its Zohar quotations
   removed by the build (`strip_brackets: angle`; 30 of 1,909 passages left out).
 - Torat Emet, Aish.com and Chabad.org gave written permission (reported by the maintainer,
@@ -416,8 +419,10 @@ Open items:
   allowed in the maintainer's Anthropic organization (on unless someone turned it off). The "Is
   RabbAI working?" workflow asks one practical question and reports whether the lookup ran.
 - The repo stays public; the maintainer is fine with that.
-- On iPhones, the browser's speech recognition can be unreliable. If it is, the fix is a
-  transcription service on the server, which needs the maintainer's choice of provider.
+- On iPhones, the browser's speech recognition can be unreliable. The fix is a transcription
+  service; `docs/transcription-research.md` (2026-11-04) compares them and recommends Soniox,
+  with ElevenLabs Scribe v2 Realtime second, after a short test on our own recordings. Building it
+  needs the maintainer's choice and a key in Vercel.
 
 Done 2026-10-06:
 - Tap any word for its meaning (dictionaries, breakdown, root guesses; Ask RabbAI only when
