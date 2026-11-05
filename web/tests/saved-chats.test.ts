@@ -7,6 +7,7 @@ import {
   chatForAccount,
   pendingAnswers,
   groupByCategory,
+  MAX_CARD_CHARS,
   MAX_CHATS,
   parseChats,
   parseRecent,
@@ -219,4 +220,23 @@ test("waiting answers are listed newest first, across chats", () => {
     pendingAnswers(chats).map((p) => p.chatId),
     ["b", "a"],
   );
+});
+
+test("a saved answer keeps the texts shown above it, shortened, and drops a damaged one", () => {
+  const long = "word ".repeat(400);
+  const withCard: AskResult = {
+    ...answer("Let's read it."),
+    blocks: [{ text: "Let's read it.", citations: [] }, { text: "", citations: [], read: "Berakhot 2a:1" }],
+    card: [
+      { ref: "Berakhot 2a:1", label: "2a:1", book: "Berakhot", he: "מאימתי", en: long, library: "testing" },
+      { ref: "Broken", he: 5 } as never,
+    ],
+  };
+  const saved = upsertChat([], { id: "c", title: "", category: "", createdAt: 1, updatedAt: 1, messages: [{ role: "user", text: "q" }, { role: "ai", result: withCard }] });
+  const restored = parseChats(JSON.parse(serializeChats(saved)));
+  const result = restored[0].messages[1].result!;
+  assert.equal(result.card?.length, 1);
+  assert.ok(result.card![0].en.length <= MAX_CARD_CHARS + 1);
+  assert.equal(result.card![0].library, "testing");
+  assert.equal(result.blocks[1].read, "Berakhot 2a:1");
 });

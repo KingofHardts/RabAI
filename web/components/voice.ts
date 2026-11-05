@@ -596,7 +596,7 @@ export function nextLivePiece(text: string, from: number, opts: { first: boolean
  * set up and chosen, else the device's. `onEnd` is called once, when the reading ends or another
  * reading stops it.
  */
-export function speakLive(onEnd: () => void): LiveSpeech {
+export function speakLive(onEnd: () => void, onPiece?: (start: number, end: number) => void, opts: { fast?: boolean } = {}): LiveSpeech {
   stopSpeaking();
   const mine = speakingToken;
   liveBusy = true;
@@ -606,6 +606,8 @@ export function speakLive(onEnd: () => void): LiveSpeech {
   let finished = false;
   let ended = false;
   const pieces: string[] = [];
+  /** Where each piece is in the text, so the screen can follow what is being said. */
+  const ranges: Array<[number, number]> = [];
   const started: string[] = [];
   let wake: (() => void) | null = null;
   const poke = () => {
@@ -625,8 +627,12 @@ export function speakLive(onEnd: () => void): LiveSpeech {
     for (;;) {
       const next = nextLivePiece(text, cut, { first: pieces.length === 0, finished, idle: idle && pieces.length === started.length });
       if (!next) return;
+      const from = cut;
       cut = next.end;
-      if (next.piece) pieces.push(next.piece);
+      if (next.piece) {
+        pieces.push(next.piece);
+        ranges.push([from, next.end]);
+      }
       if (!finished) return;
     }
   };
@@ -646,7 +652,12 @@ export function speakLive(onEnd: () => void): LiveSpeech {
       const p = fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: said.slice(0, 1200), ...(voice ? { voice } : {}), ...(i > 0 ? { previous: speechText(pieces[i - 1], hebrewSay, "natural").slice(-400) } : {}) }),
+        body: JSON.stringify({
+          text: said.slice(0, 1200),
+          ...(voice ? { voice } : {}),
+          ...(i > 0 ? { previous: speechText(pieces[i - 1], hebrewSay, "natural").slice(-400) } : {}),
+          ...(opts.fast ? { fast: true } : {}),
+        }),
         signal: ctrl.signal,
       }).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
@@ -668,6 +679,7 @@ export function speakLive(onEnd: () => void): LiveSpeech {
       }
       if (mine !== speakingToken) return end();
       started.push(pieces[i]);
+      onPiece?.(ranges[i][0], ranges[i][1]);
       if (ownWorks) {
         // While this piece is fetched and played, the next one is fetched too, so there is no gap.
         let blob: Blob | null = null;

@@ -77,12 +77,37 @@ export function cleanCategory(name: string): string {
   return name.replace(/\s+/g, " ").trim().slice(0, MAX_CATEGORY);
 }
 
+/** How much of each text shown above an answer is kept with a saved chat (the card's own cut is longer). */
+export const MAX_CARD_CHARS = 700;
+
+/** A text kept with a saved answer, cut to size; null when it isn't one (an old or damaged copy). */
+function cardPassage(p: unknown): NonNullable<AskResult["card"]>[number] | null {
+  if (!p || typeof p !== "object") return null;
+  const x = p as Record<string, unknown>;
+  if (typeof x.ref !== "string" || typeof x.he !== "string" || typeof x.en !== "string") return null;
+  const cut = (t: string) => (t.length > MAX_CARD_CHARS ? `${t.slice(0, MAX_CARD_CHARS).replace(/\s+\S*$/, "")}…` : t);
+  const library = x.library === "testing" || x.library === "approved" ? x.library : "development";
+  return {
+    ref: x.ref,
+    label: typeof x.label === "string" ? x.label : x.ref,
+    book: typeof x.book === "string" ? x.book : "",
+    he: cut(x.he),
+    en: cut(x.en),
+    library,
+    ...(typeof x.caution === "string" ? { caution: x.caution } : {}),
+  };
+}
+
 /** Keep what the chat shows; drop long lists the person never sees again. */
 function trimResult(result: AskResult): AskResult {
+  const card = Array.isArray(result.card) ? result.card.map(cardPassage).filter((p) => p !== null).slice(0, 4) : [];
+  const { card: _drop, ...rest } = result;
+  void _drop;
   return {
-    ...result,
+    ...rest,
     retrieved: result.retrieved.slice(0, 20),
     ...(result.lookedUp ? { lookedUp: result.lookedUp.slice(0, 20) } : {}),
+    ...(card.length ? { card } : {}),
   };
 }
 
@@ -130,7 +155,7 @@ function readMessage(m: unknown, place: ChatPlace): SavedMessage | null {
     if (place === "account" || !pictures.length) return { role: "user", text: x.text, ...(count ? { pictureCount: count } : {}) };
     return { role: "user", text: x.text, pictures };
   }
-  if (x.role === "ai" && isResult(x.result)) return { role: "ai", result: x.result };
+  if (x.role === "ai" && isResult(x.result)) return { role: "ai", result: trimResult(x.result) };
   const pending = x.pending as Record<string, unknown> | undefined;
   if (place === "device" && x.role === "ai" && pending && typeof pending.id === "string" && ANSWER_ID.test(pending.id) && typeof pending.at === "number")
     return { role: "ai", pending: { id: pending.id, at: pending.at } };

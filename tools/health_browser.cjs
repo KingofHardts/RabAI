@@ -192,6 +192,9 @@ async function run(name, options, ask) {
       const notices = await page.locator(".msg-ai.bare .note").count();
       if (outcome === "answered" && notices === 0) {
         const cites = await page.locator(".msg-ai.bare .cite").count();
+        // The text the answer talks about, shown above it, with the words it quoted marked.
+        const cards = await page.locator(".msg-ai.bare .src-card").count();
+        const marked = await page.locator(".msg-ai.bare .src-q").count();
         const away = await page.locator(".away-note").count();
         const how = reloaded
           ? away
@@ -200,7 +203,8 @@ async function run(name, options, ask) {
           : writing
             ? " (it finished before the page could be reloaded)"
             : "";
-        say("OK", `${name}: a question was answered in ${seconds} seconds, with ${cites} source buttons${how}.`);
+        say("OK", `${name}: a question was answered in ${seconds} seconds, with ${cites} source buttons${how}; the text above it: ${cards ? `shown, ${marked} quotes marked` : "not shown"}.`);
+        if (cites > 0 && !cards) say("PROBLEM", `${name}: the answer cited the texts but showed none of them above it.`);
       } else if (notices > 0) {
         const note = await page.locator(".msg-ai.bare .note").first().innerText();
         say("PROBLEM", `${name}: a question got the app's notice after ${seconds} seconds: "${note}"`);

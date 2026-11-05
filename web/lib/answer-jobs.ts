@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { LiveCite, LivePassage, LiveRead } from "./engine/live-sources";
 import type { AskHooks, AskResult } from "./engine/answer";
 import { peopleExec, type Exec } from "./account/people";
 
@@ -51,6 +52,11 @@ export interface JobView {
 export type LiveEvent =
   | { type: "status"; text: string }
   | { type: "text"; text: string }
+  /** A passage to show above the answer (live-sources.ts): sent live only, never stored. */
+  | { type: "passage"; passage: LivePassage }
+  /** The answer quotes a passage here (a checked citation), or reads a line aloud. */
+  | { type: "cite"; cite: LiveCite }
+  | { type: "read"; read: LiveRead }
   | { type: "done"; result: AskResult }
   | { type: "stopped" };
 
@@ -358,6 +364,11 @@ export function runAnswer(
           emit({ type: "text", text: delta });
           flushSoon();
         },
+        // What is on screen while it is written is shown live only; a page that comes back later
+        // gets it with the finished answer (AskResult.card).
+        onPassage: (passage) => emit({ type: "passage", passage }),
+        onCite: (cite) => emit({ type: "cite", cite }),
+        onRead: (read) => emit({ type: "read", read }),
       });
     } catch (err) {
       if (!controller.signal.aborted) console.error("[rabai] answer failed:", err instanceof Error ? err.message : err);

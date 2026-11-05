@@ -87,8 +87,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   `collectionClients` refusing a public app, like `testingClient`.
 - Every citation shown to a person must pass `web/lib/engine/citations.ts`: it must point at a
   passage that was sent to the model, with its quoted words in that passage. Do not add a path
-  that shows sources around it. A live (streamed) answer shows only text; citation buttons
-  come with the final, checked answer.
+  that shows sources around it. Citation buttons come with the final, checked answer. While an
+  answer is written, the passages above it and the words marked on them come only from citations
+  that pass the same check (`verifiedCitation`), and the lines it reads only from a read marker
+  (`[[read REF]]`) naming one of the texts it was given (`web/lib/engine/live-sources.ts`); the
+  words shown are always the library's, never the model's copy. They are kept only as part of the
+  checked answer (`card`; saved chats keep a shortened copy).
 - Word meanings (`/api/word`, the word card) come only from the library's dictionaries, each
   labeled with its dictionary. A guessed root is always shown as a guess, with what was changed.
   RabbAI explains a word only when the person taps "Ask RabbAI about this word"; never call the
@@ -161,8 +165,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   is sent to the service (with the end and start of the pieces around it), after the answer is
   checked: never the question, a picture or anything about the person, and the text is never
   logged or kept. People choose among the service's voices in Settings (`web/lib/voice/voices.ts`);
-  the default is a kind, warm older man's voice. Only the service's stock voices and voices
-  designed from a description are offered: never clone or imitate a real person's voice, and keep
+  the default is a kind, warm older man's voice. Talk's turns are read with the service's quick
+  model (`fast`, `ELEVENLABS_TALK_MODEL`); "Listen" keeps the usual one. Only the service's stock
+  voices and voices designed from a description are offered: never clone or imitate a real
+  person's voice, and keep
   cloned voices out of the list. Natural voices get only the respellings they need
   (`respell(text, "natural")`). Reading aloud is learning, so
   God's names are said as in learning ("Hashem", "Elokim"; `namesForLearning` in
@@ -170,10 +176,13 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   in `web/lib/voice/lexicon.ts`; short names that are also English words ("Ran", "Tur") are marked
   `exact`.
 - Talk (`web/components/talk.ts`, its turn-taking in `web/lib/talk.ts`; founding spec "Talking out
-  loud") is a conversation out loud that the person turns on themselves. It sends what they said
-  only after a pause and a visible countdown they can stop, and its microphone is closed while
-  RabbAI answers, when something covers the chat, when the page is hidden, and after a long quiet
-  (while RabbAI speaks, it listens only for the person cutting in). Its questions go through the usual path (`send` in `RabaiApp.tsx`), so the answers
+  loud" and "Learning like a real chavrusa") is a conversation out loud that the person turns on
+  themselves. It sends what they said only after a pause and a visible ring they can stop (short
+  after a finished-sounding phrase, longer after "and" or "um", or long with a countdown when
+  Settings asks). While RabbAI thinks, the microphone may stay open (not on iPhones) only to hear
+  the person go on, which takes the question back; it is closed when something covers the chat,
+  when the page is hidden, and after a long quiet, and while RabbAI speaks it listens only for the
+  person cutting in. Its questions go through the usual path (`send` in `RabaiApp.tsx`), so the answers
   are checked like any other. The answer is read aloud as it is written, a sentence at a time
   (`speakLive` in `components/voice.ts`): only the text already shown live on the screen is read,
   and the sources still come with the final, checked answer. The person can cut in with a tap, or
@@ -314,7 +323,22 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-11-04)
+## Where things stand (2026-11-05)
+
+Done 2026-11-05, at Josh's request ("a good, fluent conversation", "pulls up the source and live
+highlights what it's talking about", "read a line and then talk about that line", "100 aspects of
+a chavrusa"):
+- `docs/chavrusa-learning.md`: 100 things a real chavrusa does, from the research on havruta
+  learning, each marked built, next, later, or waiting.
+- The text on the table: while an answer is written, the passages it quotes appear above it and the
+  words it quotes are marked, each from a checked citation; when it is read aloud, the mark follows
+  the voice (`components/SourceCard.tsx`, `lib/engine/live-sources.ts`).
+- Reading a line together: RabbAI writes `[[read REF]]` and the app shows and reads that line from
+  the library where it comes in the answer (English, or Hebrew and English, in Settings). The core
+  premises gain "Reading the text together" (open question 26, for the board).
+- Talk: a finished-sounding phrase is sent after about a second, "and…" waits longer, Settings can
+  bring back the long pause; going on while RabbAI thinks takes the question back and adds to it.
+- Talk's voice uses ElevenLabs' quick model, streamed, so the first words come sooner.
 
 Done 2026-11-04 (third round), at Josh's request ("respond a lot faster", "a good back and forth
 like a chavrusa that you can interrupt", "shorter answers", "find 100 ways"):

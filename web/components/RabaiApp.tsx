@@ -51,7 +51,9 @@ import {
   type LiveSpeech,
 } from "./voice";
 import { setCutInByVoice, useTalk, type TalkControls } from "./talk";
-import { micOpen, secondsLeft, TALK_TIMING, tapAction, wordsOf } from "@/lib/talk";
+import { countdownMs, micOpen, tapAction, wordsOf, type TalkPace } from "@/lib/talk";
+import type { LiveCite, LivePassage, LiveRead } from "@/lib/engine/live-sources";
+import { activeMark, ReadLine, readingText, SourceCard, type SourceMark, type SpokenSpan } from "./SourceCard";
 import DafPage from "./DafPage";
 import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
@@ -142,6 +144,9 @@ interface Attached {
 interface LiveJob {
   steps: string[];
   text: string;
+  /** The passages on screen while it is written, and what the answer did with them (SourceCard). */
+  passages?: LivePassage[];
+  marks?: SourceMark[];
   /** Picked up again after the person left the page and came back. */
   resumed?: boolean;
 }
@@ -459,8 +464,73 @@ function warmUp(kind: "talk" | "ask"): void {
   void fetch("/api/ask/warm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) }).catch(() => undefined);
 }
 
+/** The answer as plain text, for Copy, Share and feedback: a line it read is quoted with its reference. */
 function plainAnswer(result: AskResult | undefined): string {
-  return result?.blocks.map((b) => b.text).join("") ?? "";
+  return (
+    result?.blocks
+      .map((b) => {
+        if (!b.read) return b.text;
+        const p = result.card?.find((x) => x.ref === b.read);
+        return `\n“${(p?.en || p?.he || "").trim()}” (${b.read})\n`;
+      })
+      .join("") ?? ""
+  );
+}
+
+/** The answer as RabbAI sees it in the conversation: a line it read stays a read marker. */
+function historyAnswer(result: AskResult | undefined): string {
+  return result?.blocks.map((b) => (b.read ? `\n[[read ${b.read}]]\n` : b.text)).join("") ?? "";
+}
+
+/** Whether a line RabbAI reads aloud is said in its Hebrew too, before the English (Settings). */
+let readLinesInOriginal = false;
+
+/** The line being read aloud now, if the voice is on one. */
+function liveReadOf(marks: SourceMark[], spoken?: SpokenSpan | null): string | null {
+  if (!spoken) return null;
+  const m = marks.find((x) => x.kind === "read" && x.sAt < spoken.end && (x.sEnd ?? x.sAt) > spoken.start);
+  return m?.ref ?? null;
+}
+
+/**
+ * What a finished answer did with its passages, worked out from the answer itself (for one picked
+ * up later or restored from a saved chat): where each quote and line read falls in what is read
+ * aloud (spokenAnswer), so the text can follow the voice there too.
+ */
+function marksOf(result: AskResult | undefined): SourceMark[] {
+  if (!result?.card?.length) return [];
+  const marks: SourceMark[] = [];
+  let at = 0;
+  let sAt = 0;
+  for (const b of result.blocks) {
+    if (b.read) {
+      const p = result.card.find((x) => x.ref === b.read);
+      const said = p ? readingText(p, readLinesInOriginal) : "";
+      marks.push({ ref: b.read, kind: "read", at, sAt: sAt + 1, sEnd: sAt + 1 + said.length });
+      sAt += p ? said.length + 2 : 0;
+      continue;
+    }
+    at += b.text.length;
+    sAt += b.text.length;
+    for (const c of b.citations) {
+      if (c.article || c.online || !result.card.some((p) => p.ref === c.ref)) continue;
+      marks.push({ ref: c.ref, kind: "cite", quote: c.quote, at, sAt: Math.max(0, sAt - b.text.length) });
+    }
+  }
+  return marks;
+}
+
+/** The answer as it is read aloud: a line it read is said from the library's own words. */
+function spokenAnswer(result: AskResult | undefined): string {
+  return (
+    result?.blocks
+      .map((b) => {
+        if (!b.read) return b.text;
+        const p = result.card?.find((x) => x.ref === b.read);
+        return p ? `\n${readingText(p, readLinesInOriginal)}\n` : "";
+      })
+      .join("") ?? ""
+  );
 }
 
 /** An answer as plain text with the texts it cited listed under it, for Copy and Share. */
@@ -538,6 +608,9 @@ function bareWord(text: string): string {
 interface LiveHooks {
   onStatus?: (text: string) => void;
   onText?: (delta: string) => void;
+  onPassage?: (passage: LivePassage) => void;
+  onCite?: (cite: LiveCite) => void;
+  onRead?: (read: LiveRead) => void;
 }
 
 /** A request RabbAI refused before it began (too long, a picture it can't read, the app locked). */
@@ -562,7 +635,7 @@ async function readLive(res: Response, hooks: LiveHooks = {}): Promise<{ result:
   let end: { result: AskResult } | { stopped: true } | null = null;
   const handle = (line: string) => {
     if (!line.trim()) return;
-    let event: { type?: string; text?: string; result?: AskResult };
+    let event: { type?: string; text?: string; result?: AskResult; passage?: LivePassage; cite?: LiveCite; read?: LiveRead };
     try {
       event = JSON.parse(line);
     } catch {
@@ -570,6 +643,9 @@ async function readLive(res: Response, hooks: LiveHooks = {}): Promise<{ result:
     }
     if (event.type === "status" && event.text) hooks.onStatus?.(event.text);
     else if (event.type === "text" && event.text) hooks.onText?.(event.text);
+    else if (event.type === "passage" && event.passage) hooks.onPassage?.(event.passage);
+    else if (event.type === "cite" && event.cite) hooks.onCite?.(event.cite);
+    else if (event.type === "read" && event.read) hooks.onRead?.(event.read);
     else if (event.type === "done" && event.result) end = { result: event.result };
     else if (event.type === "stopped") end = { stopped: true };
   };
@@ -690,32 +766,58 @@ async function loadPicture(file: File): Promise<{ image: CanvasImageSource; widt
 // ---------------------------------------------------------------------------
 // Rendering an answer: paragraphs of prose with source buttons where they are cited
 
-function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: string) => void }) {
-  const paragraphs: ReactNode[][] = [[]];
-  const texts: string[] = [""];
+function AnswerBody({
+  blocks,
+  onOpen,
+  card,
+  liveRead,
+  marks,
+  now,
+}: {
+  blocks: AnswerBlock[];
+  onOpen: (ref: string) => void;
+  /** The passages shown with the answer (AskResult.card): the lines it read come from here. */
+  card?: LivePassage[];
+  /** The line being read aloud now. */
+  liveRead?: string | null;
+  /** What the answer did with its passages, and the mark it is on now (while read aloud). */
+  marks?: SourceMark[];
+  now?: SourceMark | null;
+}) {
+  type Para = { nodes: ReactNode[]; text: string };
+  const items: Array<Para | { read: string }> = [{ nodes: [], text: "" }];
+  const para = (): Para => {
+    const last = items[items.length - 1];
+    if ("nodes" in last) return last;
+    const fresh = { nodes: [], text: "" };
+    items.push(fresh);
+    return fresh;
+  };
   let key = 0;
   const nextKey = () => key++;
   for (const block of blocks) {
+    // A line read aloud with the person: the library's own words, between the paragraphs.
+    if (block.read) {
+      items.push({ read: block.read });
+      continue;
+    }
     const pieces = block.text.split(/\n{2,}/);
     pieces.forEach((piece, i) => {
-      if (i > 0) {
-        paragraphs.push([]);
-        texts.push("");
-      }
-      const current = paragraphs[paragraphs.length - 1];
-      texts[texts.length - 1] += piece;
+      if (i > 0) items.push({ nodes: [], text: "" });
+      const current = para();
+      current.text += piece;
       piece.split("\n").forEach((line, j) => {
-        if (j > 0) current.push(<br key={`br${key++}`} />);
-        if (line) current.push(<span key={`t${key++}`}>{withHebrew(line, nextKey)}</span>);
+        if (j > 0) current.nodes.push(<br key={`br${key++}`} />);
+        if (line) current.nodes.push(<span key={`t${key++}`}>{withHebrew(line, nextKey)}</span>);
       });
     });
-    const current = paragraphs[paragraphs.length - 1];
+    const current = para();
     for (const c of block.citations) {
       // Articles and pages found online are shown under their own headings below the answer
       // (TeacherNotes, OnlineNotes), apart from the texts.
       if (c.article || c.online) continue;
-      current.push(" ");
-      current.push(
+      current.nodes.push(" ");
+      current.nodes.push(
         <button
           key={`c${key++}`}
           type="button"
@@ -730,14 +832,27 @@ function AnswerBody({ blocks, onOpen }: { blocks: AnswerBlock[]; onOpen: (ref: s
   }
   return (
     <>
-      {paragraphs
-        .map((p, i) => ({ p, rtl: mostlyHebrew(texts[i] ?? "") }))
-        .filter(({ p }) => p.some((n) => typeof n !== "string" || n.trim()))
-        .map(({ p, rtl }, i) => (
+      {items.map((item, i) => {
+        if ("read" in item)
+          return (
+            <ReadLine
+              key={`r${i}`}
+              refName={item.read}
+              passage={card?.find((p) => p.ref === item.read)}
+              live={liveRead === item.read}
+              marks={marks}
+              now={now}
+              onOpen={onOpen}
+            />
+          );
+        if (!item.nodes.some((n) => typeof n !== "string" || n.trim())) return null;
+        const rtl = mostlyHebrew(item.text);
+        return (
           <p key={i} {...(rtl ? { dir: "rtl", lang: "he", className: "he-para" } : {})}>
-            {p}
+            {item.nodes}
           </p>
-        ))}
+        );
+      })}
     </>
   );
 }
@@ -901,19 +1016,63 @@ function SafetyCard({ result }: { result: AskResult }) {
   );
 }
 
-/** The answer while it is being written: plain paragraphs and a blinking caret. */
-function LiveText({ text }: { text: string }) {
-  const paragraphs = text.split(/\n{2,}/);
-  return (
-    <>
-      {paragraphs.map((p, i) => (
-        <p key={i}>
-          {p}
-          {i === paragraphs.length - 1 && <span className="caret" aria-hidden="true" />}
-        </p>
-      ))}
-    </>
-  );
+/**
+ * The answer while it is being written: plain paragraphs and a blinking caret, with the lines it
+ * reads aloud shown where it reads them, in the library's own words.
+ */
+function LiveText({
+  text,
+  marks = [],
+  passages = [],
+  onOpen,
+  liveRead,
+  now,
+}: {
+  text: string;
+  marks?: SourceMark[];
+  passages?: LivePassage[];
+  onOpen?: (ref: string) => void;
+  liveRead?: string | null;
+  now?: SourceMark | null;
+}) {
+  const reads = marks.filter((m) => m.kind === "read").sort((a, b) => a.at - b.at);
+  const pieces: Array<{ text: string } | { read: string }> = [];
+  let from = 0;
+  for (const r of reads) {
+    const at = Math.min(Math.max(r.at, from), text.length);
+    pieces.push({ text: text.slice(from, at) }, { read: r.ref });
+    from = at;
+  }
+  pieces.push({ text: text.slice(from) });
+  const out: ReactNode[] = [];
+  pieces.forEach((piece, k) => {
+    const last = k === pieces.length - 1;
+    if ("read" in piece) {
+      out.push(
+        <ReadLine
+          key={`r${k}`}
+          refName={piece.read}
+          passage={passages.find((p) => p.ref === piece.read)}
+          live={liveRead === piece.read}
+          marks={marks}
+          now={now}
+          onOpen={onOpen ?? (() => undefined)}
+        />,
+      );
+      return;
+    }
+    const paragraphs = piece.text.replace(/^\n+/, "").split(/\n{2,}/);
+    paragraphs.forEach((para, i) => {
+      if (!para.trim() && !(last && i === paragraphs.length - 1)) return;
+      out.push(
+        <p key={`${k}.${i}`}>
+          {para}
+          {last && i === paragraphs.length - 1 && <span className="caret" aria-hidden="true" />}
+        </p>,
+      );
+    });
+  });
+  return <>{out}</>;
 }
 
 /** How long an answer has been on its way before the page says it's fine to leave. */
@@ -923,7 +1082,7 @@ const LEAVE_HINT_MS = 7000;
  * An answer still being written: what RabbAI is doing, then the words as they come. After a few
  * seconds it says the person can leave; the answer will be here when they come back.
  */
-function PendingView({ job, at }: { job?: LiveJob; at: number }) {
+function PendingView({ job, at, onOpen, spoken }: { job?: LiveJob; at: number; onOpen: (ref: string) => void; spoken?: SpokenSpan | null }) {
   const [canLeave, setCanLeave] = useState(() => Date.now() - at > LEAVE_HINT_MS);
   useEffect(() => {
     if (canLeave) return;
@@ -932,7 +1091,19 @@ function PendingView({ job, at }: { job?: LiveJob; at: number }) {
   }, [at, canLeave]);
   return (
     <>
-      {job?.text ? <LiveText text={job.text} /> : <WorkingSteps steps={job?.steps ?? []} />}
+      {job?.passages?.length ? <SourceCard passages={job.passages} marks={job.marks ?? []} spoken={spoken} live onOpen={onOpen} /> : null}
+      {job?.text || job?.marks?.some((m) => m.kind === "read") ? (
+        <LiveText
+          text={job.text}
+          marks={job.marks}
+          passages={job.passages}
+          onOpen={onOpen}
+          liveRead={liveReadOf(job.marks ?? [], spoken)}
+          now={activeMark(job.marks ?? [], spoken)}
+        />
+      ) : (
+        <WorkingSteps steps={job?.steps ?? []} />
+      )}
       <div className="pending-foot">
         {(canLeave || job?.resumed) && (
           <p className="leave-hint">
@@ -1107,7 +1278,7 @@ function TalkPanel({ talk, chavrusa, onEnd }: { talk: TalkControls; chavrusa: bo
   const tap = tapAction(s);
   const status =
     s.phase === "listening"
-      ? s.holding
+      ? s.holding || s.added
         ? "Go on, I'm listening…"
         : words
           ? "Listening… tap the microphone when you're done."
@@ -1115,9 +1286,13 @@ function TalkPanel({ talk, chavrusa, onEnd }: { talk: TalkControls; chavrusa: bo
             ? "Listening… go ahead."
             : "Listening… ask anything."
       : s.phase === "countdown"
-        ? `Sending in ${Math.max(1, secondsLeft(s, Math.max(now, s.countdownAt)))}…`
+        ? s.pace === "relaxed"
+          ? `Sending in ${Math.max(1, Math.ceil((countdownMs(s.pace) - (Math.max(now, s.countdownAt) - s.countdownAt)) / 1000))}…`
+          : "Sending…"
         : s.phase === "answering"
-          ? "RabbAI is answering…"
+          ? talk.listensWhileThinking
+            ? "RabbAI is thinking… if you weren't done, just go on."
+            : "RabbAI is thinking…"
           : s.phase === "speaking"
             ? "RabbAI is speaking. Tap to stop and talk."
             : (s.note ?? "Your turn. Tap to talk.");
@@ -1126,7 +1301,7 @@ function TalkPanel({ talk, chavrusa, onEnd }: { talk: TalkControls; chavrusa: bo
       <button type="button" className="talk-orb" onClick={talk.tap} disabled={tap.action === "none"} aria-label={tap.label} title={tap.label} autoFocus>
         {s.phase === "countdown" && (
           <svg key={s.countdownAt} className="talk-ring" viewBox="0 0 36 36" aria-hidden="true">
-            <circle cx="18" cy="18" r="16.5" pathLength={100} style={{ animationDuration: `${TALK_TIMING.countdownMs}ms` }} />
+            <circle cx="18" cy="18" r="16.5" pathLength={100} style={{ animationDuration: `${countdownMs(s.pace)}ms` }} />
           </svg>
         )}
         {s.phase === "speaking" ? <TalkSpeakerIcon /> : <MicIcon />}
@@ -1251,6 +1426,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  /** The piece of an answer being read aloud now, so its text on screen can follow (SourceCard). */
+  const [spokenAt, setSpokenAt] = useState<({ id: string } & SpokenSpan) | null>(null);
+  /**
+   * What each finished answer did with its passages while it was written (the quotes and the lines
+   * it read, and where they fall in what is read aloud), by message. Kept for this visit only.
+   */
+  const [messageMarks, setMessageMarks] = useState<Record<string, SourceMark[]>>({});
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [speechOk, setSpeechOk] = useState(false);
   /** The voice chosen for reading aloud (empty for the device's best), and the device's English voices. */
@@ -1262,6 +1444,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [hebrewSay, setHebrewSay] = useState<"sephardi" | "ashkenazi">("sephardi");
   /** Talk: whether the person can cut in by talking while RabbAI speaks (components/talk.ts). */
   const [cutIn, setCutIn] = useState(true);
+  /** How quickly Talk sends what was said after a pause (Settings). */
+  const [talkPace, setTalkPace] = useState<TalkPace>("quick");
+  /** Whether a line RabbAI reads with the person is read aloud in its Hebrew too (Settings). */
+  const [readOriginal, setReadOriginal] = useState(false);
   /** True while the words in the box came from the microphone. */
   const spokenInput = useRef(false);
   const dictation = useDictation(
@@ -1585,6 +1771,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const cut = readStored("rabai_cut_in", ["on", "off"] as const, "on") === "on";
     setCutIn(cut);
     setCutInByVoice(cut);
+    setTalkPace(readStored("rabai_talk_pace", ["quick", "relaxed"] as const, "quick"));
+    const original = readStored("rabai_read_lines", ["english", "both"] as const, "english") === "both";
+    setReadOriginal(original);
+    readLinesInOriginal = original;
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
@@ -2145,6 +2335,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const setSpeaking = useCallback((id: string | null) => {
     speakingRef.current = id;
     setSpeakingId(id);
+    if (!id) setSpokenAt(null);
+  }, []);
+  /** Where the voice is in the answer it reads, for the text on screen to follow. */
+  const followVoice = useCallback((id: string, start: number, end: number) => {
+    if (speakingRef.current === id) setSpokenAt({ id, start, end });
   }, []);
   /** Read an answer aloud, or stop if it is the one being read. */
   const listen = useCallback(
@@ -2162,11 +2357,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         return;
       }
       setSpeaking(id);
-      speak(text, () => {
-        if (speakingRef.current === id) setSpeaking(null);
-      });
+      // Read a piece at a time, so the text on screen can follow the voice.
+      speakLive(
+        () => {
+          if (speakingRef.current === id) setSpeaking(null);
+        },
+        (start, end) => followVoice(id, start, end),
+      ).finish(text);
     },
-    [setSpeaking],
+    [setSpeaking, followVoice],
   );
 
   // ---- asking (answers keep being written when the page goes away: lib/answer-jobs.ts) ----
@@ -2180,8 +2379,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const talkCurrent = useRef<string | null>(null);
   /** A Talk question said while the answer before it was still being written: sent when it is done. */
   const queuedTalk = useRef<{ q: string; cutIn: string } | null>(null);
-  /** Each live answer's text so far, so it can be read aloud as it is written. */
+  /**
+   * Each live answer's text so far as it is read aloud (the lines it reads put in, in their own
+   * words), so it can be read aloud as it is written.
+   */
   const liveText = useRef(new Map<string, string>());
+  /** What each live answer did with its passages so far (SourceCard), kept when it is done. */
+  const liveMarks = useRef(new Map<string, SourceMark[]>());
   /** Answers to questions asked out loud, read as they are written (components/voice.ts). */
   const liveSpoken = useRef(new Map<string, LiveSpeech>());
   /** The pictures sent during this visit, by their preview: sent again with follow-up questions. */
@@ -2235,6 +2439,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       dropLive(jobId);
       const open = chatIdRef.current === chat;
       const placeholder = open ? messagesRef.current.find((m) => m.pending?.id === jobId) : undefined;
+      // The quotes and lines read stay with the answer, so its text keeps following the voice.
+      const marks = liveMarks.current.get(jobId);
+      liveMarks.current.delete(jobId);
+      if (placeholder && marks?.length) setMessageMarks((prev) => ({ ...prev, [`m${placeholder.id}`]: marks }));
       settleInChat(chat, jobId, (m) => ({
         id: m.id,
         role: "ai",
@@ -2246,7 +2454,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       // A chavrusa session moves on to the furthest line the answer cited, and is remembered.
       const session = open ? chavrusaRef.current : (chatsRef.current.find((c) => c.id === chat)?.chavrusa ?? null);
       if (session && result.status === "answered") {
-        const at = reachedLine(session, result.sources.filter((x) => !x.article && !x.online).map((x) => x.ref));
+        const at = reachedLine(session, [
+          ...result.sources.filter((x) => !x.article && !x.online).map((x) => x.ref),
+          ...result.blocks.flatMap((b) => (b.read ? [b.read] : [])),
+        ]);
         const next = at && at !== session.at ? { ...session, at } : session;
         if (next !== session) {
           if (open) setChatChavrusa(next);
@@ -2264,12 +2475,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       const reading = liveSpoken.current.get(jobId);
       liveSpoken.current.delete(jobId);
       if (spokenJobs.current.delete(jobId) && placeholder && result.status === "answered" && canSpeak()) {
-        if (reading) reading.finish(written || plainAnswer(result));
-        else listen(`m${placeholder.id}`, plainAnswer(result));
+        if (reading) reading.finish(written || spokenAnswer(result));
+        else listen(`m${placeholder.id}`, spokenAnswer(result));
       } else if (reading) stopSpeaking();
       if (talkJobs.current.delete(jobId) && talkCurrent.current === jobId) {
         talkCurrent.current = null;
-        if (placeholder && result.status === "answered") talkRef.current?.answer(`m${placeholder.id}`, written || plainAnswer(result));
+        if (placeholder && result.status === "answered") talkRef.current?.answer(`m${placeholder.id}`, written || spokenAnswer(result));
         else talkRef.current?.answerFailed(result.status === "answered" ? undefined : "RabbAI couldn't answer that just now; the note is in the chat. Tap to talk to go on.");
       }
       if (document.hidden) document.title = "Answered · RabbAI";
@@ -2286,6 +2497,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       dropLive(jobId);
       spokenJobs.current.delete(jobId);
       liveText.current.delete(jobId);
+      liveMarks.current.delete(jobId);
       if (liveSpoken.current.has(jobId)) {
         liveSpoken.current.delete(jobId);
         stopSpeaking();
@@ -2434,28 +2646,58 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
           body: JSON.stringify({ ...body, stream: true, job: jobId, when: deviceWhen() }),
           signal: ctrl.signal,
         });
+        // The passages it shows, and what is read aloud so far (the answer with its lines put in).
+        const shown = new Map<string, LivePassage>();
+        const marks: SourceMark[] = [];
+        liveMarks.current.set(jobId, marks);
+        const speech = () => liveText.current.get(jobId) ?? "";
+        const speakSoFar = (soFar: string) => {
+          liveText.current.set(jobId, soFar);
+          const id = messagesRef.current.find((m) => m.pending?.id === jobId)?.id;
+          if (id === undefined) return;
+          // Read aloud as it is written: in Talk, and for a question asked out loud.
+          if (talkJobs.current.has(jobId) && talkCurrent.current === jobId) talkRef.current?.answerText(`m${id}`, soFar);
+          else if (spokenJobs.current.has(jobId) && canSpeak()) {
+            let reading = liveSpoken.current.get(jobId);
+            if (!reading && /[.!?;:]\s/.test(soFar)) {
+              setSpeaking(`m${id}`);
+              reading = speakLive(
+                () => {
+                  if (speakingRef.current === `m${id}`) setSpeaking(null);
+                },
+                (start, end) => followVoice(`m${id}`, start, end),
+                { fast: true },
+              );
+              liveSpoken.current.set(jobId, reading);
+            }
+            reading?.update(soFar);
+          }
+        };
+        const addMark = (mark: SourceMark) => {
+          marks.push(mark);
+          update((j) => ({ ...j, marks: [...marks] }));
+        };
         const end = await readLive(res, {
           onStatus: (text) => update((j) => (j.steps[j.steps.length - 1] === text ? j : { ...j, steps: [...j.steps, text] })),
           onText: (delta) => {
             streamed = true;
             update((j) => ({ ...j, text: j.text + delta }));
-            // Read aloud as it is written: in Talk, and for a question asked out loud.
-            const soFar = (liveText.current.get(jobId) ?? "") + delta;
-            liveText.current.set(jobId, soFar);
-            const id = messagesRef.current.find((m) => m.pending?.id === jobId)?.id;
-            if (id === undefined) return;
-            if (talkJobs.current.has(jobId) && talkCurrent.current === jobId) talkRef.current?.answerText(`m${id}`, soFar);
-            else if (spokenJobs.current.has(jobId) && canSpeak()) {
-              let reading = liveSpoken.current.get(jobId);
-              if (!reading && /[.!?;:]\s/.test(soFar)) {
-                setSpeaking(`m${id}`);
-                reading = speakLive(() => {
-                  if (speakingRef.current === `m${id}`) setSpeaking(null);
-                });
-                liveSpoken.current.set(jobId, reading);
-              }
-              reading?.update(soFar);
-            }
+            speakSoFar(speech() + delta);
+          },
+          onPassage: (passage) => {
+            if (shown.has(passage.ref)) return;
+            shown.set(passage.ref, passage);
+            update((j) => ({ ...j, passages: [...(j.passages ?? []), passage] }));
+          },
+          onCite: (cite) => addMark({ ref: cite.ref, kind: "cite", quote: cite.quote, at: cite.at, sAt: speech().length }),
+          onRead: (read) => {
+            // The line is read aloud from the library's own words, where it comes in the answer.
+            const p = shown.get(read.ref);
+            const said = p ? readingText(p, readLinesInOriginal) : "";
+            const before = speech();
+            const sAt = before.length + 1;
+            addMark({ ref: read.ref, kind: "read", at: read.at, sAt, sEnd: sAt + said.length });
+            if (said) speakSoFar(`${before}\n${said}\n`);
           },
         });
         if (end && "result" in end) finishJob(jobId, chat, end.result, { streamed });
@@ -2468,7 +2710,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         controllers.current.delete(jobId);
       }
     },
-    [finishJob, watchJob, refuseJob, setSpeaking],
+    [finishJob, watchJob, refuseJob, setSpeaking, followVoice],
   );
 
   // When the app opens: pick up the answers that were still being written when it was last open.
@@ -2538,7 +2780,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       for (let i = earlier.length - 1; i >= 0; i--) {
         const m = earlier[i];
         if (m.role === "ai") {
-          const t = plainAnswer(m.result);
+          const t = historyAnswer(m.result);
           if (t.trim()) history.unshift({ role: "assistant", text: t });
           continue;
         }
@@ -2619,8 +2861,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     queuedTalk.current = null;
     if (!send(queued.q, { talk: true, interrupted: queued.cutIn })) talkRef.current?.answerFailed("That couldn't be sent just now. Tap to talk to try again.");
   }, [messages, send]);
-  const talk = useTalk({ onSend: talkSend, onSpeaking: setSpeaking });
+  /** In Talk, the person went on talking while RabbAI thought: the question is taken back, to be sent again with more. */
+  const talkRetract = () => {
+    queuedTalk.current = null;
+    const jobId = talkCurrent.current;
+    talkCurrent.current = null;
+    if (!jobId) return;
+    talkJobs.current.delete(jobId);
+    liveText.current.delete(jobId);
+    liveMarks.current.delete(jobId);
+    cancelJob(jobId);
+    takeBack(jobId);
+  };
+  const talk = useTalk({ onSend: talkSend, onSpeaking: setSpeaking, onPiece: followVoice, onRetract: talkRetract });
   talkRef.current = talk;
+  const setPaceOfTalk = talk.setPace;
+  useEffect(() => setPaceOfTalk(talkPace), [talkPace, setPaceOfTalk]);
   const talkOn = talk.state.phase !== "off";
   /** Talk needs the browser to both listen and speak. */
   const talkOk = speechOk && dictation.supported;
@@ -3275,7 +3531,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <>
               {answer.result.safety && <SafetyCard result={answer.result} />}
               {answer.result.blocks.length > 0 ? (
-                <AnswerBody blocks={answer.result.blocks} onOpen={onOpen} />
+                <AnswerBody blocks={answer.result.blocks} card={answer.result.card} onOpen={onOpen} />
               ) : (
                 <p>{answer.result.notice}</p>
               )}
@@ -3285,7 +3541,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     type="button"
                     className="chip-btn listen"
                     aria-pressed={speakingId === `l${p.ref}`}
-                    onClick={() => listen(`l${p.ref}`, plainAnswer(answer.result))}
+                    onClick={() => listen(`l${p.ref}`, spokenAnswer(answer.result))}
                   >
                     <SpeakerIcon /> {speakingId === `l${p.ref}` ? "Stop" : "Listen"}
                   </button>
@@ -4899,6 +5155,66 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     </div>
                   </div>
                 )}
+                {talkOk && (
+                  <div className="settings-line">
+                    <span id="talk-pace-label">In Talk, send what I said</span>
+                    <div className="seg" role="radiogroup" aria-labelledby="talk-pace-label">
+                      {(
+                        [
+                          ["quick", "Quickly"],
+                          ["relaxed", "After a longer pause"],
+                        ] as const
+                      ).map(([v, label]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={talkPace === v}
+                          className={talkPace === v ? "on" : ""}
+                          title={
+                            v === "quick"
+                              ? "A short pause sends it, as in a conversation (a pause after “and” waits longer)"
+                              : "Waits longer, and counts down before sending, for when you think as you talk"
+                          }
+                          onClick={() => {
+                            setTalkPace(v);
+                            store("rabai_talk_pace", v);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {speechOk && (
+                  <div className="settings-line">
+                    <span id="read-lines-label">When RabbAI reads a line with you, read it in</span>
+                    <div className="seg" role="radiogroup" aria-labelledby="read-lines-label">
+                      {(
+                        [
+                          [false, "English"],
+                          [true, "Hebrew and English"],
+                        ] as const
+                      ).map(([v, label]) => (
+                        <button
+                          key={label}
+                          type="button"
+                          role="radio"
+                          aria-checked={readOriginal === v}
+                          className={readOriginal === v ? "on" : ""}
+                          onClick={() => {
+                            setReadOriginal(v);
+                            readLinesInOriginal = v;
+                            store("rabai_read_lines", v ? "both" : "english");
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="settings-group">About RabbAI</p>
                 <a className="settings-row" href="/sources" target="_blank" rel="noopener">
                   <strong>RabbAI&apos;s sources</strong>
@@ -5170,7 +5486,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 ) : m.pending ? (
                   <div key={m.id} className="msg-ai bare live" data-msg={m.id} aria-busy="true">
                     <div className="body">
-                      <PendingView job={liveJobs[m.pending.id]} at={m.pending.at} />
+                      <PendingView
+                        job={liveJobs[m.pending.id]}
+                        at={m.pending.at}
+                        onOpen={(r) => void openReader(r)}
+                        spoken={spokenAt?.id === `m${m.id}` ? spokenAt : null}
+                      />
                     </div>
                   </div>
                 ) : (
@@ -5178,8 +5499,23 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                     <div className="body" data-askable="chat">
                       {m.away && m.result?.status === "answered" && <p className="away-note">Answered while you were away</p>}
                       {m.result && <SafetyCard result={m.result} />}
+                      {m.result?.card?.length ? (
+                        <SourceCard
+                          passages={m.result.card}
+                          marks={messageMarks[`m${m.id}`] ?? marksOf(m.result)}
+                          spoken={spokenAt?.id === `m${m.id}` ? spokenAt : null}
+                          onOpen={(r) => void openReader(r)}
+                        />
+                      ) : null}
                       {m.result && m.result.blocks.length > 0 && (
-                        <AnswerBody blocks={m.result.blocks} onOpen={(r) => void openReader(r)} />
+                        <AnswerBody
+                          blocks={m.result.blocks}
+                          card={m.result.card}
+                          liveRead={liveReadOf(messageMarks[`m${m.id}`] ?? marksOf(m.result), spokenAt?.id === `m${m.id}` ? spokenAt : null)}
+                          marks={messageMarks[`m${m.id}`] ?? marksOf(m.result)}
+                          now={spokenAt?.id === `m${m.id}` ? activeMark(messageMarks[`m${m.id}`] ?? marksOf(m.result), spokenAt) : null}
+                          onOpen={(r) => void openReader(r)}
+                        />
                       )}
                       {m.result?.status === "answered" && m.result.practical && <RavNote />}
                       {m.result?.status === "answered" && m.result.aboutLibrary && <LibraryNote />}
@@ -5229,7 +5565,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               type="button"
                               className="btn quiet listen"
                               aria-pressed={speakingId === `m${m.id}`}
-                              onClick={() => listen(`m${m.id}`, plainAnswer(m.result))}
+                              onClick={() => listen(`m${m.id}`, spokenAnswer(m.result))}
                             >
                               <SpeakerIcon /> {speakingId === `m${m.id}` ? "Stop" : "Listen"}
                             </button>

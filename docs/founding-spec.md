@@ -426,6 +426,35 @@ wording.
     app's note, because the first live check found the turns about twice the sixty-word aim.
   - The core premises gain "Talking like a person", a voice for each chavrusa way, and a teacher's
     way for "teach me"; talking out loud asks for one to three sentences (open question 25).
+- **Learning like a real chavrusa: the text on the table, and a conversation that flows.**
+  **Decided (Josh, 2026-11-05):** talking with RabbAI should be fluid, like a conversation, not a
+  question that waits and then an answer. When a Mishnah, the Gemara or any text comes up, in a
+  learning session or an ordinary question, RabbAI brings up the source and marks what it is
+  talking about while it talks; and in the Gemara it reads a line and then talks about that line,
+  the way a chavrusa does. What was built (the list of 100 things a chavrusa does, with what is
+  built and what is next, is in `docs/chavrusa-learning.md`):
+  - **The text above the answer, marked live.** While the answer is written, the passages it quotes
+    appear above it in the library's own Hebrew and English, and the words it quotes are marked.
+    Each mark comes from one of RabbAI's own citations, and passes the same check as the final
+    answer's sources (it points at a passage that was sent, and its words are in that passage);
+    nothing else can put a passage on the screen. When the answer is read aloud, the mark follows
+    the voice. The passages are sent while the answer is written and kept with the finished answer;
+    the answer store keeps none of them (it keeps only progress and the checked answer).
+  - **Reading a line together.** RabbAI can ask the app to read one of the texts it was given, by
+    writing a marker with the text's exact title. The app shows that line where it comes in the
+    answer, from the library, and reads it aloud (in English, or Hebrew and English, as the person
+    chooses); RabbAI never copies a line out itself, and a marker that names anything else is
+    dropped. RabbAI is asked to read a line or a step at a time, then say what it means, the one
+    thing worth noticing, and ask something back (core premises, "Reading the text together";
+    open question 26).
+  - **Quicker turns in Talk.** A pause after a finished-sounding phrase sends it in about a second;
+    one that ends on "and", "the" or "um" waits longer; a setting brings back the long pause and
+    countdown. While RabbAI thinks, the microphone stays open (not on iPhones), and if the person
+    goes on talking the question is taken back and what they add is joined to it; nothing is
+    playing then, so it can't hear RabbAI's voice. The Talk rules above otherwise stand.
+  - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
+    model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
+    sent, as before.
 - **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**
   - The Learn search finds what is inside the siddurs, not only book names: "Mincha",
     "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
@@ -691,3 +720,11 @@ These need a decision before launch. Each one changes behavior.
     talking out loud), give each chavrusa way its own voice, and describe a teacher's way of
     teaching when the person asks to be taught. Are these right, and do the examples of how each
     way sounds fit? Brief turns must never be careless: does the section say that clearly enough?
+26. **Reading the text together.** The core premises now ask RabbAI to learn a text the way
+    chavrusas do: read a line (the app brings the library's words and reads them aloud), then say
+    what it means, the one thing worth noticing, and ask something back; name each step of the
+    Gemara's argument; say what is bothering a commentator before giving his answer; let the
+    person read first when they want; and go back to the words when the two see a line
+    differently. While RabbAI talks, the words it quotes are marked on the text. Is this the right
+    way to learn with someone, and is "name the move" (question, answer, proof, challenge,
+    resolution) a fair way to describe the Gemara's steps to a beginner?

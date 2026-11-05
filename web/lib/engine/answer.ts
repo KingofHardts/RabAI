@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { profileSummary, type LearnerProfile } from "../learner-profile";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { CORE_PREMISES } from "./core-premises.generated";
-import { mapAnswer, answerText, type AnswerBlock, type AnswerSource } from "./citations";
+import { mapAnswer, answerText, verifiedCitation, type AnswerBlock, type AnswerSource } from "./citations";
+import { CARD_LIMITS, createReadFilter, isText, livePassage, readableRefs, refKey, type LiveCite, type LivePassage, type LiveRead } from "./live-sources";
 import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from "./safety";
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
@@ -97,6 +98,15 @@ export interface AskHooks {
   onStatus?: (text: string) => void;
   /** Each new piece of the answer's text as the model writes it. */
   onText?: (delta: string) => void;
+  /**
+   * A passage to show above the answer, once each: one the answer is quoting, or a line it reads
+   * aloud (live-sources.ts). Always one of the documents sent, in the library's own words.
+   */
+  onPassage?: (passage: LivePassage) => void;
+  /** The answer quotes a passage here: its own citation, checked (citations.ts, verifiedCitation). */
+  onCite?: (cite: LiveCite) => void;
+  /** The answer reads a line aloud here ([[read REF]]). */
+  onRead?: (read: LiveRead) => void;
   /** Aborted when the person stops the answer. */
   signal?: AbortSignal;
 }
@@ -147,6 +157,11 @@ export interface AskResult {
   timings?: AnswerTimings;
   /** A follow-up answered from the conversation's sources, without the lookup step. */
   quick?: boolean;
+  /**
+   * The passages shown above the answer: those it quoted and the lines it read aloud, in the
+   * library's own words, in the order they came (live-sources.ts). At most CARD_LIMITS.passages.
+   */
+  card?: LivePassage[];
 }
 
 export interface AnswerTimings {
@@ -174,8 +189,15 @@ export interface OnlineReport {
 
 /** The one call the engine makes. Injected so tests never touch the network. */
 export interface ModelClient {
-  /** `onText` receives the answer's text as it is written; `signal` cancels the call. */
-  create(params: MessageCreateParamsNonStreaming, onText?: (delta: string) => void, options?: { signal?: AbortSignal }): Promise<BetaMessage>;
+  /**
+   * `onText` receives the answer's text as it is written; `signal` cancels the call; `onCitation`
+   * receives each citation as the model makes it (checked by the caller before anything is shown).
+   */
+  create(
+    params: MessageCreateParamsNonStreaming,
+    onText?: (delta: string) => void,
+    options?: { signal?: AbortSignal; onCitation?: (citation: { type: string; cited_text?: string; document_index?: number }) => void },
+  ): Promise<BetaMessage>;
 }
 
 export const DEFAULT_MODEL = "claude-opus-5-5";
@@ -240,6 +262,10 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelCl
     create: (params, onText, options) => {
       const stream = client.beta.messages.stream(params, options?.signal ? { signal: options.signal } : undefined);
       if (onText) stream.on("text", (delta) => onText(delta));
+      if (options?.onCitation) {
+        const onCitation = options.onCitation;
+        stream.on("citation", (c) => onCitation(c as { type: string; cited_text?: string; document_index?: number }));
+      }
       return stream.finalMessage();
     },
   };
@@ -251,7 +277,9 @@ export function anthropicClient(apiKey = process.env.ANTHROPIC_API_KEY): ModelCl
 export const APP_INSTRUCTIONS = `## How this app works
 
 You are answering inside the RabbAI app. The person sees your answer in a conversation, and
-every source you cite becomes a button that opens the text itself in a reader beside it.
+every source you cite becomes a button that opens the text itself in a reader beside it. While you
+write (or speak), the passage you are citing shows above your answer with the words you quote
+marked, so cite the exact words you are talking about, at the moment you talk about them.
 
 Sources:
 - The passages retrieved for this question are attached to the person's message as documents.
@@ -326,7 +354,19 @@ Learning to read:
   you may name.
 - When the person offers their own translation of a line, follow "Let them try first": begin
   with what they got right, then correct one or two things, gently, with the reason. Ask
-  whether they would like to try again or see the whole line.`;
+  whether they would like to try again or see the whole line.
+
+Reading a line together:
+- To read a line of a text with the person, write [[read REF]] on a line of its own, where REF is
+  the exact title of one of the documents (a line of the Gemara, a Mishnah, a verse, a Rashi).
+  The app shows that line in Hebrew and English, marked, and reads it aloud from the library.
+  Never copy the line out yourself: the marker brings the library's own words.
+- Then talk about that line the way a chavrusa does: what it says in plain words, the one thing
+  worth noticing, and, when it fits, a question for them. Follow "Reading the text together" in
+  your instructions.
+- Read one line, or one step of the argument, at a time. Use the marker when you are learning a
+  text together (a chavrusa session, or when they ask to learn, read or go through a passage),
+  not for every source you mention. Never put it inside a sentence.`;
 
 const ACTION_PROMPTS: Record<Exclude<LineAction, "check" | "word">, (ref: string) => string> = {
   explain: (ref) => `Please explain ${ref} to me.`,
@@ -793,9 +833,36 @@ export async function ask(
     ...(firstWords !== undefined ? { firstWords } : {}),
     total: Date.now() - started,
   });
-  const onText = (delta: string) => {
-    if (firstWords === undefined) firstWords = Date.now() - started;
-    hooks.onText?.(delta);
+  // The passages put on screen while the answer is written: each once, and only documents sent.
+  const shown = new Set<string>();
+  const show = (p: Passage) => {
+    if (shown.has(p.ref)) return;
+    shown.add(p.ref);
+    hooks.onPassage?.(livePassage(p));
+  };
+  const byRef = new Map(plan.documents.map((p) => [p.ref, p]));
+  const readable = readableRefs(plan.documents);
+  // In a session, the line the person is on is on screen from the start.
+  const sessionLine = input.chavrusa?.at ? byRef.get(input.chavrusa.at) : undefined;
+  if (sessionLine && isText(sessionLine) && !input.action) show(sessionLine);
+  const reads = createReadFilter({
+    canRead: (ref) => readable.get(refKey(ref)) ?? null,
+    onText: (delta) => {
+      if (firstWords === undefined) firstWords = Date.now() - started;
+      hooks.onText?.(delta);
+    },
+    onRead: (ref, at) => {
+      const p = byRef.get(ref);
+      if (p) show(p);
+      hooks.onRead?.({ ref, at });
+    },
+  });
+  const onText = (delta: string) => reads.push(delta);
+  const onCitation = (c: { type: string; cited_text?: string; document_index?: number }) => {
+    const checked = verifiedCitation(c, plan.documents, plan.documentTexts);
+    if (!checked || !isText(checked.passage)) return;
+    show(checked.passage);
+    hooks.onCite?.({ ref: checked.passage.ref, quote: checked.quote, at: reads.position() });
   };
 
   if (!client) {
@@ -817,7 +884,8 @@ export async function ask(
   );
   let message: BetaMessage;
   try {
-    message = await client.create(plan.params, onText, hooks.signal ? { signal: hooks.signal } : undefined);
+    message = await client.create(plan.params, onText, { ...(hooks.signal ? { signal: hooks.signal } : {}), onCitation });
+    reads.flush();
   } catch (err) {
     console.error("[rabai] model call failed:", err instanceof Error ? err.message : err);
     return {
@@ -837,7 +905,7 @@ export async function ask(
     };
   }
 
-  const mapped = mapAnswer(message.content, plan.documents, plan.documentTexts);
+  const mapped = mapAnswer(message.content, plan.documents, plan.documentTexts, readable);
   if (mapped.dropped > 0) {
     console.warn(`[rabai] dropped ${mapped.dropped} unverifiable citation(s)`);
   }
@@ -852,6 +920,7 @@ export async function ask(
     droppedCitations: mapped.dropped,
     model: message.model,
     timings: timings(),
+    ...cardFor(mapped.blocks, byRef),
     ...(notes.online ? { online: onlineReport(notes, plan.documents, mapped.sources) } : {}),
   };
 }
@@ -883,4 +952,19 @@ export function onlineReport(notes: LookupNotes, documents: Passage[], sources: 
   // The pages the answer used come first.
   pages.sort((a, b) => Number(b.used) - Number(a.used));
   return { kind: o.kind, status: o.status, pages, checked: notes.checked ?? [] };
+}
+
+/** The passages shown above a finished answer: the texts it quoted and read, in order (live-sources.ts). */
+export function cardFor(blocks: AnswerBlock[], byRef: Map<string, Passage>): { card?: LivePassage[] } {
+  const refs: string[] = [];
+  for (const b of blocks) {
+    if (b.read && !refs.includes(b.read)) refs.push(b.read);
+    for (const c of b.citations) if (!c.article && !c.online && !refs.includes(c.ref)) refs.push(c.ref);
+  }
+  const card = refs
+    .map((r) => byRef.get(r))
+    .filter((p): p is Passage => !!p && isText(p))
+    .slice(0, CARD_LIMITS.passages)
+    .map(livePassage);
+  return card.length ? { card } : {};
 }

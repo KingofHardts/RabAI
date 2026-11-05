@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { QUIET_NOTE, secondsLeft, TALK_OFF, TALK_TIMING, talkReducer, tapAction, wordsOf, type TalkEvent, type TalkState } from "../lib/talk";
+import { ADD_WORDS, endpointMs, QUIET_NOTE, secondsLeft, soundsUnfinished, TALK_OFF, TALK_TIMING, talkReducer, tapAction, wordsOf, type TalkEvent, type TalkState } from "../lib/talk";
 
 const { pauseMs, countdownMs, silenceMs } = TALK_TIMING;
 
@@ -9,7 +9,8 @@ function run(start: TalkState, ...events: TalkEvent[]): TalkState {
   return events.reduce(talkReducer, start);
 }
 
-const listening = run(TALK_OFF, { type: "listen", now: 0 });
+// These tests check the relaxed pace (Settings); the quick pace has its own tests at the end.
+const listening = run(TALK_OFF, { type: "pace", pace: "relaxed" }, { type: "listen", now: 0 });
 
 test("Talk listens, and a pause after words starts the countdown, which sends what was said", () => {
   assert.equal(listening.phase, "listening");
@@ -100,7 +101,7 @@ test("pausing and turning off", () => {
   assert.equal(wordsOf(paused), "");
   assert.equal(paused.note, "Paused.");
   assert.equal(run(TALK_OFF, { type: "pause" }), TALK_OFF, "pausing does nothing when Talk is off");
-  assert.deepEqual(run(paused, { type: "off" }), TALK_OFF);
+  assert.deepEqual(run(paused, { type: "off" }), { ...TALK_OFF, pace: "relaxed" }, "off keeps the pace");
   // Heard words after the microphone closed are ignored.
   assert.equal(run(paused, { type: "heard", settled: "late", hearing: "", now: 1 }), paused);
 });
@@ -113,4 +114,55 @@ test("the big button says what a tap will do", () => {
   assert.equal(tapAction(answering).action, "none");
   assert.equal(tapAction(run(answering, { type: "speak" })).action, "interrupt");
   assert.equal(tapAction(run(listening, { type: "pause" })).action, "listen");
+});
+
+test("the quick pace: a finished phrase is sent after a short pause, an open one waits", () => {
+  const quick = run(TALK_OFF, { type: "listen", now: 0 });
+  assert.equal(quick.pace, "quick");
+  const q = TALK_TIMING.quick;
+  // The browser still settling the words: a short pause, then a short ring.
+  let s = run(quick, { type: "heard", settled: "why does the mishnah", hearing: " start with the evening", now: 100 });
+  assert.equal(run(s, { type: "tick", now: 100 + q.pauseMs - 1 }).phase, "listening");
+  s = run(s, { type: "tick", now: 100 + q.pauseMs });
+  assert.equal(s.phase, "countdown");
+  assert.equal(run(s, { type: "tick", now: 100 + q.pauseMs + q.countdownMs }).phase, "answering");
+  // Every word settled (the browser heard them stop): even shorter.
+  const settled = run(quick, { type: "heard", settled: "why does the mishnah start with the evening", hearing: "", now: 100 });
+  assert.equal(run(settled, { type: "tick", now: 100 + q.settledMs }).phase, "countdown");
+  // Ending on "and" (or one word alone): it waits for more.
+  const open = run(quick, { type: "heard", settled: "the gemara asks and", hearing: "", now: 100 });
+  assert.equal(endpointMs(open), q.unfinishedMs);
+  assert.equal(run(open, { type: "tick", now: 100 + q.pauseMs }).phase, "listening");
+  assert.equal(run(open, { type: "tick", now: 100 + q.unfinishedMs }).phase, "countdown");
+});
+
+test("what sounds unfinished", () => {
+  assert.equal(soundsUnfinished("what does rashi say about the"), true);
+  assert.equal(soundsUnfinished("so um"), true);
+  assert.equal(soundsUnfinished("rashi"), true, "one word alone may be the start of a question");
+  assert.equal(soundsUnfinished("yes"), false);
+  assert.equal(soundsUnfinished("go on"), false);
+  assert.equal(soundsUnfinished("what does rashi say"), false);
+  assert.equal(soundsUnfinished("is that right?"), false);
+});
+
+test("going on talking while RabbAI thinks takes the question back and adds to it", () => {
+  const quick = run(TALK_OFF, { type: "listen", now: 0 });
+  let s = run(quick, { type: "heard", settled: "why the evening", hearing: "", now: 10 }, { type: "sendNow" });
+  assert.equal(s.phase, "answering");
+  assert.equal(s.asked, "why the evening");
+  // The microphone carries what was sent; one more word may be the browser re-hearing it, and
+  // "um okay" while waiting is not more to the question.
+  assert.equal(run(s, { type: "heard", settled: "why the evening", hearing: "first", now: 500 }).phase, "answering");
+  assert.equal(run(s, { type: "heard", settled: "why the evening", hearing: "um okay", now: 500 }).phase, "answering");
+  s = run(s, { type: "heard", settled: "why the evening", hearing: "and not the morning", now: 600 });
+  assert.ok(ADD_WORDS <= 4);
+  assert.equal(s.phase, "listening");
+  assert.equal(s.added, true);
+  assert.equal(wordsOf(s), "why the evening and not the morning");
+  assert.equal(s.asked, "");
+  // Then it is sent as one question.
+  const sent = run(s, { type: "sendNow" });
+  assert.equal(sent.asked, "why the evening and not the morning");
+  assert.equal(sent.added, false);
 });

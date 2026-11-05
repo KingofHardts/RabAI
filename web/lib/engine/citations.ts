@@ -1,4 +1,5 @@
 import type { Passage } from "../library/types";
+import { READ_MARKER, refKey, stripMarkers } from "./live-sources";
 
 /**
  * Turning the model's answer into what the app shows, and checking every citation.
@@ -34,6 +35,11 @@ export interface AnswerCitation {
 export interface AnswerBlock {
   text: string;
   citations: AnswerCitation[];
+  /**
+   * A line RabbAI reads aloud with the person ([[read REF]]): one of the documents it was given,
+   * shown and read from the library's own text. Such a block has no text of its own.
+   */
+  read?: string;
 }
 
 export interface AnswerSource {
@@ -74,11 +80,49 @@ function squash(s: string): string {
 }
 
 /**
+ * Whether a citation passes the check: it points at a document we sent, and its quoted words are
+ * in that document. The one test for citations, live (live-sources.ts) and final (mapAnswer).
+ */
+export function verifiedCitation(
+  c: { type: string; cited_text?: string; document_index?: number },
+  documents: Passage[],
+  documentTexts: string[],
+): { passage: Passage; quote: string } | null {
+  const index = c.document_index;
+  const passage = typeof index === "number" ? documents[index] : undefined;
+  const docText = typeof index === "number" ? documentTexts[index] : undefined;
+  const quote = typeof c.cited_text === "string" ? c.cited_text : "";
+  const verified = c.type === "char_location" && passage !== undefined && docText !== undefined && quote.trim().length > 0 && squash(docText).includes(squash(quote));
+  return verified && passage ? { passage, quote: quote.trim() } : null;
+}
+
+/** A block's text split at its read markers: the text between them, and the lines to read. */
+function splitReads(text: string, readable: Map<string, string> | undefined): Array<{ text: string } | { read: string }> {
+  const parts: Array<{ text: string } | { read: string }> = [];
+  let last = 0;
+  for (const m of text.matchAll(READ_MARKER)) {
+    const at = m.index ?? 0;
+    parts.push({ text: text.slice(last, at) });
+    const ref = readable?.get(refKey(m[1]));
+    if (ref) parts.push({ read: ref });
+    last = at + m[0].length;
+  }
+  parts.push({ text: text.slice(last) });
+  return parts;
+}
+
+/**
  * Map response content to answer blocks.
  * @param documents The passages sent to the model, in the same order as the document blocks.
  * @param documentTexts The exact text sent for each document.
  */
-export function mapAnswer(content: ResponseBlock[], documents: Passage[], documentTexts: string[]): MappedAnswer {
+export function mapAnswer(
+  content: ResponseBlock[],
+  documents: Passage[],
+  documentTexts: string[],
+  /** The documents that may be read aloud, by reference (live-sources.ts, readableRefs). */
+  readable?: Map<string, string>,
+): MappedAnswer {
   const blocks: AnswerBlock[] = [];
   const sources: AnswerSource[] = [];
   const seen = new Set<string>();
@@ -89,20 +133,12 @@ export function mapAnswer(content: ResponseBlock[], documents: Passage[], docume
 
     const citations: AnswerCitation[] = [];
     for (const c of block.citations ?? []) {
-      const index = c.document_index;
-      const passage = typeof index === "number" ? documents[index] : undefined;
-      const docText = typeof index === "number" ? documentTexts[index] : undefined;
-      const quote = typeof c.cited_text === "string" ? c.cited_text : "";
-      const verified =
-        c.type === "char_location" &&
-        passage !== undefined &&
-        docText !== undefined &&
-        quote.trim().length > 0 &&
-        squash(docText).includes(squash(quote));
-      if (!verified || !passage) {
+      const checked = verifiedCitation(c, documents, documentTexts);
+      if (!checked) {
         dropped += 1;
         continue;
       }
+      const { passage, quote } = checked;
       const article = articleOf(passage);
       const online = passage.online
         ? { site: passage.online.site, title: passage.online.title, url: passage.online.url, kind: passage.online.kind }
@@ -116,14 +152,24 @@ export function mapAnswer(content: ResponseBlock[], documents: Passage[], docume
       }
     }
 
-    const text = cleanText(block.text);
-    const last = blocks[blocks.length - 1];
-    // Merge consecutive uncited text so paragraphs are not split by the API's block boundaries.
-    if (last && last.citations.length === 0 && citations.length === 0) {
-      last.text += text;
-    } else {
-      blocks.push({ text, citations });
-    }
+    // A line read aloud ([[read REF]]) becomes a block of its own, between the text around it.
+    const parts = splitReads(block.text, readable);
+    parts.forEach((part, i) => {
+      if ("read" in part) {
+        blocks.push({ text: "", citations: [], read: part.read });
+        return;
+      }
+      const text = cleanText(stripMarkers(part.text));
+      // The citations belong with the block's last piece of text.
+      const own = i === parts.length - 1 ? citations : [];
+      const last = blocks[blocks.length - 1];
+      // Merge consecutive uncited text so paragraphs are not split by the API's block boundaries.
+      if (last && !last.read && last.citations.length === 0 && own.length === 0) {
+        last.text += text;
+      } else if (text || own.length) {
+        blocks.push({ text, citations: own });
+      }
+    });
   }
 
   // Trim stray whitespace at the edges of the whole answer.
@@ -132,8 +178,9 @@ export function mapAnswer(content: ResponseBlock[], documents: Passage[], docume
     const end = blocks[blocks.length - 1];
     end.text = end.text.replace(/\s+$/, "");
   }
-
-  return { blocks: blocks.filter((b) => b.text.length > 0 || b.citations.length > 0), sources, dropped };
+  // Text right after a line read aloud starts fresh, without the marker's leftover line breaks.
+  for (let i = 1; i < blocks.length; i++) if (blocks[i - 1].read) blocks[i].text = blocks[i].text.replace(/^\s+/, "");
+  return { blocks: blocks.filter((b) => b.read || b.text.length > 0 || b.citations.length > 0), sources, dropped };
 }
 
 /** The answer is plain prose; remove Markdown emphasis or heading marks if the model adds them. */
@@ -146,5 +193,5 @@ export function cleanText(text: string): string {
 
 /** The answer as one plain string, for history and tests. */
 export function answerText(answer: Pick<MappedAnswer, "blocks">): string {
-  return answer.blocks.map((b) => b.text).join("");
+  return answer.blocks.map((b) => (b.read ? `\n[[read ${b.read}]]\n` : b.text)).join("");
 }

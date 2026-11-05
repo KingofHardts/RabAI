@@ -187,9 +187,13 @@ this round on, every answer reports how long each step took, and the health chec
     **Built.**
 70. **The next piece is fetched while the current one plays**, so there are no gaps. **Built.**
 71. **Use ElevenLabs' streaming endpoint** and start playing the audio as it arrives, instead of
-    when a sentence's audio is complete. **Next.**
+    when a sentence's audio is complete. **Built in part** (2026-11-05): Talk asks for the streamed
+    audio, so it leaves the service sooner; playing it while it downloads is **Later** (iPhones
+    need care with silent mode).
 72. **A fast voice model for conversation** (ElevenLabs Flash, about 75 ms) for English turns, and
-    the fuller model when Hebrew letters are read. **Next** (a test of how it sounds: **Josh**).
+    the fuller model when Hebrew letters are read. **Built** (2026-11-05) for every Talk turn
+    (Hebrew is read in English letters, so Flash reads it too); "Listen" keeps the fuller model.
+    How it sounds: **Josh**.
 73. **Feed the words to the voice as they come** (ElevenLabs' input streaming), so speaking begins
     mid-sentence. **Later.**
 74. **Cache the sound of common phrases** ("Shalom", "Let's look at Rashi") so they play at once.
@@ -205,10 +209,11 @@ this round on, every answer reports how long each step took, and the health chec
 78. **RabbAI knows where you cut in**: the next question carries the last words you heard, and
     RabbAI answers what you said without starting over. **Built.**
 79. **Short words count** ("wait", "hold on", "but"), so a quick interruption works. **Built.**
-80. **A shorter pause before sending** what you said (now 1.4 seconds of quiet, then a 2.5-second
-    countdown); a setting for "quick" turns. **Next.**
+80. **A shorter pause before sending** what you said (it was 1.4 seconds of quiet, then a 2.5-second
+    countdown). **Built** (2026-11-05): about a second in all, with a setting for the long pause.
 81. **Knowing when you're done by your words**, not only by the quiet (a sentence that sounds
-    finished sends sooner; "and…" waits). **Next.**
+    finished sends sooner; "and…" waits). **Built** (2026-11-05), with word lists; a model that
+    judges it is **Later**.
 82. **A server-side transcription service** (Soniox or ElevenLabs Scribe, compared in
     `docs/transcription-research.md`): reliable on iPhones, so Talk works there without a tap each
     turn, and it can be taught Hebrew names. It would send the person's voice to the service.

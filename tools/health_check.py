@@ -89,6 +89,8 @@ DVAR_QUESTION = "Can you give me a short dvar Torah on this week's parsha?"
 # Asked as if out loud in Talk: the answer should be a few short sentences.
 TALK_QUESTION = "Why do we light candles before Shabbat?"
 TALK_FOLLOW_UP = "Why two of them?"
+# Learning a text together: RabbAI should read the line with the person (a read marker), not copy it.
+READ_QUESTION = "Let's learn the first Mishnah in Berakhot together. Read the first line with me and tell me what it means."
 # A turn in a conversation aims for under about sixty words (core premises, "Talking like a person").
 TALK_MAX_WORDS = 90
 
@@ -487,9 +489,16 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                 problem("RabbAI's voice is set up but offers no voices (the service's voice list couldn't be read).")
             sstatus, audio = fetch("/api/speak", {"text": "Shalom."}, timeout=60)
             kind = (seen.get("headers") or {}).get("content-type", "")
-            summary(f"  - Saying one word: HTTP {sstatus}, {len(audio):,} bytes of {plain(kind) or 'unknown'}.")
+            usual = seen.get("seconds", 0)
+            summary(f"  - Saying one word: HTTP {sstatus}, {len(audio):,} bytes of {plain(kind) or 'unknown'}, {usual:.1f} seconds.")
             if sstatus != 200 or not kind.startswith("audio/") or len(audio) < 500:
                 problem(f"RabbAI's voice is set up, but saying one word answered HTTP {sstatus} ({plain(kind)}).")
+            # Talk's quick voice, for a sentence-long turn.
+            fstatus, faudio = fetch("/api/speak", {"text": "Rashi reads it a little differently.", "fast": True}, timeout=60)
+            fkind = (seen.get("headers") or {}).get("content-type", "")
+            summary(f"  - Talk's quick voice, one sentence: HTTP {fstatus}, {len(faudio):,} bytes, {seen.get('seconds', 0):.1f} seconds.")
+            if fstatus != 200 or not fkind.startswith("audio/") or len(faudio) < 500:
+                problem(f"Talk's quick voice answered HTTP {fstatus} ({plain(fkind)}).")
     except ValueError:
         problem(f"The voice check (/api/speak) answered HTTP {status} with something that isn't JSON.")
 
@@ -558,6 +567,12 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         done = next((e for e in events if isinstance(e, dict) and e.get("type") == "done"), None)
         statuses = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "status")
         pieces = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "text")
+        # The texts shown above the answer while it is written, the quotes marked on them, and the
+        # lines read with the person (counts only).
+        shown = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "passage")
+        quoted = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "cite")
+        read = sum(1 for e in events if isinstance(e, dict) and e.get("type") == "read")
+        seen["live"] = {"shown": shown, "quoted": quoted, "read": read}
         if not done:
             summary(f"  - Answer details: {len(raw):,} bytes in {seen.get('seconds', 0):.0f} seconds, "
                     f"content-type = {h.get('content-type', '?')}, x-vercel-error = {h.get('x-vercel-error', 'none')}"
@@ -568,6 +583,10 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         summary(f"- {label[0].upper()}{label[1:]}: status = {plain(r.get('status'))}, {len(r.get('sources') or [])} sources cited, "
                 f"{len(r.get('retrieved') or [])} passages read, {statuses} status lines, {pieces} pieces of text, "
                 f"{seen.get('seconds', 0):.0f} seconds.")
+        summary(f"  - While it was written: {shown} texts shown above it, {quoted} quotes marked, {read} lines read with the person.")
+        texts_cited = sum(1 for x in (r.get("sources") or []) if isinstance(x, dict) and not x.get("article") and not x.get("online"))
+        if r.get("status") == "answered" and texts_cited and not shown:
+            problem(f"{label[0].upper()}{label[1:]} cited texts, but none was shown above it while it was written.")
         if r.get("status") not in ("answered",):
             problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
         # The lookup step plans which texts to open; when its plan can't be used, RabbAI searches the
@@ -727,6 +746,11 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                     problem(f"A follow-up in Talk was {words} words long; a turn in a conversation should be two to four short sentences.")
                 if not follow.get("quick"):
                     problem("A short follow-up in Talk went through the lookup step instead of using the sources before.")
+
+    r = live_answer(READ_QUESTION, "learning a line together", talking=True)
+    if r is not None and r.get("status") == "answered":
+        if not seen.get("live", {}).get("read"):
+            problem("Asked to read the first line of a Mishnah together, RabbAI read no line with the person.")
 
     leave_midway(LEAVE_QUESTION)
 

@@ -1589,3 +1589,50 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
   .sd-menu { top: 50px; }
   .sd-il-he { font-size: calc(21px * var(--text-scale, 1)); }
 }
+
+/* The text an answer is talking about (components/SourceCard.tsx): above the answer, the library's
+   own words, with what it quotes marked, and the line it is reading marked whole. Colors are the
+   page's own tokens, so dark mode follows. */
+.src-card {
+  margin: 2px 0 14px; padding: 10px 14px 10px; border: 1px solid var(--line); border-inline-start: 3px solid var(--accent);
+  border-radius: 12px; background: var(--surface); font-family: var(--font-voice);
+}
+.src-card.folded { padding-bottom: 8px; }
+.src-top { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.src-tabs { display: flex; gap: 4px; overflow-x: auto; flex: 1; min-width: 0; scrollbar-width: none; }
+.src-tabs::-webkit-scrollbar { display: none; }
+.src-tab {
+  flex: none; padding: 4px 10px; border: 1px solid transparent; border-radius: 999px; background: none;
+  font: 500 12.5px/1.4 var(--font-ui); color: var(--muted); white-space: nowrap; min-height: 32px;
+}
+.src-tab.on { background: var(--tint); color: var(--accent); }
+.src-tab.live:not(.on) { border-color: var(--accent); color: var(--accent); }
+.src-title { flex: 1; min-width: 0; margin: 0; font: 600 13px/1.4 var(--font-ui); color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-fold { flex: none; padding: 4px 8px; border: 0; background: none; font: 500 12.5px var(--font-ui); color: var(--muted); min-height: 32px; }
+.src-he { margin: 6px 0 4px; font-family: var(--font-he); font-size: 19px; line-height: 1.75; color: var(--ink); max-height: 9.5em; overflow-y: auto; }
+.src-en { margin: 4px 0 4px; font-size: 15px; line-height: 1.6; color: var(--ink); max-height: 9em; overflow-y: auto; }
+.src-q { background: none; color: inherit; border-radius: 3px; box-shadow: inset 0 -0.38em 0 var(--hl); transition: background-color .25s var(--ease-out, ease), box-shadow .25s var(--ease-out, ease); }
+.src-q.on { background: var(--hl); box-shadow: 0 0 0 2px var(--hl); }
+.src-card.reading .src-he.whole, .src-card.reading .src-en.whole { background: var(--hl); border-radius: 6px; box-shadow: 0 0 0 4px var(--hl); }
+.src-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin-top: 4px; }
+.src-note { margin: 0; font: 12px/1.45 var(--font-ui); color: var(--muted); flex: 1; min-width: 12em; }
+.src-open { padding: 4px 0; border: 0; background: none; font: 500 13px var(--font-ui); color: var(--accent); min-height: 32px; }
+@media (prefers-reduced-motion: reduce) { .src-q { transition: none; } }
+/* On a phone the card stays small, so the answer is in view beside it; its text scrolls. */
+@media (max-width: 560px) {
+  .src-card { padding: 8px 12px; }
+  .src-he { font-size: 18px; max-height: 5.4em; }
+  .src-en { font-size: 14.5px; max-height: 6.5em; }
+}
+
+/* A line RabbAI reads with the person, where it reads it (components/SourceCard.tsx, ReadLine). */
+.read-line {
+  margin: 10px 0 12px; padding: 8px 14px; border-inline-start: 3px solid var(--line); border-radius: 4px;
+  background: var(--bg); transition: background-color .25s, border-color .25s;
+}
+.read-line.on { background: var(--hl); border-inline-start-color: var(--accent); }
+.read-line .src-q.on { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.read-ref { display: inline-block; padding: 2px 0; border: 0; background: none; font: 600 12.5px/1.4 var(--font-ui); color: var(--accent); min-height: 28px; }
+.read-he { margin: 2px 0; font-family: var(--font-he); font-size: 19px; line-height: 1.7; }
+.read-en { margin: 2px 0; font-size: 15px; line-height: 1.6; }
+.read-line.missing { padding: 0; border: 0; background: none; }

@@ -246,6 +246,7 @@ Optional settings:
 | `ELEVENLABS_API_KEY` | none | RabbAI's own voice, from ElevenLabs (recommended). The key needs Text to Speech and Voices (read). The voices in the account are offered in Settings. See `docs/siddur-audio-and-transliteration.md`, "Setting up the voice". |
 | `ELEVENLABS_VOICE_ID` | the best older man's voice | The voice used until a person chooses another (for example one made with Voice Design). |
 | `ELEVENLABS_MODEL` | `eleven_v4` | ElevenLabs' model; if it refuses a request, `eleven_v3` is used. |
+| `ELEVENLABS_TALK_MODEL` | `eleven_flash_v2_5` | The quick model for Talk's turns, streamed, so the first words come sooner; `off` uses `ELEVENLABS_MODEL` for Talk too. "Listen" on an answer always uses `ELEVENLABS_MODEL`. |
 | `OPENAI_API_KEY`, `OPENAI_TTS_VOICE`, `OPENAI_TTS_MODEL` | none, `cedar`, `gpt-4o-mini-tts` | RabbAI's own voice from OpenAI instead (cheaper, less natural in Hebrew). `RABAI_VOICE_PROVIDER` (`elevenlabs`, `openai` or `off`) chooses when both are set. |
 | `RABAI_OUTLINE_FIXTURE` | none | On your computer only: a file holding a saved outline reply, used in place of the model for "Show the flow" (`{section}` in the name stands for the page, as in `/tmp/outline-{section}.txt`). The reply is checked exactly like a real one. Ignored on Vercel and in a production build. |
 

@@ -23,12 +23,13 @@ const text = (v: unknown, max: number, end = false) => (typeof v !== "string" ? 
  * {"text": "...", "voice"?: id, "previous"?: "...", "next"?: "..."} → MP3 audio of one piece of an
  * answer, already prepared for speech on the device (lib/voice/speech-text.ts). "previous" and "next"
  * are the end of the piece before and the start of the piece after, so the voice flows across the
- * pieces. Only these words are sent to the speech service; nothing is kept or logged.
+ * pieces; "fast": true is a turn in a conversation, read with the quick model. Only these words are
+ * sent to the speech service; nothing is kept or logged.
  */
 export async function POST(request: Request) {
   const provider = voiceProvider();
   if (!provider) return NextResponse.json({ error: "RabbAI's voice isn't set up; the device's voice is used." }, { status: 404 });
-  let body: { text?: unknown; voice?: unknown; previous?: unknown; next?: unknown } = {};
+  let body: { text?: unknown; voice?: unknown; previous?: unknown; next?: unknown; fast?: unknown } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
       group: voice.group,
       previous: text(body.previous, SPEAK_CONTEXT_CHARS, true),
       next: text(body.next, SPEAK_CONTEXT_CHARS),
+      fast: body.fast === true,
       signal: request.signal,
     });
     return new Response(audio.body, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } });

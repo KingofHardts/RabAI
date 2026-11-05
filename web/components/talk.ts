@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { micOpen, TALK_OFF, TALK_TIMING, talkReducer, tapAction, wordsOf, type TalkEvent, type TalkState } from "@/lib/talk";
+import { micOpen, TALK_OFF, TALK_TIMING, talkReducer, tapAction, wordsOf, type TalkEvent, type TalkPace, type TalkPhase, type TalkState } from "@/lib/talk";
 import { canSpeak, recognitionCtor, speakLive, stopSpeaking, unlockSpeech, type LiveSpeech } from "./voice";
 
 /*
@@ -23,6 +23,9 @@ import { canSpeak, recognitionCtor, speakLive, stopSpeaking, unlockSpeech, type 
  *   which can't listen while they speak: there a tap cuts in). What it hears that matches what
  *   RabbAI is saying is its own voice coming back, and is ignored.
  * - The answer is read as it is written, a sentence at a time (components/voice.ts, speakLive).
+ * - While RabbAI thinks (before it speaks), the microphone stays open where it can (not iPhones),
+ *   so a person who wasn't done can go on: the question is taken back and what they add is joined
+ *   to it (lib/talk.ts). Nothing is playing then, so it can't hear RabbAI's own voice.
  * - Every opening of the microphone has a number, and anything from an older one is ignored.
  */
 
@@ -74,6 +77,16 @@ export function isCuttingIn(heard: string, saying: string): boolean {
   return words.length >= 3 && fresh / words.length >= 0.5;
 }
 
+/** Whether the microphone stays open while RabbAI thinks (not on iPhones, which need a tap to listen). */
+function listensWhileThinking(): boolean {
+  return !isIOS();
+}
+
+/** Whether the microphone is open in this phase, counting the time RabbAI thinks. */
+function hears(phase: TalkPhase): boolean {
+  return micOpen(phase) || (phase === "answering" && listensWhileThinking());
+}
+
 /** How often time is checked while the microphone is open. */
 const TICK_MS = 200;
 /** The microphone closing by itself this many times, quickly, with nothing heard: wait for a tap. */
@@ -97,24 +110,38 @@ export interface TalkControls {
   answer: (id: string, text: string) => void;
   /** No answer came, or there was nothing to read. */
   answerFailed: (note?: string) => void;
+  /** How quickly a pause sends what was said (Settings). */
+  setPace: (pace: TalkPace) => void;
+  /** Whether the microphone stays open while RabbAI thinks, so the person can add to what they said. */
+  listensWhileThinking: boolean;
 }
 
 export function useTalk({
   onSend,
   onSpeaking,
+  onPiece,
+  onRetract,
 }: {
   /** Send what the person said; `cutIn` is the last of what RabbAI said when they cut in. */
   onSend: (question: string, cutIn: string) => boolean;
   onSpeaking?: (id: string | null) => void;
+  /** The piece of answer `id` being read aloud now (where it is in the text), so the screen can follow. */
+  onPiece?: (id: string, start: number, end: number) => void;
+  /** The person went on talking while RabbAI was thinking: take back what was sent (it is sent again, with more). */
+  onRetract?: () => void;
 }): TalkControls {
   const [state, setState] = useState<TalkState>(TALK_OFF);
   const stateRef = useRef<TalkState>(TALK_OFF);
   const onSendRef = useRef(onSend);
   const onSpeakingRef = useRef(onSpeaking);
+  const onPieceRef = useRef(onPiece);
+  const onRetractRef = useRef(onRetract);
   useEffect(() => {
     onSendRef.current = onSend;
     onSpeakingRef.current = onSpeaking;
-  }, [onSend, onSpeaking]);
+    onPieceRef.current = onPiece;
+    onRetractRef.current = onRetract;
+  }, [onSend, onSpeaking, onPiece, onRetract]);
 
   const rec = useRef<Recognition | null>(null);
   const micSession = useRef(0);
@@ -221,7 +248,7 @@ export function useTalk({
         if (mine !== micSession.current) return;
         rec.current = null;
         const s = stateRef.current;
-        if (!micOpen(s.phase)) return;
+        if (!hears(s.phase)) return;
         // The browser stopped listening by itself (phones do after every sentence): listen on,
         // keeping what was said. If it keeps stopping at once with nothing heard, wait for a tap.
         const now = Date.now();
@@ -231,7 +258,8 @@ export function useTalk({
           return;
         }
         restarts.current.push(now);
-        openMic(wordsOf(s));
+        // While RabbAI thinks, it listens on from what was sent, to hear anything added to it.
+        openMic(s.phase === "answering" ? s.asked : wordsOf(s));
       };
 
       rec.current = r;
@@ -260,9 +288,12 @@ export function useTalk({
       } else if (e.type === "cutIn") {
         restarts.current = [];
         openMic(next.settled);
-      } else if (micOpen(prev.phase) && !micOpen(next.phase)) {
+      } else if (hears(prev.phase) && !hears(next.phase)) {
         closeMic();
       }
+      // They went on talking while RabbAI thought: what was sent is taken back, and the microphone
+      // (still open) goes on hearing the rest.
+      if (prev.phase === "answering" && next.phase === "listening" && next.added) onRetractRef.current?.();
       if (next.phase === "answering" && prev.phase !== "answering") {
         if (!onSendRef.current(next.asked, next.cutIn)) dispatchRef.current({ type: "pause", note: "That couldn't be sent just now. Tap to talk to try again." });
       }
@@ -426,7 +457,9 @@ export function useTalk({
           if (isIOS()) dispatchRef.current({ type: "pause", note: null });
           else dispatchRef.current({ type: "listen", now: Date.now() });
         }, TALK_TIMING.afterSpeechMs);
-      });
+      }, (start, end) => {
+        if (mine === speakSession.current) onPieceRef.current?.(id, start, end);
+      }, { fast: true });
       openBarge();
     },
     [closeBarge, openBarge],
@@ -471,5 +504,7 @@ export function useTalk({
     dispatchRef.current({ type: "pause", note: note ?? "That answer didn't come through. Tap to talk to try again." });
   }, []);
 
-  return { state, start, end, tap, keepTalking, sendNow, pause, answerText, answer, answerFailed };
+  const setPace = useCallback((pace: TalkPace) => dispatchRef.current({ type: "pace", pace }), []);
+
+  return { state, start, end, tap, keepTalking, sendNow, pause, answerText, answer, answerFailed, setPace, listensWhileThinking: listensWhileThinking() };
 }
