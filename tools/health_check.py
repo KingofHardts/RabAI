@@ -120,6 +120,15 @@ def answer_words(result: dict) -> str:
 problems: list[str] = []
 
 
+# Counts across the questions asked of the live app: how many were answered, how many of those
+# cited no text from the library, and which steps were slower than their budget. Numbers only.
+TALLY = {"answered": 0, "no_text": 0, "slow": 0}
+
+# The most each step should take, in seconds, before the check says so. Generous on purpose: they
+# are set from what the live app measured (docs/faster-rabbai.md), to catch a step that grows slow.
+BUDGET = {"plan": 6.0, "quick_first": 4.0, "talk_first": 10.0, "first": 20.0, "online_first": 45.0}
+
+
 def problem(text: str) -> None:
     problems.append(text)
     summary(f"- **Problem:** {text}")
@@ -606,6 +615,20 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                     f"first words {sec('firstWords')}, whole answer {sec('total')}.")
         if fell_back:
             problem(f"For {label}, the lookup step {fell_back}, so RabbAI searched the question's words instead.")
+        if r.get("status") == "answered":
+            TALLY["answered"] += 1
+            if not texts_cited:
+                TALLY["no_text"] += 1
+        # Each step against its budget (seconds).
+        def over(key: str, limit: float, what: str) -> None:
+            v = t.get(key)
+            if isinstance(v, (int, float)) and v / 1000 > limit:
+                TALLY["slow"] += 1
+                problem(f"For {label}, {what} took {v / 1000:.1f} seconds (its budget is {limit:.0f}).")
+        over("plan", BUDGET["plan"], "the lookup step")
+        first_limit = (BUDGET["quick_first"] if r.get("quick") else BUDGET["online_first"] if r.get("online")
+                       else BUDGET["talk_first"] if talking else BUDGET["first"])
+        over("firstWords", first_limit, "the first words")
         return r
 
     def leave_midway(question: str) -> None:
@@ -870,6 +893,9 @@ def main() -> int:
         check_app(code, expected)
     except Exception as e:  # noqa: BLE001
         problem(f"The live app couldn't be checked: {plain(e)}")
+    if TALLY["answered"]:
+        summary(f"- Across the questions asked: {TALLY['answered']} answered, {TALLY['no_text']} of them citing no text from the "
+                f"library, {TALLY['slow']} steps over their time budget.")
     summary("## The live app in a browser")
     check_browser(code, expected)
 

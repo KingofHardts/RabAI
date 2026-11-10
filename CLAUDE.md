@@ -250,6 +250,11 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   davening" (`web/lib/siddur/today.ts`) folds what isn't said today into a labeled line that opens
   with a tap; it never removes a line (Josh's decision; the board confirms, open question 23).
   "Ask about this" goes through the usual checked path (`send`).
+- On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
+  the day's times as the calendar gives them, naming both opinions where it gives two; never pick
+  one opinion. "Shabbat tonight" on Friday and the Shema before sleep late at night only change
+  what is offered first. All of it sits under the home's label as RabbAI's reading (open
+  question 23).
 - The order the prayers are davened in, the names shown for them and the outline they are grouped
   into come from `web/lib/siddur/outline.ts` (founding spec "The app organized"). It never changes
   a word of a siddur: only the order sections are offered in (`davenOrder`: the blessings over the
@@ -361,6 +366,14 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-10 (second round), at Josh's request ("take all of the things that say next… can we
+make those?"): 24 of the lists' "next" items, the ones safe to build without measuring or asking
+(founding spec, "The second round, the same day"). The other 47 are held back, each for a reason
+written at the end of `docs/design-2026-11.md`: they change which texts open or which model
+answers (measure first, one at a time), they are halacha for the board, they need data the app
+doesn't have, or they are larger screen work. The health check now counts answers that cited no
+text and flags a step over its time budget (`BUDGET` in `tools/health_check.py`).
 
 Done 2026-11-05, at Josh's request ("a good, fluent conversation", "pulls up the source and live
 highlights what it's talking about", "read a line and then talk about that line", "100 aspects of

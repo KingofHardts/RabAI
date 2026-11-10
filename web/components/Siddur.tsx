@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
 import DavenTools from "./daven/DavenTools";
@@ -9,7 +9,8 @@ import { useLinkedScroll } from "./use-linked-scroll";
 import { isOnline, keepAppCode, keepAppPage, keepOnDevice } from "@/lib/offline";
 import { sectionLabel } from "@/lib/library/catalog";
 import { contentsTree, type ContentsNode } from "@/lib/library/contents-tree";
-import { findPrayers, firstSection, prayerForHour } from "@/lib/library/prayer-find";
+import { findPrayers, firstSection } from "@/lib/library/prayer-find";
+import { leadPrayer, serviceTimes } from "@/lib/siddur/service-times";
 import type { WordEntry } from "@/lib/library/word-parts";
 import type { GlossRow, Translation } from "@/lib/engine/gloss";
 import type { DaySummary, Place } from "@/lib/calendar/place";
@@ -19,7 +20,7 @@ import { transliterate } from "@/lib/siddur/translit";
 import { noteFor, bareLetters } from "@/lib/siddur/notes";
 import { lawNumbersIn, lawRanges, prayerLinks, type LawRange } from "@/lib/siddur/links";
 import type { DaveningNote } from "@/lib/siddur/davening-notes.generated";
-import { loadPrefs, savePrefs, type DavenPrefs, type Layout } from "@/lib/siddur/prefs";
+import { SIZE_SCALE, loadPrefs, savePrefs, type DavenPrefs, type Layout } from "@/lib/siddur/prefs";
 import { davenOrder, glossFor, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
 
 /*
@@ -148,6 +149,7 @@ const SERVICE_NOTE: Record<string, string> = {
   Maariv: "Evening",
   "Kabbalat Shabbat": "Friday night",
   Amidah: "For Yom Tov",
+  "Bedtime Shema": "Before going to sleep",
 };
 
 /** Places in a service people look for, found by the line's opening words. */
@@ -224,6 +226,7 @@ export default function Siddur({
   place,
   testing,
   request,
+  home,
   theme,
   onTheme,
   onAsk,
@@ -241,6 +244,8 @@ export default function Siddur({
   testing: boolean;
   /** A section to open, from elsewhere in the app; `n` changes each time it is asked. */
   request: { section: string; n: number } | null;
+  /** Changes each time the person taps the Daven tab while it is open: back to the siddur's home. */
+  home?: number;
   theme: "system" | "light" | "dark";
   onTheme: (t: "system" | "light" | "dark") => void;
   onAsk: (question: string) => void;
@@ -301,6 +306,14 @@ export default function Siddur({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen, jumpOpen, laws, word, linePop]);
+  // Tapping the Daven tab again comes back to the siddur's home.
+  useEffect(() => {
+    if (!home) return;
+    setView("home");
+    setMenuOpen(false);
+    setContentsOpen(false);
+    setJumpOpen(false);
+  }, [home]);
   const bodyRef = useRef<HTMLDivElement>(null);
   const enRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -857,7 +870,7 @@ export default function Siddur({
   // ---------------------------------------------------------------- the services for today
 
   const shabbat = davening?.dow === 6;
-  const nowService = day?.afterSunset ? "Maariv" : prayerForHour(new Date().getHours());
+  const hourNow = new Date().getHours();
   const services = useMemo(() => {
     if (!tree || !book) return [];
     const named = (name: string, label: string, kind = label) => ({ name: kind, label, section: sectionByName(tree, name) });
@@ -892,6 +905,11 @@ export default function Siddur({
       .map((x) => ({ ...x, section: findPrayers([{ book, nodes: tree }], x.name, 1)[0]?.section }))
       .filter((x) => x.section && !seen.has(x.section) && seen.add(x.section));
   }, [tree, book, davening]);
+
+  const bedtime = extras.find((x) => x.name === "Bedtime Shema");
+  const nowService = leadPrayer(hourNow, !!day?.afterSunset, !!bedtime);
+  /** Friday from midday: Shabbat's own prayers come first, with the time to light candles. */
+  const shabbatComing = davening?.dow === 5 && hourNow >= 12 && !davening?.yomTov;
 
   /** Today's places to continue: one per service, from today. */
   const continues = useMemo(() => {
@@ -1286,6 +1304,17 @@ export default function Siddur({
               : "The prayers with the siddur's own instructions, and RabbAI's notes where a siddur prints none."}
         </p>
         {seg("Layout", layout, LAYOUTS.map((l) => [l.id, l.label] as [Layout, string]), (v) => setPref("layout", v))}
+        {seg(
+          "Text size",
+          prefs.size,
+          [
+            ["small", "Small"],
+            ["usual", "Usual"],
+            ["large", "Large"],
+            ["larger", "Larger"],
+          ],
+          (v) => setPref("size", v),
+        )}
         {seg("Language", prefs.lang, [["he", "עברית"], ["both", "Both"], ["en", "English"]], (v) => setPref("lang", v))}
         {seg("Transliteration", prefs.translit, [["off", "Off"], ["sephardi", "Sephardi"], ["ashkenazi", "Ashkenazi"]], (v) => setPref("translit", v))}
         {prefs.translit !== "off" && <p className="fine-left sd-menu-note">RabbAI&apos;s transliteration from the siddur&apos;s vowels: it may have small mistakes, and isn&apos;t yet reviewed by the rabbinic board.</p>}
@@ -1362,10 +1391,17 @@ export default function Siddur({
 
   if (view === "home") {
     const lastNames = last ? shown(last.book, last.section) : null;
-    const now = services.find((s) => s.name === nowService) ?? services[0];
+    const now =
+      nowService === "Bedtime Shema" && bedtime
+        ? { name: "Bedtime Shema", label: bedtime.label, section: bedtime.section }
+        : (services.find((s) => s.name === nowService) ?? services[0]);
+    const times = (name: string) => (davening?.yomTov || (shabbat && name === "Maariv") ? "" : serviceTimes(name, day?.zmanim?.items));
+    const shabbatGroup = shabbatComing ? extras.filter((x) => x.group === "Shabbat") : [];
     const nowContinue = continues.find((c) => c.service === now?.label || c.service === now?.name);
     const notes = davening?.notes ?? [];
-    const extraGroups = [...new Set(extras.map((x) => x.group))].map((g) => ({ group: g, items: extras.filter((x) => x.group === g) }));
+    const extraGroups = [...new Set(extras.map((x) => x.group))]
+      .filter((g) => !(shabbatGroup.length && g === "Shabbat"))
+      .map((g) => ({ group: g, items: extras.filter((x) => x.group === g) }));
     return (
       <div className="siddur">
         <div className="sd-scroll sd-home">
@@ -1393,7 +1429,9 @@ export default function Siddur({
             <div className="sd-hero" role="group" aria-label="The prayer for now">
               <p className="sd-hero-kicker">Now</p>
               <p className="sd-hero-name">{now.label}</p>
-              {SERVICE_NOTE[now.name] && <p className="sd-hero-note">{SERVICE_NOTE[now.name]}</p>}
+              {(SERVICE_NOTE[now.name] || times(now.name)) && (
+                <p className="sd-hero-note">{[SERVICE_NOTE[now.name], times(now.name)].filter(Boolean).join(" · ")}</p>
+              )}
               <div className="sd-hero-actions">
                 <button type="button" className="sd-hero-go" onClick={() => void openAt(nowContinue?.section ?? now.section!)}>
                   {nowContinue ? `Continue at ${nowContinue.short}` : `Begin ${now.label}`}
@@ -1411,6 +1449,28 @@ export default function Siddur({
             </p>
           )}
 
+          {shabbatGroup.length > 0 && (
+            <section className="sd-block sd-shabbat-coming" aria-labelledby="sd-h-shabbat">
+              <h3 id="sd-h-shabbat" className="sd-block-h">
+                Shabbat tonight
+              </h3>
+              {day?.shabbat?.candles && (
+                <p className="sd-candles">
+                  Candle lighting {day.shabbat.candles}
+                  {day.place ? ` in ${day.place.name}` : ""}
+                </p>
+              )}
+              <div className="sd-tiles">
+                {shabbatGroup.map((x) => (
+                  <button key={x.name} type="button" className="sd-tile" onClick={() => void openAt(x.section!)}>
+                    <span className="sd-tile-title">{x.label}</span>
+                    {x.note && <span className="sd-tile-note">{x.note}</span>}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {services.length > 0 && (
             <section className="sd-block" aria-labelledby="sd-h-today">
               <h3 id="sd-h-today" className="sd-block-h">
@@ -1424,7 +1484,11 @@ export default function Siddur({
                       <button type="button" className={`sd-row${s === now ? " now" : ""}`} onClick={() => void openAt(s.section!)}>
                         <span className="sd-row-text">
                           <span className="sd-row-title">{s.label}</span>
-                          <span className="sd-row-note">{cont ? `You were at ${cont.short}` : (SERVICE_NOTE[s.name] ?? (/Hallel/.test(s.label) ? SERVICE_NOTE.Hallel : ""))}</span>
+                          <span className="sd-row-note">
+                            {cont
+                              ? `You were at ${cont.short}`
+                              : [SERVICE_NOTE[s.name] ?? (/Hallel/.test(s.label) ? SERVICE_NOTE.Hallel : ""), times(s.name)].filter(Boolean).join(" · ")}
+                          </span>
                         </span>
                         {s === now && <span className="sd-row-badge">Now</span>}
                         <span className="sd-row-chev" aria-hidden="true">
@@ -1510,7 +1574,7 @@ export default function Siddur({
               <h3 id="sd-h-all" className="sd-block-h">
                 The whole siddur
               </h3>
-              <SiddurOutline outline={outline} onOpen={(sec) => void openAt(sec)} />
+              <SiddurOutline outline={outline} onOpen={(sec) => void openAt(sec)} search />
             </section>
           )}
 
@@ -1541,6 +1605,17 @@ export default function Siddur({
   const nextLayout = LAYOUTS[(LAYOUTS.findIndex((l) => l.id === layout) + 1) % 3] ?? LAYOUTS[0];
   // What comes after this in the same part of the siddur, under its headings, for the jump list.
   const nowCategory = nowChunk ? outline.find((c) => c.groups.some((g) => g.items.some((i) => i.section === nowChunk.section))) : undefined;
+  // How far through the service the person is, for the thin line under the bar: by the headings
+  // inside the open section (a siddur that keeps a whole service in one section), or else by the
+  // prayers under the same heading of the outline.
+  const nowGroup = nowChunk ? nowCategory?.groups.find((g) => g.items.some((i) => i.section === nowChunk.section)) : undefined;
+  const stopsHere = nowChunk ? stops.map((st, i) => ({ st, i })).filter((x) => x.st.section === nowChunk.section) : [];
+  const progress =
+    stopsHere.length >= 3 && nowChunk
+      ? { at: Math.max(1, stopsHere.findIndex((x) => x.i === current) + 1), of: stopsHere.length, title: nowNames?.short ?? "" }
+      : nowGroup && nowChunk && nowGroup.items.length >= 3
+        ? { at: nowGroup.items.findIndex((i) => i.section === nowChunk.section) + 1, of: nowGroup.items.length, title: nowGroup.title || nowCategory?.title || "" }
+        : null;
   const loaded = new Set(chunks.map((c) => c.section));
   const lastLoaded = chunks.length ? orderRef.current.indexOf(chunks[chunks.length - 1].section) : -1;
   const furtherOn = (nowCategory?.groups ?? [])
@@ -1592,7 +1667,7 @@ export default function Siddur({
   );
 
   return (
-    <div className={`siddur reading layout-${layout}`}>
+    <div className={`siddur reading layout-${layout}`} style={{ "--sd-scale": SIZE_SCALE[prefs.size] } as CSSProperties}>
       <div className="sd-bar">
         <button type="button" className="rb-back" onClick={() => setView("home")} aria-label="Back to the siddur's home">
           <span aria-hidden="true">←</span>
@@ -1621,6 +1696,19 @@ export default function Siddur({
           </button>
         )}
       </div>
+      {progress && (
+        <div
+          className="sd-progress"
+          role="progressbar"
+          aria-label={`${progress.at} of ${progress.of}${progress.title ? ` in ${progress.title}` : ""}`}
+          aria-valuemin={1}
+          aria-valuemax={progress.of}
+          aria-valuenow={progress.at}
+          title={`${progress.at} of ${progress.of}${progress.title ? ` in ${progress.title}` : ""}`}
+        >
+          <span style={{ width: `${Math.round((progress.at / progress.of) * 100)}%` }} />
+        </div>
+      )}
       {menu}
       {contentsOpen && (
         <div className="sd-contents">
@@ -1844,5 +1932,5 @@ function loadPrefsSafe(): DavenPrefs {
 }
 
 function loadPrefsDefault(): DavenPrefs {
-  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false }, depth: "guide", torahBlessings: "before-morning-blessings" };
+  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false }, depth: "guide", size: "usual", torahBlessings: "before-morning-blessings" };
 }

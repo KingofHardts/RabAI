@@ -218,3 +218,13 @@ test("a typed follow-up skips the lookup step only when it is short and points b
   // With no answer before it (no sources to go back to), nothing is skipped.
   assert.equal(typedFollowUp({ question: "Why?", conversation: true, refs: [] }), false);
 });
+
+test("the reading line names what is being opened, and counts the rest", async () => {
+  const { readingStatus } = await import("../lib/engine/answer");
+  const one = readingStatus(["Berakhot 2a"], 1);
+  assert.match(one, /Berakhot 2a/);
+  const many = readingStatus(["Berakhot 2a", "Rashi on Berakhot 2a", "Tosafot on Berakhot 2a", "Mishnah Berakhot 1:1"], 9);
+  assert.match(many, /Berakhot 2a/);
+  assert.match(many, /more/);
+  assert.ok(many.length < 160, "the line stays short");
+});

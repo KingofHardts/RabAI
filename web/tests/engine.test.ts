@@ -102,7 +102,7 @@ test("the answer's text reaches the screen as it is written, and statuses come f
     onText: (t) => events.push(`text:${t}`),
   });
   assert.equal(result.status, "answered");
-  assert.match(events[0], /^status:(Reading \d+ sources?|Thinking it through)$/);
+  assert.match(events[0], /^status:(Reading .+|Thinking it through)$/);
   assert.deepEqual(events.slice(1), ["text:The Torah ", "text:begins with Creation."]);
 });
 

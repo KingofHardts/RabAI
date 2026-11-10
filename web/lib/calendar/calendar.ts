@@ -581,7 +581,10 @@ export function daySummary(info: CalendarInfo): DaySummary {
     ...(s?.candles && s.ends && s.candlesDay && s.endsDay ? { shabbat: { candles: s.candles, candlesDay: s.candlesDay, ends: s.ends, endsDay: s.endsDay } } : {}),
     ...(info.place ? { place: { name: info.place.name, from: info.place.from } } : {}),
     ...(info.zmanim?.items.length
-      ? { zmanim: { day: info.zmanim.day, items: info.zmanim.items.map((z) => ({ label: z.label, time: z.time, ...(z.note ? { note: z.note } : {}) })) } }
+      ? { zmanim: { day: info.zmanim.day, items: info.zmanim.items.map((z) => ({ id: z.id, label: z.label, time: z.time, ...(z.note ? { note: z.note } : {}) })) } }
+      : {}),
+    ...(info.learning.some((l) => l.id !== "dafYomi")
+      ? { learning: info.learning.filter((l) => l.id !== "dafYomi").map((l) => ({ id: l.id, label: l.label, text: l.text })) }
       : {}),
     ...(info.davening ? { davening: { ...info.davening, notes: daveningNotes(info.davening) } } : {}),
     ...(soonItem

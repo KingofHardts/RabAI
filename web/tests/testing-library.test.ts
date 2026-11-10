@@ -446,6 +446,23 @@ test("a plan that is cut off, unreadable, or never comes falls back to the quest
   assert.equal((await retrieveFromTesting(question, store, replying("I can't plan this.", "end_turn"))).plan.fallback, "unreadable");
   const failing: LookupClient = { async create() { throw new Error("overloaded"); } };
   assert.equal((await retrieveFromTesting(question, store, failing)).plan.fallback, "failed");
+  // A reply that couldn't be read is asked for once more; one that was cut off is not (it would be cut off again).
+  let asked = 0;
+  const secondTime: LookupClient = {
+    async create() {
+      asked++;
+      return asked === 1
+        ? { content: [{ type: "text", text: "I can't plan this." }], stop_reason: "end_turn" }
+        : { content: [{ type: "text", text: '{"refs": ["Shulchan Aruch, Orach Chayim 253:1"], "hebrew": [], "english": [], "practical": true}' }], stop_reason: "end_turn" };
+    },
+  };
+  const again = await retrieveFromTesting(question, store, secondTime);
+  assert.equal(asked, 2);
+  assert.equal(again.plan.fallback, undefined);
+  assert.equal(again.plan.practical, true, "the practical mark survives, so the rav note is shown");
+  let cutAsked = 0;
+  await retrieveFromTesting(question, store, { async create() { cutAsked++; return { content: [{ type: "thinking" }], stop_reason: "max_tokens" }; } });
+  assert.equal(cutAsked, 1);
   // A plan that comes through is used as it is, with nothing marked.
   const good = await retrieveFromTesting(question, store, replying(JSON.stringify({ refs: [], hebrew: [], english: ["urn"], practical: true }), "end_turn"));
   assert.equal(good.plan.fallback, undefined);

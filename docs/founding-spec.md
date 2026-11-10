@@ -491,6 +491,23 @@ wording.
     that more simply?") goes straight to that answer's sources, as a turn in Talk does; anything
     that names a new book, asks halacha or needs the calendar is still planned. The siddur, the
     printed page and a few dialogs load only when opened.
+  - **The second round, the same day.** Josh asked for the items the lists marked "next" to be
+    built. Twenty-four were, the ones that could be built without measuring or asking: a search
+    box in the siddur; under each service, when it may be said today, from the day's times (both
+    opinions named where the calendar gives two); from midday on Friday, "Shabbat tonight" first
+    with the time to light candles; the Shema before sleep offered first late at night; a text
+    size for the siddur; a thin line showing how far through a service the person is; the other
+    daily learning cycles and a chavrusa card on the Learn home; recent searches (on the device);
+    a greeting that follows the hour and the Jewish day ("Shabbat shalom", "Chag sameach", a wish
+    for a fast); "Argue the other side" in a chavrusa session; the Hebrew date in the bar on a
+    computer; stronger lines when a device asks for more contrast; a lookup plan that couldn't be
+    read is asked for once more; the status line names what is being opened; and the health check
+    counts answers that cited no text and flags a step over its time budget. The core premises
+    gain four more draft lines (open question 27): "In their language", "Glad to be learning",
+    "Learning a prayer over days" and "Davening for the first time, or after a long time". The
+    service times and the Friday and late-night choices are RabbAI's reading of the calendar,
+    under the same label as the rest of the Daven home (open question 23). The 47 held back, and
+    why, are listed at the end of `docs/design-2026-11.md`.
 - **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**
   - The Learn search finds what is inside the siddurs, not only book names: "Mincha",
     "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
@@ -775,4 +792,6 @@ These need a decision before launch. Each one changes behavior.
     core premises gain "Answering well", "The craft of teaching", "What a good chavrusa adds" and
     "Beside someone who is davening". In particular: saying how settled a ruling is, that every
     nusach is right for its community, and that RabbAI never tells a person their prayer didn't
-    count.
+    count. (e) Four more lines added the same day: answering in the language the person writes in,
+    being glad to be learning, teaching a prayer over several days, and helping someone daven for
+    the first time (which leaves what and how much to say to a rav).

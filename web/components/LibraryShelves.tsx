@@ -97,6 +97,9 @@ function store(key: string, value: string) {
   }
 }
 
+/** Where the last few searches are kept, on the device. */
+const SEARCHES_KEY = "rabai_learn_searches";
+
 export default function LibraryShelves({
   books,
   label,
@@ -136,6 +139,37 @@ export default function LibraryShelves({
   const byTitle = useMemo(() => new Map(placed.map((b) => [b.title, b])), [placed]);
 
   const [query, setQuery] = useState("");
+  /** The last few things searched for, kept on this device only. */
+  const [searches, setSearches] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const kept = JSON.parse(localStorage.getItem(SEARCHES_KEY) ?? "[]");
+      if (Array.isArray(kept)) setSearches(kept.filter((x): x is string => typeof x === "string").slice(0, 5));
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const keepSearch = (q: string) => {
+    const t = q.trim();
+    if (t.length < 2 || t.length > 60) return;
+    setSearches((prev) => {
+      const next = [t, ...prev.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, 5);
+      try {
+        localStorage.setItem(SEARCHES_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable */
+      }
+      return next;
+    });
+  };
+  const forgetSearches = () => {
+    setSearches([]);
+    try {
+      localStorage.removeItem(SEARCHES_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [shelfId, setShelfId] = useState<ShelfId | null>(null);
   const [partIndex, setPartIndex] = useState(0);
   const [page, setPage] = useState<Page | null>(null);
@@ -476,17 +510,24 @@ export default function LibraryShelves({
             setPage(null);
           }}
           onKeyDown={onSearchKey}
+          onBlur={() => keepSearch(query)}
           autoComplete="off"
           spellCheck={false}
         />
       </div>
       {!query && !page && !browsing && (
-        <div className="lib-tries" aria-label="Things to try">
-          {["Berakhot 2a", "Mincha", "משנה ברורה", "zmanim"].map((t) => (
+        <div className="lib-tries" aria-label={searches.length ? "Your recent searches" : "Things to try"}>
+          {searches.length > 0 && <span className="lib-tries-k">Recent</span>}
+          {(searches.length ? searches : ["Berakhot 2a", "Mincha", "משנה ברורה", "zmanim"]).map((t) => (
             <button key={t} type="button" className="lib-try" onClick={() => setQuery(t)}>
               {t}
             </button>
           ))}
+          {searches.length > 0 && (
+            <button type="button" className="link lib-tries-clear" onClick={forgetSearches}>
+              Clear
+            </button>
+          )}
         </div>
       )}
       {!query && !page && recent.length > 0 && (

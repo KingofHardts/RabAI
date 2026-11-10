@@ -400,12 +400,20 @@ export async function planLookups(
   if (!client || !question.trim()) return fallbackPlan(question);
   try {
     const catalog = await store.catalog();
-    const reply = await client.create(lookupRequest(preface ? `${preface}\n\n${question}` : question, catalog, lookupModel(), pictures));
-    const text = reply.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
+    const request = lookupRequest(preface ? `${preface}\n\n${question}` : question, catalog, lookupModel(), pictures);
+    let reply = await client.create(request);
+    const textOf = (r: typeof reply) => r.content.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("");
     // An empty plan is a choice: small talk or a practical task needs no sources, and searching
     // anyway only slows the answer and hands the model passages that don't help.
-    const plan = readLookupPlan(text);
+    let plan = readLookupPlan(textOf(reply));
     if (plan) return plan;
+    // A reply that couldn't be read is asked for once more (the catalog is cached, so it is quick)
+    // before falling back: a practical question that falls back loses its lookup and its rav note.
+    if (reply.stop_reason !== "max_tokens") {
+      reply = await client.create(request);
+      plan = readLookupPlan(textOf(reply));
+      if (plan) return plan;
+    }
     // No plan: say why, so a cut-off or unreadable reply is noticed rather than quietly searched around.
     const cutOff = reply.stop_reason === "max_tokens";
     console.warn(`[rabai] lookup planning ${cutOff ? "was cut off at the token limit" : "gave no plan that could be read"}; searching the question's words instead`);

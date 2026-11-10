@@ -52,6 +52,7 @@ import {
 } from "./voice";
 import { setCutInByVoice, useTalk, type TalkControls } from "./talk";
 import { countdownMs, micOpen, tapAction, wordsOf, type TalkPace } from "@/lib/talk";
+import { dayWish, greeting } from "@/lib/greeting";
 import type { LiveCite, LivePassage, LiveRead } from "@/lib/engine/live-sources";
 import { activeMark, ReadLine, readingText, SourceCard, type SourceMark, type SpokenSpan } from "./SourceCard";
 import LibraryShelves from "./LibraryShelves";
@@ -1574,6 +1575,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   /** Learn's screens: the library, My words, or the Gemara's key words. */
   const [learnView, setLearnView] = useState<"library" | "words" | "phrases" | "articles">("library");
+  /** The hour and weekday where the person is, read once the page is on their device (for the greeting). */
+  const [clock, setClock] = useState<{ hour: number; weekday: number } | null>(null);
+  useEffect(() => {
+    const now = new Date();
+    setClock({ hour: now.getHours(), weekday: now.getDay() });
+  }, []);
   /** Which group of suggested questions the welcome shows. */
   const [starterTab, setStarterTab] = useState(0);
   const starterTabNow = Math.min(starterTab, Math.max(0, (starters?.length ?? 1) - 1));
@@ -1582,6 +1589,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [split, setSplit] = useState(false);
   /** A section to open in the Daven tab (its siddur), asked for from elsewhere in the app. */
   const [davenRequest, setDavenRequest] = useState<{ section: string; n: number } | null>(null);
+  /** Counts taps on the Daven tab while it is open: each one takes the siddur back to its home. */
+  const [davenHome, setDavenHome] = useState(0);
+  /** Scrolls the chat to its latest (set once that function exists, further down). */
+  const toLatestRef = useRef<(() => void) | null>(null);
   const paneHeRef = useRef<HTMLDivElement>(null);
   const paneEnRef = useRef<HTMLDivElement>(null);
 
@@ -1783,11 +1794,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   // On a computer, "/" puts the cursor in the question box, as on many sites.
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || mode !== "chat") return;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || mode === "daven") return;
       const t = e.target as HTMLElement | null;
       if (t && (t.closest("input, textarea, select, [contenteditable=true]") || t.isContentEditable)) return;
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      const box = textareaRef.current;
+      // In Learn, "/" goes to the library's search box.
+      const box = mode === "learn" ? document.querySelector<HTMLInputElement>("#book-filter") : textareaRef.current;
       if (!box) return;
       e.preventDefault();
       box.focus();
@@ -1857,8 +1869,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   }, []);
 
   const chooseMode = (m: Mode) => {
-    // Tapping Learn again goes back to the library.
+    // Tapping Learn again goes back to the library; Daven again, to the siddur's home; Chat again,
+    // to the latest of the conversation.
     if (m === "learn") setLearnView("library");
+    if (m === mode && m === "daven") setDavenHome((n) => n + 1);
+    if (m === mode && m === "chat") toLatestRef.current?.();
     setMode(m);
     store("rabai_mode", m);
   };
@@ -2335,6 +2350,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     else top = el.scrollHeight;
     el.scrollTo({ top: Math.max(0, top), behavior: still ? "auto" : "smooth" });
   }, []);
+  toLatestRef.current = toLatest;
 
   /**
    * Room below the last question, so it can sit at the top of the screen with its answer growing
@@ -4888,6 +4904,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <span className="narrow">Testing</span>
               </span>
             )}
+            {day && (
+              <span className="top-date" title={[day.civil, ...day.todayIs].join(" · ")}>
+                {day.hebrew}
+                {day.todayIs[0] ? ` · ${day.todayIs[0]}` : ""}
+              </span>
+            )}
           </div>
           <div className="top-actions">
             <button
@@ -5372,6 +5394,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             place={placeSettings.place}
             testing={libraryMode === "testing"}
             request={davenRequest}
+            home={davenHome}
             theme={theme}
             onTheme={(t) => {
               setTheme(t);
@@ -5441,8 +5464,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                   <div className="body">
                     <p className="welcome-hi">
-                      Shalom{profile.remember && profile.stated.name ? `, ${profile.stated.name}` : ""}. What shall we learn?
+                      {clock
+                        ? greeting({ ...clock, name: profile.remember ? profile.stated.name : undefined, day }).hello
+                        : `Shalom${profile.remember && profile.stated.name ? `, ${profile.stated.name}` : ""}.`}{" "}
+                      What shall we learn?
                     </p>
+                    {clock && dayWish(day, clock.weekday) && <p className="welcome-wish">{dayWish(day, clock.weekday)}</p>}
                     {day && (
                       <p className="welcome-today">
                         <span>{todayLine(day)}</span>
@@ -5701,6 +5728,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                                   </button>
                                 );
                               })()}
+                              {chavrusa && (
+                                <button
+                                  type="button"
+                                  className="btn quiet"
+                                  disabled={pending}
+                                  title="RabbAI takes the other side of what was just said, so you can test it"
+                                  onClick={() => void send("Argue the other side of that, as strongly as its own holders would, and let me answer.")}
+                                >
+                                  Argue the other side
+                                </button>
+                              )}
                               {!chavrusa && (
                                 <button
                                   type="button"
@@ -5860,7 +5898,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       <span className="muted">Read it with the commentaries</span>
                     </button>
                   )}
+                    <button type="button" className="learn-today-item chav" onClick={() => openChavrusaSetup()}>
+                      <span className="label-sm">With RabbAI</span>
+                      <strong>Learn with a chavrusa</strong>
+                      <span className="muted">Any text, a line at a time</span>
+                    </button>
                 </div>
+                  {day.learning && day.learning.length > 0 && (
+                    <details className="learn-cycles">
+                      <summary>More of today&apos;s learning ({day.learning.length})</summary>
+                      <ul>
+                        {day.learning.map((l) => (
+                          <li key={l.id}>
+                            <span className="lc-label">{l.label}</span>
+                            <span className="lc-text">{l.text}</span>
+                            <button
+                              type="button"
+                              className="link"
+                              onClick={() => {
+                                chooseMode("chat");
+                                void send(`Let's learn today's ${l.label} together: ${l.text}. Start at the beginning, a piece at a time.`, { fresh: true });
+                              }}
+                            >
+                              Learn it
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </section>
               )}
                   onPlace={() => setPlaceOpen(true)}
@@ -6053,7 +6119,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         : "Ask about the picture…"
                       : chavrusa
                         ? "Answer, or ask your chavrusa…"
-                        : "Ask anything…"
+                        : messages.length
+                          ? "Ask a follow-up, or something new…"
+                          : "Ask anything…"
                 }
                 maxLength={2000}
                 autoComplete="off"

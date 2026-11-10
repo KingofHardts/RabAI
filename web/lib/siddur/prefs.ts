@@ -19,6 +19,10 @@ export type Wording = "both" | "men" | "women";
  */
 export type DavenDepth = "prayers" | "guide" | "study";
 
+/** How large the siddur's text is, on top of the app's own text size. */
+export type DavenSize = "small" | "usual" | "large" | "larger";
+export const SIZE_SCALE: Record<DavenSize, number> = { small: 0.9, usual: 1, large: 1.18, larger: 1.38 };
+
 export interface DavenPrefs {
   layout: Layout;
   lang: DavenLang;
@@ -30,6 +34,7 @@ export interface DavenPrefs {
   wordTap: boolean;
   customs: DavenCustoms;
   depth: DavenDepth;
+  size: DavenSize;
   /** Where the blessings over the Torah come in the morning (lib/siddur/outline.ts, davenOrder). */
   torahBlessings: TorahBlessingsPlace;
 }
@@ -43,6 +48,7 @@ export const DEFAULT_PREFS: DavenPrefs = {
   wordTap: true,
   customs: DEFAULT_CUSTOMS,
   depth: "guide",
+  size: "usual",
   torahBlessings: "before-morning-blessings",
 };
 
@@ -61,6 +67,7 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     translit: one(r.translit, ["off", "sephardi", "ashkenazi"] as const, DEFAULT_PREFS.translit),
     wordTap: typeof r.wordTap === "boolean" ? r.wordTap : DEFAULT_PREFS.wordTap,
     depth: one(r.depth, ["prayers", "guide", "study"] as const, DEFAULT_PREFS.depth),
+    size: one(r.size, ["small", "usual", "large", "larger"] as const, DEFAULT_PREFS.size),
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

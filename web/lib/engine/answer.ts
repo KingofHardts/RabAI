@@ -68,6 +68,18 @@ export function conversationTurn(input: Pick<AskInput, "talking" | "chavrusa" | 
   return !input.action && !input.deep && (!!input.talking || !!input.chavrusa);
 }
 
+/**
+ * What RabbAI is reading, in a few words for the person waiting: the first texts by name, then how
+ * many more ("Reading Berakhot 2a, Rashi on Berakhot 2a and 5 more").
+ */
+export function readingStatus(refs: string[], total: number): string {
+  // A passage's place without its line ("Berakhot 2a:3" -> "Berakhot 2a"), each named once.
+  const names = [...new Set(refs.map((r) => r.replace(/(?::\d+)+$/, "")))].slice(0, 2);
+  if (!names.length) return `Reading ${total} ${total === 1 ? "source" : "sources"}`;
+  const more = total - names.length;
+  return `Reading ${names.join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
+}
+
 /** What RabbAI is told when the person cut in while it was speaking. */
 export function interruptedSetting(heard: string): string {
   return `The person cut in while your last answer was being read aloud; the last words they heard were: "${heard}". They may not have heard the rest. Answer what they say now, briefly, and don't repeat what you already said unless they ask.`;
@@ -880,7 +892,7 @@ export async function ask(
     notes.online?.status === "found" && notes.online.kind === "torah"
       ? "Checking what I found against the texts"
       : texts
-        ? `Reading ${texts} ${texts === 1 ? "source" : "sources"}`
+        ? readingStatus(plan.documents.filter((p) => !p.online && !p.source?.article && !p.source?.dictionary).map((p) => p.ref), texts)
         : "Thinking it through",
   );
   let message: BetaMessage;

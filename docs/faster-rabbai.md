@@ -39,8 +39,10 @@ this round on, every answer reports how long each step took, and the health chec
    waits for). **Next.**
 4. **Keep a week of timings** (numbers only, never questions) to see slow days and slow steps.
    **Next.**
-5. **A speed budget per step**, so the health check flags a step that grows slow (for example,
-   lookup step over 4 seconds, first words over 6). **Next.**
+5. **A speed budget per step**, so the health check flags a step that grows slow. **Built**
+   (2026-11-10): the lookup step over 6 seconds; first words over 4 seconds for a quick follow-up,
+   10 in Talk, 20 for an ordinary question, 45 with an online lookup. The budgets are set from what
+   the live app measured, so they catch a step that slows down rather than flag every run.
 
 ## B. Faster thinking
 
@@ -157,7 +159,9 @@ this round on, every answer reports how long each step took, and the health chec
     **Next.**
 54. **Batch the library's queries** into one trip to the database instead of several. **Next.**
 55. **Put the database near the server**: check that Turso's region is the same as Vercel's, since
-    every trip between them adds time. **Next** (a check).
+    every trip between them adds time. **Built** (checked 2026-11-10): the library is in Turso's AWS
+    US East and the app has no other region set, so Vercel runs it in Washington, D.C., the same
+    region.
 56. **Keep the database connection open** between questions on the same server. **Built** earlier.
 57. **Read the dictionaries only for words that need them** (already only for texts with no
     English). **Built** earlier.
@@ -168,8 +172,8 @@ this round on, every answer reports how long each step took, and the health chec
 ## F. Streaming and the app
 
 60. **Answers stream word by word** to the screen. **Built** earlier.
-61. **Show what RabbAI is opening** ("Opening Berakhot 2a, Rashi, Tosafot") while it looks, so the
-    wait feels like learning, not waiting. **Next.**
+61. **Show what RabbAI is opening** ("Reading Berakhot 2a, Rashi on Berakhot 2a and 5 more") while
+    it looks, so the wait feels like learning, not waiting. **Built** (2026-11-10).
 62. **Show the first sources found** before the answer starts. **Later.**
 63. **The answer keeps being written if the page leaves.** **Built** earlier.
 64. **A question said while the answer is still being written** waits and is sent right after it,

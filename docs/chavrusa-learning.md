@@ -135,8 +135,8 @@ What the research says, in short:
 56. **"Just tell me."** Always works. Built.
 57. **Both sides, fairly.** A machlokes is given each side's reasoning. Built.
 58. **Ask your rav.** Practical questions always end with the note to ask your rav. Built.
-59. **Devil's advocate on request.** "Argue the other side." Next: works when asked; a button would
-    make it easier to find.
+59. **Devil's advocate on request.** "Argue the other side." Built (2026-11-10): a button under
+    each answer in a chavrusa session.
 60. **Celebrate understanding.** A short "That's it, exactly!" Built (this round).
 
 ## Taking turns: the rhythm of a conversation
