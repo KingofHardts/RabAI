@@ -29,7 +29,7 @@ function fixBlock(lines: string[], from: number, to: number, he: string, label: 
     }
     if (done > k) {
       const ens = idx.slice(k, done + 1).map((n) => lines[n].split("|")[1].trim()).filter((e) => !NOISE.test(e));
-      const en = ens.join(" ") || lines[idx[done]].split("|")[1].trim();
+      const en = ens.join(W.slice(i, upto + 1).join(" ").includes("/") ? " / " : " ") || lines[idx[done]].split("|")[1].trim();
       lines[idx[k]] = `${W.slice(i, upto + 1).join(" ").replace(/[,:.;!?]+$/, "")} | ${en}`;
       for (let n = k + 1; n <= done; n++) lines[idx[n]] = "\u0000";
       merged++; i = upto + 1; k = done + 1; continue;
