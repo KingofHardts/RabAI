@@ -82,7 +82,7 @@ export function shortDictionary(user: string, keep: "short" | "none" = "short"):
     if (keep === "none" && (entry || /^Dictionary entries for its words:/.test(lines[i]))) {
       // Skip the heading or the entry, up to the next source or the closing instructions.
       let j = i + 1;
-      for (; j < lines.length; j++) if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply /.test(lines[j])) break;
+      for (; j < lines.length; j++) if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply |^Write the (general|word-by-word) translation |^Then list other readings/.test(lines[j])) break;
       i = j - 1;
       continue;
     }
@@ -92,7 +92,7 @@ export function shortDictionary(user: string, keep: "short" | "none" = "short"):
     const body: string[] = [];
     let j = i + 1;
     for (; j < lines.length; j++) {
-      if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply /.test(lines[j])) break;
+      if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply |^Write the (general|word-by-word) translation |^Then list other readings/.test(lines[j])) break;
       body.push(lines[j]);
     }
     const text = body.join("\n").trim();
