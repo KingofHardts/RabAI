@@ -253,7 +253,7 @@ def vercel_settings() -> tuple[dict, str, str]:
     project = call("GET", f"{VERCEL_API}/v9/projects/{VERCEL_PROJECT}{scope}", token)
     project_id = project.get("id", "")
 
-    deploys = call("GET", f"{VERCEL_API}/v6/deployments{scope}{joiner}projectId={project_id}&target=production&limit=3", token)
+    deploys = call("GET", f"{VERCEL_API}/v6/deployments{scope}{joiner}projectId={project_id}&target=production&limit=6", token)
     for d in deploys.get("deployments", [])[:3]:
         meta = d.get("meta", {}) or {}
         sha = (meta.get("githubCommitSha") or "")[:7]
@@ -261,7 +261,10 @@ def vercel_settings() -> tuple[dict, str, str]:
         created = d.get("created")
         when = datetime.fromtimestamp(created / 1000, timezone.utc).strftime("%Y-%m-%d %H:%M UTC") if isinstance(created, (int, float)) else "?"
         summary(f"- Production deploy: {plain(state)}, commit {sha or '?'}, made {when}")
-    latest = (deploys.get("deployments") or [{}])[0]
+    # A commit that changes nothing under web/ is skipped on purpose (web/vercel.json, ignoreCommand),
+    # and Vercel lists that as CANCELED: the deploy that counts is the newest one that was built.
+    built = [d for d in deploys.get("deployments") or [] if (d.get("state") or d.get("readyState")) != "CANCELED"]
+    latest = (built or [{}])[0]
     if (latest.get("state") or latest.get("readyState")) not in ("READY", None):
         problem(f"The latest production deploy is {latest.get('state') or latest.get('readyState')}, not READY.")
 
