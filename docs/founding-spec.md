@@ -589,6 +589,19 @@ wording.
     and Hebrew words and names are respelled so a voice says them right (`web/lib/voice/lexicon.ts`).
   - Reading aloud is learning, not prayer, so the voice says God's names as one does when learning:
     the Name as "Hashem", Elohim as "Elokim" (open question 24).
+  - **Decided (Josh, 2026-11-10):** the voice says "RabbAI" as "Rab", then the letters A and I;
+    it puts the emphasis in the right place in Hebrew; and it says the rabbis' names correctly.
+    Each word in the list now has a respelling with its stressed part in capitals and its exact
+    sounds, and Hebrew with vowels is read with its stress, by grammar's rules or a verse's own
+    cantillation marks. The voice is given exact sounds only where it reads them, capitals
+    otherwise, and the device's voices neither. Names are said as they usually are in English
+    among people who learn ("geh-MAH-rah", "RAHM-bahm"), and a word written the Israeli or the
+    Ashkenazi way is said that way; Josh may change this. In Settings a person can hear any word,
+    choose how stress is shown to the voice, and fix a word themselves (kept on their device).
+    The Name written out as it is read in prayer (אֲדֹנָי) is also said "Hashem" when read aloud
+    (open question 24). Nobody building the app can hear the voice, so which choice sounds best
+    is Josh's to judge by ear. `docs/voices-and-pronunciation.md` explains this and how to choose
+    or design a voice.
 - **Hebrew above, English below.** **Decided (Josh, 2026-11-04):** any text with both languages
   can be read in two panes, the Hebrew above and the English below. Scrolling either one moves
   the other to the same line and as far into it, each at its own speed, so the person never loses
@@ -765,7 +778,8 @@ These need a decision before launch. Each one changes behavior.
     each is limited to?
 24. **RabbAI's voice.** When an answer is read aloud, the voice says the Name as "Hashem" and Elohim
     as "Elokim", since reading an answer is learning, not prayer (see "RabbAI's voice"). Is that
-    right, including for a verse or blessing quoted in an answer? And is the default voice (a kind,
+    right, including for a verse or blessing quoted in an answer, and for the Name written out as
+    it is read in prayer (אֲדֹנָי), which the voice also says as "Hashem"? And is the default voice (a kind,
     warm older man's voice, described as a teacher; `web/lib/voice/provider.ts` and
     `web/lib/voice/voices.ts`) fitting, and is it fitting to offer women's voices too?
 25. **Talking like a person.** The core premises now ask for short, natural turns in a conversation

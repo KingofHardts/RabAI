@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SPEAK_CONTEXT_CHARS, SPEAK_MAX_CHARS, synthesize, voiceProvider } from "@/lib/voice/provider";
+import { SPEAK_CONTEXT_CHARS, SPEAK_MAX_CHARS, readsSounds, synthesize, voiceProvider } from "@/lib/voice/provider";
 import { chooseVoice, voiceList } from "@/lib/voice/voices";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export async function GET() {
   const provider = voiceProvider();
   if (!provider) return NextResponse.json({ available: false, voices: [], defaultVoice: "" }, { headers: { "Cache-Control": "no-store" } });
   const list = await voiceList(provider);
-  return NextResponse.json({ available: true, ...list }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ available: true, ...list, sounds: readsSounds(provider) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 /** A string from the request, cut to `max` characters (from its end when `end` is set). */

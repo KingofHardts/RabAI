@@ -109,7 +109,8 @@ chooses.
 **Without a service**, the app picks the device's best man's voice, a little slower and lower than
 usual, and Settings lists the device's other voices.
 
-Words the voice says wrong can be added to `web/lib/voice/lexicon.ts`.
+How the voice says Hebrew words and names, how to hear and fix a word, and how to choose or
+make a voice are in `docs/voices-and-pronunciation.md`.
 
 ## Sources (suggestions, from web searches on 2026-11-04)
 

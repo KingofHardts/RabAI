@@ -175,6 +175,14 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   `speech-text.ts`): keep that in every voice path (open question 24). Words a voice says wrong go
   in `web/lib/voice/lexicon.ts`; short names that are also English words ("Ran", "Tur") are marked
   `exact`.
+- How a word is said (`docs/voices-and-pronunciation.md`): each lexicon entry has a respelling with
+  the stressed syllable in capitals (`say`) and its sounds (`ipa`); "RabbAI" is always given as
+  "Rab AI". Vocalized Hebrew gets its stress from `stressedNucleus` in `web/lib/siddur/translit.ts`
+  (grammar's rules, or the verse's cantillation). The voice's form depends on the voice: sounds
+  between slashes only where the server says the model reads them (`readsSounds`, never for Talk's
+  quick voice), capitals otherwise, and never capitals or sounds for the device's voices. A
+  person's own fixes (Settings, "Pronunciation") stay on their device. Nobody can hear the voice
+  from a session: say so, and never claim a word sounds right.
 - Talk (`web/components/talk.ts`, its turn-taking in `web/lib/talk.ts`; founding spec "Talking out
   loud" and "Learning like a real chavrusa") is a conversation out loud that the person turns on
   themselves. It sends what they said only after a pause and a visible ring they can stop (short
@@ -366,6 +374,16 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-10 (third round), at Josh's request ("the pronunciation… Rab A.I", "where the
+emphasis is", "the names of the rabbis", "how I can do different voices and create a good voice"):
+- "RabbAI" is said "Rab", then "A", "I". About 250 words and names have a respelling with its
+  stress and their exact sounds. Hebrew with vowels is read with its stress.
+- Settings has "Pronunciation": hear any word, see what the voice is given, choose how stress is
+  shown (Auto, Sounds, Capitals, Plain), and fix a word yourself.
+- `docs/voices-and-pronunciation.md` explains all of it, and how to choose or design a voice.
+- Waiting on Josh's ear: which stress choice sounds best, and which names are still wrong. Names
+  follow the usual English of people who learn (geh-MAH-rah, RAHM-bahm); he may prefer Israeli.
 
 Done 2026-11-10 (second round), at Josh's request ("take all of the things that say next… can we
 make those?"): 24 of the lists' "next" items, the ones safe to build without measuring or asking

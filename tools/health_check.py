@@ -511,6 +511,32 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
             summary(f"  - Talk's quick voice, one sentence: HTTP {fstatus}, {len(faudio):,} bytes, {seen.get('seconds', 0):.1f} seconds.")
             if fstatus != 200 or not fkind.startswith("audio/") or len(faudio) < 500:
                 problem(f"Talk's quick voice answered HTTP {fstatus} ({plain(fkind)}).")
+            # How words are given to the voice (web/lib/voice/lexicon.ts): names as exact sounds
+            # between slashes where the voice reads them, and the stress in capitals. Nobody can
+            # listen from here, so the check compares how long the audio is with and without the
+            # marks: a voice that spells the marks out instead of saying the word takes much longer.
+            reads_sounds = bool(info.get("sounds"))
+            summary(f"  - The usual voice reads exact sounds: {'yes' if reads_sounds else 'no (it is given capitals)'}.")
+
+            def spoken(text: str, fast: bool = False) -> int:
+                st, body = fetch("/api/speak", {"text": text, **({"fast": True} if fast else {})}, timeout=60)
+                ok = st == 200 and (seen.get("headers") or {}).get("content-type", "").startswith("audio/")
+                return len(body) if ok else 0
+
+            pairs = [("capitals, the quick voice", "Barukh atah, melekh ha'olam.", "baRUKH aTAH, MElekh ha'oLAM.", True),
+                     ("capitals, the usual voice", "Barukh atah, melekh ha'olam.", "baRUKH aTAH, MElekh ha'oLAM.", False)]
+            if reads_sounds:
+                pairs.append(("exact sounds, the usual voice", "Rav Ashi learned the Gemara.",
+                              "/\u0279\u0251v/ /\u02c8\u0251\u0283i/ learned the /\u0261\u0259\u02c8m\u0251\u0279\u0251/.", False))
+            for what, plain_text, marked, fast in pairs:
+                a, b = spoken(plain_text, fast), spoken(marked, fast)
+                if not a or not b:
+                    problem(f"The voice couldn't say a test sentence ({what}).")
+                    continue
+                ratio = b / a
+                summary(f"  - Pronunciation marks ({what}): the marked sentence is {ratio:.2f} times as long as the plain one.")
+                if ratio > 1.6:
+                    problem(f"The voice seems to spell out its pronunciation marks ({what}): the marked sentence took {ratio:.1f} times as long.")
     except ValueError:
         problem(f"The voice check (/api/speak) answered HTTP {status} with something that isn't JSON.")
 

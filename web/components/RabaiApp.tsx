@@ -53,6 +53,7 @@ import {
 import { setCutInByVoice, useTalk, type TalkControls } from "./talk";
 import { countdownMs, micOpen, tapAction, wordsOf, type TalkPace } from "@/lib/talk";
 import { dayWish, greeting } from "@/lib/greeting";
+import Pronunciation, { loadPronunciation } from "./Pronunciation";
 import type { LiveCite, LivePassage, LiveRead } from "@/lib/engine/live-sources";
 import { activeMark, ReadLine, readingText, SourceCard, type SourceMark, type SpokenSpan } from "./SourceCard";
 import LibraryShelves from "./LibraryShelves";
@@ -1826,6 +1827,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     const say = readStored("rabai_voice_hebrew", ["sephardi", "ashkenazi"] as const, "sephardi");
     setHebrewSay(say);
     setHebrewPronunciation(say);
+    loadPronunciation();
     const cut = readStored("rabai_cut_in", ["on", "off"] as const, "on") === "on";
     setCutIn(cut);
     setCutInByVoice(cut);
@@ -5222,6 +5224,15 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       ))}
                     </div>
                   </div>
+                )}
+                {speechOk && (
+                  <Pronunciation
+                    own={ownVoiceList}
+                    onHear={(t) => {
+                      setSpeaking(null);
+                      speak(t);
+                    }}
+                  />
                 )}
                 {talkOk && (
                   <div className="settings-line">

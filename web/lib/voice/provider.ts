@@ -53,7 +53,18 @@ export function voiceProvider(): VoiceProvider | null {
   return null;
 }
 
-export const SPEAK_MAX_CHARS = 1200;
+/**
+ * Whether the usual voice reads a word's sounds (the International Phonetic Alphabet) written
+ * between slashes, with the stress marked. ElevenLabs' v3 and v4 models do; its quick model for
+ * Talk and OpenAI's voices don't, so they are given the stress in capitals instead.
+ */
+export function readsSounds(provider: VoiceProvider | null): boolean {
+  if (provider !== "elevenlabs") return false;
+  return /^eleven_v[34]/.test(process.env.ELEVENLABS_MODEL?.trim() || "eleven_v4");
+}
+
+/** A piece as the voice is given it: names written as sounds are longer than the words they stand for. */
+export const SPEAK_MAX_CHARS = 2000;
 /** How much of the neighbouring pieces is sent along, so a piece starts and ends the way speech flows. */
 export const SPEAK_CONTEXT_CHARS = 400;
 

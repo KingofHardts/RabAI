@@ -1853,3 +1853,23 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --line: #9A9280; --muted: #D8D0BC; }
 }
+
+/* ---- Settings: how RabbAI says words (hear a word, the stress, your own fixes). */
+.pron { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin: 10px 0; font-family: var(--font-ui); }
+.pron > summary { cursor: pointer; padding: 12px 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.pron-body { display: grid; gap: 8px; padding: 0 14px 14px; }
+.pron-label { font-size: 13.5px; font-weight: 600; margin-top: 8px; }
+.pron-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.pron-fix { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; gap: 8px; }
+@media (max-width: 620px) { .pron-fix { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.pron input[type="text"] { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); padding: 8px 10px; font: inherit; font-size: 16px; min-width: 0; }
+.pron-given { margin: 0; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.pron-said { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+.pron-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pron-list li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.pron-w { font-weight: 600; overflow-wrap: anywhere; }
+.pron-s { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.pron-list .link { min-height: 36px; }
+.pron .seg { flex-wrap: wrap; max-width: 100%; }
+.pron .seg button { min-height: 40px; padding: 4px 14px; }
+.pron .seg button.on { background: var(--accent); color: var(--accent-ink); }

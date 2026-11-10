@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { namesForLearning, speechChunks, speechText } from "@/lib/voice/speech-text";
-import { respell } from "@/lib/voice/lexicon";
+import { cleanForSpeech, namesForLearning, sayOptions, speechChunks, speechText, type SayMode } from "@/lib/voice/speech-text";
+import { respell, type MyWord } from "@/lib/voice/lexicon";
 import type { Pronunciation } from "@/lib/siddur/translit";
 
 /*
@@ -230,6 +230,24 @@ export function setHebrewPronunciation(p: Pronunciation): void {
   hebrewSay = p;
 }
 
+/** How the voice is told to say Hebrew words and names (Settings), and the person's own fixes. */
+let sayMode: SayMode = "auto";
+let myWords: MyWord[] = [];
+export function setSayMode(m: SayMode): void {
+  sayMode = m;
+}
+export function setMyWords(list: MyWord[]): void {
+  myWords = list;
+}
+
+/**
+ * What a voice would be given for this text: for showing the person how a word is being said.
+ * `sounds` says whether the voice reads sounds written between slashes.
+ */
+export function saidAs(text: string, own: boolean, sounds: boolean): string {
+  return own ? speechText(text, hebrewSay, "natural", sayOptions(sayMode, sounds, myWords)) : speechText(text, hebrewSay, "device", { mine: myWords });
+}
+
 /** One of RabbAI's own voices, as the server lists them. */
 export interface OwnVoice {
   id: string;
@@ -241,8 +259,10 @@ export interface OwnVoices {
   available: boolean;
   voices: OwnVoice[];
   defaultVoice: string;
+  /** The voice reads a word's sounds when they are written between slashes. */
+  sounds: boolean;
 }
-const NO_OWN_VOICES: OwnVoices = { available: false, voices: [], defaultVoice: "" };
+const NO_OWN_VOICES: OwnVoices = { available: false, voices: [], defaultVoice: "", sounds: false };
 
 /** RabbAI's own voices, if a speech service is set up on the server (asked once). */
 let ownVoiceList: Promise<OwnVoices> | null = null;
@@ -254,6 +274,7 @@ export function ownVoices(): Promise<OwnVoices> {
       available: !!j.available,
       voices: Array.isArray(j.voices) ? j.voices.filter((v): v is OwnVoice => !!v && typeof v.id === "string" && typeof v.name === "string") : [],
       defaultVoice: typeof j.defaultVoice === "string" ? j.defaultVoice : "",
+      sounds: j.sounds === true,
     }))
     .catch(() => {
       ownVoiceList = null;
@@ -408,9 +429,20 @@ function playUrl(url: string, mine: number): Promise<boolean> {
  * Reads text in RabbAI's own voice. Returns false if nothing could be played (so the device's
  * voice takes over); if a later piece fails, the device's voice reads the rest.
  */
-async function speakOwn(text: string, mine: number, finish: () => void, voice: string): Promise<boolean> {
-  // Natural voices need fewer words respelled, and flow better in longer pieces.
-  const chunks = speechChunks(speechText(text, hebrewSay, "natural"), 220, 900);
+async function speakOwn(text: string, mine: number, finish: () => void, voice: string, sounds: boolean): Promise<boolean> {
+  // Natural voices need fewer words respelled, and flow better in longer pieces. The text is cut
+  // into pieces first and each piece prepared for the voice, so if the voice can't be reached
+  // the device's voice can read the rest from the words as they were.
+  const say = sayOptions(sayMode, sounds, myWords);
+  const cut = speechChunks(cleanForSpeech(text), 220, 900)
+    .map((raw) => ({ raw, said: speechText(raw, hebrewSay, "natural", say) }))
+    .filter((c) => /[\p{L}\p{N}]/u.test(c.said));
+  const chunks = cut.map((c) => c.said);
+  const rest = (i: number) =>
+    cut
+      .slice(i)
+      .map((c) => c.raw)
+      .join(" ");
   if (!chunks.length) {
     finish();
     return true;
@@ -442,7 +474,7 @@ async function speakOwn(text: string, mine: number, finish: () => void, voice: s
     } catch {
       if (mine !== speakingToken) return true;
       if (i === 0) return false;
-      speakDevice(chunks.slice(i).join(" "), mine, finish);
+      speakDevice(rest(i), mine, finish);
       return true;
     }
     if (mine !== speakingToken) return true;
@@ -457,7 +489,7 @@ async function speakOwn(text: string, mine: number, finish: () => void, voice: s
     if (mine !== speakingToken) return true;
     if (!played) {
       if (i === 0) return false;
-      speakDevice(chunks.slice(i).join(" "), mine, finish);
+      speakDevice(rest(i), mine, finish);
       return true;
     }
   }
@@ -476,14 +508,14 @@ function speakDevice(text: string, mine: number, finish: () => void): void {
   const english = bestVoice("en");
   const hebrew = bestVoice("he");
   const pieces = speechPieces(namesForLearning(text))
-    .map((p) => (p.lang === "he" && !hebrew ? { text: speechText(p.text, hebrewSay), lang: "en" as const } : p))
+    .map((p) => (p.lang === "he" && !hebrew ? { text: speechText(p.text, hebrewSay, "device", { mine: myWords }), lang: "en" as const } : p))
     .filter((p) => p.lang === "en" ? !/[\u0590-\u05FF]/.test(p.text) || !!hebrew : !!hebrew);
   if (!pieces.length || mine !== speakingToken) {
     finish();
     return;
   }
   pieces.forEach((p, i) => {
-    const u = new SpeechSynthesisUtterance(p.lang === "en" ? respell(p.text) : p.text);
+    const u = new SpeechSynthesisUtterance(p.lang === "en" ? respell(p.text, "device", { mine: myWords }) : p.text);
     const voice = p.lang === "he" ? hebrew : english;
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? (p.lang === "he" ? "he-IL" : "en-US");
@@ -522,7 +554,7 @@ export function speak(text: string, onEnd?: () => void): void {
     if (mine !== speakingToken) return;
     // A voice no longer offered falls back to the default one (the server does the same).
     const voice = own.voices.some((v) => v.id === chosen) ? chosen : own.defaultVoice;
-    if (own.available && (await speakOwn(text, mine, finish, voice))) return;
+    if (own.available && (await speakOwn(text, mine, finish, voice, own.sounds))) return;
     if (mine === speakingToken) speakDevice(text, mine, finish);
   });
 }
@@ -648,14 +680,16 @@ export function speakLive(onEnd: () => void, onPiece?: (start: number, end: numb
     const audio = new Map<number, Promise<Blob>>();
     const fetchPiece = (i: number) => {
       if (audio.has(i)) return audio.get(i)!;
-      const said = speechText(pieces[i], hebrewSay, "natural");
+      // Talk's quick voice doesn't read sounds between slashes; the usual one may.
+      const say = sayOptions(sayMode, own.sounds && !opts.fast, myWords);
+      const said = speechText(pieces[i], hebrewSay, "natural", say);
       const p = fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: said.slice(0, 1200),
+          text: said.slice(0, 2000),
           ...(voice ? { voice } : {}),
-          ...(i > 0 ? { previous: speechText(pieces[i - 1], hebrewSay, "natural").slice(-400) } : {}),
+          ...(i > 0 ? { previous: speechText(pieces[i - 1], hebrewSay, "natural", say).slice(-400) } : {}),
           ...(opts.fast ? { fast: true } : {}),
         }),
         signal: ctrl.signal,
