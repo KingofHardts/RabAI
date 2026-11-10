@@ -23,10 +23,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 |---|---|---|---|---|---|
 | 1 | Siddur Ashkenaz: weekday Shacharit, from Modeh Ani to the Half Kaddish after Yishtabach | 200 | 200 | 9 (4 words corrected) | 2026-11-10-1 |
 | 2 | Siddur Ashkenaz: weekday Shacharit, from Barchu through the Amidah and Avinu Malkenu into Tachanun for Monday and Thursday | 200 | 200 | 8 (3 words corrected) | 2026-11-10-2 |
+| 3 | Siddur Ashkenaz: the rest of weekday Shacharit (Tachanun, the Torah reading, Ashrei and Uva Letzion, the Song of the Day, Aleinu) and the start of Minchah | 200 | 200 | 8 (2 words corrected) | 2026-11-10-1 (third) |
 
 ## Totals
 
-Siddur Ashkenaz: 400 of 1,549 lines. Koren: 0 of 3,530.
+Siddur Ashkenaz: 600 of 1,549 lines. Koren: 0 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
