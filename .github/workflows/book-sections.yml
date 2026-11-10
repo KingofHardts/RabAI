@@ -1,0 +1,32 @@
+name: List a book's sections
+
+# Prints the sections of one or more books in the order the live app lists them (for checking the
+# order of a siddur's prayers, for example). It opens the live app with its access code, read from
+# Vercel and masked, and prints only section names: headings, never a line of text, a code or a
+# token (tools/book_sections.py). It asks nothing of the model.
+
+on:
+  workflow_dispatch:
+    inputs:
+      books:
+        description: "Book titles, separated by |"
+        required: true
+        default: "The Koren Shalem Siddur; Ashkenaz|Siddur Ashkenaz|Siddur Sefard|Siddur Edot HaMizrach"
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: List the sections
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          BOOKS: ${{ inputs.books }}
+        run: python3 tools/book_sections.py
