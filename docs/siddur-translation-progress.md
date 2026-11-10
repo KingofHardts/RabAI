@@ -22,10 +22,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | Job | Siddur and part | Lines sent | Kept | Unsure lines checked | Sealed file |
 |---|---|---|---|---|---|
 | 1 | Siddur Ashkenaz: weekday Shacharit, from Modeh Ani to the Half Kaddish after Yishtabach | 200 | 200 | 9 (4 words corrected) | 2026-11-10-1 |
+| 2 | Siddur Ashkenaz: weekday Shacharit, from Barchu through the Amidah and Avinu Malkenu into Tachanun for Monday and Thursday | 200 | 200 | 8 (3 words corrected) | 2026-11-10-2 |
 
 ## Totals
 
-Siddur Ashkenaz: 200 of 1,549 lines. Koren: 0 of 3,530.
+Siddur Ashkenaz: 400 of 1,549 lines. Koren: 0 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
