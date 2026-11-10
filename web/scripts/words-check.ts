@@ -10,7 +10,8 @@ const check = (label: string, he: string, text: string | undefined, needGeneral:
   let r; try { r = readGlossReply(text); } catch (e) { console.log("UNREADABLE:", label, String(e)); bad++; return; }
   const rows = alignGlosses(words, r.items);
   const last = rows[rows.length - 1]; const end = last ? last.at + last.n : 0;
-  const holes = rows.filter((x) => x.en === null).map((x) => `${x.at}+${x.n}`);
+  // A word with no Hebrew letters (an English instruction, a number) can take no English: not a gap.
+  const holes = rows.filter((x) => x.en === null && /[א-ת]/.test(words.slice(x.at, x.at + x.n).join(""))).map((x) => `${x.at}+${x.n}`);
   if (end < words.length) holes.push(`${end}..${words.length} (end)`);
   const miss: string[] = [];
   if (needGeneral && !r.general) miss.push("no GENERAL");
