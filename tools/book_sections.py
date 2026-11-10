@@ -66,9 +66,56 @@ def main() -> int:
         except ValueError:
             sections = []
         prefix = book + ", "
-        for i, s in enumerate(sections, 1):
-            name = s[len(prefix):] if isinstance(s, str) and s.startswith(prefix) else s
-            print(f"{i}. {hc.plain(name)}")
+        if os.environ.get("SIZES") != "1":
+            for i, s in enumerate(sections, 1):
+                name = s[len(prefix):] if isinstance(s, str) and s.startswith(prefix) else s
+                print(f"{i}. {hc.plain(name)}")
+            continue
+        # How much text the book holds, and which editions it is read from: counts and edition
+        # names only, never a line of the text. Used to plan a translation run.
+        total = {"sections": 0, "lines": 0, "hebrew": 0, "english": 0, "words": 0}
+        parts: dict[str, list[int]] = {}
+        he_editions: dict[str, int] = {}
+        en_editions: dict[str, int] = {}
+        failed = 0
+        for sec in sections:
+            if not isinstance(sec, str):
+                continue
+            st, body = fetch("/api/text?bare=1&ref=" + urllib.parse.quote(sec))
+            try:
+                got = json.loads(body) if st == 200 else {}
+            except ValueError:
+                got = {}
+            lines = got.get("lines") or []
+            if not lines:
+                failed += 1
+                continue
+            he = sum(1 for ln in lines if (ln.get("he") or "").strip())
+            en = sum(1 for ln in lines if (ln.get("en") or "").strip())
+            words = sum(len((ln.get("he") or "").split()) for ln in lines)
+            total["sections"] += 1
+            total["lines"] += len(lines)
+            total["hebrew"] += he
+            total["english"] += en
+            total["words"] += words
+            name = sec[len(prefix):] if sec.startswith(prefix) else sec
+            part = ", ".join(name.split(", ")[:2])
+            row = parts.setdefault(part, [0, 0, 0, 0])
+            row[0] += len(lines)
+            row[1] += he
+            row[2] += en
+            row[3] += words
+            ed = got.get("edition") or {}
+            if ed.get("he"):
+                he_editions[ed["he"]] = he_editions.get(ed["he"], 0) + 1
+            if ed.get("en"):
+                en_editions[ed["en"]] = en_editions.get(ed["en"], 0) + 1
+        print(f"- {total['sections']} sections read ({failed} couldn't be), {total['lines']:,} lines: {total['hebrew']:,} with Hebrew "
+              f"({total['words']:,} Hebrew words), {total['english']:,} with English.")
+        print("- Hebrew read from: " + ("; ".join(f"{hc.plain(k)} ({v} sections)" for k, v in sorted(he_editions.items(), key=lambda x: -x[1])) or "nothing"))
+        print("- English read from: " + ("; ".join(f"{hc.plain(k)} ({v} sections)" for k, v in sorted(en_editions.items(), key=lambda x: -x[1])) or "nothing"))
+        for part, (n, he, en, words) in parts.items():
+            print(f"  - {hc.plain(part)}: {n:,} lines, {he:,} Hebrew ({words:,} words), {en:,} English")
     return 0
 
 

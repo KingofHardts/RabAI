@@ -17,6 +17,9 @@
  *
  * --pages 2a-3b (or 2a,2b) keeps only those amudim of the books chosen, so a daf's Gemara, Rashi and
  * Tosafot can be done together, in order.
+ * --within "Siddur Ashkenaz, Weekday, Shacharit|Siddur Ashkenaz, Weekday, Minchah" keeps only passages
+ * whose reference starts with one of those beginnings (separated by |), so a long book such as a
+ * siddur can be done a part at a time, in the order asked for rather than the library's.
  * --words also makes word-by-word lists for passages that have the library's English (the Gemara),
  * which get only that list. RABAI_LIBRARY_DB_URL may be the library on Turso (libsql://...) when the
  * session has its read-only token as a network secret (docs/session-translation.md).
@@ -143,8 +146,13 @@ async function main() {
     // Passages in a job that isn't collected yet are being translated already.
     const open = new Set((await library.jobs("submitted")).flatMap((j) => Object.values(j.manifest).flatMap((e) => e.passages.map((p) => p.ref))));
     const pages = amudim(opt("pages"));
-    const pending = await pendingPassages(store, library, sel, pages ? 1_000_000 : limit + open.size);
-    const chosen = pending.filter((p) => !open.has(p.ref) && (!pages || pages.has(amudOf(p.ref)))).slice(0, limit);
+    // --within: the beginnings of the references wanted, in the order wanted.
+    const within = (opt("within") ?? "").split("|").map((x) => x.trim()).filter(Boolean);
+    const partOf = (ref: string) => within.findIndex((w) => ref.startsWith(w));
+    const pending = await pendingPassages(store, library, sel, pages || within.length ? 1_000_000 : limit + open.size);
+    const wanted = pending.filter((p) => !open.has(p.ref) && (!pages || pages.has(amudOf(p.ref))) && (!within.length || partOf(p.ref) >= 0));
+    // Parts come in the order they were named; inside a part, the library's order is kept.
+    const chosen = (within.length > 1 ? wanted.map((p, i) => ({ p, i })).sort((a, b) => partOf(a.p.ref) - partOf(b.p.ref) || a.i - b.i).map((x) => x.p) : wanted).slice(0, limit);
     if (!chosen.length) {
       console.log("Nothing to send: everything selected is translated or in a job already.");
       return;

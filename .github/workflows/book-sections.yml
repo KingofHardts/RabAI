@@ -2,8 +2,8 @@ name: List a book's sections
 
 # Prints the sections of one or more books in the order the live app lists them (for checking the
 # order of a siddur's prayers, for example). It opens the live app with its access code, read from
-# Vercel and masked, and prints only section names: headings, never a line of text, a code or a
-# token (tools/book_sections.py). It asks nothing of the model.
+# Vercel and masked, and prints only section names (or, with "sizes", counts and edition names): never a line of text, a
+# code or a token (tools/book_sections.py). It asks nothing of the model.
 
 on:
   workflow_dispatch:
@@ -16,6 +16,10 @@ on:
         description: "Also list every book's title and categories (as the Learn tab gets them)"
         type: boolean
         default: false
+      sizes:
+        description: "Instead of the sections, count each book's lines and name the editions it is read from"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,7 +27,7 @@ permissions:
 jobs:
   list:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,4 +38,5 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           BOOKS: ${{ inputs.books }}
           LIBRARY_LIST: ${{ inputs.library && '1' || '' }}
+          SIZES: ${{ inputs.sizes && '1' || '' }}
         run: python3 tools/book_sections.py

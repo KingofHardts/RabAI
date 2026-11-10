@@ -40,6 +40,10 @@ session uses it without ever seeing it. Run the script with `NODE_USE_ENV_PROXY=
 own network calls go through the session's proxy. The translation library stays a file on the
 session's computer, as above.
 
+`--within "<beginning of a reference>|<another>"` keeps only passages whose reference starts with
+one of those beginnings, taking the parts in the order named: for a siddur, weekday Shacharit
+first, then Mincha, and so on.
+
 `send` picks the next passages without English that aren't translated yet, in library order,
 and writes the requests to `../library/session-translations/<job>/`. Then:
 
