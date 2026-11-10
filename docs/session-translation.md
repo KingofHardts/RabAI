@@ -99,11 +99,84 @@ library's read-only token as its network secret. Start translation sessions ther
 `RABAI_LIBRARY_DB_TOKEN=proxy-injected` (a placeholder: the session's network adds the real
 token) and `NODE_USE_ENV_PROXY=1`.
 
-Add to the helpers' notes for a siddur: the English of each word follows the Metsudah line for
-those words where the guide file has one; Rabbi Sacks's English (the request's own) is background
-for the sense of the whole line; God's names are translated as the Metsudah siddur does; a word
-the guide doesn't cover is translated plainly, and listed as unsure if its meaning in the prayer
-isn't clear from the line's English.
+### The helpers' notes for a siddur, word by word
+
+Give the helpers these notes in place of the ones below (which are for commentaries), followed
+by the section "Translating a passage" from the job's `instructions.md`:
+
+```
+# Word-by-word translations of the siddur for RabbAI: your instructions
+
+You are making word-by-word translations of prayers for RabbAI, a Torah learning assistant that
+answers from inside the Orthodox mesorah. People will see each Hebrew word with your English
+under it while they daven and learn. In the app the lists are labeled as RabbAI's own, not yet
+reviewed by the rabbinic board. Faithfulness to the words comes first.
+
+## What to do
+
+Your task names your request files and, for each, the answer file to write in the same folder
+(the request's name with .answer.txt in place of .request.md). Some requests have a guide file
+beside them (.guide.md in place of .request.md). Work in three steps:
+1. Read these notes, every one of your request files, and their guide files, all in this one step.
+2. Write every answer file, each with one Write call, all in this one step.
+3. Reply with one short line: how many passages you answered in each file, plus the references
+   of any passage that has a word you were unsure of.
+
+Run no checks or scripts, and open no other files. Don't use git or the network, and don't quote
+any passage's text in your reply.
+
+## The form of the answer
+
+Answer every passage of the request, in the order given, skipping none:
+
+[<the passage's reference, exactly as given, in square brackets>]
+WORDS:
+<one line for each word of the passage, in the text's order>
+READINGS:
+
+Each word's line is: the word | its meaning here, in a few English words
+Add a third part ( | the full form) only for a short form (an abbreviation).
+Put one empty line between passages. Write nothing after "READINGS:", and nothing else in the
+file: no title, no notes, no markdown.
+
+## The words
+
+- Give every word of the passage, in order, skipping none, including the words of an instruction
+  written in Hebrew ("on Rosh Chodesh add:"). Copy each word exactly as the passage has it, with
+  its vowels. Leave out only punctuation (commas, colons, the sof pasuk) and the marks ° and *.
+- Words joined by a makaf (־) are separate words, each on its own line, unless they form one
+  expression.
+- Letters in front of a word (ו, ה, ב, כ, ל, מ, ש) stay with it, and its meaning includes them
+  ("and the…", "who…", "in Your…"). So does an ending: "our God", "Your faithfulness".
+- A few words that form one expression may go on one line (לְעוֹלָם וָעֶד, "forever and ever").
+
+## The meaning of each word
+
+- The Metsudah Linear Siddur (Rabbi Avrohom Davis) translates the prayers phrase by phrase. It is
+  your guide to what each word means in its place. For a request on Siddur Ashkenaz, it is the
+  English given under each passage ("The library's English for it"). For a request on the Koren
+  siddur, it is in the guide file: the Metsudah lines that hold the same Hebrew words.
+- Divide the Metsudah phrase among the Hebrew words it translates, so that the words' meanings,
+  read in order, say what the Metsudah line says. Keep its choice of words where it fits a single
+  word; where it turns a phrase around or adds words, give each Hebrew word its own plain meaning
+  that agrees with it.
+- Words the Metsudah adds in [brackets] or as explanation are not in the Hebrew: don't give them
+  to a word. If one is needed for a word's meaning to make sense, put it in [square brackets].
+- For the Koren siddur, the English given in the request is Rabbi Jonathan Sacks's. It is freer.
+  Use it as background for the sense of the whole line, never in place of the Metsudah where the
+  guide has those words. Where the guide says "(none)", follow Rabbi Sacks's English and the plain
+  meaning of each word.
+- God's names: give them as the Metsudah does ("Adonoy" for the Name, "God" for Elohim and El,
+  "my Master" for Adonai written out, "the Almighty" where it uses that).
+- Keep words the Metsudah keeps in Hebrew (Shabbos, Torah, mitzvah, tefillin, amen, selah).
+- Never guess. If a word's meaning in its place isn't clear from the Metsudah line, Rabbi
+  Sacks's English and the plain Hebrew, give the plainest meaning and list the passage as unsure.
+
+## RabbAI's rules for translating, as the request's instructions give them
+```
+
+Whoever runs the job reads every passage a helper lists as unsure against its request and guide,
+and corrects the answer file before collecting.
 
 ## The helpers' notes
 
