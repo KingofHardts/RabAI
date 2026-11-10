@@ -82,9 +82,20 @@ async function checkDaven(page, name) {
   await page.evaluate(() => window.localStorage.removeItem("rabai_mode"));
   await page.goto(new URL("/", page.url()).href, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.getByRole("button", { name: "Daven", exact: true }).first().click({ timeout: 30000 });
-  await page.waitForSelector(".sd-service", { timeout: 60000 });
-  const services = await page.locator(".sd-service").count();
-  await page.locator(".sd-service", { hasText: "Shacharit" }).first().click();
+  await page.waitForSelector(".sd-row", { timeout: 60000 });
+  const services = await page.locator(".sd-row").count();
+  // The whole siddur as an outline: the blessings over the Torah come just before the morning blessings.
+  const outlineHead = page.locator(".so-head").first();
+  if (await outlineHead.count()) {
+    await outlineHead.click();
+    const items = await page.locator(".so-cat.open .so-item-title").allInnerTexts();
+    const torah = items.findIndex((t) => /blessings over the torah|torah blessings/i.test(t));
+    const morning = items.findIndex((t) => /^morning blessings$/i.test(t));
+    if (torah >= 0 && morning >= 0 && morning !== torah + 1 && !/torah study/i.test(items[torah + 1] || "")) say("PROBLEM", `${name}: the blessings over the Torah are not just before the morning blessings (places ${torah + 1} and ${morning + 1}).`);
+    else say("OK", `${name}: the siddur's outline: ${await page.locator(".so-cat").count()} categories; the blessings over the Torah ${torah >= 0 && morning === torah + 1 ? "come just before the morning blessings" : "are where this siddur has them"}.`);
+    await outlineHead.click();
+  } else say("PROBLEM", `${name}: the Daven home shows no outline of the siddur.`);
+  await page.locator(".sd-row", { hasText: "Shacharit" }).first().click();
   await page.waitForSelector(".sd-sec", { timeout: 60000 });
   await page.waitForTimeout(1500);
   for (let i = 0; i < 4; i++) {

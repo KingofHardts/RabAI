@@ -1636,3 +1636,162 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 .read-he { margin: 2px 0; font-family: var(--font-he); font-size: 19px; line-height: 1.7; }
 .read-en { margin: 2px 0; font-size: 15px; line-height: 1.6; }
 .read-line.missing { padding: 0; border: 0; background: none; }
+
+/* ---- The Daven home, organized (2026-11): a hero for the prayer that is now, today's prayers as
+   rows, what people reach for as tiles, tools that open one at a time, and the whole siddur as an
+   outline (components/daven/SiddurOutline.tsx). */
+:root { --daven: #1F6B4F; --daven-bg: #E4F1EA; --learn: #6A3FA0; --learn-bg: #EEE7F7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --daven: #8FD6B4; --daven-bg: #17302A; --learn: #C9AEF5; --learn-bg: #2A1F3F; } }
+:root[data-theme="dark"] { --daven: #8FD6B4; --daven-bg: #17302A; --learn: #C9AEF5; --learn-bg: #2A1F3F; }
+.sd-home { gap: 18px; padding-bottom: 28px; }
+.sd-home-head { align-items: flex-start; flex-wrap: nowrap; }
+.sd-home-head h2 { font-size: 28px; line-height: 1.15; }
+.sd-home-date { margin: 2px 0 0; color: var(--muted); font-size: 14.5px; }
+.sd-home-is { color: var(--daven); font-weight: 600; }
+.sd-hero { background: var(--daven-bg); border: 1px solid color-mix(in srgb, var(--daven) 28%, transparent); border-radius: 18px; padding: 16px 18px 18px; display: grid; gap: 2px; }
+.sd-hero-kicker { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--daven); }
+.sd-hero-name { margin: 0; font-family: var(--font-voice); font-size: 30px; font-weight: 600; line-height: 1.15; color: var(--ink); }
+.sd-hero-note { margin: 0; color: var(--muted); font-size: 14.5px; }
+.sd-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sd-hero-go { border: 0; border-radius: 999px; background: var(--daven); color: var(--surface); font-weight: 600; font-size: 16px; padding: 11px 22px; min-height: 46px; }
+.sd-hero-alt { border: 1px solid color-mix(in srgb, var(--daven) 40%, transparent); border-radius: 999px; background: none; color: var(--daven); font-weight: 600; padding: 11px 18px; min-height: 46px; }
+.sd-block { display: grid; gap: 8px; }
+.sd-block-h { margin: 0; font-family: var(--font-ui); font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.sd-rows { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.sd-rows li + li { border-top: 1px solid var(--line); }
+.sd-row { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 12px 14px; min-height: 58px; text-align: start; color: var(--ink); }
+.sd-row-text { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.sd-row-title { font-family: var(--font-voice); font-size: 18px; font-weight: 600; }
+.sd-row-note { font-size: 13.5px; color: var(--muted); }
+.sd-row.now .sd-row-title { color: var(--daven); }
+.sd-row-badge { font-size: 12px; font-weight: 700; color: var(--daven); background: var(--daven-bg); border-radius: 999px; padding: 2px 9px; }
+.sd-row-chev, .so-chev { color: var(--muted); font-size: 20px; line-height: 1; flex: none; }
+.sd-last { display: grid; gap: 1px; text-align: start; border: 1px dashed var(--line); background: none; border-radius: 12px; padding: 9px 14px; color: var(--ink); }
+.sd-last-k { font-size: 12.5px; color: var(--muted); }
+.sd-last-t { font-weight: 600; }
+.sd-home .sd-today { padding: 0; border: 0; background: none; gap: 8px; }
+.sd-home .sd-today .sd-notes { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 12px 32px; gap: 5px; }
+.sd-more { justify-self: start; font-size: 14px; }
+.sd-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sd-tile { display: grid; gap: 1px; align-content: center; text-align: start; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; min-height: 58px; color: var(--ink); }
+.sd-tile-title { font-weight: 600; font-size: 15px; }
+.sd-tile-note { font-size: 12.5px; color: var(--muted); }
+.sd-which { display: flex; justify-content: flex-start; }
+.sd-pick { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.sd-pick-label { font-weight: 600; }
+/* Tools: one row each, opening in place. */
+.sd-tools .sd-tool-grid { display: grid; grid-template-columns: 1fr; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.sd-tools details.sd-tool { border: 0; border-radius: 0; background: none; padding: 0; display: block; }
+.sd-tools details.sd-tool + details.sd-tool { border-top: 1px solid var(--line); }
+.sd-tools details.sd-tool > summary { list-style: none; cursor: pointer; display: grid; gap: 1px; padding: 12px 40px 12px 14px; min-height: 56px; position: relative; }
+.sd-tools details.sd-tool > summary::-webkit-details-marker { display: none; }
+.sd-tools details.sd-tool > summary::after { content: "›"; position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 20px; transition: transform .15s; }
+.sd-tools details.sd-tool[open] > summary::after { transform: translateY(-50%) rotate(90deg); }
+.sd-tool-title { font-weight: 600; font-size: 15.5px; }
+.sd-tool-sub { font-size: 13px; color: var(--muted); }
+.sd-tools details.sd-tool[open] { padding-bottom: 14px; }
+.sd-tools details.sd-tool[open] > :not(summary) { margin-inline: 14px; margin-top: 8px; }
+/* The outline. */
+.so { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.so-cat + .so-cat { border-top: 1px solid var(--line); }
+.so-head { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 12px 14px; min-height: 58px; text-align: start; color: var(--ink); }
+.so-head-text { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.so-title { font-family: var(--font-voice); font-size: 18px; font-weight: 600; }
+.so-note { font-size: 13.5px; color: var(--muted); }
+.so-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.so-cat.open .so-chev { transform: rotate(90deg); }
+.so-chev { transition: transform .15s; }
+.so-cat.open .so-title { color: var(--daven); }
+.so-body { padding: 2px 14px 14px; display: grid; gap: 12px; }
+.so-group-h { margin: 6px 0 4px; font-family: var(--font-ui); font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--daven); }
+.so-group-note { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
+.so-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 14px; }
+.so-item { width: 100%; display: grid; gap: 0; text-align: start; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 9px 2px; min-height: 44px; color: var(--ink); }
+.so-item-title { font-size: 15.5px; }
+.so-item-note { font-size: 12.5px; color: var(--muted); }
+.so-item.on .so-item-title { color: var(--daven); font-weight: 700; }
+.so-item.on { box-shadow: inset 3px 0 0 var(--daven); padding-inline-start: 10px; }
+.sd-contents .so { border-radius: 0; border-inline: 0; }
+@media (hover: hover) { .sd-row:hover, .so-head:hover, .so-item:hover, .sd-tile:hover, .sd-last:hover { background: var(--tint); } .sd-hero-go:hover { filter: brightness(1.08); } }
+@media (prefers-reduced-motion: reduce) { .so-chev, .sd-tools details.sd-tool > summary::after { transition: none; } }
+
+/* ---- The top bar (2026-11): each of the three places has its picture and its own color, and on a
+   phone the bar is the three tabs between the chats button and the gear, with nothing overlapping. */
+.mode-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; position: relative; }
+.mode-switch .mode-icon { flex: none; }
+.mode-switch button[data-mode="chat"][aria-pressed="true"] { color: var(--accent); }
+.mode-switch button[data-mode="learn"][aria-pressed="true"] { color: var(--learn); }
+.mode-switch button[data-mode="daven"][aria-pressed="true"] { color: var(--daven); }
+.mode-dot { position: absolute; top: 5px; inset-inline-end: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--tint); }
+.mode-dot.busy { animation: mode-pulse 1.2s ease-in-out infinite; }
+@keyframes mode-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .mode-dot.busy { animation: none; } }
+@media (max-width: 760px) {
+  /* The name is in the page's title; the bar's room goes to the tabs. */
+  .top .brand { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .top { padding-inline: 8px; }
+  .top-actions { flex: 1; min-width: 0; gap: 4px; }
+  .mode-switch { flex: 1; min-width: 0; padding: 3px; }
+  .mode-switch button { flex: 1; min-width: 0; padding: 4px 4px; min-height: 44px; flex-direction: column; gap: 1px; font-size: 12px; line-height: 1.2; }
+  .mode-switch .mode-icon { width: 20px; height: 20px; }
+  .chats-btn { min-width: 44px; justify-content: center; }
+}
+@media (min-width: 761px) and (max-width: 979px) { .mode-switch button { padding-inline: 14px; } }
+
+/* ---- The Learn home, organized (2026-11): search first, then where you were, today's learning,
+   every shelf as a card (on a phone; a list at the side with room), and the study tools. */
+.thread.learn-home > * { flex: none; }
+.lib-search { position: relative; }
+.lib-search-icon { position: absolute; inset-inline-start: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.lib-search .book-filter { padding-inline-start: 44px; }
+.lib-tries { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -8px; }
+.lib-try { border: 1px solid var(--line); background: none; border-radius: 999px; padding: 4px 11px; min-height: 32px; font-size: 13px; color: var(--muted); }
+.learn-today-wrap .learn-today { margin: 0; }
+.learn-today-item { border-color: color-mix(in srgb, var(--learn) 30%, var(--line)); background: color-mix(in srgb, var(--learn) 6%, var(--surface)); }
+.learn-today-item strong { font-family: var(--font-voice); font-size: 19px; }
+.shelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 10px; }
+.shelf-card { display: grid; gap: 3px; align-content: start; text-align: start; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--shelf, var(--accent)); border-radius: 12px; padding: 10px 12px 12px; min-height: 104px; color: var(--ink); }
+.sc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sc-name { font-family: var(--font-voice); font-size: 18px; font-weight: 600; }
+.sc-he { font-size: 16px; color: var(--muted); }
+.sc-about { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.sc-count { font-size: 12px; color: var(--muted); margin-top: auto; padding-top: 4px; font-variant-numeric: tabular-nums; }
+.shelf-back { justify-self: start; align-self: flex-start; }
+.lib-tools { display: grid; gap: 0; }
+@media (hover: hover) { .shelf-card:hover { border-color: var(--shelf, var(--accent)); } .lib-try:hover { border-color: var(--accent); color: var(--accent); } }
+/* On a phone: the cards until a shelf is opened, then that shelf with a way back. */
+@container lib (max-width: 719px) {
+  .library:not(.browsing) .lib-body { display: none; }
+  .library.browsing .shelf-grid-wrap, .library.browsing .lib-tools, .library.browsing .learn-today-wrap, .library.browsing .continue { display: none; }
+}
+/* With room, the shelves are the list at the side, so the cards aren't needed. */
+@container lib (min-width: 720px) {
+  .shelf-grid-wrap, .shelf-back { display: none; }
+}
+
+/* ---- The Chat welcome, organized (2026-11): four ways to begin, where you stopped, and the
+   suggested questions one group at a time. */
+.msg-ai .body .welcome-hi { font-family: var(--font-voice); font-size: 26px; line-height: 1.2; margin-bottom: 4px; }
+.msg-ai .body .welcome-lead { color: var(--muted); font-family: var(--font-ui); font-size: 15px; margin: 0 0 4px; }
+.ways { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 4px; font-family: var(--font-ui); }
+@media (min-width: 900px) { .ways { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.way { display: grid; gap: 2px; align-content: start; text-align: start; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 12px 12px 12px; min-height: 96px; color: var(--ink); }
+.way-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--tint); color: var(--accent); margin-bottom: 6px; }
+.way-learn .way-icon { background: var(--learn-bg); color: var(--learn); }
+.way-t { font-weight: 600; font-size: 15px; line-height: 1.25; }
+.way-sub { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.way:disabled { opacity: .55; }
+.welcome-continue { display: grid; gap: 1px; width: 100%; text-align: start; margin-top: 8px; border: 1px solid color-mix(in srgb, var(--learn) 35%, var(--line)); background: var(--learn-bg); border-radius: 12px; padding: 10px 14px; font-family: var(--font-ui); color: var(--ink); }
+.wc-k { font-size: 12.5px; color: var(--learn); font-weight: 600; }
+.wc-t { font-weight: 600; }
+.starters-box { margin-top: 16px; }
+.starter-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); font-family: var(--font-ui); }
+.starter-tabs::-webkit-scrollbar { display: none; }
+.starter-tab { flex: none; border: 0; background: none; padding: 8px 12px; min-height: 40px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.starter-tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.starters-box .starters { margin-top: 10px; }
+.msg-ai .body .welcome-rav { margin-top: 14px; }
+@media (min-width: 980px) { .msg-ai .body .welcome-rav { display: none; } }
+@media (hover: hover) { .way:hover:not(:disabled) { border-color: var(--accent); } .way-learn:hover { border-color: var(--learn); } .welcome-continue:hover { border-color: var(--learn); } }
+.lib-search-icon { top: calc(50% + 6px); }
+.shelf-tab { text-align: start; }

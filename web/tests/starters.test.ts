@@ -29,8 +29,10 @@ test("the suggested questions start with this week's parsha and today's daf", ()
     ["A short dvar Torah on Parashat Chayei Sara", "Learn today's daf with me: Bechorot 46"],
   );
   assert.match(groups[0].items[1].ask, /Bekhorot 46a/);
-  assert.equal(groups[1].items.length, 3);
-  assert.equal(groups[2].items.length, 2);
+  assert.equal(groups[1].items.length, 4);
+  assert.deepEqual(groups.map((g) => g.label), ["For this week", "Ask about Torah", "Halacha", "Talk about life"]);
+  assert.equal(groups[2].items.length, 4);
+  assert.equal(groups[3].items.length, 4);
 });
 
 test("the other questions change from visit to visit", () => {

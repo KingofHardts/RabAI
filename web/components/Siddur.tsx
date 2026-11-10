@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
 import DavenTools from "./daven/DavenTools";
+import SiddurOutline from "./daven/SiddurOutline";
 import { useLinkedScroll } from "./use-linked-scroll";
 import { isOnline, keepAppCode, keepAppPage, keepOnDevice } from "@/lib/offline";
 import { sectionLabel } from "@/lib/library/catalog";
@@ -19,6 +20,7 @@ import { noteFor, bareLetters } from "@/lib/siddur/notes";
 import { lawNumbersIn, lawRanges, prayerLinks, type LawRange } from "@/lib/siddur/links";
 import type { DaveningNote } from "@/lib/siddur/davening-notes.generated";
 import { loadPrefs, savePrefs, type DavenPrefs, type Layout } from "@/lib/siddur/prefs";
+import { davenOrder, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
 
 /*
  * The Daven tab: the siddur used as a siddur (founding spec, "Finding prayers, and the siddur as a
@@ -122,20 +124,31 @@ function serviceStart(book: string, nodes: ContentsNode[], service: string, shab
   return undefined;
 }
 
-/** A few things besides the daily services, found by name in the siddur. */
-const EXTRAS: Array<{ name: string; label: string; when?: (d: DaySummary["davening"]) => boolean }> = [
-  { name: "Birkat HaMazon", label: "Birkat HaMazon" },
-  { name: "Blessings on Pleasures", label: "Blessings on food and sights" },
-  { name: "Asher Yatzar", label: "Asher Yatzar" },
-  { name: "Bedtime Shema", label: "Shema before sleep" },
-  { name: "Tefillat HaDerech", label: "Traveler's prayer" },
-  { name: "Sefirat HaOmer", label: "Counting the Omer", when: (d) => !!d?.omerTonight },
-  { name: "Kabbalat Shabbat", label: "Kabbalat Shabbat" },
-  { name: "Kiddush", label: "Kiddush" },
-  { name: "Havdalah", label: "Havdalah" },
-  { name: "Kiddush Levana", label: "Blessing of the new moon" },
-  { name: "Candle Lighting", label: "Candle lighting" },
+/** What people reach for besides the daily services, found by name in the siddur, in groups. */
+const EXTRAS: Array<{ group: string; name: string; label: string; note?: string; when?: (d: DaySummary["davening"]) => boolean }> = [
+  { group: "Any time", name: "Birkat HaMazon", label: "Birkat HaMazon", note: "After a meal with bread" },
+  { group: "Any time", name: "Blessings on Pleasures", label: "Blessings on food", note: "And on sights and sounds" },
+  { group: "Any time", name: "Asher Yatzar", label: "Asher Yatzar", note: "After the bathroom" },
+  { group: "Any time", name: "Tefillat HaDerech", label: "Traveler's prayer", note: "Tefillat HaDerech" },
+  { group: "Any time", name: "Bedtime Shema", label: "Shema before sleep" },
+  { group: "Any time", name: "Sefirat HaOmer", label: "Counting the Omer", note: "Tonight", when: (d) => !!d?.omerTonight },
+  { group: "Shabbat", name: "Candle Lighting", label: "Candle lighting" },
+  { group: "Shabbat", name: "Kabbalat Shabbat", label: "Kabbalat Shabbat", note: "Welcoming Shabbat" },
+  { group: "Shabbat", name: "Kiddush", label: "Kiddush" },
+  { group: "Shabbat", name: "Havdalah", label: "Havdalah", note: "The close of Shabbat" },
+  { group: "This month", name: "Kiddush Levana", label: "Blessing of the new moon", note: "Kiddush Levana" },
 ];
+
+/** A word on when each service is said, under its name on the home screen. */
+const SERVICE_NOTE: Record<string, string> = {
+  Shacharit: "Morning",
+  Hallel: "After the morning Amidah",
+  Musaf: "The additional prayer",
+  Mincha: "Afternoon",
+  Maariv: "Evening",
+  "Kabbalat Shabbat": "Friday night",
+  Amidah: "For Yom Tov",
+};
 
 /** Places in a service people look for, found by the line's opening words. */
 const KEY_LINES: Array<{ re: RegExp; label: string }> = [
@@ -241,6 +254,8 @@ export default function Siddur({
   const [loading, setLoading] = useState<"" | "first" | "next" | "prev">("");
   const [error, setError] = useState<string | null>(null);
   const [tree, setTree] = useState<ContentsNode[] | null>(null);
+  /** The siddur's sections as the library lists them, each with its label. */
+  const [listing, setListing] = useState<Array<{ section: string; label: string }> | null>(null);
   const [current, setCurrent] = useState(0);
   const [stops, setStops] = useState<Array<{ label: string; section: string }>>([]);
   const [markPop, setMarkPop] = useState<{ kind: MarkKind; prayer: string } | null>(null);
@@ -248,6 +263,8 @@ export default function Siddur({
   const [menuOpen, setMenuOpen] = useState(false);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [todayOpen, setTodayOpen] = useState(false);
+  /** The home screen's list of today's changes is open in full. */
+  const [notesOpen, setNotesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [last, setLast] = useState<{ book: string; section: string } | null>(null);
   const [marks, setMarks] = useState<Record<string, { section: string; date: string }>>({});
@@ -328,15 +345,34 @@ export default function Siddur({
     if (!book) return;
     let live = true;
     setTree(null);
-    void listBook(book).then((listing) => {
-      if (!live || !("sections" in listing)) return;
-      const labeled = listing.sections.map((section) => ({ section, label: sectionLabel(book, section) }));
-      setTree(contentsTree(labeled) ?? labeled.map((l) => ({ name: l.label, section: l.section, children: [] })));
+    setListing(null);
+    void listBook(book).then((found) => {
+      if (!live || !("sections" in found)) return;
+      setListing(found.sections.map((section) => ({ section, label: sectionLabel(book, section) })));
     });
     return () => {
       live = false;
     };
   }, [book]);
+
+  // The order the prayers are davened in (lib/siddur/outline.ts): the siddur's own, with the
+  // blessings over the Torah before the morning blessings unless the person keeps the printed order.
+  const ordered = useMemo(() => (listing ? davenOrder(listing, prefs.torahBlessings) : null), [listing, prefs.torahBlessings]);
+  const orderRef = useRef<string[]>([]);
+  orderRef.current = ordered?.map((l) => l.section) ?? [];
+  useEffect(() => {
+    setTree(ordered ? (contentsTree(ordered) ?? ordered.map((l) => ({ name: l.label, section: l.section, children: [] }))) : null);
+  }, [ordered]);
+  /** The siddur organized for davening: categories, headings, prayers. */
+  const outline: OutlineCategory[] = useMemo(() => (ordered ? siddurOutline(ordered, isOneLevel(book)) : []), [ordered, book]);
+  /** Each section's name and place as the menus show them. */
+  const shownNames = useMemo(() => {
+    const m = new Map<string, { short: string; crumb: string }>();
+    for (const cat of outline) for (const g of cat.groups) for (const it of g.items) m.set(it.section, { short: it.title, crumb: [cat.title, g.title].filter(Boolean).join(" · ") });
+    return m;
+  }, [outline]);
+  const shown = useCallback((b: string, section: string) => shownNames.get(section) ?? names(b, section), [shownNames]);
+  const torahChoice = useMemo(() => !!listing && movesTorahBlessings(listing), [listing]);
 
   const instructions = /koren/i.test(book);
 
@@ -366,11 +402,13 @@ export default function Siddur({
     };
     if (!res.ok || !data.lines || !data.section) throw new Error(data.error ?? "The siddur couldn't be opened just now.");
     const koren = /koren/i.test(data.book ?? "");
+    // The prayers before and after, in the order they are davened (which may differ from the print).
+    const at = orderRef.current.indexOf(data.section);
     return {
       section: data.section,
       sectionHe: data.sectionHe,
-      prev: data.prev,
-      next: data.next,
+      prev: at >= 0 ? orderRef.current[at - 1] : data.prev,
+      next: at >= 0 ? orderRef.current[at + 1] : data.next,
       lines: data.lines.map((l) => readLine(l.ref, l.he ?? "", l.en ?? "", koren)),
     };
   }, []);
@@ -499,7 +537,8 @@ export default function Siddur({
     for (const c of chunks) {
       const n = names(book, c.section);
       const he = c.sectionHe?.split(/,\s*/).pop();
-      out.push({ kind: "section", key: `s:${c.section}`, chunk: c, short: n.short, crumb: n.crumb, he: he && /[א-ת]/.test(he) ? he : undefined });
+      const show = shown(book, c.section);
+      out.push({ kind: "section", key: `s:${c.section}`, chunk: c, short: show.short, crumb: show.crumb, he: he && /[א-ת]/.test(he) ? he : undefined });
       const plan = prefs.today ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs) : { folds: [] };
       if (plan.whole) {
         const key = `${c.section}#whole`;
@@ -538,7 +577,7 @@ export default function Siddur({
       } else grouped.push(it);
     }
     return grouped;
-  }, [chunks, book, prefs.today, prefs.customs, davening, openFolds, instructions, layout]);
+  }, [chunks, book, prefs.today, prefs.customs, davening, openFolds, instructions, layout, shown]);
 
   // The places to move between: each prayer, each blessing, and the key places (Barchu, Shema, Kaddish).
   useLayoutEffect(() => {
@@ -847,9 +886,9 @@ export default function Siddur({
     const today = day?.date ?? "";
     return Object.entries(marks)
       .filter(([key, m]) => key.startsWith(`${book}|`) && m.date === today && m.section)
-      .map(([key, m]) => ({ key, section: m.section, service: SERVICE_LABEL[key.split("|")[2]] ?? "", ...names(book, m.section) }))
+      .map(([key, m]) => ({ key, section: m.section, service: SERVICE_LABEL[key.split("|")[2]] ?? "", ...shown(book, m.section) }))
       .slice(0, 4);
-  }, [marks, book, day?.date]);
+  }, [marks, book, day?.date, shown]);
 
   // ---------------------------------------------------------------- rendering
 
@@ -1206,6 +1245,22 @@ export default function Siddur({
             ))}
           </select>
         </div>
+        {torahChoice &&
+          seg(
+            "The blessings over the Torah",
+            prefs.torahBlessings,
+            [
+              ["before-morning-blessings", "Before the morning blessings"],
+              ["as-printed", "Where this siddur prints them"],
+            ],
+            (v) => setPref("torahBlessings", v),
+          )}
+        {torahChoice && (
+          <p className="fine-left sd-menu-note">
+            This siddur prints them straight after waking, before tallit and tefillin. Most siddurim have them after the preparation for prayer, just before the morning blessings; that is
+            the order here unless you change it. The words are the same. Not yet reviewed by the rabbinic board.
+          </p>
+        )}
         <fieldset className="sd-customs">
           <legend>Your community&apos;s customs</legend>
           <label>
@@ -1251,85 +1306,171 @@ export default function Siddur({
   }
 
   if (view === "home") {
-    const lastNames = last ? names(last.book, last.section) : null;
+    const lastNames = last ? shown(last.book, last.section) : null;
+    const now = services.find((s) => s.name === nowService) ?? services[0];
+    const nowContinue = continues.find((c) => c.service === now?.label || c.service === now?.name);
+    const notes = davening?.notes ?? [];
+    const extraGroups = [...new Set(extras.map((x) => x.group))].map((g) => ({ group: g, items: extras.filter((x) => x.group === g) }));
     return (
       <div className="siddur">
         <div className="sd-scroll sd-home">
           <div className="sd-home-head">
-            <h2>Daven</h2>
-            <div className="sd-home-actions">
-              <label className="sd-pick">
-                <span className="sr-only">Siddur</span>
-                <select value={book} onChange={(e) => chooseBook(e.target.value)}>
-                  {siddurs.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace(/^The /, "")}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" className="rb-btn sd-aa" onClick={() => setMenuOpen(true)} aria-label="Siddur settings" title="Settings">
-                Aa
-              </button>
+            <div>
+              <h2>Daven</h2>
+              {day && (
+                <p className="sd-home-date">
+                  {day.hebrew}
+                  {day.todayIs.length > 0 && <span className="sd-home-is"> · {day.todayIs.join(" · ")}</span>}
+                </p>
+              )}
             </div>
+            <button type="button" className="rb-btn sd-aa" onClick={() => setMenuOpen(true)} aria-label="Siddur settings" title="Siddur settings">
+              Aa
+            </button>
           </div>
           {menu}
           {!online && <p className="note sd-offline" role="status">No connection: showing what is kept on this device. Today&apos;s changes come back with the connection.</p>}
-          {todayCard}
           {davening?.festival === "rosh-hashana" || davening?.festival === "yom-kippur" ? (
             <p className="note">On {davening.festival === "rosh-hashana" ? "Rosh HaShana" : "Yom Kippur"}, daven from a machzor; this siddur has the daily and Shabbat prayers.</p>
           ) : null}
-          {services.length > 0 ? (
-            <div className="sd-services" role="group" aria-label={shabbat ? "Shabbat prayers" : davening?.yomTov ? "Yom Tov prayers" : "Today's prayers"}>
-              {services.map((s) => (
-                <button key={`${s.name}-${s.section}`} type="button" className={`sd-service${s.name === nowService ? " now" : ""}`} onClick={() => void openAt(s.section!)}>
-                  <span className="sd-service-name">{s.label}</span>
-                  {s.name === nowService && <span className="sd-service-now">Now</span>}
+
+          {now ? (
+            <div className="sd-hero" role="group" aria-label="The prayer for now">
+              <p className="sd-hero-kicker">Now</p>
+              <p className="sd-hero-name">{now.label}</p>
+              {SERVICE_NOTE[now.name] && <p className="sd-hero-note">{SERVICE_NOTE[now.name]}</p>}
+              <div className="sd-hero-actions">
+                <button type="button" className="sd-hero-go" onClick={() => void openAt(nowContinue?.section ?? now.section!)}>
+                  {nowContinue ? `Continue at ${nowContinue.short}` : `Begin ${now.label}`}
                 </button>
-              ))}
+                {nowContinue && (
+                  <button type="button" className="sd-hero-alt" onClick={() => void openAt(now.section!)}>
+                    From the start
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <p className="note">
               Opening the siddur<span className="dots" />
             </p>
           )}
-          {continues.length > 0 ? (
-            <div className="sd-continues" role="group" aria-label="Continue where you were">
-              {continues.map((c) => (
-                <button key={c.key} type="button" className="btn sd-continue" onClick={() => void openAt(c.section)}>
-                  Continue {c.service ? `${c.service}: ` : ""}
-                  {c.short}
+
+          {services.length > 0 && (
+            <section className="sd-block" aria-labelledby="sd-h-today">
+              <h3 id="sd-h-today" className="sd-block-h">
+                {shabbat ? "Shabbat's prayers" : davening?.yomTov ? "Yom Tov's prayers" : "Today's prayers"}
+              </h3>
+              <ul className="sd-rows">
+                {services.map((s) => {
+                  const cont = continues.find((c) => c.service === s.label || c.service === s.name);
+                  return (
+                    <li key={`${s.name}-${s.section}`}>
+                      <button type="button" className={`sd-row${s === now ? " now" : ""}`} onClick={() => void openAt(s.section!)}>
+                        <span className="sd-row-text">
+                          <span className="sd-row-title">{s.label}</span>
+                          <span className="sd-row-note">{cont ? `You were at ${cont.short}` : (SERVICE_NOTE[s.name] ?? "")}</span>
+                        </span>
+                        {s === now && <span className="sd-row-badge">Now</span>}
+                        <span className="sd-row-chev" aria-hidden="true">
+                          ›
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {!continues.length && last && lastNames && (
+                <button type="button" className="sd-last" onClick={() => void openAt(last.section)}>
+                  <span className="sd-last-k">Where you were</span>
+                  <span className="sd-last-t">
+                    {lastNames.short}
+                    {lastNames.crumb ? <span className="muted"> · {lastNames.crumb}</span> : null}
+                  </span>
                 </button>
-              ))}
-            </div>
-          ) : (
-            last &&
-            lastNames && (
-              <button type="button" className="btn sd-continue" onClick={() => void openAt(last.section)}>
-                Continue at {lastNames.short}
-                {lastNames.crumb ? <span className="muted"> · {lastNames.crumb}</span> : null}
-              </button>
-            )
+              )}
+            </section>
           )}
-          {extras.length > 0 && (
-            <>
-              <h3 className="lib-h">Also in the siddur</h3>
-              <div className="sd-extras">
-                {extras.map((x) => (
-                  <button key={x.name} type="button" className="chip" onClick={() => void openAt(x.section!)}>
-                    {x.label}
+
+          {day && (notes.length > 0 || (day.zmanim && day.zmanim.items.length > 0)) && (
+            <section className="sd-block sd-today" aria-labelledby="sd-h-changes">
+              <h3 id="sd-h-changes" className="sd-block-h">
+                Today in the davening
+              </h3>
+              {notes.length > 0 && (
+                <ul className="sd-notes">
+                  {(notesOpen ? notes : notes.slice(0, 3)).map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              )}
+              {notes.length > 3 && (
+                <button type="button" className="link sd-more" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+                  {notesOpen ? "Show fewer" : `Show all ${notes.length}`}
+                </button>
+              )}
+              {day.zmanim && day.zmanim.items.length > 0 && (
+                <details className="sd-times">
+                  <summary>Times today{day.place ? ` in ${day.place.name}` : ""}</summary>
+                  <ul className="times-list">
+                    {day.zmanim.items.map((z) => (
+                      <li key={z.label}>
+                        <span>{z.label}</span>
+                        <span>{z.time}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <p className="fine-left">
+                From the Hebrew calendar{davening?.israel ? ", for Israel" : day.place ? "" : ", outside Israel"}, by the siddur&apos;s rules. RabbAI&apos;s reading, not yet reviewed by the
+                rabbinic board.{" "}
+                {!day.place && (
+                  <button type="button" className="link" onClick={onPlace}>
+                    Set your place
+                  </button>
+                )}
+              </p>
+            </section>
+          )}
+
+          {extraGroups.map((g) => (
+            <section key={g.group} className="sd-block" aria-label={g.group}>
+              <h3 className="sd-block-h">{g.group}</h3>
+              <div className="sd-tiles">
+                {g.items.map((x) => (
+                  <button key={x.name} type="button" className="sd-tile" onClick={() => void openAt(x.section!)}>
+                    <span className="sd-tile-title">{x.label}</span>
+                    {x.note && <span className="sd-tile-note">{x.note}</span>}
                   </button>
                 ))}
               </div>
-            </>
-          )}
+            </section>
+          ))}
+
           <DavenTools day={day} place={place} onAsk={onAsk} onLearn={onLearn} onOpen={openNamed} onPlace={onPlace} />
-          {book && (
-            <details className="sd-all">
-              <summary>Everything in this siddur</summary>
-              <ContentsGrid book={book} onOpen={(sec) => void openAt(sec)} />
-            </details>
+
+          {outline.length > 0 && (
+            <section className="sd-block" aria-labelledby="sd-h-all">
+              <h3 id="sd-h-all" className="sd-block-h">
+                The whole siddur
+              </h3>
+              <SiddurOutline outline={outline} onOpen={(sec) => void openAt(sec)} />
+            </section>
           )}
+
+          <div className="sd-which">
+            <label className="sd-pick">
+              <span className="sd-pick-label">Siddur</span>
+              <select value={book} onChange={(e) => chooseBook(e.target.value)}>
+                {siddurs.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace(/^The /, "")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {testing && <p className="fine-left">From the testing library: not yet approved by the rabbinic board.</p>}
         </div>
       </div>
@@ -1338,12 +1479,18 @@ export default function Siddur({
 
   const stop = stops[current];
   const prevStop = stops[current - 1];
-  const nextStop = stops[current + 1] ?? (chunks[chunks.length - 1]?.next ? { label: names(book, chunks[chunks.length - 1].next!).short, section: "" } : undefined);
+  const nextStop = stops[current + 1] ?? (chunks[chunks.length - 1]?.next ? { label: shown(book, chunks[chunks.length - 1].next!).short, section: "" } : undefined);
   const nowChunk = chunks.find((c) => c.section === stop?.section) ?? chunks[0];
-  const nowNames = nowChunk ? names(book, nowChunk.section) : null;
+  const nowNames = nowChunk ? shown(book, nowChunk.section) : null;
   const layoutNow = LAYOUTS.find((l) => l.id === layout) ?? LAYOUTS[0];
   const nextLayout = LAYOUTS[(LAYOUTS.findIndex((l) => l.id === layout) + 1) % 3] ?? LAYOUTS[0];
-  const partSections = nowChunk && tree ? (tree.find((n) => fold(n.name) === fold(partOf(book, nowChunk.section)))?.children ?? []) : [];
+  // What comes after this in the same part of the siddur, under its headings, for the jump list.
+  const nowCategory = nowChunk ? outline.find((c) => c.groups.some((g) => g.items.some((i) => i.section === nowChunk.section))) : undefined;
+  const loaded = new Set(chunks.map((c) => c.section));
+  const lastLoaded = chunks.length ? orderRef.current.indexOf(chunks[chunks.length - 1].section) : -1;
+  const furtherOn = (nowCategory?.groups ?? [])
+    .map((g) => ({ title: g.title, items: g.items.filter((i) => !loaded.has(i.section) && orderRef.current.indexOf(i.section) > lastLoaded) }))
+    .filter((g) => g.items.length > 0);
 
   const bodyTop = (
     <>
@@ -1363,7 +1510,7 @@ export default function Siddur({
       {error && <p className="reader-state">{error}</p>}
       {chunks[0]?.prev && partOf(book, chunks[0].prev) === partOf(book, chunks[0].section) && (
         <button type="button" className="btn quiet sd-earlier" disabled={loading === "prev"} onClick={() => void loadPrev()}>
-          {loading === "prev" ? "Opening…" : `Earlier: ${names(book, chunks[0].prev).short}`}
+          {loading === "prev" ? "Opening…" : `Earlier: ${shown(book, chunks[0].prev).short}`}
         </button>
       )}
     </>
@@ -1378,7 +1525,7 @@ export default function Siddur({
               ? "Opening…"
               : `Continue: ${(() => {
                   const lastC = chunks[chunks.length - 1];
-                  const n = names(book, lastC.next!);
+                  const n = shown(book, lastC.next!);
                   const other = partOf(book, lastC.next!) !== partOf(book, lastC.section);
                   return other && n.crumb ? `${n.crumb} · ${n.short}` : n.short;
                 })()} ›`}
@@ -1422,7 +1569,7 @@ export default function Siddur({
       {menu}
       {contentsOpen && (
         <div className="sd-contents">
-          <ContentsGrid book={book} current={nowChunk?.section} onOpen={(sec) => void openAt(sec)} />
+          <SiddurOutline outline={outline} current={nowChunk?.section} onOpen={(sec) => void openAt(sec)} />
         </div>
       )}
       {layout === "panes" ? (
@@ -1470,21 +1617,22 @@ export default function Siddur({
                 </li>
               ))}
             </ul>
-            {partSections.length > 0 && (
+            {furtherOn.length > 0 && (
               <>
-                <p className="sd-jump-h">Further on</p>
-                <ul>
-                  {partSections
-                    .map((n) => ({ name: n.name, section: firstSection(n) }))
-                    .filter((n) => n.section && !chunks.some((c) => c.section === n.section))
-                    .map((n) => (
-                      <li key={n.section}>
-                        <button type="button" className="sd-jump-item" onClick={() => void openAt(n.section!)}>
-                          {n.name}
-                        </button>
-                      </li>
-                    ))}
-                </ul>
+                {furtherOn.map((g) => (
+                  <div key={g.title || "more"}>
+                    <p className="sd-jump-h">{g.title || "Further on"}</p>
+                    <ul>
+                      {g.items.map((n) => (
+                        <li key={n.section}>
+                          <button type="button" className="sd-jump-item" onClick={() => void openAt(n.section)}>
+                            {n.title}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </>
             )}
           </div>
@@ -1591,5 +1739,5 @@ function loadPrefsSafe(): DavenPrefs {
 }
 
 function loadPrefsDefault(): DavenPrefs {
-  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false } };
+  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false }, torahBlessings: "before-morning-blessings" };
 }

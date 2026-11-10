@@ -6,6 +6,7 @@
 
 import { DEFAULT_CUSTOMS, type DavenCustoms } from "./today";
 import type { Pronunciation } from "./translit";
+import type { TorahBlessingsPlace } from "./outline";
 
 /** lines: Hebrew then its translation, line by line; paragraph: each prayer's Hebrew, then its translation; words: English under each Hebrew word; panes: Hebrew above, English below. */
 export type Layout = "lines" | "paragraph" | "words" | "panes";
@@ -22,6 +23,8 @@ export interface DavenPrefs {
   /** Tap a Hebrew word to see its meaning. */
   wordTap: boolean;
   customs: DavenCustoms;
+  /** Where the blessings over the Torah come in the morning (lib/siddur/outline.ts, davenOrder). */
+  torahBlessings: TorahBlessingsPlace;
 }
 
 export const DEFAULT_PREFS: DavenPrefs = {
@@ -32,6 +35,7 @@ export const DEFAULT_PREFS: DavenPrefs = {
   translit: "off",
   wordTap: true,
   customs: DEFAULT_CUSTOMS,
+  torahBlessings: "before-morning-blessings",
 };
 
 const KEY = "rabai_daven_prefs";
@@ -48,6 +52,7 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     wording: one(r.wording, ["both", "men", "women"] as const, DEFAULT_PREFS.wording),
     translit: one(r.translit, ["off", "sephardi", "ashkenazi"] as const, DEFAULT_PREFS.translit),
     wordTap: typeof r.wordTap === "boolean" ? r.wordTap : DEFAULT_PREFS.wordTap,
+    torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,
       viduyIsrael: typeof c.viduyIsrael === "boolean" ? c.viduyIsrael : DEFAULT_CUSTOMS.viduyIsrael,

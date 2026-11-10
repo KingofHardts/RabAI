@@ -211,7 +211,7 @@ export default function DavenTools({
 
   return (
     <div className="sd-tools">
-      <h3 className="lib-h">Tools</h3>
+      <h3 className="sd-block-h">Tools</h3>
       {note && (
         <p className="sd-tool-note" role="status">
           {note}
@@ -219,8 +219,11 @@ export default function DavenTools({
       )}
       <div className="sd-tool-grid">
         {davening?.omerTonight && (
-          <section className="sd-tool" aria-label="Counting the Omer">
-            <h4>Counting the Omer</h4>
+          <details className="sd-tool" aria-label="Counting the Omer" open>
+          <summary>
+            <span className="sd-tool-title">Counting the Omer</span>
+            <span className="sd-tool-sub">Tonight's count, and a reminder</span>
+          </summary>
             <p>
               {day?.afterSunset ? "Tonight" : "Tonight, after nightfall"}: day {davening.omerTonight}
               {davening.omerTonight >= 7 ? ` (${omerWords(davening.omerTonight)})` : ""}.
@@ -237,11 +240,14 @@ export default function DavenTools({
                 Remind me each night
               </button>
             </div>
-          </section>
+          </details>
         )}
 
-        <section className="sd-tool" aria-label="Today's Tehillim">
-          <h4>Today&apos;s Tehillim</h4>
+        <details className="sd-tool" aria-label="Today's Tehillim">
+          <summary>
+            <span className="sd-tool-title">Today&apos;s Tehillim</span>
+            <span className="sd-tool-sub">The day's psalms, and names to say them for</span>
+          </summary>
           <div className="seg sd-tool-seg" role="group" aria-label="Tehillim cycle">
             <button type="button" aria-pressed={!weekly} onClick={() => setWeekly(false)}>
               Monthly
@@ -296,10 +302,13 @@ export default function DavenTools({
             </div>
             <p className="fine-left">Kept on this device only.</p>
           </details>
-        </section>
+        </details>
 
-        <section className="sd-tool" aria-label="Reminders">
-          <h4>Reminders</h4>
+        <details className="sd-tool" aria-label="Reminders">
+          <summary>
+            <span className="sd-tool-title">Reminders</span>
+            <span className="sd-tool-sub">For Mincha and the new moon, in your own calendar</span>
+          </summary>
           <p className="fine-left">Added to your own calendar, as a calendar file. Nothing is kept here.</p>
           <div className="sd-tool-row">
             <span>Mincha,</span>
@@ -347,10 +356,13 @@ export default function DavenTools({
               Add
             </button>
           </div>
-        </section>
+        </details>
 
-        <section className="sd-tool" aria-label="Yahrzeits">
-          <h4>Yahrzeits</h4>
+        <details className="sd-tool" aria-label="Yahrzeits">
+          <summary>
+            <span className="sd-tool-title">Yahrzeits</span>
+            <span className="sd-tool-sub">The coming dates, kept on this device</span>
+          </summary>
           {yahrzeits.length > 0 && (
             <ul className="sd-yahrzeits">
               {yahrzeits.map((y) => {
@@ -401,10 +413,13 @@ export default function DavenTools({
           <p className="fine-left">
             Kept on this device only; only the date is used to work out the yahrzeit. For a passing in Adar, customs differ in a leap year: ask your rav.
           </p>
-        </section>
+        </details>
 
-        <section className="sd-tool" aria-label="Facing Jerusalem">
-          <h4>Facing Jerusalem</h4>
+        <details className="sd-tool" aria-label="Facing Jerusalem">
+          <summary>
+            <span className="sd-tool-title">Facing Jerusalem</span>
+            <span className="sd-tool-sub">Which way to face</span>
+          </summary>
           {bearing === null ? (
             <p>
               <button type="button" className="link" onClick={onPlace}>
@@ -431,10 +446,13 @@ export default function DavenTools({
               {compassError && <p className="muted">{compassError}</p>}
             </>
           )}
-        </section>
+        </details>
 
-        <section className="sd-tool" aria-label="Which bracha">
-          <h4>Which bracha?</h4>
+        <details className="sd-tool" aria-label="Which bracha">
+          <summary>
+            <span className="sd-tool-title">Which bracha?</span>
+            <span className="sd-tool-sub">Ask which blessing a food gets</span>
+          </summary>
           <div className="sd-tool-row">
             <input value={food} onChange={(e) => setFood(e.target.value)} placeholder="What are you eating or drinking?" aria-label="What are you eating or drinking?" onKeyDown={(e) => e.key === "Enter" && food.trim() && onAsk(`What bracha do I say before and after eating ${food.trim()}?`)} />
             <button type="button" className="btn" disabled={!food.trim()} onClick={() => onAsk(`What bracha do I say before and after eating ${food.trim()}?`)}>
@@ -454,15 +472,18 @@ export default function DavenTools({
               The blessings in the siddur
             </button>
           </p>
-        </section>
+        </details>
 
-        <section className="sd-tool" aria-label="Find a minyan">
-          <h4>Find a minyan</h4>
+        <details className="sd-tool" aria-label="Find a minyan">
+          <summary>
+            <span className="sd-tool-title">Find a minyan</span>
+            <span className="sd-tool-sub">Near you</span>
+          </summary>
           <p>GoDaven lists minyanim and their times around the world.</p>
           <a className="btn quiet" href="https://www.godaven.com/" target="_blank" rel="noopener noreferrer">
             Open GoDaven ↗
           </a>
-        </section>
+        </details>
       </div>
     </div>
   );

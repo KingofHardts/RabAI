@@ -125,9 +125,27 @@ export function dayStarters(day: DaySummary | null, today: string, weekday: numb
   return out.slice(0, 3);
 }
 
+/** Everyday halacha, drawn four at a time. Each answer comes with the note to ask one's rav. */
+export const HALACHA_STARTERS: Starter[] = [
+  q("How long do we wait between meat and milk?"),
+  q("What do I do if I forgot Ya'aleh VeYavo?"),
+  q("When is the latest time for the morning Shema today?", "When is the latest time for the morning Shema today, where I am?"),
+  q("Which bracha comes first when I have several foods?"),
+  q("What are the 39 kinds of work on Shabbat?"),
+  q("May I set a timer for the lights before Shabbat?"),
+  q("How do I make Havdalah?"),
+  q("What if I missed a night of counting the Omer?"),
+  q("How is a pot kashered?"),
+  q("What are the laws of washing hands for bread?"),
+  q("When may I daven Mincha today?", "From when and until when may I daven Mincha today, where I am?"),
+  q("What makes a mezuzah kosher, and where does it go?"),
+  q("What do I say after eating fruit or cake?"),
+  q("How do I light Shabbat candles when I am away from home?"),
+];
+
 /**
- * The groups of suggested questions for a new chat: today's, then three about Torah and two about
- * life, drawn fresh each time.
+ * The groups of suggested questions for a new chat: today's, then four each about Torah, everyday
+ * halacha and life, drawn fresh each time. The welcome shows one group at a time.
  */
 export function pickStarters(day: DaySummary | null, opts: { rand?: () => number; now?: Date } = {}): StarterGroup[] {
   const rand = opts.rand ?? Math.random;
@@ -136,10 +154,11 @@ export function pickStarters(day: DaySummary | null, opts: { rand?: () => number
   const forToday = dayStarters(day, today, now.getDay());
   const torah = shuffled(TORAH_STARTERS, rand)
     .filter((s) => !forToday.some((t) => t.label === s.label))
-    .slice(0, forToday.length ? 3 : 4);
+    .slice(0, 4);
   const groups: StarterGroup[] = [];
   if (forToday.length) groups.push({ label: "For this week", items: forToday });
   groups.push({ label: "Ask about Torah", items: torah });
-  groups.push({ label: "Talk about life", items: shuffled(LIFE_STARTERS, rand).slice(0, 2) });
+  groups.push({ label: "Halacha", items: shuffled(HALACHA_STARTERS, rand).slice(0, 4) });
+  groups.push({ label: "Talk about life", items: shuffled(LIFE_STARTERS, rand).slice(0, 4) });
   return groups;
 }

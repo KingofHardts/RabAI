@@ -61,6 +61,26 @@ function shelfColor(id: ShelfId): string {
   return `var(--shelf-${SHELF_TONES[id] ?? 6})`;
 }
 
+/** A few words on what is on each shelf, under its name on the Learn home. */
+const SHELF_ABOUT: Partial<Record<ShelfId, string>> = {
+  tanakh: "Torah, Prophets and Writings, with Rashi and the commentaries",
+  mishnah: "The six orders, with their commentaries",
+  talmud: "Bavli and Yerushalmi, with Rashi and Tosafot",
+  halacha: "Mishneh Torah, Shulchan Arukh and the poskim",
+  midrash: "Midrash Rabbah, Tanchuma and more",
+  prayer: "Siddurim, the Haggadah and the machzor",
+  tosefta: "The teachings beside the Mishnah",
+  minor: "Avot DeRabbi Natan, Derekh Eretz and others",
+  thought: "Kuzari, the Guide, Derekh HaShem",
+  musar: "Mesilat Yesharim, Chovot HaLevavot",
+  chasidut: "Tanya, Sefat Emet, Likutei Moharan",
+  kabbalah: "The Zohar and the kabbalists",
+  responsa: "Questions and answers through the ages",
+  reference: "Jastrow and Sefer HaShorashim",
+  commentaries: "Commentaries that stand on their own",
+  other: "Everything else",
+};
+
 function readStored(key: string): string | null {
   try {
     return window.localStorage.getItem(key);
@@ -86,6 +106,7 @@ export default function LibraryShelves({
   onPage,
   onLearn,
   extras,
+  today,
   day,
   onPlace,
   onDaven,
@@ -101,6 +122,8 @@ export default function LibraryShelves({
   onLearn: (title: string) => void;
   /** Shown at the end of the home (My words, the key words). */
   extras?: ReactNode;
+  /** Today's learning (the daf, the parsha), shown on the home under "Continue". */
+  today?: ReactNode;
   /** Today, for the times a search for "zmanim" shows. */
   day?: DaySummary | null;
   /** Open the place setting, for the day's times. */
@@ -117,6 +140,8 @@ export default function LibraryShelves({
   const [partIndex, setPartIndex] = useState(0);
   const [page, setPage] = useState<Page | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  /** On a phone the home lists every shelf; this is set once the person opens one. */
+  const [browsing, setBrowsing] = useState(false);
   const [openAs, setOpenAs] = useState<"text" | "page">("text");
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -181,7 +206,9 @@ export default function LibraryShelves({
     setPartIndex(0);
     setPage(null);
     setMoreOpen(false);
+    setBrowsing(true);
     store(SHELF_KEY, id);
+    toTop();
   };
 
   const open = (p: Page) => {
@@ -429,7 +456,39 @@ export default function LibraryShelves({
   const openMore = shelf && !MAIN_SHELVES.includes(shelf.id) ? shelf : null;
 
   return (
-    <div className="library" ref={rootRef}>
+    <div className={`library${browsing ? " browsing" : ""}`} ref={rootRef}>
+      <div className="lib-search">
+        <label className="sr-only" htmlFor="book-filter">
+          Search the library ({placed.length} books), in English or Hebrew
+        </label>
+        <svg className="lib-search-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M16 16l4.5 4.5" />
+        </svg>
+        <input
+          id="book-filter"
+          className="book-filter"
+          type="search"
+          value={query}
+          placeholder="Search: a book, a prayer, a daf…"
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(null);
+          }}
+          onKeyDown={onSearchKey}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </div>
+      {!query && !page && !browsing && (
+        <div className="lib-tries" aria-label="Things to try">
+          {["Berakhot 2a", "Mincha", "משנה ברורה", "zmanim"].map((t) => (
+            <button key={t} type="button" className="lib-try" onClick={() => setQuery(t)}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
       {!query && !page && recent.length > 0 && (
         <section className="continue" aria-label="Continue reading">
           <h2 className="lib-h">Continue</h2>
@@ -462,25 +521,7 @@ export default function LibraryShelves({
         </section>
       )}
 
-      <div className="lib-search">
-        <label className="sr-only" htmlFor="book-filter">
-          Find a book ({placed.length} in the library), in English or Hebrew
-        </label>
-        <input
-          id="book-filter"
-          className="book-filter"
-          type="search"
-          value={query}
-          placeholder="Find a book: Berakhot, משנה ברורה…"
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(null);
-          }}
-          onKeyDown={onSearchKey}
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
+      {!query && !page && today}
       {label && (
         <p className="lib-label" title={label}>
           <span className="tag-gray">Testing library</span> {placed.length} books, not yet approved by the rabbinic board.
@@ -578,7 +619,39 @@ export default function LibraryShelves({
           )}
         </div>
       ) : (
+        <>
+        <section className="shelf-grid-wrap" aria-labelledby="lib-h-shelves">
+          <h2 id="lib-h-shelves" className="lib-h">
+            The library
+          </h2>
+          <div className="shelf-grid">
+            {shelves.map((s) => (
+              <button key={s.id} type="button" className="shelf-card" style={{ ["--shelf" as string]: shelfColor(s.id) }} onClick={() => chooseShelf(s.id)}>
+                <span className="sc-top">
+                  <span className="sc-name">{s.name}</span>
+                  <span className="he sc-he" lang="he">
+                    {s.he}
+                  </span>
+                </span>
+                {SHELF_ABOUT[s.id] && <span className="sc-about">{SHELF_ABOUT[s.id]}</span>}
+                <span className="sc-count">
+                  {s.count.toLocaleString()} {s.count === 1 ? "book" : "books"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
         <div className="lib-body">
+          <button
+            type="button"
+            className="link back-link shelf-back"
+            onClick={() => {
+              setBrowsing(false);
+              toTop();
+            }}
+          >
+            ← All shelves
+          </button>
           <nav className="shelf-nav" aria-label="Shelves">
             <div className="shelf-row">
               {main.map((s) => shelfTab(s))}
@@ -599,9 +672,17 @@ export default function LibraryShelves({
           </nav>
           <div className="lib-main">{shelfView}</div>
         </div>
+        </>
       )}
 
-      {!query && !page && extras}
+      {!query && !page && extras && (
+        <section className="lib-tools" aria-labelledby="lib-h-tools">
+          <h2 id="lib-h-tools" className="lib-h">
+            Study tools
+          </h2>
+          {extras}
+        </section>
+      )}
     </div>
   );
 }

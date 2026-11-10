@@ -1332,6 +1332,31 @@ function TalkPanel({ talk, chavrusa, onEnd }: { talk: TalkControls; chavrusa: bo
   );
 }
 
+/** The three places in the app, each with its own picture: a conversation, an open book, a siddur with its ribbon. */
+function ModeIcon({ mode }: { mode: "chat" | "learn" | "daven" }) {
+  const common = { viewBox: "0 0 24 24", width: 18, height: 18, "aria-hidden": true, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+  if (mode === "chat")
+    return (
+      <svg className="mode-icon" {...common}>
+        <path d="M20 12a7.5 7.5 0 0 1-11 6.6L4 20l1.4-4.6A7.5 7.5 0 1 1 20 12z" />
+      </svg>
+    );
+  if (mode === "learn")
+    return (
+      <svg className="mode-icon" {...common}>
+        <path d="M12 6.5C10.2 5.2 7.8 4.6 4 4.8v13c3.8-.2 6.2.4 8 1.7 1.8-1.3 4.2-1.9 8-1.7v-13c-3.8-.2-6.2.4-8 1.7z" />
+        <path d="M12 6.5v13" />
+      </svg>
+    );
+  return (
+    <svg className="mode-icon" {...common}>
+      <path d="M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14.5H7.5A1.5 1.5 0 0 1 6 18z" />
+      <path d="M6 18a1.5 1.5 0 0 1 1.5-1.5h11" />
+      <path d="M10.5 3.5v7l2-1.6 2 1.6v-7" />
+    </svg>
+  );
+}
+
 function ChatsIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1537,6 +1562,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   /** Learn's screens: the library, My words, or the Gemara's key words. */
   const [learnView, setLearnView] = useState<"library" | "words" | "phrases" | "articles">("library");
+  /** Which group of suggested questions the welcome shows. */
+  const [starterTab, setStarterTab] = useState(0);
+  const starterTabNow = Math.min(starterTab, Math.max(0, (starters?.length ?? 1) - 1));
   const [lang, setLang] = useState<Lang>("both");
   /** Hebrew in a pane above, the English in a pane below, scrolling together (use-linked-scroll.ts). */
   const [split, setSplit] = useState(false);
@@ -1724,6 +1752,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         startNewChatRef.current();
         return;
       }
+      // Alt+1, 2, 3: Chat, Learn, Daven.
+      if (e.altKey && !e.metaKey && !e.ctrlKey && /^Digit[123]$/.test(e.code)) {
+        e.preventDefault();
+        chooseModeRef.current((["chat", "learn", "daven"] as const)[Number(e.code.slice(5)) - 1]);
+        return;
+      }
       if (e.key === "?" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
         e.preventDefault();
@@ -1816,6 +1850,9 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setMode(m);
     store("rabai_mode", m);
   };
+
+  const chooseModeRef = useRef(chooseMode);
+  chooseModeRef.current = chooseMode;
 
   /** The siddur a ref is in, if it is in one: a siddur opens for davening by default. */
   const siddurOf = (ref: string) => siddurTitles.find((t) => ref === t || ref.startsWith(`${t}, `));
@@ -4866,17 +4903,43 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 <NewChatIcon />
               </button>
             )}
-            <div className="mode-switch" role="group" aria-label="Chat, learn or daven">
-              <button type="button" aria-pressed={mode === "chat"} onClick={() => chooseMode("chat")}>
-                Chat
-              </button>
-              <button type="button" aria-pressed={mode === "learn"} onClick={() => chooseMode("learn")}>
-                Learn
-              </button>
-              <button type="button" aria-pressed={mode === "daven"} onClick={() => chooseMode("daven")}>
-                Daven
-              </button>
-            </div>
+            <nav
+              className="mode-switch"
+              aria-label="Chat, learn or daven"
+              onKeyDown={(e) => {
+                // The arrow keys move between the three, as in a row of tabs.
+                if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                const order: Mode[] = ["chat", "learn", "daven"];
+                const next = order[(order.indexOf(mode) + (e.key === "ArrowRight" ? 1 : 2)) % 3];
+                e.preventDefault();
+                chooseMode(next);
+                requestAnimationFrame(() => document.querySelector<HTMLElement>(`.mode-switch [data-mode="${next}"]`)?.focus());
+              }}
+            >
+              {(
+                [
+                  ["chat", "Chat", "Ask and talk"],
+                  ["learn", "Learn", "The library"],
+                  ["daven", "Daven", "The siddur"],
+                ] as const
+              ).map(([m, label, hint]) => (
+                <button
+                  key={m}
+                  type="button"
+                  data-mode={m}
+                  aria-pressed={mode === m}
+                  aria-current={mode === m ? "page" : undefined}
+                  title={`${label}: ${hint}`}
+                  onClick={() => chooseMode(m)}
+                >
+                  <ModeIcon mode={m} />
+                  <span className="mode-label">{label}</span>
+                  {m === "chat" && mode !== "chat" && (pending || freshChats.size > 0) && (
+                    <span className={`mode-dot${pending ? " busy" : ""}`} aria-label={pending ? "RabbAI is answering" : "A new answer is waiting"} />
+                  )}
+                </button>
+              ))}
+            </nav>
             <button
               type="button"
               className="icon-btn"
@@ -5366,7 +5429,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   </div>
                   <div className="body">
                     <p className="welcome-hi">
-                      Shalom{profile.remember && profile.stated.name ? `, ${profile.stated.name}` : ""}! I’m RabbAI, an AI Torah teacher.
+                      Shalom{profile.remember && profile.stated.name ? `, ${profile.stated.name}` : ""}. What shall we learn?
                     </p>
                     {day && (
                       <p className="welcome-today">
@@ -5381,10 +5444,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         {soonLine(day) && <span>{soonLine(day)}</span>}
                       </p>
                     )}
-                    <p>
-                      Ask me anything, about Torah or about life. You can type, {dictation.supported ? "talk, " : ""}or send a
-                      picture of a page.
-                    </p>
+                    <p className="welcome-lead">Ask me anything, about Torah or about life.</p>
                     {libraryMode === "testing" && (
                       <p className="welcome-tag">
                         <span className="tag-gray">Testing library</span> Not yet approved by the rabbinic board.
@@ -5396,46 +5456,79 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         steps are in web/README.md.
                       </p>
                     )}
-                    <div className="chav-invite">
-                      <div className="chav-invite-text">
-                        <strong>Learn with a chavrusa</strong>
-                        <span className="muted">
-                          A piece at a time, from the text itself. It can ask you questions, go deep, or keep to the Gemara, Rashi and
-                          Tosafot.
+                    <div className="ways" role="group" aria-label="Ways to begin">
+                      <button type="button" className="way" onClick={() => requestAnimationFrame(() => textareaRef.current?.focus())}>
+                        <span className="way-icon" aria-hidden="true">
+                          <ModeIcon mode="chat" />
                         </span>
-                      </div>
-                      <div className="chav-invite-btns">
-                        {profile.remember && profile.observed.learning[0] && (
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={() => {
-                              const l = profile.observed.learning[0];
-                              startChavrusa({ style: l.style ?? "guide", depth: "standard", text: l.text, ...(l.at ? { at: l.at } : {}) });
-                            }}
-                          >
-                            Continue {profile.observed.learning[0].text}
-                          </button>
-                        )}
-                        <button type="button" className="btn primary" onClick={() => openChavrusaSetup()} aria-label="Start learning with a chavrusa">
-                          <span className="wide-only">Start learning</span>
-                          <span className="narrow-only">Start</span>
+                        <span className="way-t">Ask a question</span>
+                        <span className="way-sub">Torah, halacha, or life</span>
+                      </button>
+                      <button type="button" className="way way-learn" onClick={() => openChavrusaSetup()} aria-label="Start learning with a chavrusa">
+                        <span className="way-icon" aria-hidden="true">
+                          <ModeIcon mode="learn" />
+                        </span>
+                        <span className="way-t">Learn with a chavrusa</span>
+                        <span className="way-sub">A text, a line at a time</span>
+                      </button>
+                      {talkOk && (
+                        <button type="button" className="way" disabled={!online} onClick={startTalk}>
+                          <span className="way-icon" aria-hidden="true">
+                            <TalkIcon />
+                          </span>
+                          <span className="way-t">Talk out loud</span>
+                          <span className="way-sub">A conversation you can interrupt</span>
                         </button>
-                      </div>
+                      )}
+                      <button type="button" className="way" onClick={() => pictureInputRef.current?.click()}>
+                        <span className="way-icon" aria-hidden="true">
+                          <PictureIcon />
+                        </span>
+                        <span className="way-t">Send a picture</span>
+                        <span className="way-sub">A page of a sefer, or your notes</span>
+                      </button>
                     </div>
-                    <p className="welcome-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
-                    {(starters ?? []).map((g) => (
-                      <div key={g.label} className={`starters${g.label === "For this week" ? " starters-today" : ""}`}>
-                        <p className="label-sm">{g.label}</p>
-                        <div className="starter-grid">
-                          {g.items.map((q) => (
-                            <button key={q.label} type="button" className="starter" onClick={() => void send(q.ask)}>
-                              {q.label}
+                    {profile.remember && profile.observed.learning[0] && (
+                      <button
+                        type="button"
+                        className="welcome-continue"
+                        onClick={() => {
+                          const l = profile.observed.learning[0];
+                          startChavrusa({ style: l.style ?? "guide", depth: "standard", text: l.text, ...(l.at ? { at: l.at } : {}) });
+                        }}
+                      >
+                        <span className="wc-k">Pick up where you stopped</span>
+                        <span className="wc-t">
+                          {profile.observed.learning[0].text}
+                          {profile.observed.learning[0].at && profile.observed.learning[0].at !== profile.observed.learning[0].text ? ` · from ${shortRef(profile.observed.learning[0].at)}` : ""}
+                        </span>
+                      </button>
+                    )}
+                    {starters && starters.length > 0 && (
+                      <div className="starters-box">
+                        <div className="starter-tabs" role="tablist" aria-label="Questions to try">
+                          {starters.map((g, i) => (
+                            <button key={g.label} type="button" role="tab" aria-selected={i === starterTabNow} className="starter-tab" onClick={() => setStarterTab(i)}>
+                              {g.label.replace(/^For this week$/, "This week").replace(/^Ask about Torah$/, "Torah").replace(/^Talk about life$/, "Life")}
                             </button>
                           ))}
                         </div>
+                        {starters.map((g, i) =>
+                          i === starterTabNow ? (
+                            <div key={g.label} className={`starters${g.label === "For this week" ? " starters-today" : ""}`} role="tabpanel" aria-label={g.label}>
+                              <div className="starter-grid">
+                                {g.items.map((q) => (
+                                  <button key={q.label} type="button" className="starter" onClick={() => void send(q.ask)}>
+                                    {q.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null,
+                        )}
                       </div>
-                    ))}
+                    )}
+                    <p className="welcome-rav">RabbAI is an AI Torah teacher, not a rav. For your own situation, ask your rav.</p>
                     {starters && starters.length > 0 && (
                       <button
                         type="button"
@@ -5693,24 +5786,6 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </div>
           ) : (
             <div className="thread learn-home">
-              {day && (day.daf?.ref || day.parsha?.ref) && (
-                <div className="learn-today" role="group" aria-label="Today">
-                  {day.daf?.ref && (
-                    <button type="button" className="learn-today-item" onClick={() => void openDaf(day.daf!.ref!)}>
-                      <span className="label-sm">Today&apos;s Daf Yomi</span>
-                      <strong>{day.daf.text}</strong>
-                      <span className="muted">Open the page as printed</span>
-                    </button>
-                  )}
-                  {day.parsha?.ref && !day.parsha.holiday && (
-                    <button type="button" className="learn-today-item" onClick={() => void openReader(day.parsha!.ref!)}>
-                      <span className="label-sm">This week&apos;s parsha</span>
-                      <strong>{day.parsha.name}</strong>
-                      <span className="muted">Read it with the commentaries</span>
-                    </button>
-                  )}
-                </div>
-              )}
               {sections === null ? (
                 <div className="shelf-skeleton" aria-busy="true">
                   <p className="sr-only">Opening the library</p>
@@ -5737,6 +5812,29 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                   onDaven={(ref) => openDaven(ref)}
                   onPage={(ref) => void openDaf(ref)}
                   day={day}
+                  today={day && (day.daf?.ref || day.parsha?.ref) && (
+                <section className="learn-today-wrap" aria-labelledby="lib-h-today">
+                  <h2 id="lib-h-today" className="lib-h">
+                    Today&apos;s learning
+                  </h2>
+                  <div className="learn-today" role="group" aria-label="Today">
+                  {day.daf?.ref && (
+                    <button type="button" className="learn-today-item" onClick={() => void openDaf(day.daf!.ref!)}>
+                      <span className="label-sm">Today&apos;s Daf Yomi</span>
+                      <strong>{day.daf.text}</strong>
+                      <span className="muted">Open the page as printed</span>
+                    </button>
+                  )}
+                  {day.parsha?.ref && !day.parsha.holiday && (
+                    <button type="button" className="learn-today-item" onClick={() => void openReader(day.parsha!.ref!)}>
+                      <span className="label-sm">This week&apos;s parsha</span>
+                      <strong>{day.parsha.name}</strong>
+                      <span className="muted">Read it with the commentaries</span>
+                    </button>
+                  )}
+                </div>
+                </section>
+              )}
                   onPlace={() => setPlaceOpen(true)}
                   onLearn={(title) =>
                     void send(
@@ -6390,6 +6488,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <dt><kbd>Ctrl</kbd> or <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd></dt><dd>A new chat</dd>
               <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>The next or previous word in a word&apos;s card, or page as printed</dd>
               <dt><kbd>Esc</kbd></dt><dd>Close a card, a menu or the page</dd>
+              <dt><kbd>Alt</kbd> + <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Chat, Learn, Daven (or the arrow keys on the tabs)</dd>
               <dt><kbd>?</kbd></dt><dd>This list</dd>
             </dl>
           </div>
