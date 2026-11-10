@@ -12,6 +12,10 @@ on:
         description: "Book titles, separated by |"
         required: true
         default: "The Koren Shalem Siddur; Ashkenaz|Siddur Ashkenaz|Siddur Sefard|Siddur Edot HaMizrach"
+      library:
+        description: "Also list every book's title and categories (as the Learn tab gets them)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,4 +33,5 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           BOOKS: ${{ inputs.books }}
+          LIBRARY_LIST: ${{ inputs.library && '1' || '' }}
         run: python3 tools/book_sections.py

@@ -46,6 +46,18 @@ def main() -> int:
     if status != 200:
         print(f"The access code didn't open the app (HTTP {status}).")
         return 1
+    if os.environ.get("LIBRARY_LIST") == "1":
+        # The library's list of books as the Learn tab receives it: titles and categories only.
+        status, raw = fetch("/api/library")
+        print(f"\n## The library list (HTTP {status})")
+        try:
+            listing = json.loads(raw)
+        except ValueError:
+            listing = {}
+        for b in listing.get("sections") or []:
+            print("BOOK " + json.dumps([b.get("section"), b.get("sectionHe"), b.get("workTitle"), b.get("categories"), b.get("order")], ensure_ascii=False))
+        for sh in listing.get("articleShelves") or []:
+            print("SHELF " + json.dumps({k: v for k, v in sh.items() if k in ("site", "title", "name", "count", "section", "work")}, ensure_ascii=False))
     for book in books:
         status, raw = fetch("/api/contents?book=" + urllib.parse.quote(book))
         print(f"\n## {book} (HTTP {status})")
