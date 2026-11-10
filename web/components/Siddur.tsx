@@ -20,7 +20,7 @@ import { noteFor, bareLetters } from "@/lib/siddur/notes";
 import { lawNumbersIn, lawRanges, prayerLinks, type LawRange } from "@/lib/siddur/links";
 import type { DaveningNote } from "@/lib/siddur/davening-notes.generated";
 import { loadPrefs, savePrefs, type DavenPrefs, type Layout } from "@/lib/siddur/prefs";
-import { davenOrder, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
+import { davenOrder, glossFor, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
 
 /*
  * The Daven tab: the siddur used as a siddur (founding spec, "Finding prayers, and the siddur as a
@@ -273,6 +273,8 @@ export default function Siddur({
   const [glosses, setGlosses] = useState<Record<string, Gloss>>({});
   const [laws, setLaws] = useState<{ range: LawRange; items: Array<{ n: string; text: string }> | null; error?: string } | null>(null);
   const [word, setWord] = useState<{ word: string; prayer: string; entries: WordEntry[] | null; error?: string } | null>(null);
+  /** A line the person asked to understand (the study level): what can be done with it. */
+  const [linePop, setLinePop] = useState<{ ref: string; prayer: string; he: string; en: string } | null>(null);
   const [offline, setOffline] = useState<{ done: number; total: number; missed: number } | null>(null);
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -287,17 +289,18 @@ export default function Siddur({
   }, []);
   // Escape closes whatever is open on top of the siddur, the most recent first.
   useEffect(() => {
-    if (!menuOpen && !jumpOpen && !laws && !word) return;
+    if (!menuOpen && !jumpOpen && !laws && !word && !linePop) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (word) setWord(null);
+      if (linePop) setLinePop(null);
+      else if (word) setWord(null);
       else if (laws) setLaws(null);
       else if (jumpOpen) setJumpOpen(false);
       else setMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen, jumpOpen, laws, word]);
+  }, [menuOpen, jumpOpen, laws, word, linePop]);
   const bodyRef = useRef<HTMLDivElement>(null);
   const enRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -609,7 +612,15 @@ export default function Siddur({
     const body = bodyRef.current;
     if (view !== "read" || !body) return;
     let frame = 0;
+    let lastTop = body.scrollTop;
+    const app = body.closest(".app");
     const onScroll = () => {
+      // On a phone the app's top bar steps aside while the person scrolls down through the
+      // davening, and comes back when they scroll up (CSS: .app.daven-reading).
+      const top = body.scrollTop;
+      if (top > lastTop + 24 && top > 120) app?.classList.add("daven-reading");
+      else if (top < lastTop - 24 || top < 60) app?.classList.remove("daven-reading");
+      if (Math.abs(top - lastTop) > 24) lastTop = top;
       if (!frame)
         frame = requestAnimationFrame(() => {
           frame = 0;
@@ -620,6 +631,7 @@ export default function Siddur({
     whereNow();
     return () => {
       body.removeEventListener("scroll", onScroll);
+      app?.classList.remove("daven-reading");
       if (frame) cancelAnimationFrame(frame);
     };
   }, [view, chunks, whereNow, layout]);
@@ -1056,7 +1068,8 @@ export default function Siddur({
       );
     }
     if (l.kind === "instruction") {
-      if (pane === "he") return <div key={l.ref} data-i={it.key} className="sd-pane-gap" />;
+      // "Just the prayers": the siddur's instructions are put away (the setting says so).
+      if (pane === "he" || prefs.depth === "prayers") return <div key={l.ref} data-i={pane ? it.key : undefined} className="sd-pane-gap" />;
       return (
         <div key={l.ref} data-i={pane ? it.key : undefined}>
           {instructionBlock(l, it.prayer)}
@@ -1093,6 +1106,20 @@ export default function Siddur({
         )}
         {showHe && translitLine(l)}
         {showEn && <p className={`sd-en${showHe ? " under" : ""}`}>{l.en.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, true, i === 0 && (showHe || pane === "en")))}</p>}
+        {prefs.depth === "study" && pane !== "en" && (
+          <button
+            type="button"
+            className="sd-line-more"
+            aria-label="Understand this line"
+            title="Understand this line"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLinePop({ ref: l.ref, prayer: it.prayer, he: visibleHebrew(l), en: l.en.map((p) => p.segs.map((x) => x.text).join("")).join(" ").replace(/\s+/g, " ").trim() });
+            }}
+          >
+            ?
+          </button>
+        )}
       </div>
     );
   };
@@ -1114,6 +1141,17 @@ export default function Siddur({
                 </span>
               )}
             </h2>
+            {prefs.depth === "study" && pane !== "en" && (
+              <div className="sd-about">
+                {glossFor(it.short) && <span className="sd-about-gloss">{glossFor(it.short)}.</span>}
+                <button type="button" className="link" onClick={() => onAsk(`What is ${it.short} in the davening: what does it say, why do we say it, and where does it come from?`)}>
+                  About this prayer
+                </button>
+                <button type="button" className="link" onClick={() => onLearn(it.chunk.section)}>
+                  Its commentaries
+                </button>
+              </div>
+            )}
             {missing && pane !== "en" && (
               <div className="sd-make-words">
                 <button type="button" className="btn quiet" onClick={() => void makeWords(it.chunk)}>
@@ -1136,7 +1174,7 @@ export default function Siddur({
           </div>
         );
       case "note":
-        if (pane === "he") return <div key={it.key} data-i={it.key} className="sd-pane-gap" />;
+        if (pane === "he" || prefs.depth === "prayers") return <div key={it.key} data-i={pane ? it.key : undefined} className="sd-pane-gap" />;
         return (
           <div key={it.key} className="sd-instr sd-note" {...di}>
             <p>{it.note.say}</p>
@@ -1230,6 +1268,23 @@ export default function Siddur({
       <div className="sd-menu" role="dialog" aria-label="Siddur settings">
         {seg("Show", prefs.today ? "today" : "all", [["today", "Today's davening"], ["all", "Everything"]], (v) => setPref("today", v === "today"))}
         <p className="fine-left sd-menu-note">Today&apos;s davening folds what isn&apos;t said today, and shows today&apos;s additions. RabbAI&apos;s reading of the calendar, not yet reviewed by the rabbinic board. A folded part opens with a tap.</p>
+        {seg(
+          "How much to show",
+          prefs.depth,
+          [
+            ["prayers", "Just the prayers"],
+            ["guide", "With guidance"],
+            ["study", "Study"],
+          ],
+          (v) => setPref("depth", v),
+        )}
+        <p className="fine-left sd-menu-note">
+          {prefs.depth === "prayers"
+            ? "Only the words that are said. The siddur's instructions and RabbAI's notes are put away."
+            : prefs.depth === "study"
+              ? "Everything, plus a few words on each prayer and a “?” beside each line: explain it, open its commentaries, or see it word by word."
+              : "The prayers with the siddur's own instructions, and RabbAI's notes where a siddur prints none."}
+        </p>
         {seg("Layout", layout, LAYOUTS.map((l) => [l.id, l.label] as [Layout, string]), (v) => setPref("layout", v))}
         {seg("Language", prefs.lang, [["he", "עברית"], ["both", "Both"], ["en", "English"]], (v) => setPref("lang", v))}
         {seg("Transliteration", prefs.translit, [["off", "Off"], ["sephardi", "Sephardi"], ["ashkenazi", "Ashkenazi"]], (v) => setPref("translit", v))}
@@ -1369,7 +1424,7 @@ export default function Siddur({
                       <button type="button" className={`sd-row${s === now ? " now" : ""}`} onClick={() => void openAt(s.section!)}>
                         <span className="sd-row-text">
                           <span className="sd-row-title">{s.label}</span>
-                          <span className="sd-row-note">{cont ? `You were at ${cont.short}` : (SERVICE_NOTE[s.name] ?? "")}</span>
+                          <span className="sd-row-note">{cont ? `You were at ${cont.short}` : (SERVICE_NOTE[s.name] ?? (/Hallel/.test(s.label) ? SERVICE_NOTE.Hallel : ""))}</span>
                         </span>
                         {s === now && <span className="sd-row-badge">Now</span>}
                         <span className="sd-row-chev" aria-hidden="true">
@@ -1704,6 +1759,56 @@ export default function Siddur({
           </div>
         </div>
       )}
+      {linePop && (
+        <div className="sd-pop sd-linepop" role="dialog" aria-label="Understand this line">
+          <p className="sd-pop-title">Understand this line</p>
+          {linePop.he && (
+            <p className="he sd-linepop-he" lang="he" dir="rtl">
+              {linePop.he.length > 90 ? `${linePop.he.slice(0, 90)}…` : linePop.he}
+            </p>
+          )}
+          <div className="sd-pop-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                const l = linePop;
+                setLinePop(null);
+                onAsk(`In ${l.prayer} (${l.ref}), we say: “${(l.en || l.he).slice(0, 300)}” What does this line mean, and why is it said here?`);
+              }}
+            >
+              Explain it
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                const l = linePop;
+                setLinePop(null);
+                onLearn(l.ref);
+              }}
+            >
+              Commentaries
+            </button>
+            {layout !== "words" && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setLinePop(null);
+                  setPref("layout", "words");
+                }}
+              >
+                Word by word
+              </button>
+            )}
+            <button type="button" className="btn quiet" onClick={() => setLinePop(null)}>
+              Close
+            </button>
+          </div>
+          <p className="fine-left">An explanation is RabbAI&apos;s, answered in the chat and checked against the texts like any answer.</p>
+        </div>
+      )}
       {laws && (
         <div className="sd-pop sd-laws" role="dialog" aria-label={laws.range.label}>
           <p className="sd-pop-title">{laws.range.label} · the Koren siddur&apos;s Gates to Prayer</p>
@@ -1739,5 +1844,5 @@ function loadPrefsSafe(): DavenPrefs {
 }
 
 function loadPrefsDefault(): DavenPrefs {
-  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false }, torahBlessings: "before-morning-blessings" };
+  return { layout: "lines", lang: "both", today: true, wording: "both", translit: "off", wordTap: true, customs: { modernDays: false, viduyIsrael: false }, depth: "guide", torahBlessings: "before-morning-blessings" };
 }

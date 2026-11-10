@@ -12,6 +12,12 @@ import type { TorahBlessingsPlace } from "./outline";
 export type Layout = "lines" | "paragraph" | "words" | "panes";
 export type DavenLang = "he" | "both" | "en";
 export type Wording = "both" | "men" | "women";
+/**
+ * How much is shown around the prayers: only the prayers; the prayers with the siddur's
+ * instructions and RabbAI's guide notes (the usual); or all of that with a few words on each prayer
+ * and, on every line, ways to understand it better.
+ */
+export type DavenDepth = "prayers" | "guide" | "study";
 
 export interface DavenPrefs {
   layout: Layout;
@@ -23,6 +29,7 @@ export interface DavenPrefs {
   /** Tap a Hebrew word to see its meaning. */
   wordTap: boolean;
   customs: DavenCustoms;
+  depth: DavenDepth;
   /** Where the blessings over the Torah come in the morning (lib/siddur/outline.ts, davenOrder). */
   torahBlessings: TorahBlessingsPlace;
 }
@@ -35,6 +42,7 @@ export const DEFAULT_PREFS: DavenPrefs = {
   translit: "off",
   wordTap: true,
   customs: DEFAULT_CUSTOMS,
+  depth: "guide",
   torahBlessings: "before-morning-blessings",
 };
 
@@ -52,6 +60,7 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     wording: one(r.wording, ["both", "men", "women"] as const, DEFAULT_PREFS.wording),
     translit: one(r.translit, ["off", "sephardi", "ashkenazi"] as const, DEFAULT_PREFS.translit),
     wordTap: typeof r.wordTap === "boolean" ? r.wordTap : DEFAULT_PREFS.wordTap,
+    depth: one(r.depth, ["prayers", "guide", "study"] as const, DEFAULT_PREFS.depth),
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

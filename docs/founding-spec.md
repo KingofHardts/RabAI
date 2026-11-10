@@ -455,6 +455,42 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **The app organized, and RabbAI refined.** **Decided (Josh, 2026-11-10):** the app should be
+  easy to get around and well organized, and RabbAI sharper, faster and truer as a teacher, a
+  chavrusa and a companion to the siddur. The lists he asked for (600 items, each marked built,
+  already there, next, later or needing a decision) are in `docs/design-2026-11.md`. What was built:
+  - **The order of the morning prayers.** The blessings over the Torah are davened between the
+    preparation for prayer and the morning blessings, where most siddurim have them. The Koren
+    siddur prints them straight after waking, before tallit and tefillin, and the app had followed
+    it. The words are unchanged; only the order they are offered in. A setting keeps a siddur's
+    printed order, and a siddur that already has them beside the morning blessings is left alone
+    (`web/lib/siddur/outline.ts`, `davenOrder`). The board confirms the default (open question 27).
+  - **The siddur as an outline.** Its prayers are grouped the way a person looks for them:
+    Weekdays (in the stages of the day), Shabbat (Friday night, morning, afternoon, after
+    Shabbat), Holidays and special days (by season), Blessings, Life events, Torah readings, and
+    About this siddur. Names are shown in one spelling (Shacharit, Mincha, Maariv, Tachanun,
+    Amidah), with the siddur's own name kept in a tooltip, and a few plain words under names a
+    newcomer may not know. The headings and those words are the app's, not the siddur's.
+  - **The Daven home** leads with the prayer for now, then today's prayers, today's changes,
+    what people reach for (in groups), tools that open one at a time, and the whole siddur.
+  - **How much to show.** Three levels: just the prayers (the siddur's instructions and RabbAI's
+    notes are put away, by the person's choice), with guidance (the usual), and study (a few words
+    on each prayer, and beside every line a way to have it explained in the chat, to open its
+    commentaries, or to see it word by word). An explanation goes through the usual checked path.
+  - **The Learn home** has search first, then where the person left off, today's learning, every
+    shelf as a card on a phone, and the study tools together.
+  - **The Chat welcome** has four ways to begin and the suggested questions one group at a time,
+    with a group of everyday halacha questions (each such answer shows the note to ask one's rav).
+  - **The top bar** fits a phone, each of the three places has its picture and color (blue for
+    chat, purple for learning, green for davening), and it steps aside while a person scrolls
+    down through the davening on a phone.
+  - **RabbAI's instructions** gain four drafts for the board: "Answering well", "The craft of
+    teaching", "What a good chavrusa adds" and "Beside someone who is davening" (open question
+    27).
+  - **Speed.** A short typed follow-up that leans on the answer before it ("Why?", "Can you say
+    that more simply?") goes straight to that answer's sources, as a turn in Talk does; anything
+    that names a new book, asks halacha or needs the calendar is still planned. The siddur, the
+    printed page and a few dialogs load only when opened.
 - **Finding prayers, and the siddur as a siddur.** **Decided (Josh, 2026-11-04):**
   - The Learn search finds what is inside the siddurs, not only book names: "Mincha",
     "bentching", "Shema before bed", in the spellings people use. "Davening" offers the three
@@ -728,3 +764,15 @@ These need a decision before launch. Each one changes behavior.
     differently. While RabbAI talks, the words it quotes are marked on the text. Is this the right
     way to learn with someone, and is "name the move" (question, answer, proof, challenge,
     resolution) a fair way to describe the Gemara's steps to a beginner?
+27. **The order of the morning prayers, the siddur's outline, and four additions to the
+    instructions.** (a) The app now offers the blessings over the Torah just before the morning
+    blessings, after the preparation for prayer, unless the person keeps the siddur's printed
+    order. Is that the right default, and are there other differences of order the app should
+    offer as settings? (b) The siddur's prayers are grouped under the app's own headings ("Waking
+    up and getting ready", "After the Amidah"…), with a few words of explanation under some names
+    ("Tachanun: Supplications"). Are the headings and the words right? (c) "Just the prayers"
+    hides a siddur's printed instructions when the person chooses it. Is that acceptable? (d) The
+    core premises gain "Answering well", "The craft of teaching", "What a good chavrusa adds" and
+    "Beside someone who is davening". In particular: saying how settled a ruling is, that every
+    nusach is right for its community, and that RabbAI never tells a person their prayer didn't
+    count.

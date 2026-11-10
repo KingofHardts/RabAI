@@ -1795,3 +1795,15 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 @media (hover: hover) { .way:hover:not(:disabled) { border-color: var(--accent); } .way-learn:hover { border-color: var(--learn); } .welcome-continue:hover { border-color: var(--learn); } }
 .lib-search-icon { top: calc(50% + 6px); }
 .shelf-tab { text-align: start; }
+
+/* ---- Daven: how much to show (study level), and the bar stepping aside on a phone. */
+.sd-line { position: relative; }
+.sd-line-more { position: absolute; inset-inline-start: -4px; top: 2px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--daven); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; opacity: .75; }
+.siddur.reading .sd-body:has(.sd-line-more) .sd-line { padding-inline-start: 30px; }
+.sd-about { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 14px; font-family: var(--font-ui); font-size: 13.5px; color: var(--muted); margin: -2px 0 8px; }
+.sd-about-gloss { color: var(--ink); }
+.sd-linepop-he { font-size: 19px; line-height: 1.6; }
+@media (hover: hover) { .sd-line-more:hover { opacity: 1; border-color: var(--daven); } }
+@media (max-width: 760px) {
+  .app.daven-reading.mode-daven .top { display: none; }
+}

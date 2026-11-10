@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ask, conversationTurn, CONVERSATION_SETTING, CONVERSATION_TURN_NOTE, interruptedSetting, modelFor, planRequest, type ModelClient } from "../lib/engine/answer";
-import { quickFollowUp, retrieveFollowUp } from "../lib/engine/lookup";
+import { quickFollowUp, retrieveFollowUp, typedFollowUp } from "../lib/engine/lookup";
 import { warmRequests } from "../lib/engine/warm";
 import { CORE_PREMISES } from "../lib/engine/core-premises.generated";
 import { loadLibrary } from "../lib/library";
@@ -198,4 +198,23 @@ test("the lookup step's plan is read even with a slip around it", async () => {
   assert.deepEqual(parseLookupPlan('Here is the plan:\n```json\n{"refs": ["Rashi on Genesis 18:1:1"], "topic": "Vayera"}\n```').topic, "Vayera");
   // Gershayim inside Hebrew words still work.
   assert.deepEqual(parseLookupPlan('{"refs": [], "hebrew": ["רש"י"]}').hebrew, ["רש״י"]);
+});
+
+test("a typed follow-up skips the lookup step only when it is short and points back at the answer before", () => {
+  const refs = ["Berakhot 2a:1"];
+  const f = (question: string) => typedFollowUp({ question, conversation: true, refs });
+  for (const q of ["Why?", "Can you say that more simply?", "What does he mean by that?", "Give me an example", "And Rashi?", "Explain the second part again"]) assert.equal(f(q), true, q);
+  // A new subject, a new book, halacha, the calendar, or a longer question: planned as usual.
+  for (const q of [
+    "What is teshuvah?",
+    "Who was Rabbi Akiva?",
+    "What does the Rambam say about that?",
+    "Is that allowed on Shabbat?",
+    "Why is that the halacha?",
+    "When is that today?",
+    "Why does the Mishnah begin with the evening Shema rather than the morning one, and what do we learn from it about the day?",
+  ])
+    assert.equal(f(q), false, q);
+  // With no answer before it (no sources to go back to), nothing is skipped.
+  assert.equal(typedFollowUp({ question: "Why?", conversation: true, refs: [] }), false);
 });

@@ -8,7 +8,7 @@ import { checkSafety, safetyInstruction, safetyNotice, type SafetyNotice } from 
 import { getWork, loadLibrary, search, type Library, type LibraryMode, type Passage } from "../library";
 import { connectionsFor } from "../library/language";
 import { testingStore, type TestingStore } from "../library/testing";
-import { asksAboutLibrary, quickFollowUp, retrieveFollowUp, retrieveFromTesting, type LookupFallback, type Retrieved } from "./lookup";
+import { asksAboutLibrary, quickFollowUp, retrieveFollowUp, retrieveFromTesting, typedFollowUp, type LookupFallback, type Retrieved } from "./lookup";
 import { onlineContext, type OnlineFindings } from "./online";
 import { libraryDetails, libraryOverview } from "../sources";
 import type { QuestionPicture } from "../pictures";
@@ -755,10 +755,11 @@ export async function ask(
       // session is on and the next, and the answer just before (lookup.ts, quickFollowUp).
       const sessionRefs = session?.at ? [session.at, nextLineRef(session.at)].filter((r): r is string => !!r) : [];
       const followRefs = [...new Set([...(input.focusRef ? [input.focusRef] : []), ...sessionRefs, ...(input.lastRefs ?? [])])].slice(0, 14);
+      const follow = { question: input.question, conversation: true, refs: followRefs, pictures: input.pictures?.length };
       quick =
-        conversationTurn(input) &&
         (input.history ?? []).some((t) => t.role === "assistant") &&
-        quickFollowUp({ question: input.question, conversation: true, refs: followRefs, pictures: input.pictures?.length });
+        // A turn in a conversation, or a short typed follow-up that leans on the answer before it.
+        (conversationTurn(input) ? quickFollowUp(follow) : !input.action && !input.deep && typedFollowUp(follow));
       let found: Retrieved;
       if (quick) {
         hooks.onStatus?.("Looking at what we were learning");

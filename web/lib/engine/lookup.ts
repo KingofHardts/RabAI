@@ -624,6 +624,24 @@ export function quickFollowUp(f: FollowUpInput): boolean {
   return true;
 }
 
+/** Words that point back at what was just said ("that", "why", "simpler"), which a follow-up leans on. */
+const POINTS_BACK =
+  /^(?:why|how so|how come|and|but|so|then|ok(?:ay)?|wait|really|meaning|what about|what does (?:that|this|it|he|she)|what do (?:you|they) mean|what is that|can you|could you|tell me more|say (?:that|it)|explain|give me|for example|an example|go on|continue|simpler|shorter|in short|more)\b|\b(?:that|this|it|those|these|he|she|they|him|them|there|above|again|simpler|simply|example|you (?:said|mean|mentioned))\b/i;
+
+/**
+ * Whether a typed question, outside a conversation out loud or a chavrusa session, is a short
+ * follow-up that leans on the answer before it ("Why?", "Can you say that more simply?", "What does
+ * he mean by that?"), so it can go straight to that answer's sources like a turn in a conversation.
+ * Stricter than `quickFollowUp`: a typed question changes the subject more often, so it must be
+ * short and point back at what was said. Everything `quickFollowUp` sends to the lookup step (a new
+ * book, halacha, the calendar, a picture) still goes there.
+ */
+export function typedFollowUp(f: FollowUpInput): boolean {
+  if (!quickFollowUp(f)) return false;
+  const q = f.question.trim();
+  return q.split(/\s+/).length <= 14 && POINTS_BACK.test(q);
+}
+
 /** Open the sources of the conversation so far and search the question's own words, with no lookup step. */
 export async function retrieveFollowUp(
   question: string,

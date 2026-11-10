@@ -197,7 +197,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   and opens the sources of the answer before (`quickFollowUp` and `retrieveFollowUp` in
   `lookup.ts`); anything that names a new book, asks halacha or needs the calendar must still go
   through the lookup step (keep `NEW_LOOK` broad), so a practical question keeps its lookup and the
-  rav note. The instructions and the catalog are cached for an hour, and warmed before a first
+  rav note. A typed question outside a conversation skips it only when it is short and points back
+  at the answer before it (`typedFollowUp`), never for "go deeper". The instructions and the catalog are cached for an hour, and warmed before a first
   question (`lib/engine/warm.ts`, `/api/ask/warm`): a warm-up sends only the instructions, never
   anything about the person. Each answer reports `timings` for the health check; never show them
   to the person or log a question with them.
@@ -249,6 +250,17 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   davening" (`web/lib/siddur/today.ts`) folds what isn't said today into a labeled line that opens
   with a tap; it never removes a line (Josh's decision; the board confirms, open question 23).
   "Ask about this" goes through the usual checked path (`send`).
+- The order the prayers are davened in, the names shown for them and the outline they are grouped
+  into come from `web/lib/siddur/outline.ts` (founding spec "The app organized"). It never changes
+  a word of a siddur: only the order sections are offered in (`davenOrder`: the blessings over the
+  Torah just before the morning blessings, unless the person keeps the printed order), the app's
+  own headings, and the spelling of names in the app's menus, with the siddur's own name kept in
+  the tooltip. Keep logic that reads a siddur's names (today's folding, marks, finding a prayer)
+  on the siddur's own names (`names` in `Siddur.tsx`), and use the display names (`shown`) only
+  for what is shown. The headings and the few words under a name are the app's, for the board
+  (open question 27). "How much to show" (`depth` in `lib/siddur/prefs.ts`) may put a siddur's
+  instructions away only by the person's choice; "Explain it" at the study level goes through
+  `send` like any question.
 - For siddurim that don't print instructions, the only notes on how to daven come from
   `canon/davening-notes.yaml` (status `proposed`; each labeled as RabbAI's, not yet reviewed, with
   its suggested sources). A note that could match a line in another prayer is limited with `in` /
@@ -323,7 +335,32 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - **Cloud sessions:** `.claude/hooks/session-start.sh` installs PyYAML and the app's packages, so
   the checks run right away.
 
-## Where things stand (2026-11-05)
+## Where things stand (2026-11-10)
+
+Done 2026-11-10, at Josh's request ("the blessings over the Torah… should be in between
+preparation for prayer and morning blessings", "rework the titles… a lot more organized", "100 ways"
+for the chat, Learn, Daven, the top bar, the AI, its speed and its character, "different levels of
+commentary" in the davening):
+- `docs/design-2026-11.md`: the seven lists (600 items), each marked built, already there, next,
+  later, or needing a decision; 127 were built in this round.
+- Daven: the blessings over the Torah before the morning blessings (a setting keeps the printed
+  order); the siddur as an outline with clear names; a home that leads with the prayer for now;
+  three levels of how much to show, with "Explain it", "Commentaries" and "Word by word" on every
+  line at the study level.
+- Learn: search first, every shelf as a card on a phone, study tools together. Chat: four ways to
+  begin, and suggested questions in groups (with everyday halacha). The top bar fits a phone (the
+  logo had been hidden behind the chats button and the gear pushed off the screen), with a picture
+  and a color for each tab.
+- RabbAI: four drafts for the board in the core premises (open question 27); short typed
+  follow-ups skip the lookup step; the siddur and the printed page load only when opened (the
+  first bundle went from 426 KB to 235 KB).
+- Vercel now skips a deploy for a commit that changes nothing under `web/` (`ignoreCommand` in
+  `web/vercel.json`). Josh got Vercel's warning that the account's function storage is at 75% of
+  10 GB: each deploy keeps its server code. Old deploys should be deleted in the Vercel dashboard
+  (or a workflow could do it, if Josh asks).
+- "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
+  live app's order, headings only, and can list the library's books; it is how the siddur's real
+  order was read.
 
 Done 2026-11-05, at Josh's request ("a good, fluent conversation", "pulls up the source and live
 highlights what it's talking about", "read a line and then talk about that line", "100 aspects of

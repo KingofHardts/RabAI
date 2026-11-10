@@ -54,18 +54,13 @@ import { setCutInByVoice, useTalk, type TalkControls } from "./talk";
 import { countdownMs, micOpen, tapAction, wordsOf, type TalkPace } from "@/lib/talk";
 import type { LiveCite, LivePassage, LiveRead } from "@/lib/engine/live-sources";
 import { activeMark, ReadLine, readingText, SourceCard, type SourceMark, type SpokenSpan } from "./SourceCard";
-import DafPage from "./DafPage";
-import DafPrinted from "./DafPrinted";
 import LibraryShelves from "./LibraryShelves";
-import Siddur from "./Siddur";
 import { siddurOrder } from "@/lib/library/prayer-find";
 import { shortRef } from "@/lib/library/short-name";
-import ArticleShelves from "./ArticleShelves";
 import ContentsGrid from "./ContentsGrid";
 import DafColumn from "./DafColumn";
 import { usePinchZoom } from "./use-pinch-zoom";
 import WordCard, { DictRows, Folded, useWide, type CardTab, type CardTabInfo } from "./WordCard";
-import AboutYou from "./AboutYou";
 import YourPlace, { placeSummary } from "./YourPlace";
 import ChavrusaSetup, { type ChavrusaChoice } from "./ChavrusaSetup";
 import { amudOf, openingMessage, quickReplies, reachedLine, sessionLabel, STYLE_INFO, DEPTH_INFO, type ChavrusaSession } from "@/lib/chavrusa";
@@ -73,7 +68,24 @@ import { deviceWhen, loadPlaceSettings, savePlaceSettings, type PlaceSettings } 
 import type { DaySummary } from "@/lib/calendar/place";
 import { pickStarters, type StarterGroup } from "@/lib/starters";
 import { shabbatLine, soonLine, todayLine } from "@/lib/calendar/day-lines";
-import AccountDialog from "./AccountDialog";
+import dynamic from "next/dynamic";
+
+/*
+ * The parts a person opens later load when they are opened (the siddur, the printed page, the
+ * articles, "About you", the account), so the chat appears sooner.
+ */
+const Opening = ({ what }: { what: string }) => (
+  <p className="reader-state lazy-opening">
+    {what}
+    <span className="dots" />
+  </p>
+);
+const Siddur = dynamic(() => import("./Siddur"), { ssr: false, loading: () => <Opening what="Opening the siddur" /> });
+const DafPage = dynamic(() => import("./DafPage"), { ssr: false, loading: () => <Opening what="Opening the page" /> });
+const DafPrinted = dynamic(() => import("./DafPrinted"), { ssr: false, loading: () => <Opening what="Opening the page" /> });
+const ArticleShelves = dynamic(() => import("./ArticleShelves"), { ssr: false, loading: () => <Opening what="Opening the articles" /> });
+const AboutYou = dynamic(() => import("./AboutYou"), { ssr: false });
+const AccountDialog = dynamic(() => import("./AccountDialog"), { ssr: false });
 import AnswerFeedback from "./AnswerFeedback";
 import { useAccount, type AccountApi } from "./use-account";
 import {
@@ -5673,6 +5685,22 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
                                 Say it more simply
                               </button>
+                              {(() => {
+                                // A text the answer rests on, to read inside together (unless it already read it).
+                                const text = m.result.sources.find((x) => !x.article && !x.online)?.ref;
+                                if (!text || m.result.blocks.some((b) => b.read)) return null;
+                                return (
+                                  <button
+                                    type="button"
+                                    className="btn quiet"
+                                    disabled={pending}
+                                    title={`Read ${text} together, a line at a time`}
+                                    onClick={() => void send(`Let's read ${text} inside together, a line at a time. Read me the line, then tell me what it means.`)}
+                                  >
+                                    Read it inside
+                                  </button>
+                                );
+                              })()}
                               {!chavrusa && (
                                 <button
                                   type="button"
