@@ -31,10 +31,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | 8 | Siddur Ashkenaz: the rest of the Friday-night songs, Bameh Madlikin, Birkat HaMazon, and Hallel for Rosh Chodesh (the last lines) | 149 | 149 | 15 (2 lines corrected) | 2026-11-10-1 |
 | 9 | Koren: weekday morning from On Waking through the blessings, the offerings, and the start of Pesukei DeZimra | 200 | 200 | 16 (none needed correcting) | 2026-11-10-2 |
 | 10 | Koren: weekday morning, the blessings of the Shema, the Amidah, Avinu Malkenu, Tachanun and the start of the Torah reading | 200 | 200 | 9 (none wrong; 6 slash forms tidied) | 2026-11-10-1 |
+| 11 | Koren: weekday morning from the Torah reading to the end (the daily psalm, the readings after the service, personal prayers) and the start of weekday Minchah | 200 | 200 | 12 (1 word corrected) | 2026-11-10-1 |
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 400 of 3,530.
+Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 600 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
