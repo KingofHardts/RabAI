@@ -1123,16 +1123,23 @@ export function createTestingStore(db: Db): TestingStore {
 
     async toTranslate(titles, afterSeq, limit, withEnglish = false) {
       if (!titles.length || limit <= 0) return [];
+      // Each reference once, at its first Hebrew row: a book with two Hebrew editions (a siddur)
+      // has every line twice, and the caller pages by the number given here.
       const rows = await db.all(
-        `SELECT p.ref FROM passages p
+        `SELECT p.ref, MIN(p.seq) AS s FROM passages p
            JOIN titles t ON t.id = p.title_id
            JOIN editions e ON e.id = p.edition_id
-         WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0 AND p.seq > ?
+         WHERE t.title IN (${titles.map(() => "?").join(",")}) AND e.language = 'he' AND e.word_tool = 0
            ${withEnglish ? "" : NO_ENGLISH}
-         ORDER BY p.seq LIMIT ${Math.max(1, Math.floor(limit))}`,
+         GROUP BY p.ref HAVING MIN(p.seq) > ?
+         ORDER BY s LIMIT ${Math.max(1, Math.floor(limit))}`,
         [...titles, afterSeq],
       );
-      return groupRows(await byExactRefs(rows.map((r) => String(r.ref))), { full: true }).filter((p) => p.he.trim() && (withEnglish || !p.en.trim()));
+      const at = new Map(rows.map((r) => [String(r.ref), Number(r.s)]));
+      return groupRows(await byExactRefs(rows.map((r) => String(r.ref))), { full: true })
+        .filter((p) => p.he.trim() && (withEnglish || !p.en.trim()))
+        .map((p) => ({ ...p, order: at.get(p.ref) ?? p.order }))
+        .sort((a, b) => a.order - b.order);
     },
 
     async toTranslateCount(titles, withEnglish = false) {

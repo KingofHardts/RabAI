@@ -84,9 +84,20 @@ and the helper has the request's own English only.
 
 ```
 npx tsx scripts/translate-here.ts send --books "The Koren Shalem Siddur; Ashkenaz" --words --limit 200 \
-  --within "The Koren Shalem Siddur; Ashkenaz, Weekdays"
+  --dictionary none --within "The Koren Shalem Siddur; Ashkenaz, Weekdays"
 npx tsx scripts/siddur-guide.ts
 ```
+
+`--dictionary none` leaves the dictionary entries out of the request files (`short` keeps each
+entry's opening). In a siddur they are about half of every request and add little beside a
+line-by-line English, so a job of 200 lines is about 250 KB of requests instead of 500 KB.
+
+The cloud environment **"Torah library work"** (made 2026-11-10) is set up for this: it has only
+the RabAI repository, allows the library's Turso address, the live app and Sefaria, and holds the
+library's read-only token as its network secret. Start translation sessions there, with
+`RABAI_LIBRARY_DB_URL=libsql://rabai-library-kingofhardts.aws-us-east-1.turso.io`,
+`RABAI_LIBRARY_DB_TOKEN=proxy-injected` (a placeholder: the session's network adds the real
+token) and `NODE_USE_ENV_PROXY=1`.
 
 Add to the helpers' notes for a siddur: the English of each word follows the Metsudah line for
 those words where the guide file has one; Rabbi Sacks's English (the request's own) is background

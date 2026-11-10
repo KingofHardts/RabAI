@@ -238,3 +238,10 @@ test("the batch job sends only what is missing and keeps what comes back", async
   const again = await collectBatch(changed, library, batches, { batchId: "b1", madeOn: "", model: "claude-opus-5-5", status: "submitted", manifest });
   assert.equal(again.skipped, 1);
 });
+
+test("a siddur's lines are grouped by their prayer, a Gemara's comments by their page", async () => {
+  const { pageOf } = await import("../lib/engine/translate-batch");
+  assert.equal(pageOf("Rashi on Berakhot 2a:1:1"), "Rashi on Berakhot 2a");
+  assert.equal(pageOf("Siddur Ashkenaz, Weekday, Shacharit, Preparatory Prayers, Modeh Ani 1"), "Siddur Ashkenaz, Weekday, Shacharit, Preparatory Prayers, Modeh Ani");
+  assert.equal(pageOf("Siddur Ashkenaz, Weekday, Shacharit, Preparatory Prayers, Modeh Ani 12"), pageOf("Siddur Ashkenaz, Weekday, Shacharit, Preparatory Prayers, Modeh Ani 1"));
+});

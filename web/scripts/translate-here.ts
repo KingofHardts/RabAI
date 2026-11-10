@@ -20,6 +20,10 @@
  * --within "Siddur Ashkenaz, Weekday, Shacharit|Siddur Ashkenaz, Weekday, Minchah" keeps only passages
  * whose reference starts with one of those beginnings (separated by |), so a long book such as a
  * siddur can be done a part at a time, in the order asked for rather than the library's.
+ * --dictionary short keeps only the opening of each dictionary entry (where its meaning is) in the
+ * request files; --dictionary none leaves the dictionary entries out. For texts that have the
+ * library's own English line by line, such as a siddur, where the entries are about half of every
+ * request. The answers are checked against the library's full sources as usual.
  * --words also makes word-by-word lists for passages that have the library's English (the Gemara),
  * which get only that list. RABAI_LIBRARY_DB_URL may be the library on Turso (libsql://...) when the
  * session has its read-only token as a network secret (docs/session-translation.md).
@@ -64,6 +68,39 @@ const opt = (name: string) => {
 };
 const list = (name: string) => (opt(name) ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const flag = (name: string) => args.includes(`--${name}`);
+
+/** How much of a dictionary entry --short-dictionary keeps. */
+const ENTRY_CHARS = 320;
+const DICTIONARY_HEAD = /^\[(Jastrow|Sefer HaShorashim), /;
+
+/** A request's text with each dictionary entry cut to its opening, or left out. Nothing else is touched. */
+export function shortDictionary(user: string, keep: "short" | "none" = "short"): string {
+  const out: string[] = [];
+  const lines = user.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const entry = DICTIONARY_HEAD.test(lines[i]);
+    if (keep === "none" && (entry || /^Dictionary entries for its words:/.test(lines[i]))) {
+      // Skip the heading or the entry, up to the next source or the closing instructions.
+      let j = i + 1;
+      for (; j < lines.length; j++) if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply /.test(lines[j])) break;
+      i = j - 1;
+      continue;
+    }
+    out.push(lines[i]);
+    if (!entry) continue;
+    // The entry's own lines run to the next source's heading, or to the closing instructions.
+    const body: string[] = [];
+    let j = i + 1;
+    for (; j < lines.length; j++) {
+      if (/^\[/.test(lines[j]) || /^Answer each passage|^Answer in this form|^Reply /.test(lines[j])) break;
+      body.push(lines[j]);
+    }
+    const text = body.join("\n").trim();
+    out.push("", text.length > ENTRY_CHARS ? `${text.slice(0, ENTRY_CHARS).trimEnd()} […]` : text, "");
+    i = j - 1;
+  }
+  return out.join("\n");
+}
 
 /** The amud a ref is on ("Rashi on Kiddushin 2a:1:1" is on 2a). */
 const amudOf = (ref: string) => ref.split(":")[0].split(" ").pop() ?? "";
@@ -161,12 +198,13 @@ async function main() {
     const { requests, manifest, words } = await buildRequests(store, chosen, sel, job);
     const dir = join(WORK, job);
     mkdirSync(dir, { recursive: true });
+    const dictionary = opt("dictionary");
     const first = requestText(requests[0].params);
     writeFileSync(join(dir, "instructions.md"), ANSWER_FORM + first.system);
     for (const r of requests) {
       const { system, user } = requestText(r.params);
       if (system !== first.system) throw new Error("The requests' instructions differ; they should be the same.");
-      writeFileSync(join(dir, `${r.custom_id}.request.md`), user);
+      writeFileSync(join(dir, `${r.custom_id}.request.md`), dictionary === "short" || dictionary === "none" ? shortDictionary(user, dictionary) : user);
     }
     await library.addJob({
       batchId: job,

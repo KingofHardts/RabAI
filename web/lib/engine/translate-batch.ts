@@ -120,8 +120,12 @@ export async function pendingPassages(
 
 const SAFE_ID = /[^a-zA-Z0-9_-]/g;
 
-/** The page a passage is on, for running passages of one page together ("Rashi on Berakhot 2a"). */
-const pageOf = (ref: string) => ref.split(":")[0];
+/**
+ * The page a passage is on, for running passages of one page together ("Rashi on Berakhot 2a"). A
+ * reference with no colon ends in its line's number ("Siddur Ashkenaz, …, Modeh Ani 1"): its page
+ * is the section, so a prayer's lines go together.
+ */
+export const pageOf = (ref: string) => (ref.includes(":") ? ref.split(":")[0] : ref.replace(/ \d+$/, ""));
 
 /** Consecutive passages of one page, up to a word budget; a passage over the budget stands alone. */
 export function groupPassages(passages: Passage[], budget: number): Passage[][] {
