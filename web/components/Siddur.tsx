@@ -733,7 +733,8 @@ export default function Siddur({
         }
       }
     };
-    await Promise.all([worker(), worker()]);
+    // Several lines at once, so a whole prayer comes in together rather than two lines at a time.
+    await Promise.all(Array.from({ length: Math.min(6, refs.length) }, () => worker()));
   };
 
   const showToast = (text: string) => {
