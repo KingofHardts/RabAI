@@ -63,6 +63,37 @@ and writes the requests to `../library/session-translations/<job>/`. Then:
 `library/` stays on the session's computer: never commit a request, an answer or an unsealed
 translation.
 
+## A siddur, word by word
+
+The siddurim have the library's English, so with `--words` each line gets only a word-by-word
+list. What the library holds (counted on 2026-11-10 with the "List a book's sections" workflow,
+"sizes"):
+
+- **Siddur Ashkenaz**: 1,549 Hebrew lines (about 31,800 words). Its English is the Metsudah
+  Linear Siddur (Rabbi Avrohom Davis) in 218 sections and Singer's in 2. It has the weekday
+  services, Friday night and Birkat HaMazon, not the rest of Shabbat or the festivals.
+- **The Koren Shalem Siddur; Ashkenaz**: 3,530 Hebrew lines (about 104,600 words), with Rabbi
+  Sacks's English.
+
+The Metsudah siddur translates phrase by phrase, so it is the guide to what each word means. For
+a job on another siddur, `scripts/siddur-guide.ts` writes a `<request>.guide.md` beside each
+request: for every passage, the Metsudah lines that hold the same Hebrew words, with their
+English (`web/lib/siddur/guide-match.ts` pairs lines by their Hebrew letters). Give each helper
+its guide files with its requests. A passage marked "(none)" has no Metsudah line in the library,
+and the helper has the request's own English only.
+
+```
+npx tsx scripts/translate-here.ts send --books "The Koren Shalem Siddur; Ashkenaz" --words --limit 200 \
+  --within "The Koren Shalem Siddur; Ashkenaz, Weekdays"
+npx tsx scripts/siddur-guide.ts
+```
+
+Add to the helpers' notes for a siddur: the English of each word follows the Metsudah line for
+those words where the guide file has one; Rabbi Sacks's English (the request's own) is background
+for the sense of the whole line; God's names are translated as the Metsudah siddur does; a word
+the guide doesn't cover is translated plainly, and listed as unsure if its meaning in the prayer
+isn't clear from the line's English.
+
 ## The helpers' notes
 
 ```

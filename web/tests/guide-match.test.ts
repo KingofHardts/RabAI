@@ -1,0 +1,28 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { bareWords, guideIndex, matchGuide } from "../lib/siddur/guide-match";
+
+const guide = guideIndex([
+  { ref: "A 1", he: "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם", en: "Blessed are You, Adonoy our God, King of the Universe," },
+  { ref: "A 2", he: "אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו", en: "Who sanctified us with His commandments" },
+  { ref: "A 3", he: "וְצִוָּנוּ עַל נְטִילַת יָדָיִם:", en: "and commanded us concerning the washing of hands." },
+  { ref: "A 4", he: "מוֹדֶה אֲנִי", en: "I give thanks" },
+  { ref: "A 5", he: "בָּרוּךְ אַתָּה יְיָ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם", en: "(the same words again)" },
+  { ref: "A 6", he: "שֶׁלֹּא עָשַׂנִי גּוֹי", en: "" },
+]);
+
+test("the Hebrew is compared by its letters, with the Name's spellings as one", () => {
+  assert.deepEqual(bareWords("בָּר֣וּךְ אַתָּה֮ יְהוָ֒ה, אֱלֹקֵינוּ!"), bareWords("ברוך אתה יי אלהינו"));
+});
+
+test("a line of one siddur finds the other siddur's lines for the same words, in its own order", () => {
+  const koren = "בָּרוּךְ אַתָּה יהוה אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל נְטִילַת יָדָיִם.";
+  assert.deepEqual(matchGuide(koren, guide).map((l) => l.ref), ["A 1", "A 2", "A 3"]);
+  // Lines with the same Hebrew are given once; a line with no English is never a guide.
+  assert.equal(guide.lines.length, 4);
+  // A short guide line counts only when its words stand in the line as written.
+  assert.deepEqual(matchGuide("מוֹדֶה אֲנִי לְפָנֶיךָ", guide).map((l) => l.ref), ["A 4"]);
+  assert.deepEqual(matchGuide("אֲנִי מוֹדֶה לְפָנֶיךָ", guide), []);
+  // Other words find nothing.
+  assert.deepEqual(matchGuide("שִׁיר הַמַּעֲלוֹת לְדָוִד", guide), []);
+});
