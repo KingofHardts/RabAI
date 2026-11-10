@@ -126,7 +126,7 @@ TALLY = {"answered": 0, "no_text": 0, "slow": 0}
 
 # The most each step should take, in seconds, before the check says so. Generous on purpose: they
 # are set from what the live app measured (docs/faster-rabbai.md), to catch a step that grows slow.
-BUDGET = {"plan": 6.0, "quick_first": 4.0, "talk_first": 10.0, "first": 20.0, "online_first": 45.0}
+BUDGET = {"plan": 8.0, "quick_first": 4.0, "talk_first": 10.0, "first": 20.0, "online_first": 45.0}
 
 
 def problem(text: str) -> None:

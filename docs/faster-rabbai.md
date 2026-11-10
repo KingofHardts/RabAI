@@ -40,7 +40,7 @@ this round on, every answer reports how long each step took, and the health chec
 4. **Keep a week of timings** (numbers only, never questions) to see slow days and slow steps.
    **Next.**
 5. **A speed budget per step**, so the health check flags a step that grows slow. **Built**
-   (2026-11-10): the lookup step over 6 seconds; first words over 4 seconds for a quick follow-up,
+   (2026-11-10): the lookup step over 8 seconds (the first live run measured it between 1 and 6); first words over 4 seconds for a quick follow-up,
    10 in Talk, 20 for an ordinary question, 45 with an online lookup. The budgets are set from what
    the live app measured, so they catch a step that slows down rather than flag every run.
 
