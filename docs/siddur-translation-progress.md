@@ -21,7 +21,17 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 
 | Job | Siddur and part | Lines sent | Kept | Unsure lines checked | Sealed file |
 |---|---|---|---|---|---|
+| 1 | Siddur Ashkenaz: weekday Shacharit, from Modeh Ani to the Half Kaddish after Yishtabach | 200 | 200 | 9 (4 words corrected) | 2026-11-10-1 |
 
 ## Totals
 
-Nothing yet.
+Siddur Ashkenaz: 200 of 1,549 lines. Koren: 0 of 3,530.
+
+Notes for whoever goes on:
+- Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
+  `npx tsx scripts/words-check.ts <job folder>` (from `web/`). The app counts words joined by a
+  makaf as one word; the first joins answer lines that split them, the second lists every passage
+  where a word still has no English. `collect` alone keeps a list with up to 40% of its words
+  empty, so don't rely on its count.
+- Two lines of job 1 (the meditations before the tallit and tefillin) have no English in the
+  library, so they also got a general translation, made without the Metsudah.

@@ -144,8 +144,9 @@ file: no title, no notes, no markdown.
 - Give every word of the passage, in order, skipping none, including the words of an instruction
   written in Hebrew ("on Rosh Chodesh add:"). Copy each word exactly as the passage has it, with
   its vowels. Leave out only punctuation (commas, colons, the sof pasuk) and the marks ° and *.
-- Words joined by a makaf (־) are separate words, each on its own line, unless they form one
-  expression.
+- Words joined by a makaf (־) count as one word in the library: give them together on one line,
+  written with the makaf as the passage has them, with one meaning for the pair
+  (כָּל־הָאָֽרֶץ | all the earth). A line that splits them leaves a gap in the list.
 - Letters in front of a word (ו, ה, ב, כ, ל, מ, ש) stay with it, and its meaning includes them
   ("and the…", "who…", "in Your…"). So does an ending: "our God", "Your faithfulness".
 - A few words that form one expression may go on one line (לְעוֹלָם וָעֶד, "forever and ever").
@@ -177,6 +178,12 @@ file: no title, no notes, no markdown.
 
 Whoever runs the job reads every passage a helper lists as unsure against its request and guide,
 and corrects the answer file before collecting.
+
+Before collecting, from `web/`: `npx tsx scripts/words-join.ts <job folder>` joins answer lines
+that split a word the library counts as one (words joined by a makaf), and
+`npx tsx scripts/words-check.ts <job folder>` lists every passage where a word still has no
+English (references and counts only). `collect` keeps a list even when up to 40% of its words are
+empty, so fix what the check lists first.
 
 ## The helpers' notes
 
