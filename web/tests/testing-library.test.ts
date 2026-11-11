@@ -870,3 +870,57 @@ test("ask: without the library database, RabbAI says so instead of answering fro
   assert.match(result.notice ?? "", /can't reach its library/);
   assert.deepEqual(result.retrieved, []);
 });
+
+test("a section is only its own lines, even when another section's name begins with the same words", async () => {
+  const client = createClient({ url: ":memory:" });
+  await client.executeMultiple(schema);
+  await client.executeMultiple(`
+    INSERT INTO works (id, title, category, streams) VALUES ('siddur', 'Test Siddur', 'liturgy', '[]');
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Test Siddur', '', 'siddur', '[]', 2, '[]');
+    INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'siddur', 'Test Hebrew', 'he', 0, 0);
+    INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');
+  `);
+  const lines: Array<[string, string]> = [
+    ["Test Siddur, Festivals, Hoshanot 1", "הושע נא למענך אלהינו"],
+    ["Test Siddur, Festivals, Hoshanot 2", "הושע נא למענך בוראנו"],
+    ["Test Siddur, Festivals, Hoshanot for Hoshana Raba 1", "למען אמתך"],
+    ["Test Siddur, Festivals, Hoshanot for Hoshana Raba 2", "אבן שתיה"],
+  ];
+  let id = 1;
+  for (const [ref, text] of lines) {
+    await client.execute({ sql: "INSERT INTO passages VALUES (?, ?, ?, ?, ?, ?, ?)", args: [id, ref, 1, 1, 1, id, text] });
+    await client.execute({ sql: "INSERT INTO passages_fts (rowid, plain) VALUES (?, ?)", args: [id, plainForSearch(text)] });
+    id++;
+  }
+  const store = createTestingStore(dbFrom(client));
+  const short = await store.section("Test Siddur, Festivals, Hoshanot", { bare: true });
+  assert.deepEqual(short?.lines.map((l) => l.ref), ["Test Siddur, Festivals, Hoshanot 1", "Test Siddur, Festivals, Hoshanot 2"]);
+  const long = await store.section("Test Siddur, Festivals, Hoshanot for Hoshana Raba", { bare: true });
+  assert.deepEqual(long?.lines.map((l) => l.ref), ["Test Siddur, Festivals, Hoshanot for Hoshana Raba 1", "Test Siddur, Festivals, Hoshanot for Hoshana Raba 2"]);
+  // Looking the shorter name up (as an answer's sources are) finds its own lines only.
+  assert.deepEqual((await store.lookup(["Test Siddur, Festivals, Hoshanot"], 8)).map((p) => p.ref), ["Test Siddur, Festivals, Hoshanot 1", "Test Siddur, Festivals, Hoshanot 2"]);
+});
+
+test("an English instruction filed under the Hebrew edition is shown as English, and isn't offered for translation", async () => {
+  const client = createClient({ url: ":memory:" });
+  await client.executeMultiple(schema);
+  await client.executeMultiple(`
+    INSERT INTO works (id, title, category, streams) VALUES ('siddur', 'Test Siddur', 'liturgy', '[]');
+    INSERT INTO titles (id, title, he_title, work, categories, depth, section_names) VALUES (1, 'Test Siddur', '', 'siddur', '[]', 2, '[]');
+    INSERT INTO editions (id, work, name, language, approved, word_tool) VALUES (1, 'siddur', 'Test Hebrew', 'he', 0, 0), (2, 'siddur', 'Test English', 'en', 0, 0);
+    INSERT INTO versions VALUES (1, 'v1', 'Public Domain', '');
+    INSERT INTO passages VALUES (1, 'Test Siddur, Selihot 1', 1, 1, 1, 1, 'שְׁמַע קוֹלֵנוּ');
+    INSERT INTO passages VALUES (2, 'Test Siddur, Selihot 2', 1, 1, 1, 2, 'The Ark is closed.');
+    INSERT INTO passages VALUES (3, 'Test Siddur, Selihot 3', 1, 1, 1, 3, 'The congregation sits.');
+    INSERT INTO passages VALUES (4, 'Test Siddur, Selihot 1', 1, 2, 1, 4, 'Listen to our voice');
+    INSERT INTO passages VALUES (5, 'Test Siddur, Selihot 2', 1, 2, 1, 5, 'The Ark is closed.');
+  `);
+  const store = createTestingStore(dbFrom(client));
+  const sec = await store.section("Test Siddur, Selihot", { bare: true });
+  assert.deepEqual(sec?.lines.map((l) => [l.he, l.en]), [
+    ["שְׁמַע קוֹלֵנוּ", "Listen to our voice"],
+    ["", "The Ark is closed."],
+    ["", "The congregation sits."],
+  ]);
+  assert.deepEqual((await store.toTranslate(["Test Siddur"], 0, 10, true)).map((p) => p.ref), ["Test Siddur, Selihot 1"]);
+});

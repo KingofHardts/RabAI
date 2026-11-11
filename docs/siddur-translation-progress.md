@@ -13,7 +13,7 @@ What there is to do (counted from the live app on 2026-11-10):
 | Siddur | Hebrew lines | Hebrew words |
 |---|---|---|
 | Siddur Ashkenaz | 1,549 | about 31,800 |
-| The Koren Shalem Siddur; Ashkenaz | 3,530 | about 104,600 |
+| The Koren Shalem Siddur; Ashkenaz | 3,385 (first counted as 3,530; see Totals) | about 97,400 |
 
 Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur Ashkenaz first.
 
@@ -58,9 +58,12 @@ Finished on 2026-11-11.
 
 `send` now offers nothing for either siddur except one Koren line, "Selihot for the Seventeenth of
 Tammuz 84": the library holds an English instruction ("The Ark is closed.") where its Hebrew
-should be, so there is no Hebrew word to translate. The count of 3,530 Koren lines at the top came
-from the "List a book's sections" workflow; `send` reached 3,385 of them. The other 145 were never
-offered as needing translation, and this session didn't find out which they are.
+should be, so there is no Hebrew word to translate. The count of 3,530 Koren lines at the top was
+too high: the library holds 3,385 Hebrew lines for Koren. The other 145 were the lines of
+"Hoshanot for Shabbat Hol HaMo'ed" and "Hoshanot for Hoshana Raba" counted a second time, because
+the app's "Hoshanot" section also returned theirs (their names begin with the same word). That
+was a fault in the reader, fixed on 2026-11-11, and the "Ark is closed" line is now shown as the
+English instruction it is.
 
 Things to know:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
@@ -77,7 +80,8 @@ Things to know:
   Hebrew, and verses of the Torah follow Rashi.
 - A guide often lists several Metsudah lines for one passage, some sharing only an opening
   formula (the start of a blessing). The helpers were told to use only the words that match.
-- Known small flaw, already imported: in Koren's weekday Amidah, the healing prayer ("The Amida
-  37"), one word pair reads "son of daughter of"; it should read "son of / daughter of".
+- Corrected on 2026-11-11: in Koren's weekday Amidah, the healing prayer ("The Amida 37"), one
+  word pair read "son of daughter of". The line was sent again with "son of / daughter of" and
+  "to the sick man / to the sick woman", and the import replaced the earlier list.
 - The "Sealed file" column is only a rough guide: the inbox clears each file after importing it,
   so the same file names were used again.

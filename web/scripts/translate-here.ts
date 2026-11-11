@@ -37,7 +37,9 @@
  *          in <id>.answer.txt, written exactly in the form the request asks for.
  * status   how many answers each job has.
  * collect  reads the answers of finished jobs (or of unfinished ones with --partial), checks them
- *          like a live translation, and keeps them in the local translation library.
+ *          like a live translation, and keeps them in the local translation library. A finished
+ *          job is kept only when every word of every passage has its English (scripts/words-join.ts
+ *          and scripts/words-check.ts are run first); --allow-gaps keeps it anyway.
  * seal     seals what hasn't been sent yet into ../translations-inbox/<date>-<n>.sealed, with the
  *          inbox's public key (../translations-inbox/public-key.pem).
  *
@@ -47,6 +49,7 @@
 import { createClient } from "@libsql/client";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { testingStore } from "../lib/library/testing";
 import { translationStore, translationsDbUrl } from "../lib/library/translations";
 import { seal } from "../lib/library/inbox-seal";
@@ -238,6 +241,20 @@ async function main() {
       if (!flag("partial") && !(await client.ended(j.batchId))) {
         console.log(`${j.batchId}: not every request is answered yet (use --partial to keep what is there).`);
         continue;
+      }
+      // Every word must have its English before a job is kept: the usual check lets a list through
+      // with some words empty. Lines that split a word joined by a makaf are joined first.
+      if (!flag("partial") && !flag("allow-gaps")) {
+        const dir = join(WORK, j.batchId);
+        const run = (script: string) => spawnSync(process.execPath, ["--import", "tsx", join("scripts", script), dir], { cwd: resolve(import.meta.dirname, ".."), encoding: "utf8" });
+        run("words-join.ts");
+        const checked = run("words-check.ts");
+        const toFix = Number(/to fix (\d+)/.exec(checked.stdout ?? "")?.[1] ?? "-1");
+        if (toFix !== 0) {
+          console.log((checked.stdout ?? "").trim() || (checked.stderr ?? "").trim());
+          console.log(`${j.batchId}: not collected: ${toFix < 0 ? "the word check couldn't run" : `${toFix} passages have a word without English`}. Fix the answer files and collect again (--allow-gaps keeps them as they are).`);
+          continue;
+        }
       }
       const r = await collectBatch(store, library, client, j);
       const note = JSON.parse(j.note ?? "{}") as Record<string, unknown>;

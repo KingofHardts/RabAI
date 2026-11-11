@@ -58,6 +58,11 @@ and writes the requests to `../library/session-translations/<job>/`. Then:
    was first read as "the Geonim"; the Rif in the library says בעל הלכות, so it is the Halachot
    Gedolot.)
 4. `collect`, then `seal`, then commit only the `.sealed` file in `translations-inbox/` and push.
+   `collect` first joins answer lines that split a word joined by a makaf, then checks that every
+   word of every passage has its English, and keeps a job only when none is missing (it lists the
+   passages to fix). To correct a translation already imported, send that passage again (name
+   its reference with `--within`), answer it, collect and seal: the import replaces the earlier
+   one, unless the board has reviewed it.
    The inbox workflow imports it and clears the file. Its log says how many were kept.
 
 `library/` stays on the session's computer: never commit a request, an answer or an unsealed
@@ -72,7 +77,7 @@ list. What the library holds (counted on 2026-11-10 with the "List a book's sect
 - **Siddur Ashkenaz**: 1,549 Hebrew lines (about 31,800 words). Its English is the Metsudah
   Linear Siddur (Rabbi Avrohom Davis) in 218 sections and Singer's in 2. It has the weekday
   services, Friday night and Birkat HaMazon, not the rest of Shabbat or the festivals.
-- **The Koren Shalem Siddur; Ashkenaz**: 3,530 Hebrew lines (about 104,600 words), with Rabbi
+- **The Koren Shalem Siddur; Ashkenaz**: 3,385 Hebrew lines (about 97,400 words), with Rabbi
   Sacks's English.
 
 The Metsudah siddur translates phrase by phrase, so it is the guide to what each word means. For

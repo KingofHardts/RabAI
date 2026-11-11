@@ -237,6 +237,12 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
     })
     .map(([ref, { he, en, seq }]) => {
       const base = (he ?? en)!;
+      // A line filed under the Hebrew edition that holds no Hebrew letter, only English (an
+      // instruction such as "The Ark is closed." in a siddur), is shown as English, not as Hebrew.
+      const heRaw = he ? text(he.text) : "";
+      const english = !!heRaw && !/[\u05D0-\u05EA]/.test(heRaw) && /[A-Za-z]/.test(heRaw);
+      const heText = english ? "" : heRaw;
+      const enText = en ? text(en.text) : english ? heRaw : "";
       const loc = locationIn(ref, base.title);
       const source: PassageSource = {
         library: "testing",
@@ -276,8 +282,8 @@ export function groupRows(rows: Row[], opts: { full?: boolean } = {}): Passage[]
         // A named part of a book ("…, Weekday, Shacharit, Modeh Ani 1") without the comma before it.
         label: loc.replace(/^,\s*/, "") || base.title,
         labelHe: base.he_title ?? base.title,
-        he: he ? text(he.text) : "",
-        en: en ? text(en.text) : "",
+        he: heText,
+        en: enText,
         source,
       };
     });
@@ -796,7 +802,12 @@ export function createTestingStore(db: Db): TestingStore {
     for (const sep of [":", " ", ", "]) {
       const [lo, hi] = prefixRange(start + sep);
       const rows = await rowsWhere("p.ref >= ? AND p.ref < ?", [lo, hi], many);
-      if (rows.length) return pick(rows);
+      if (!rows.length) continue;
+      // After a space comes a number (a line, a chapter). A longer name that begins with the same
+      // words ("Hoshanot for Hoshana Raba" beside "Hoshanot") is another section: left out when
+      // this one has lines of its own.
+      const own = sep === " " ? rows.filter((r) => /^\d/.test(r.ref.slice(start.length + 1))) : rows;
+      return pick(own.length ? own : rows);
     }
     return [];
   }
@@ -971,7 +982,10 @@ export function createTestingStore(db: Db): TestingStore {
       const section = sectionOf(first.ref);
       const [lo, hi] = prefixRange(section === first.ref ? section : section + (first.ref.charAt(section.length) || ":"));
       // A siddur is read whole: every line of a long service, and long paragraphs uncut.
-      const rows = await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, first.title], TESTING_LIMITS.section * (opts.bare ? 10 : 3));
+      const found = await rowsWhere("p.ref >= ? AND p.ref < ? AND t.title = ?", [lo, hi, first.title], TESTING_LIMITS.section * (opts.bare ? 10 : 3));
+      // Only this section's own lines: a section whose name begins with this one's words and a
+      // space ("Hoshanot for Hoshana Raba" beside "Hoshanot") falls in the same range.
+      const rows = section === first.ref ? found : found.filter((r) => sectionOf(r.ref) === section);
       const lines = groupRows(rows.length ? rows : [first], { full: Boolean(opts.bare) });
       const lineRefs = lines.map((l) => l.ref);
       const commentaries = new Map<string, Passage[]>();
