@@ -455,6 +455,25 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **The text and its layout, and a choice of English.** **Decided (Josh, 2026-11-11):** the
+  siddur's text should read well in every layout, with a choice of letters and spacing, and a more
+  exact English than the Koren siddur's for those who want it. Built (`docs/text-layout-2026-11.md`,
+  100 items):
+  - The four layouts are named and explained in a picker with a small drawing of each: Line by line
+    (each Hebrew line with its own English under it), Paragraph, Word by word, and Side by side (two
+    columns on a wide screen). The reading column is centered on a computer.
+  - Letters: a choice of Hebrew typeface (five) and English typeface (three), vowels on or off,
+    the English's size beside the Hebrew, and the space between lines.
+  - English for the Koren siddur: Rabbi Sacks's, or the Metsudah Linear Siddur's (Rabbi Avrohom
+    Davis) on the lines where Siddur Ashkenaz has the same Hebrew words in the same order (at
+    least 9 in 10, both ways; 678 of 3,384 lines). The pairing is a list of references only
+    (`web/lib/siddur/parallel.generated.json`, made by `web/scripts/siddur-parallel.ts`); the
+    English is read from the library each time, never stored in the repository. A line given the
+    Metsudah's English is marked, and a line is never given part of one.
+  - The library's English had parts of translators' footnotes run into it (the build removed a
+    note only up to its first italic word). The build now removes notes whole, and the "Repair
+    text in the library" workflow corrected the 455 lines it found in the Metsudah siddurim in
+    place, without a rebuild.
 - **The app organized, and RabbAI refined.** **Decided (Josh, 2026-11-10):** the app should be
   easy to get around and well organized, and RabbAI sharper, faster and truer as a teacher, a
   chavrusa and a companion to the siddur. The lists he asked for (600 items, each marked built,

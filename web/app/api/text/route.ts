@@ -3,6 +3,7 @@ import { getPassage, getSection, listSections, loadLibrary, type Library } from 
 import { studyPassages } from "@/lib/library/word-study";
 import { testingStore } from "@/lib/library/testing";
 import type { Passage, Work } from "@/lib/library/types";
+import { PARALLEL_BOOK, PARALLEL_EDITION, metsudahFor } from "@/lib/siddur/parallel";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,10 @@ export async function GET(request: Request) {
   const bare = params.get("bare") === "1";
 
   const lib = loadLibrary();
-  if (lib.mode === "testing") return testingSection(ref, lib, countOnly, bare);
+  // ?parallel=metsudah with bare: also the Metsudah Linear Siddur's English for the Koren siddur's
+  // lines that hold the same Hebrew words (lib/siddur/parallel.ts), for the Daven tab's choice.
+  const parallel = bare && params.get("parallel") === "metsudah";
+  if (lib.mode === "testing") return testingSection(ref, lib, countOnly, bare, parallel);
 
   const section = getSection(lib, ref);
   if (!section) return NextResponse.json({ error: `“${ref}” isn't in the library yet.` }, { status: 404 });
@@ -62,7 +66,7 @@ export async function GET(request: Request) {
 }
 
 /** A section from the private testing library, in the same shape the reader uses. */
-async function testingSection(ref: string, lib: Library, countOnly = false, bare = false) {
+async function testingSection(ref: string, lib: Library, countOnly = false, bare = false, parallel = false) {
   const store = testingStore();
   if (!store) return NextResponse.json({ error: "The library isn't connected right now." }, { status: 503 });
   let found: Awaited<ReturnType<typeof store.section>>;
@@ -93,8 +97,17 @@ async function testingSection(ref: string, lib: Library, countOnly = false, bare
     ...(s.article ? { article: s.article, ...(s.article.author ? { author: s.article.author } : {}) } : {}),
   };
   if (bare) {
+    let alt: Record<string, string> = {};
+    if (parallel && s.book === PARALLEL_BOOK) {
+      try {
+        alt = await metsudahFor(store, found.lines.map((l) => l.ref));
+      } catch (err) {
+        console.warn("[rabai] parallel English failed:", err instanceof Error ? err.message : err);
+      }
+    }
     return NextResponse.json(
       {
+        ...(Object.keys(alt).length ? { alt: { edition: PARALLEL_EDITION, en: alt } } : {}),
         libraryMode: lib.mode,
         ...(found.prev ? { prev: found.prev } : {}),
         ...(found.next ? { next: found.next } : {}),

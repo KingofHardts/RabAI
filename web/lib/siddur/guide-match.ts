@@ -108,3 +108,53 @@ export function matchGuide(he: string, index: GuideIndex, share = 0.6, max = 14)
     .sort((a, b) => a.at - b.at || b.len - a.len)
     .map((h) => h.line);
 }
+
+/** The longest run of words the two lists share in order (their longest common subsequence). */
+function sharedInOrder(a: string[], b: string[]): number {
+  if (!a.length || !b.length) return 0;
+  let prev = new Array<number>(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = new Array<number>(b.length + 1).fill(0);
+    for (let j = 1; j <= b.length; j++) cur[j] = a[i - 1] === b[j - 1] ? prev[j - 1] + 1 : Math.max(prev[j], cur[j - 1]);
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/**
+ * The guide's lines that together hold the same Hebrew as this line, in order, when they do so
+ * closely enough to put the guide's English beside it: at least `share` of this line's words are
+ * in them, in order, and at least `share` of theirs are in this line. Null when no set of guide
+ * lines matches that closely. Only lines that hold every word in the same order count; a line
+ * that shares only an opening formula never does.
+ */
+export function pairWithGuide(he: string, index: GuideIndex, share = 0.9): GuideLine[] | null {
+  const words = bareWords(he);
+  if (words.length < 2) return null;
+  const mine = new Set(pairs(words));
+  const candidates = new Set<number>();
+  for (const p of mine) for (const i of index.byPair.get(p) ?? []) candidates.add(i);
+  // Each candidate placed where its words start in this line; then the longest that don't overlap.
+  const placed: Array<{ i: number; at: number; end: number }> = [];
+  for (const i of candidates) {
+    const g = index.lines[i];
+    const at = runAt(words, g.words.slice(0, Math.min(2, g.words.length)));
+    if (at < 0) continue;
+    const got = sharedInOrder(words.slice(at, at + g.words.length + 2), g.words);
+    if (got < g.words.length * share) continue;
+    placed.push({ i, at, end: at + g.words.length });
+  }
+  placed.sort((a, b) => a.at - b.at || b.end - a.end);
+  const chosen: typeof placed = [];
+  let upTo = 0;
+  for (const p of placed) {
+    if (p.at < upTo) continue;
+    chosen.push(p);
+    upTo = p.end;
+  }
+  if (!chosen.length) return null;
+  const theirs = chosen.flatMap((c) => index.lines[c.i].words);
+  const common = sharedInOrder(words, theirs);
+  if (common < words.length * share || common < theirs.length * share) return null;
+  return chosen.map((c) => ({ ref: index.lines[c.i].ref, he: index.lines[c.i].he, en: index.lines[c.i].en }));
+}

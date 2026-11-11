@@ -23,6 +23,33 @@ export type DavenDepth = "prayers" | "guide" | "study";
 export type DavenSize = "small" | "usual" | "large" | "larger";
 export const SIZE_SCALE: Record<DavenSize, number> = { small: 0.9, usual: 1, large: 1.18, larger: 1.38 };
 
+/** Whose English: the siddur's own, or the Metsudah Linear Siddur's where the words match (Koren only). */
+export type DavenEnglish = "own" | "metsudah";
+/** The Hebrew typeface. */
+export type HebrewFont = "frank" | "noto" | "david" | "sans" | "device";
+/** The English typeface. */
+export type EnglishFont = "serif" | "sans" | "classic";
+/** How large the English is beside the Hebrew. */
+export type EnglishSize = "smaller" | "same" | "larger";
+/** How much room between lines. */
+export type Spacing = "compact" | "comfortable" | "roomy";
+
+/** Each typeface: its CSS family, and the Google Fonts family to load for it (none: already loaded or on the device). */
+export const HEBREW_FONTS: Record<HebrewFont, { label: string; about: string; css: string; load?: string }> = {
+  frank: { label: "Frank Ruhl", about: "The classic printed siddur letter", css: '"Frank Ruhl Libre", "David", serif' },
+  noto: { label: "Noto Serif", about: "Clear vowels, good for the small marks", css: '"Noto Serif Hebrew", "Frank Ruhl Libre", serif', load: "Noto+Serif+Hebrew:wght@400;600" },
+  david: { label: "David", about: "Lighter and rounder", css: '"David Libre", "David", serif', load: "David+Libre:wght@400;500;700" },
+  sans: { label: "Plain", about: "Without serifs, like a sign", css: '"Noto Sans Hebrew", "Arial Hebrew", sans-serif', load: "Noto+Sans+Hebrew:wght@400;500;600" },
+  device: { label: "Device", about: "Your phone's or computer's own Hebrew letters", css: '"New Peninim MT", "Times New Roman", "David", serif' },
+};
+export const ENGLISH_FONTS: Record<EnglishFont, { label: string; css: string; load?: string }> = {
+  serif: { label: "Book", css: '"Source Serif 4", Georgia, serif' },
+  classic: { label: "Classic", css: '"EB Garamond", Garamond, Georgia, serif', load: "EB+Garamond:ital,wght@0,400;0,600;1,400" },
+  sans: { label: "Plain", css: '"IBM Plex Sans", system-ui, sans-serif' },
+};
+export const ENGLISH_SCALE: Record<EnglishSize, number> = { smaller: 0.92, same: 1.05, larger: 1.2 };
+export const SPACING_SCALE: Record<Spacing, number> = { compact: 0.65, comfortable: 1, roomy: 1.45 };
+
 export interface DavenPrefs {
   layout: Layout;
   lang: DavenLang;
@@ -37,6 +64,13 @@ export interface DavenPrefs {
   size: DavenSize;
   /** Where the blessings over the Torah come in the morning (lib/siddur/outline.ts, davenOrder). */
   torahBlessings: TorahBlessingsPlace;
+  english: DavenEnglish;
+  heFont: HebrewFont;
+  enFont: EnglishFont;
+  /** Show the vowels (nekudot); without them the letters alone, for people who read that way. */
+  vowels: boolean;
+  enSize: EnglishSize;
+  spacing: Spacing;
 }
 
 export const DEFAULT_PREFS: DavenPrefs = {
@@ -50,6 +84,12 @@ export const DEFAULT_PREFS: DavenPrefs = {
   depth: "guide",
   size: "usual",
   torahBlessings: "before-morning-blessings",
+  english: "own",
+  heFont: "frank",
+  enFont: "serif",
+  vowels: true,
+  enSize: "smaller",
+  spacing: "comfortable",
 };
 
 const KEY = "rabai_daven_prefs";
@@ -68,6 +108,12 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     wordTap: typeof r.wordTap === "boolean" ? r.wordTap : DEFAULT_PREFS.wordTap,
     depth: one(r.depth, ["prayers", "guide", "study"] as const, DEFAULT_PREFS.depth),
     size: one(r.size, ["small", "usual", "large", "larger"] as const, DEFAULT_PREFS.size),
+    english: one(r.english, ["own", "metsudah"] as const, DEFAULT_PREFS.english),
+    heFont: one(r.heFont, ["frank", "noto", "david", "sans", "device"] as const, DEFAULT_PREFS.heFont),
+    enFont: one(r.enFont, ["serif", "sans", "classic"] as const, DEFAULT_PREFS.enFont),
+    vowels: typeof r.vowels === "boolean" ? r.vowels : DEFAULT_PREFS.vowels,
+    enSize: one(r.enSize, ["smaller", "same", "larger"] as const, DEFAULT_PREFS.enSize),
+    spacing: one(r.spacing, ["compact", "comfortable", "roomy"] as const, DEFAULT_PREFS.spacing),
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

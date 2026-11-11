@@ -26,3 +26,13 @@ test("a line of one siddur finds the other siddur's lines for the same words, in
   // Other words find nothing.
   assert.deepEqual(matchGuide("שִׁיר הַמַּעֲלוֹת לְדָוִד", guide), []);
 });
+
+test("a line is paired with the guide's lines only when they hold the same words, in order", async () => {
+  const { pairWithGuide } = await import("../lib/siddur/guide-match");
+  const koren = "בָּרוּךְ אַתָּה יהוה אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל נְטִילַת יָדָיִם.";
+  assert.deepEqual(pairWithGuide(koren, guide)?.map((l) => l.ref), ["A 1", "A 2", "A 3"]);
+  // A line with words the guide doesn't have is not paired.
+  assert.equal(pairWithGuide("בָּרוּךְ אַתָּה יהוה אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשָׂה לִי כָּל צָרְכִּי", guide), null);
+  // Nor is a line that shares only an opening formula.
+  assert.equal(pairWithGuide("בָּרוּךְ אַתָּה יהוה הַמְּבָרֵךְ אֶת עַמּוֹ יִשְׂרָאֵל בַּשָּׁלוֹם", guide), null);
+});

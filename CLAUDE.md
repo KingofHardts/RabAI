@@ -274,6 +274,14 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   (open question 27). "How much to show" (`depth` in `lib/siddur/prefs.ts`) may put a siddur's
   instructions away only by the person's choice; "Explain it" at the study level goes through
   `send` like any question.
+- The Daven tab's choice of English (`english` in `lib/siddur/prefs.ts`): the Metsudah's English
+  is shown beside Koren's Hebrew only on lines `web/lib/siddur/parallel.generated.json` pairs
+  (references only, never text; remake it with `web/scripts/siddur-parallel.ts` after a library
+  rebuild), whole or not at all, and marked. Never pair by a looser test than `pairWithGuide`.
+- The library build removes a translator's note whole, with any italics inside it
+  (`drop_footnotes` in `tools/library_build.py`). To correct books already in the library after a
+  cleaning fix, use the "Repair text in the library" workflow (`tools/library_repair.py`): a trial
+  first, then write. It changes rows in place, so no rebuild (and no new Turso storage) is needed.
 - For siddurim that don't print instructions, the only notes on how to daven come from
   `canon/davening-notes.yaml` (status `proposed`; each labeled as RabbAI's, not yet reviewed, with
   its suggested sources). A note that could match a line in another prayer is limited with `in` /
@@ -374,6 +382,14 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-11, at Josh's request ("100 quality of life improvements and polish for the text and
+text layout", "different fonts", "different translations", "the most accurate"): the four
+layouts named and explained, line-by-line pairing, side by side on a computer, five Hebrew and
+three English typefaces, vowels on or off, English size and spacing, the Metsudah's English for
+Koren lines with the same words, and 455 lines of leftover translators' notes repaired in the
+library (`docs/text-layout-2026-11.md`). Next: the same repair across the other English editions
+(the Metsudah Chumash first), and the same letters and spacing in the Learn reader.
 
 Done 2026-11-10 (third round), at Josh's request ("the pronunciation… Rab A.I", "where the
 emphasis is", "the names of the rabbis", "how I can do different voices and create a good voice"):
