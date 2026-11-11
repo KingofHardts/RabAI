@@ -49,13 +49,35 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 3,384 of 3,530.
+Finished on 2026-11-11.
 
-Notes for whoever goes on:
+| Siddur | Lines with a word-by-word list | What is left |
+|---|---|---|
+| Siddur Ashkenaz | 1,549 of 1,549 | nothing |
+| The Koren Shalem Siddur; Ashkenaz | 3,384 | nothing that can be translated (see below) |
+
+`send` now offers nothing for either siddur except one Koren line, "Selihot for the Seventeenth of
+Tammuz 84": the library holds an English instruction ("The Ark is closed.") where its Hebrew
+should be, so there is no Hebrew word to translate. The count of 3,530 Koren lines at the top came
+from the "List a book's sections" workflow; `send` reached 3,385 of them. The other 145 were never
+offered as needing translation, and this session didn't find out which they are.
+
+Things to know:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
   `npx tsx scripts/words-check.ts <job folder>` (from `web/`). The app counts words joined by a
   makaf as one word; the first joins answer lines that split them, the second lists every passage
   where a word still has no English. `collect` alone keeps a list with up to 40% of its words
-  empty, so don't rely on its count.
-- Two lines of job 1 (the meditations before the tallit and tefillin) have no English in the
-  library, so they also got a general translation, made without the Metsudah.
+  empty, so don't rely on its count. Every list sent here passed the check with no word empty.
+- Lines with no English in the library also got RabbAI's own general translation, made without
+  the Metsudah: in Siddur Ashkenaz about 155 lines (two meditations, the counting of the Omer,
+  some Friday-night songs, Hallel for Rosh Chodesh); in Koren the Torah readings and a few others.
+- The Metsudah guide covered about 1,400 of Koren's 3,384 lines: most of the weekday services and
+  Friday night, little of Shabbat day, the festivals, Selichot or the Torah readings (the Metsudah
+  text in the library doesn't have them). Those lines follow Rabbi Sacks's English and the plain
+  Hebrew, and verses of the Torah follow Rashi.
+- A guide often lists several Metsudah lines for one passage, some sharing only an opening
+  formula (the start of a blessing). The helpers were told to use only the words that match.
+- Known small flaw, already imported: in Koren's weekday Amidah, the healing prayer ("The Amida
+  37"), one word pair reads "son of daughter of"; it should read "son of / daughter of".
+- The "Sealed file" column is only a rough guide: the inbox clears each file after importing it,
+  so the same file names were used again.
