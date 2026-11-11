@@ -34,10 +34,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | 11 | Koren: weekday morning from the Torah reading to the end (the daily psalm, the readings after the service, personal prayers) and the start of weekday Minchah | 200 | 200 | 12 (1 word corrected) | 2026-11-10-1 |
 | 12 | Koren: weekday Minchah (from the Amidah on) and weekday Maariv, into counting the Omer | 200 | 200 | 8 (1 word corrected) | 2026-11-11-1 |
 | 13 | Koren: the end of counting the Omer, the Shema before sleep, candle lighting, Kabbalat Shabbat, and Shabbat Maariv through Kiddush | 200 | 200 | 9 (none needed correcting) | 2026-11-11-1 |
+| 14 | Koren: the end of Shabbat Maariv, Kiddush and the songs of Friday night, and Shabbat morning from Pesukei DeZimra into the blessings of the Shema | 200 | 200 | 22 (none needed correcting) | 2026-11-11-1 |
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 1,000 of 3,530.
+Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 1,200 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
