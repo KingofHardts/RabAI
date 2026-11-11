@@ -125,6 +125,9 @@ def run_env(token: str, org: str) -> int:
     # library only. Both expire in a day.
     read = group_token(token, org, group, "read-only", RUN_TOKEN_EXPIRATION)
     write = database_token(token, org, DB_NAME, "full-access", RUN_TOKEN_EXPIRATION)
+    # The databases' addresses are settings too: keep them out of this public repository's logs.
+    for host in (library, translations):
+        print(f"::add-mask::{host}", flush=True)
     with open(path, "a", encoding="utf-8") as f:
         f.write(f"TURSO_DATABASE_URL=libsql://{library}\n")
         f.write(f"TURSO_AUTH_TOKEN={read}\n")
