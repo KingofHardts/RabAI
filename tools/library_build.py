@@ -59,8 +59,43 @@ HEBREW_MARKS_RE = re.compile(r"[֑-ׇֽֿׁׂׅׄ]")
 HEBREW_SPACERS_RE = re.compile(r"[־׀׃׳״]")
 
 
+OPEN_FOOTNOTE_RE = re.compile(r'<i[^>]*class="footnote"[^>]*>')
+I_TAG_RE = re.compile(r"<(/?)i\b[^>]*>")
+
+
+def drop_footnotes(text: str) -> str:
+    """Remove each translator's footnote whole, with the italics inside it.
+
+    A footnote is <i class="footnote">…</i>, and its own text can hold more <i>…</i> (a name, a
+    source). Matching only up to the first </i> left the rest of the note in the translation (the
+    Metsudah siddur's notes did this: "My Master, it means … —Avudraham open my lips"), so the
+    closing tag is found by counting the italics opened inside it.
+    """
+    out: list = []
+    pos = 0
+    while True:
+        m = OPEN_FOOTNOTE_RE.search(text, pos)
+        if not m:
+            out.append(text[pos:])
+            break
+        out.append(text[pos:m.start()])
+        depth = 1
+        at = m.end()
+        while depth and at < len(text):
+            t = I_TAG_RE.search(text, at)
+            if not t:
+                at = len(text)
+                break
+            depth += -1 if t.group(1) else 1
+            at = t.end()
+        pos = at
+    # The note's marker (<sup class="footnote-marker">1</sup>) goes too.
+    return SUP_RE.sub("", "".join(out))
+
+
 def clean(text: str) -> str:
     """Sefaria text as plain reading text: no HTML, no translator footnotes."""
+    text = drop_footnotes(text)
     text = FOOTNOTE_RE.sub("", text)
     text = FOOTNOTE_I_RE.sub("", text)
     text = SUP_RE.sub("", text)

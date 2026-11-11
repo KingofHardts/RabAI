@@ -26,6 +26,17 @@ class StripAngleTest(unittest.TestCase):
         self.assertIsNone(B.strip_angle("<הכל>"))  # nothing of the author's left
 
 
+class FootnoteTest(unittest.TestCase):
+    def test_a_note_with_italics_inside_is_removed_whole(self):
+        raw = ('My Master,<sup class="footnote-marker">1</sup><i class="footnote">When God’s name is spelled '
+               '<i>Alef-Daled-Nun-Yud</i> it means “my Master”.—<i>Avudraham</i></i> open my lips, and my mouth '
+               'will declare Your praise.<sup class="footnote-marker">2</sup><i class="footnote">Psalms 51:17.</i>')
+        self.assertEqual(B.clean(raw), "My Master, open my lips, and my mouth will declare Your praise.")
+
+    def test_italics_outside_a_note_are_kept_as_text(self):
+        self.assertEqual(B.clean("Blessed are You, <i>Adonoy</i> our God"), "Blessed are You, Adonoy our God")
+
+
 class WorkRowTest(unittest.TestCase):
     def test_established_by_default(self):
         row = B.work_row({"work": "w", "work_title": "W", "category": "halacha", "streams": ["shared"]})

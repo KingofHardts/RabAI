@@ -1,0 +1,47 @@
+name: Repair text in the library
+
+# Corrects named books in the testing library in place, after a fix to how the build cleans text
+# (tools/library_repair.py), so no rebuild is needed: each rebuild adds storage on Turso that stays.
+# Without "write" it is a trial that prints, for each book, how many passages would change. It
+# prints counts only, never a line of text, and masks every token and address it uses.
+
+on:
+  workflow_dispatch:
+    inputs:
+      titles:
+        description: "Books to repair, separated by |"
+        required: true
+        default: "Siddur Ashkenaz|Siddur Sefard|Weekday Siddur Sefard Linear|Shabbat Siddur Sefard Linear"
+      write:
+        description: "Update the library (otherwise a trial)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: library-build
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml pymongo
+      - name: Check the canon
+        run: python3 tools/validate.py
+      - name: Plan the library (the same files the build reads)
+        run: python3 tools/library_plan.py
+      - name: Repair
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_ORG: ${{ secrets.TURSO_ORG }}
+          TITLES: ${{ inputs.titles }}
+          REPAIR: ${{ inputs.write && 'write' || 'trial' }}
+        run: python3 tools/library_repair.py
