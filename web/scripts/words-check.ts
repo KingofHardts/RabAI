@@ -25,6 +25,12 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith(".request.md")).sort()
   const one = req.match(/^The passage, (.+):\n(.*)$/m);
   if (one) {
     const part = req.match(/after "WORDS:":\n(.*)$/m);
+    if (/-g\.request\.md$/.test(f)) {
+      // The request for a long passage's general translation: no word list here.
+      if (ans && /GENERAL:\s*\S/.test(ans)) ok++;
+      else { bad++; console.log("NO GENERAL:", f, one[1]); }
+      continue;
+    }
     check(`${f} ${one[1]}`, part ? part[1] : one[2], ans, false);
     continue;
   }
