@@ -44,10 +44,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | 21 | Koren: Hoshanot (for Shabbat of Chol HaMoed and Hoshana Rabba), annulment of vows, Kiddush for Rosh HaShana, Kaparot, and the confession before Yom Kippur | 200 | 200 | 34 (none needed correcting; 2 short lines a helper skipped were written here) | 2026-11-11-1 |
 | 22 | Koren: Chanukah, Yom HaZikaron and Yom HaAtzmaut additions, and Selichot for the fast days | 200 | 200 | 17 (1 word corrected) | 2026-11-11-1 |
 | 23 | Koren: the end of Selichot, Grace after Meals, blessings on food and sights, and the cycle of life (Brit Milah, wedding blessings, prayers in illness). Job 22's count is corrected here: 199 of its lines were kept, and 199 of this job's, because one line of the library is an English instruction ("The Ark is closed.") with no Hebrew to translate | 200 | 199 | 12 (none needed correcting) | 2026-11-11-1 |
+| 24 | Koren: the funeral service and prayers in a house of mourning, and the Torah readings for Mondays, Thursdays and Shabbat Minchah, Chanukah and fast days (most of these have no English in the library, so they also got a general translation) | 200 | 199 | 21 (3 words corrected; 21 general translations two helpers left out were added) | 2026-11-11-1 |
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 2,998 of 3,530.
+Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 3,197 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
