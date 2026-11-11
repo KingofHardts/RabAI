@@ -39,10 +39,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | 16 | Koren: Shabbat Musaf (the Amidah, Ein Keloheinu, Aleinu, the Song of Glory, the daily psalm) and the Shabbat morning Kiddush and songs | 200 | 200 | 19 (none needed correcting) | 2026-11-11-1 |
 | 17 | Koren: the end of the Shabbat morning songs, Shabbat Minchah, Barekhi Nafshi, and Ethics of the Fathers chapters 1 to 3 | 200 | 200 | 12 (1 word corrected) | 2026-11-11-1 |
 | 18 | Koren: Ethics of the Fathers chapters 4 to 6, the third Shabbat meal, Maariv for the end of Shabbat, Havdalah, and the start of the festival blessings | 200 | 200 | 15 (none needed correcting) | 2026-11-11-1 |
+| 19 | Koren: festivals (Hallel, Musaf for Rosh Chodesh, the lulav and the sukkah, the festival Amidah, Akdamut) | 200 | 200 | 18 (1 word corrected) | 2026-11-11-1 |
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 2,000 of 3,530.
+Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 2,200 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
