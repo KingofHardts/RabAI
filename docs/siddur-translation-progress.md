@@ -42,10 +42,11 @@ Order: weekday Shacharit, then Mincha, Maariv, Shabbat, then the rest; Siddur As
 | 19 | Koren: festivals (Hallel, Musaf for Rosh Chodesh, the lulav and the sukkah, the festival Amidah, Akdamut) | 200 | 200 | 18 (1 word corrected) | 2026-11-11-1 |
 | 20 | Koren: festivals (the end of Akdamut, the festival Musaf, the priestly blessing, the prayers for dew and rain, the start of Hoshanot) | 200 | 200 | 20 (none needed correcting) | 2026-11-11-1 |
 | 21 | Koren: Hoshanot (for Shabbat of Chol HaMoed and Hoshana Rabba), annulment of vows, Kiddush for Rosh HaShana, Kaparot, and the confession before Yom Kippur | 200 | 200 | 34 (none needed correcting; 2 short lines a helper skipped were written here) | 2026-11-11-1 |
+| 22 | Koren: Chanukah, Yom HaZikaron and Yom HaAtzmaut additions, and Selichot for the fast days | 200 | 200 | 17 (1 word corrected) | 2026-11-11-1 |
 
 ## Totals
 
-Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 2,600 of 3,530.
+Siddur Ashkenaz: 1,549 of 1,549 lines. Koren: 2,800 of 3,530.
 
 Notes for whoever goes on:
 - Before `collect`, run `npx tsx scripts/words-join.ts <job folder>` and then
