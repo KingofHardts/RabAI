@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { FEEDBACK_REASONS, FEEDBACK_REASON_LABELS, FEEDBACK_LIMITS, type FeedbackReason } from "@/lib/account/feedback";
+import { ANSWER_REASONS, FEEDBACK_REASON_LABELS, FEEDBACK_LIMITS, type FeedbackReason } from "@/lib/account/feedback";
 
 /*
  * "Was this helpful?" under a finished answer (docs/learner-profiles.md, phase 3). Sent only when
@@ -89,7 +89,7 @@ export default function AnswerFeedback({ question, answer, sources }: { question
             What wasn&rsquo;t right? (optional)
           </p>
           <div className="helpful-chips" role="group" aria-labelledby={`${id}-why`}>
-            {FEEDBACK_REASONS.map((r) => (
+            {ANSWER_REASONS.map((r) => (
               <button key={r} type="button" className="chip-btn" aria-pressed={reasons.includes(r)} onClick={() => toggle(r)}>
                 {FEEDBACK_REASON_LABELS[r]}
               </button>

@@ -123,7 +123,19 @@ import {
 } from "@/lib/engine/outline-phrases";
 import FlowLegend from "./FlowLegend";
 import FlowBar from "./FlowBar";
+import TextReport from "./TextReport";
 import { readKeptTranslation, type GlossRow, type Translation } from "@/lib/engine/gloss";
+import {
+  copiedLine,
+  DEFAULT_LETTERS,
+  lettersStyle,
+  LETTERS_KEY,
+  loadFonts,
+  parseLetters,
+  withoutVowels,
+  type ReaderLetters,
+} from "@/lib/reading-letters";
+import { ENGLISH_FONTS, HEBREW_FONTS } from "@/lib/siddur/prefs";
 
 // ---------------------------------------------------------------------------
 // Types the screens use
@@ -1588,6 +1600,8 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [lang, setLang] = useState<Lang>("both");
   /** Hebrew in a pane above, the English in a pane below, scrolling together (use-linked-scroll.ts). */
   const [split, setSplit] = useState(false);
+  const [letters, setLetters] = useState<ReaderLetters>(DEFAULT_LETTERS);
+  const [copiedRef, setCopiedRef] = useState<string | null>(null);
   /** A section to open in the Daven tab (its siddur), asked for from elsewhere in the app. */
   const [davenRequest, setDavenRequest] = useState<{ section: string; n: number } | null>(null);
   /** Counts taps on the Daven tab while it is open: each one takes the siddur back to its home. */
@@ -1837,6 +1851,11 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     readLinesInOriginal = original;
     setLang(readStored("rabai_lang", ["he", "both", "en"] as const, "both"));
     setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
+    try {
+      setLetters(parseLetters(JSON.parse(window.localStorage.getItem(LETTERS_KEY) ?? "null")));
+    } catch {
+      /* nothing kept */
+    }
     setReaderHint(readStored("rabai_reader_hint", ["seen", "new"] as const, "new") === "new");
     try {
       const kept = JSON.parse(window.localStorage.getItem("rabai_inline_comms") ?? "[]");
@@ -3294,6 +3313,35 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     chooseSplit(false);
   };
 
+  // A typeface not shipped with the app is fetched when chosen, and all of them while the display
+  // menu is open, so each sample shows in its own letters.
+  useEffect(() => {
+    loadFonts(
+      readerMenu === "aa"
+        ? [...Object.values(HEBREW_FONTS), ...Object.values(ENGLISH_FONTS)].map((f) => f.load)
+        : [HEBREW_FONTS[letters.heFont].load, ENGLISH_FONTS[letters.enFont].load],
+    );
+  }, [readerMenu, letters.heFont, letters.enFont]);
+
+  const chooseLetters = <K extends keyof ReaderLetters>(k: K, v: ReaderLetters[K]) => {
+    setLetters((prev) => {
+      const next = { ...prev, [k]: v };
+      store(LETTERS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  /** Copies a line with its reference (and, from the testing library, its label). */
+  const copyLine = async (ref: string, he: string, en: string) => {
+    try {
+      await navigator.clipboard.writeText(copiedLine(he, en, ref, reader?.libraryMode === "testing"));
+      setCopiedRef(ref);
+      window.setTimeout(() => setCopiedRef((r) => (r === ref ? null : r)), 2000);
+    } catch {
+      /* the browser refused */
+    }
+  };
+
   const chooseSplit = (on: boolean) => {
     setSplit(on);
     store("rabai_split", on ? "on" : "off");
@@ -3909,6 +3957,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         onNext={token ? () => stepReaderWord(1) : undefined}
         onPrev={token ? () => stepReaderWord(-1) : undefined}
         onClose={closeCard}
+        footer={
+          <>
+            <button type="button" className="link wc-copy" onClick={() => void copyLine(p.ref, p.he ?? "", p.en)}>
+              {copiedRef === p.ref ? "Copied" : `Copy this ${partName} with its reference`}
+            </button>
+            {account.state.feedback && <TextReport key={`${p.ref}:${word}`} refName={p.ref} text={[p.he ?? "", p.en].filter(Boolean).join("\n")} word={token ? heading : undefined} />}
+          </>
+        }
       >
         {tab === "meaning" && token && (
           <>
@@ -4113,12 +4169,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           if (!hasHighlight()) tapWord(p.ref, i);
                         }}
                       >
-                        {t.text}
+                        {letters.vowels ? t.text : withoutVowels(t.text)}
                       </span>
                     )}
                   </span>
                 ))
-              : p.he}
+              : letters.vowels
+                ? p.he
+                : withoutVowels(p.he ?? "")}
           </span>
           <span className="en">{p.en}</span>
         </div>
@@ -5404,6 +5462,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             day={day}
             place={placeSettings.place}
             testing={libraryMode === "testing"}
+            reports={account.state.feedback}
             request={davenRequest}
             home={davenHome}
             theme={theme}
@@ -6439,6 +6498,70 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       English
                     </button>
                   </div>
+                  <p className="label-sm">Hebrew letters</p>
+                  <div className="rd-fonts" role="group" aria-label="Hebrew letters">
+                    {(Object.keys(HEBREW_FONTS) as (keyof typeof HEBREW_FONTS)[]).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        aria-pressed={letters.heFont === f}
+                        title={HEBREW_FONTS[f].about}
+                        onClick={() => chooseLetters("heFont", f)}
+                      >
+                        <span className="he" lang="he" style={{ fontFamily: HEBREW_FONTS[f].css }}>
+                          {letters.vowels ? "בָּרוּךְ" : "ברוך"}
+                        </span>
+                        <span>{HEBREW_FONTS[f].label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="seg" role="group" aria-label="Vowels">
+                    <button type="button" aria-pressed={letters.vowels} onClick={() => chooseLetters("vowels", true)}>
+                      With vowels
+                    </button>
+                    <button type="button" aria-pressed={!letters.vowels} onClick={() => chooseLetters("vowels", false)}>
+                      Letters only
+                    </button>
+                  </div>
+                  <p className="label-sm">English letters</p>
+                  <div className="seg" role="group" aria-label="English letters">
+                    {(Object.keys(ENGLISH_FONTS) as (keyof typeof ENGLISH_FONTS)[]).map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        aria-pressed={letters.enFont === f}
+                        style={{ fontFamily: ENGLISH_FONTS[f].css }}
+                        onClick={() => chooseLetters("enFont", f)}
+                      >
+                        {ENGLISH_FONTS[f].label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="label-sm">English size</p>
+                  <div className="seg" role="group" aria-label="English size">
+                    <button type="button" aria-pressed={letters.enSize === "usual"} onClick={() => chooseLetters("enSize", "usual")}>
+                      Usual
+                    </button>
+                    <button type="button" aria-pressed={letters.enSize === "larger"} onClick={() => chooseLetters("enSize", "larger")}>
+                      Larger
+                    </button>
+                    <button type="button" aria-pressed={letters.enSize === "largest"} onClick={() => chooseLetters("enSize", "largest")}>
+                      Largest
+                    </button>
+                  </div>
+                  <p className="label-sm">Line width</p>
+                  <div className="seg" role="group" aria-label="Line width">
+                    <button type="button" aria-pressed={letters.width === "narrow"} onClick={() => chooseLetters("width", "narrow")}>
+                      Narrow
+                    </button>
+                    <button type="button" aria-pressed={letters.width === "usual"} onClick={() => chooseLetters("width", "usual")}>
+                      Usual
+                    </button>
+                    <button type="button" aria-pressed={letters.width === "wide"} onClick={() => chooseLetters("width", "wide")}>
+                      Full
+                    </button>
+                  </div>
+                  <p className="fine-left">The same typefaces as the Daven tab. A line of about 70 letters is the easiest to read; Full uses the whole window.</p>
                   {readerBilingual && (
                     <>
                       <p className="label-sm">Layout</p>
@@ -6489,6 +6612,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             </div>
             <div
               className={`reader-body${splitOn ? " split" : ` lang-${lang}`}${selected && !wide ? " with-sheet" : ""}`}
+              style={lettersStyle(letters) as CSSProperties}
               ref={readerBodyRef}
               data-askable="reader"
             >

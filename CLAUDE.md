@@ -282,6 +282,16 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   (`drop_footnotes` in `tools/library_build.py`). To correct books already in the library after a
   cleaning fix, use the "Repair text in the library" workflow (`tools/library_repair.py`): a trial
   first, then write. It changes rows in place, so no rebuild (and no new Turso storage) is needed.
+  It sorts each difference by its cause (the fix, spacing, other) and by default (`only:
+  footnotes`) changes only what the fix explains; a difference from a source file that changed
+  since the build is left for the next rebuild. It prints counts and references only, never text.
+- Rabbi Sacks's commentary is shown under a Koren line only by the line's own reference
+  (`web/lib/siddur/sacks.ts`); never match a note to a line by its words. "English: Both" shows
+  the Metsudah's English only where the Koren line pairs, as for "Metsudah".
+- "This word looks wrong" (`components/TextReport.tsx`) is a feedback record with the reason
+  `text-wrong` (`textReport` in `lib/account/feedback.ts`): only the line, its reference and the
+  note, never who sent it, and it changes nothing by itself. Keep it out of the reasons offered
+  under an answer (`ANSWER_REASONS`).
 - For siddurim that don't print instructions, the only notes on how to daven come from
   `canon/davening-notes.yaml` (status `proposed`; each labeled as RabbAI's, not yet reviewed, with
   its suggested sources). A note that could match a line in another prayer is limited with `in` /
@@ -382,6 +392,12 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-12, at Josh's request ("fix all of these things that haven't been done yet, and
+build whatever you think is safe to build next"): 20 of the 21 text-layout items marked Next
+(`docs/text-layout-2026-11.md`; part-line pairing held back), the Learn reader's letters, and the
+leftover-note repair across every English book in the library (19,621 passages, in place). Next:
+going through the open decisions with Josh.
 
 Done 2026-11-11, at Josh's request ("100 quality of life improvements and polish for the text and
 text layout", "different fonts", "different translations", "the most accurate"): the four

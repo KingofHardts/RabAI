@@ -474,6 +474,22 @@ wording.
     note only up to its first italic word). The build now removes notes whole, and the "Repair
     text in the library" workflow corrected the 455 lines it found in the Metsudah siddurim in
     place, without a rebuild.
+  - **The second round (2026-11-12),** at Josh's request to build what was still marked Next:
+    a "Hebrew only" layout with each line's English a tap away; "English: Both" for the Koren
+    siddur (Rabbi Sacks's and, where it pairs, the Metsudah's, each named); Rabbi Sacks's own
+    commentary on a Koren line a tap away (its references follow the Koren siddur's line for
+    line); the Metsudah pairing extended to the Nusach Sefard linear siddurim for what Siddur
+    Ashkenaz lacks, by the same test; a sample at the top of the settings; keeping every
+    instruction open; page numbers in an instruction named as the printed siddur's; the place kept
+    when the layout changes; the same line marked in both columns of Side by side; the arrow keys
+    between prayers; a line opened from a chat answer marked in the siddur; copying a line with
+    its reference (a testing-library line says so); and "This word looks wrong", kept for the
+    maintainer as a feedback record with only the line and the note. The Learn reader gained the
+    same letters (Hebrew and English typefaces, vowels on or off, English size, and a line width
+    of about 72 letters by default). The repair tool now sorts each difference by its cause and
+    changes only what the footnote fix explains; with it, 19,621 passages of English across the
+    library were repaired in place. Pairing part of a line was held back: a line must never be
+    given a translation of only some of its words.
 - **The app organized, and RabbAI refined.** **Decided (Josh, 2026-11-10):** the app should be
   easy to get around and well organized, and RabbAI sharper, faster and truer as a teacher, a
   chavrusa and a companion to the siddur. The lists he asked for (600 items, each marked built,

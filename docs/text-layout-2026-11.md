@@ -6,7 +6,8 @@ which I don't really understand"; "the spacing doesn't feel correct"), different
 a more exact translation than the Koren siddur's ("the most accurate… emes").
 
 The list was written after looking at every layout with the real library text, on a phone and on
-a computer. **Built** means done on 2026-11-11. **Next** means small and planned. **Later** means
+a computer. **Built** means done on 2026-11-11 (or, marked "2026-11-12", in the second round the
+next day, which built every item that had been marked Next but one). **Next** means small and planned. **Later** means
 it needs more work. **Ask** means it needs a decision from Josh or the rabbinic board.
 
 What was found first:
@@ -48,8 +49,9 @@ What was found first:
 15. Side by side keeps a heading level in both columns. **Have.**
 16. Remember each layout per siddur (one for Koren, another for Siddur Ashkenaz). **Later.**
 17. A "Hebrew only, large" layout for davening without English, with the English a tap away
-    under a line. **Next.**
-18. In Side by side, tapping a line in one column marks the same line in the other. **Next.**
+    under a line. **Built** (2026-11-12: "Hebrew only", and "English" at the end of each line).
+18. In Side by side, tapping a line in one column marks the same line in the other. **Built**
+    (2026-11-12; tap it again to clear the mark).
 19. In Line by line, a faint line between pairs when the spacing is close. **Later.**
 20. Swipe left or right on the text to change layout. **Later** (swipes move between prayers
     now).
@@ -58,7 +60,8 @@ What was found first:
 23. Word by word: show the transliteration under each word when transliteration is on. **Have.**
 24. Word by word: hide the English for a quiz, and show it on tap. **Later.**
 25. A "compare two translations" layout: Hebrew, then Rabbi Sacks and the Metsudah under it.
-    **Next.**
+    **Built** (2026-11-12: "English: Both" for the Koren siddur, each translation named, the
+    Metsudah's with its green edge, in Line by line, Hebrew only and Side by side).
 
 ## B. Letters, sizes and spacing (20)
 
@@ -77,7 +80,8 @@ What was found first:
 36. Text size (four steps) stays, and now works with every typeface. **Have.**
 37. The settings are grouped: Reading, Letters, What is shown, This siddur, On this device.
     **Built.**
-38. A preview line at the top of the settings that changes as you choose. **Next.**
+38. A preview line at the top of the settings that changes as you choose. **Built** (2026-11-12:
+    the first words of Modeh Ani, in the chosen letters, vowels, sizes and language).
 39. A Hebrew typeface with cantillation marks drawn well, for the Torah readings (Taamey
     Frank). **Later** (it isn't on Google Fonts; would be served with the app).
 40. The God's-name form shown as the siddur prints it (יהוה or ה׳), as a choice. **Ask.**
@@ -109,21 +113,35 @@ What was found first:
     Ashkenaz, Siddur Sefard and the weekday Sefard Linear) are repaired in place by a new
     workflow, without a rebuild. **Built.**
 55. Check every other English edition in the library for the same leftover notes and repair
-    them the same way (the Metsudah Chumash is the likeliest). **Next.**
+    them the same way (the Metsudah Chumash is the likeliest). **Built** (2026-11-12: every
+    English book was checked. 19,621 passages had leftover notes, among them
+    Touger's Mishneh Torah, Chavel's Ramban, Kitzur Shulchan Aruch, Tanya, the Metsudah Rashi on
+    Nach and the minor tractates, and were repaired in place. The repair tool now sorts each
+    difference by its cause and changes only the ones the footnote fix explains: 12 that differ
+    only in spacing and 44 others (a source file that changed since the library was built) were
+    left as they are.)
 56. Pair more Koren lines with the Metsudah by also matching parts of a line (a stanza at a
-    time). **Next.**
+    time). **Later** (held back on 2026-11-12: a line paired by its parts can show a translation
+    of some of its words beside all of them, and the rule is never part of a line).
 57. Pair the Koren siddur with the Nusach Sefard linear siddurim too, for the prayers Siddur
-    Ashkenaz doesn't have (Shabbat day). **Next** (only where the words are the same; the
-    nusach differs in places).
-58. Show both translations at once for a line, on tap. **Next.**
+    Ashkenaz doesn't have (Shabbat day). **Built** (2026-11-12, by the same test as before: at
+    least 9 words in 10 shared, in order, both ways).
+58. Show both translations at once for a line, on tap. **Built** (2026-11-12, as "English: Both"
+    in the settings, see 25).
 59. The footnotes themselves, when wanted: a small marker that opens the translator's note.
     **Later** (the build would have to keep them apart instead of removing them).
-60. Rabbi Sacks's commentary on the siddur (in the library) a tap away from a prayer. **Next.**
+60. Rabbi Sacks's commentary on the siddur (in the library) a tap away from a prayer. **Built**
+    (2026-11-12: "Rabbi Sacks's note" under each Koren line that has one. The commentary's
+    references follow the Koren siddur's line for line, so a note is found by its line's
+    reference alone; labelled as from the testing library.)
 61. Say plainly which translation is the most literal: Metsudah, then word by word, then
     Rabbi Sacks. **Built** (in the settings).
 62. RabbAI's word-by-word lists reviewed by the board. **Ask.**
 63. Mark the words RabbAI's word-by-word list was unsure of. **Later.**
-64. A request from the reader: "This word looks wrong", kept for the maintainer. **Next.**
+64. A request from the reader: "This word looks wrong", kept for the maintainer. **Built**
+    (2026-11-12: in the reader's card, the siddur's word card and its "?" card. It is kept as a
+    "Was this helpful?" record with the reason "A word in the text looks wrong", with only the
+    line, its reference and the note; never who sent it. It changes nothing by itself.)
 65. ArtScroll or Koren's own literal editions, if a licence is ever given. **Ask.**
 
 ## D. Instructions, notes and marks (10)
@@ -132,12 +150,12 @@ What was found first:
 67. "Ask about this" sits beside "Read all", smaller. **Built.**
 68. "Just the prayers" still puts every instruction away. **Have.**
 69. Instructions in a slightly smaller type than the prayers. **Have.**
-70. A setting to keep every instruction open. **Next.**
+70. A setting to keep every instruction open. **Built** (2026-11-12).
 71. Instructions folded to one line once you've seen them today. **Later.**
 72. Bow, rise and step marks larger and coloured. **Have.**
 73. A mark's explanation in one tap. **Have.**
 74. Page references ("on page 134") in Koren's instructions explained as the printed siddur's.
-    **Next.**
+    **Built** (2026-11-12).
 75. RabbAI's own notes (for siddurim without instructions) labelled as RabbAI's. **Have.**
 
 ## E. Moving through the text (10)
@@ -146,27 +164,33 @@ What was found first:
     2026-11-10).
 77. Next and back between prayers in davening order. **Have.**
 78. Jump to Barchu, Shema, Kedushah, Aleinu. **Have.**
-79. Keep your place in each prayer when you change layout. **Next.**
+79. Keep your place in each prayer when you change layout. **Built** (2026-11-12: the line at the
+    top stays at the top).
 80. A "back to where I was" after a jump. **Later.**
 81. Search within the open prayer. **Later.**
-82. Keyboard: arrow keys move between prayers on a computer. **Next.**
+82. Keyboard: arrow keys move between prayers on a computer. **Built** (2026-11-12; not while
+    typing or with a card open).
 83. The bar hides while you scroll down on a phone. **Have.**
 84. A slower scroll ("teleprompter") for davening hands-free. **Later.**
-85. Open a line from an answer in the chat straight at that line, highlighted. **Next.**
+85. Open a line from an answer in the chat straight at that line, highlighted. **Built**
+    (2026-11-12, in the Daven tab; the Learn reader already did).
 
 ## F. The Learn reader's text (15)
 
-86. The same Hebrew typeface choice in the Learn reader. **Next.**
+86. The same Hebrew typeface choice in the Learn reader. **Built** (2026-11-12, under Aa, with
+    the English typeface too).
 87. The reader's two panes side by side on a computer. **Have.**
-88. Vowels on or off in the reader. **Next.**
-89. English size beside the Hebrew in the reader. **Next.**
-90. The reader's long English lines limited to a comfortable width. **Next.**
+88. Vowels on or off in the reader. **Built** (2026-11-12).
+89. English size beside the Hebrew in the reader. **Built** (2026-11-12).
+90. The reader's long English lines limited to a comfortable width. **Built** (2026-11-12: Narrow,
+    Usual (about 72 letters), Full).
 91. Commentary text (Rashi, Tosafot) in a distinct but readable size. **Have.**
 92. A "text only" view without commentaries. **Have.**
 93. Tap a word for its meaning. **Have.**
 94. Line numbers in the reader. **Have** (section references).
-95. The leftover-note repair for other books read in the reader (see 55). **Next.**
-96. Copy a line with its reference. **Next.**
+95. The leftover-note repair for other books read in the reader (see 55). **Built** (2026-11-12).
+96. Copy a line with its reference. **Built** (2026-11-12: in the reader's card and the siddur's
+    "?" card; a line from the testing library says so in what is copied).
 97. Share a line as an image. **Later.**
 98. Print a prayer or a page cleanly. **Later.**
 99. Read a line aloud from the reader. **Have.**
@@ -176,13 +200,16 @@ What was found first:
 
 | Section | Built | Already there | Next | Later | Ask |
 |---|---|---|---|---|---|
-| A. Layouts (25) | 13 | 4 | 3 | 5 | 0 |
-| B. Letters, sizes, spacing (20) | 11 | 2 | 1 | 5 | 1 |
-| C. Translations and accuracy (20) | 9 | 1 | 6 | 2 | 2 |
-| D. Instructions and marks (10) | 2 | 5 | 2 | 1 | 0 |
-| E. Moving through the text (10) | 0 | 4 | 3 | 3 | 0 |
-| F. The Learn reader (15) | 0 | 6 | 6 | 3 | 0 |
-| All (100) | 35 | 22 | 21 | 19 | 3 |
+| A. Layouts (25) | 16 | 4 | 0 | 5 | 0 |
+| B. Letters, sizes, spacing (20) | 12 | 2 | 0 | 5 | 1 |
+| C. Translations and accuracy (20) | 14 | 1 | 0 | 3 | 2 |
+| D. Instructions and marks (10) | 4 | 5 | 0 | 1 | 0 |
+| E. Moving through the text (10) | 3 | 4 | 0 | 3 | 0 |
+| F. The Learn reader (15) | 6 | 6 | 0 | 3 | 0 |
+| All (100) | 55 | 22 | 0 | 20 | 3 |
+
+On 2026-11-11, 35 were built and 21 marked Next; on 2026-11-12, 20 of those 21 were built and the
+other (56) was moved to Later, with the reason beside it.
 
 ## About the translations, plainly
 

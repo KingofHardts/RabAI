@@ -397,7 +397,7 @@ test("feedback keeps only the question, the answer, the sources and the reason: 
   assert.equal(typeof parseFeedback({ helpful: true }), "string", "which answer?");
   const up = parseFeedback({ helpful: true, reasons: ["too-long"], answer: "x" });
   assert.ok(typeof up !== "string" && up.reasons.length === 0, "reasons are for an unhelpful answer");
-  assert.equal(FEEDBACK_REASONS.length, 5);
+  assert.equal(FEEDBACK_REASONS.length, 6, "five for an answer, and \"text-wrong\" from the reader and the siddur");
 
   const store = memoryStore();
   await store.addFeedback(record, T(0) + 1234);

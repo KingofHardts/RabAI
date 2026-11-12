@@ -5,8 +5,10 @@
  * fields alone, so anything else in a request is dropped.
  */
 
-export const FEEDBACK_REASONS = ["source-wrong", "too-hard", "too-long", "not-what-i-asked", "not-orthodox"] as const;
+export const FEEDBACK_REASONS = ["source-wrong", "too-hard", "too-long", "not-what-i-asked", "not-orthodox", "text-wrong"] as const;
 export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
+/** The reasons offered under an answer ("text-wrong" is sent from the reader and the siddur instead). */
+export const ANSWER_REASONS: readonly FeedbackReason[] = ["source-wrong", "too-hard", "too-long", "not-what-i-asked", "not-orthodox"];
 
 export const FEEDBACK_REASON_LABELS: Record<FeedbackReason, string> = {
   "source-wrong": "A source is wrong",
@@ -14,7 +16,19 @@ export const FEEDBACK_REASON_LABELS: Record<FeedbackReason, string> = {
   "too-long": "Too long",
   "not-what-i-asked": "Not what I asked",
   "not-orthodox": "Doesn't sound Orthodox",
+  "text-wrong": "A word in the text looks wrong",
 };
+
+/**
+ * A report from the reader or the siddur that a word or line of the library's text looks wrong
+ * (docs/text-layout-2026-11.md, 64), as a feedback record: the line's reference as its source, the
+ * line's words as the "answer", the word and the person's note as the note. Kept for the
+ * maintainer to check against the printed edition; it changes nothing by itself.
+ */
+export function textReport(r: { ref: string; text: string; word?: string; note?: string }) {
+  const note = [r.word ? `Word: ${r.word}` : "", (r.note ?? "").trim()].filter(Boolean).join(" · ");
+  return { helpful: false, reasons: ["text-wrong"], note: note.slice(0, FEEDBACK_LIMITS.note), question: "", answer: `${r.ref}\n${r.text}`.slice(0, FEEDBACK_LIMITS.answer), sources: [r.ref] };
+}
 
 export const FEEDBACK_LIMITS = {
   note: 1000,

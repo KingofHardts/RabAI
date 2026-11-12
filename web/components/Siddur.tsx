@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
+import TextReport from "./TextReport";
 import DavenTools from "./daven/DavenTools";
 import SiddurOutline from "./daven/SiddurOutline";
 import { useLinkedScroll } from "./use-linked-scroll";
@@ -34,6 +35,7 @@ import {
   type HebrewFont,
   type Layout,
 } from "@/lib/siddur/prefs";
+import { copiedLine, loadFonts, withoutVowels } from "@/lib/reading-letters";
 import { davenOrder, glossFor, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
 
 /*
@@ -72,6 +74,8 @@ interface Chunk {
   lines: SiddurLine[];
   /** The Metsudah Linear Siddur's English for lines that hold the same Hebrew words (Koren only). */
   alt?: Record<string, Phrase[]>;
+  /** Rabbi Sacks's commentary on a line, from the library (Koren only). */
+  notes?: Record<string, string>;
   prev?: string;
   next?: string;
 }
@@ -200,11 +204,16 @@ function markKey(book: string, section: string): string {
   return `${book}|${partOf(book, section)}|${service}`;
 }
 
+/** The sample at the top of the settings, which changes as letters and sizes are chosen (Modeh Ani). */
+const PREVIEW_HE = "מוֹדֶה אֲנִי לְפָנֶיךָ מֶלֶךְ חַי וְקַיָּם";
+const PREVIEW_EN = "I give thanks before You, living and eternal King.";
+
 const SERVICE_LABEL: Record<string, string> = { shacharit: "Shacharit", mincha: "Mincha", maariv: "Maariv", night: "At night" };
 
 const LAYOUTS: Array<{ id: Layout; label: string; short: string; icon: string; about: string }> = [
   { id: "lines", label: "Line by line", short: "Lines", icon: "≡", about: "Each line of Hebrew with its English right under it." },
   { id: "paragraph", label: "Paragraph", short: "Paragraph", icon: "¶", about: "A prayer's Hebrew as one flowing block, then its English. Closest to davening from a siddur." },
+  { id: "hebrew", label: "Hebrew only", short: "Hebrew", icon: "א", about: "The Hebrew alone, a little larger, for davening. Tap “English” at the end of a line to see its translation under it." },
   { id: "words", label: "Word by word", short: "Words", icon: "⋮", about: "The English of each Hebrew word under it, to learn what every word means." },
   { id: "panes", label: "Side by side", short: "Panes", icon: "⇆", about: "Hebrew and English in two columns that scroll together (above and below on a phone)." },
 ];
@@ -217,6 +226,7 @@ function LayoutPicture({ id }: { id: Layout }) {
   let shapes: ReactNode[] = [];
   if (id === "lines") shapes = [bar(14, 6, 32, he), bar(4, 12, 30, en, 2), bar(18, 19, 28, he), bar(4, 25, 26, en, 2), bar(12, 32, 34, he), bar(4, 38, 30, en, 2)];
   if (id === "paragraph") shapes = [bar(4, 6, 42, he), bar(4, 12, 42, he), bar(16, 18, 30, he), bar(4, 27, 42, en, 2), bar(4, 32, 42, en, 2), bar(4, 37, 28, en, 2)];
+  if (id === "hebrew") shapes = [bar(8, 7, 38, he, 4), bar(14, 16, 32, he, 4), bar(6, 25, 40, he, 4), bar(18, 34, 28, he, 4)];
   if (id === "words")
     shapes = [36, 24, 12, 0].flatMap((x, i) => [bar(x + 2, 8, 9, he), bar(x + 3, 14, 7, en, 2), bar(x + 2, 25, 9 - (i % 2), he), bar(x + 3, 31, 7, en, 2)]);
   if (id === "panes") shapes = [bar(27, 6, 19, he), bar(27, 13, 19, he), bar(29, 20, 17, he), bar(4, 6, 19, en, 2), bar(4, 13, 19, en, 2), bar(4, 20, 15, en, 2), <rect key="mid" x={25} y={4} width={0.8} height={36} fill={en} opacity={0.4} />];
@@ -228,13 +238,8 @@ function LayoutPicture({ id }: { id: Layout }) {
   );
 }
 
-/**
- * Hebrew without its vowels and cantillation, for people who read the letters alone. The letters,
- * the maqaf and the siddur's marks are kept; only the points and accents go.
- */
-export function withoutVowels(text: string): string {
-  return text.replace(/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g, "");
-}
+/** Hebrew without its vowels (lib/reading-letters.ts), kept here too for the siddur's callers. */
+export { withoutVowels };
 
 /** A tapped word, without punctuation around it. */
 function bareWord(text: string): string {
@@ -277,6 +282,7 @@ export default function Siddur({
   day,
   place,
   testing,
+  reports = false,
   request,
   home,
   theme,
@@ -294,6 +300,8 @@ export default function Siddur({
   place: Place | null;
   /** The texts are from the testing library (labeled as not yet approved by the board). */
   testing: boolean;
+  /** "This word looks wrong" reports can be sent (feedback is switched on). */
+  reports?: boolean;
   /** A section to open, from elsewhere in the app; `n` changes each time it is asked. */
   request: { section: string; n: number } | null;
   /** Changes each time the person taps the Daven tab while it is open: back to the siddur's home. */
@@ -334,6 +342,11 @@ export default function Siddur({
   const [word, setWord] = useState<{ word: string; prayer: string; entries: WordEntry[] | null; error?: string } | null>(null);
   /** A line the person asked to understand (the study level): what can be done with it. */
   const [linePop, setLinePop] = useState<{ ref: string; prayer: string; he: string; en: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  /** A line asked for from elsewhere (a citation in a chat answer): scrolled to and marked. */
+  const [focusLine, setFocusLine] = useState<string | null>(null);
+  /** Side by side: the line tapped, marked in both columns. */
+  const [marked, setMarked] = useState<string | null>(null);
   const [offline, setOffline] = useState<{ done: number; total: number; missed: number } | null>(null);
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -389,16 +402,7 @@ export default function Siddur({
     const wanted = menuOpen
       ? [...Object.values(HEBREW_FONTS), ...Object.values(ENGLISH_FONTS)].map((f) => f.load)
       : [HEBREW_FONTS[prefs.heFont]?.load, ENGLISH_FONTS[prefs.enFont]?.load];
-    for (const load of wanted) {
-      if (!load || typeof document === "undefined") continue;
-      const id = `font-${load.split(":")[0]}`;
-      if (document.getElementById(id)) continue;
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href = `https://fonts.googleapis.com/css2?family=${load}&display=swap`;
-      document.head.appendChild(link);
-    }
+    loadFonts(wanted);
   }, [prefs.heFont, prefs.enFont, menuOpen]);
 
   /** The reading settings as CSS variables on the siddur (typefaces, sizes, spacing). */
@@ -410,13 +414,34 @@ export default function Siddur({
     "--sd-gap": SPACING_SCALE[prefs.spacing],
   } as CSSProperties;
 
+  /** The line at the top of the text before the layout changed, and how far down the screen it was. */
+  const layoutAnchor = useRef<{ ref: string; offset: number } | null>(null);
   const setPref = <K extends keyof DavenPrefs>(k: K, v: DavenPrefs[K]) => {
+    if (k === "layout" && v !== prefs.layout) {
+      const body = bodyRef.current;
+      if (body) {
+        const top = body.getBoundingClientRect().top;
+        const first = [...body.querySelectorAll<HTMLElement>("[data-l]")].find((el) => el.getBoundingClientRect().bottom > top + 8);
+        if (first) layoutAnchor.current = { ref: (first.dataset.l ?? "").split("|")[0], offset: first.getBoundingClientRect().top - top };
+      }
+    }
     setPrefs((p) => {
       const next = { ...p, [k]: v };
       savePrefs(next);
       return next;
     });
   };
+
+  // After a change of layout, the same line is brought back to where it was on the screen.
+  useLayoutEffect(() => {
+    const a = layoutAnchor.current;
+    const body = bodyRef.current;
+    layoutAnchor.current = null;
+    if (!a || !body || !a.ref) return;
+    const el = [...body.querySelectorAll<HTMLElement>("[data-l]")].find((x) => (x.dataset.l ?? "").split("|").includes(a.ref));
+    if (!el) return;
+    body.scrollTop += el.getBoundingClientRect().top - body.getBoundingClientRect().top - a.offset;
+  }, [layout]);
 
   // The siddur chosen before, or the Koren siddur, or the first one.
   useEffect(() => {
@@ -499,6 +524,7 @@ export default function Siddur({
       next?: string;
       lines?: Array<{ ref: string; he: string; en: string }>;
       alt?: { edition?: string; en?: Record<string, string> };
+      notes?: { book?: string; en?: Record<string, string> };
     };
     if (!res.ok || !data.lines || !data.section) throw new Error(data.error ?? "The siddur couldn't be opened just now.");
     const alt = data.alt?.en ? Object.fromEntries(Object.entries(data.alt.en).map(([ref, en]) => [ref, phrases(en)])) : undefined;
@@ -512,6 +538,7 @@ export default function Siddur({
       next: at >= 0 ? orderRef.current[at + 1] : data.next,
       lines: data.lines.map((l) => readLine(l.ref, l.he ?? "", l.en ?? "", koren)),
       ...(alt && Object.keys(alt).length ? { alt } : {}),
+      ...(data.notes?.en && Object.keys(data.notes.en).length ? { notes: data.notes.en } : {}),
     };
   }, []);
 
@@ -530,15 +557,18 @@ export default function Siddur({
       setChunks([]);
       setLoading("first");
       loadingRef.current = "first";
+      setFocusLine(null);
       try {
         const c = await fetchSection(section);
         if (c) {
           setChunks([c]);
+          // A single line was asked for: it is brought into view and marked once it is drawn.
+          if (section !== c.section && c.lines.some((l) => l.ref === section)) setFocusLine(section);
           const where = { book: owner ?? book, section: c.section };
           setLast(where);
           keep(LAST_KEY, JSON.stringify(where));
         }
-        requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0 }));
+        if (!c || section === c.section || !c.lines.some((l) => l.ref === section)) requestAnimationFrame(() => bodyRef.current?.scrollTo({ top: 0 }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "The siddur couldn't be opened just now.");
       } finally {
@@ -680,6 +710,18 @@ export default function Siddur({
     }
     return grouped;
   }, [chunks, book, prefs.today, prefs.customs, davening, openFolds, instructions, layout, shown]);
+
+  // A line asked for from elsewhere is scrolled to the middle of the screen once it is drawn.
+  const focusDone = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusLine || focusDone.current === focusLine) return;
+    const body = bodyRef.current;
+    const el = body && [...body.querySelectorAll<HTMLElement>("[data-l]")].find((x) => (x.dataset.l ?? "").split("|").includes(focusLine));
+    if (!el || !body) return;
+    focusDone.current = focusLine;
+    body.scrollTop += el.getBoundingClientRect().top - body.getBoundingClientRect().top - body.clientHeight / 3;
+  }, [focusLine, items]);
+
 
   // The places to move between: each prayer, each blessing, and the key places (Barchu, Shema, Kaddish).
   useLayoutEffect(() => {
@@ -850,6 +892,25 @@ export default function Siddur({
     setCurrent(target);
     showToast(s.label);
   };
+
+  // On a computer, the left and right arrow keys move to the previous and next prayer, as the bar's
+  // buttons do. Not while typing, with a modifier key held, or with something open on top.
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  useEffect(() => {
+    if (view !== "read") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input, textarea, select, [contenteditable], [role=tablist], [role=radiogroup], [role=dialog]") || t.isContentEditable)) return;
+      if (menuOpen || jumpOpen || laws || word || linePop || layoutOpen) return;
+      e.preventDefault();
+      stepRef.current(e.key === "ArrowRight" ? 1 : -1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [view, menuOpen, jumpOpen, laws, word, linePop, layoutOpen]);
 
   const jumpTo = (i: number) => {
     const s = stopsRef.current[i];
@@ -1131,12 +1192,14 @@ export default function Siddur({
     // A long instruction shows its first lines until it is opened, so the prayer stays in view.
     const long = text.length > 220;
     const openKey = `instr:${l.ref}`;
-    const open = !long || openBits.has(openKey);
+    const open = !long || prefs.instructionsOpen || openBits.has(openKey);
+    // A page number in an instruction is the printed siddur's, not a page in the app.
+    const pageRef = /\b(?:on\s+)?pages?\s+\d+/i.test(text);
     return (
       <div className={`sd-instr${long && !open ? " folded" : ""}`}>
         <p>{l.en.map((p, i) => renderPhrase(p, i, l.ref, prayer, true, false))}</p>
         <div className="sd-instr-actions">
-          {long && (
+          {long && !prefs.instructionsOpen && (
             <button type="button" className="link sd-ask sd-instr-more" aria-expanded={open} onClick={() => setOpenBits((b) => toggle(b, openKey))}>
               {open ? "Less" : "Read all"}
             </button>
@@ -1152,6 +1215,11 @@ export default function Siddur({
                 {r.label}
               </button>
             ))}
+          {pageRef && (
+            <span className="sd-instr-page" title="The page numbers are those of the printed siddur.">
+              Page numbers are the printed {/koren/i.test(book) ? "Koren " : ""}siddur&apos;s
+            </span>
+          )}
           <button type="button" className="link sd-ask" onClick={() => onAsk(`The siddur says, in ${prayer}: “${text}” Why do we do this, and what is the halacha?`)}>
             Ask about this
           </button>
@@ -1179,7 +1247,7 @@ export default function Siddur({
     const key = keyLine(l);
     if (l.kind === "heading" && l.heading) {
       return (
-        <h3 key={l.ref} className="sd-h" data-i={pane ? it.key : undefined} {...(pane !== "en" ? { "data-stop": l.heading.en, "data-section": it.chunk.section } : {})}>
+        <h3 key={l.ref} className="sd-h" data-l={l.ref} data-i={pane ? it.key : undefined} {...(pane !== "en" ? { "data-stop": l.heading.en, "data-section": it.chunk.section } : {})}>
           <span>{l.heading.en}</span>
           <span className="he" lang="he" dir="rtl">
             {l.heading.he}
@@ -1189,9 +1257,9 @@ export default function Siddur({
     }
     if (l.kind === "instruction") {
       // "Just the prayers": the siddur's instructions are put away (the setting says so).
-      if (pane === "he" || prefs.depth === "prayers") return <div key={l.ref} data-i={pane ? it.key : undefined} className="sd-pane-gap" />;
+      if (pane === "he" || prefs.depth === "prayers") return <div key={l.ref} data-l={l.ref} data-i={pane ? it.key : undefined} className="sd-pane-gap" />;
       return (
-        <div key={l.ref} data-i={pane ? it.key : undefined}>
+        <div key={l.ref} data-l={l.ref} data-i={pane ? it.key : undefined}>
           {instructionBlock(l, it.prayer)}
         </div>
       );
@@ -1200,7 +1268,7 @@ export default function Siddur({
     if (layout === "words" && l.he.length) {
       const g = glosses[l.ref];
       return (
-        <div key={l.ref} className="sd-line" {...stopAttrs}>
+        <div key={l.ref} className="sd-line" data-l={l.ref} {...stopAttrs}>
           {Array.isArray(g) ? (
             glossRow(g)
           ) : (
@@ -1216,17 +1284,23 @@ export default function Siddur({
       );
     }
     // Whose English: the Metsudah's where the person chose it and the words match, else the siddur's own.
-    const metsudah = prefs.english === "metsudah" ? it.chunk.alt?.[l.ref] : undefined;
+    // With "Both", the siddur's own English and then the Metsudah's, on the lines that have both.
+    const alt = prefs.english !== "own" ? it.chunk.alt?.[l.ref] : undefined;
+    const metsudah = prefs.english === "metsudah" ? alt : undefined;
+    const second = prefs.english === "both" ? alt : undefined;
     const en = metsudah ?? l.en;
-    const showHe = pane !== "en" && prefs.lang !== "en" && l.he.length > 0;
-    const showEn = pane !== "he" && (pane === "en" || prefs.lang !== "he") && en.length > 0;
+    const hebrewOnly = layout === "hebrew" && !pane;
+    const enOpenKey = `en:${l.ref}`;
+    const showHe = pane !== "en" && (hebrewOnly || prefs.lang !== "en") && l.he.length > 0;
+    const showEn = hebrewOnly ? openBits.has(enOpenKey) && en.length > 0 : pane !== "he" && (pane === "en" || prefs.lang !== "he") && en.length > 0;
     const enClass = `sd-en${showHe ? " under" : ""}${metsudah ? " sd-en-metsudah" : ""}`;
     // Line by line: when the Hebrew and the English are printed in the same number of lines, each
     // Hebrew line is followed by its own English.
-    const paired = !pane && layout === "lines" && showHe && showEn && !metsudah && l.he.length > 1 && l.he.length === en.length && prefs.translit === "off";
+    const paired =
+      !pane && layout === "lines" && showHe && showEn && !metsudah && !second && l.he.length > 1 && l.he.length === en.length && prefs.translit === "off";
     if (paired)
       return (
-        <div key={l.ref} className="sd-line sd-paired" {...stopAttrs}>
+        <div key={l.ref} className={`sd-line sd-paired${focusLine === l.ref ? " sd-focus" : ""}`} data-l={l.ref} {...stopAttrs}>
           {l.he.map((p, i) => (
             <div key={i} className="sd-pair">
               <p className="sd-he" lang="he" dir="rtl" data-prayer={it.prayer}>
@@ -1239,15 +1313,69 @@ export default function Siddur({
         </div>
       );
     return (
-      <div key={l.ref} className="sd-line" data-i={pane ? it.key : undefined} {...stopAttrs}>
+      <div key={l.ref} className={`sd-line${pane && marked === it.key ? " sd-marked" : ""}${focusLine === l.ref ? " sd-focus" : ""}`} data-l={l.ref} data-i={pane ? it.key : undefined} {...stopAttrs}>
         {showHe && (
           <p className="sd-he" lang="he" dir="rtl" data-prayer={it.prayer}>
             {l.he.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, false, i === 0))}
           </p>
         )}
         {showHe && translitLine(l)}
-        {showEn && <p className={enClass}>{en.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, true, i === 0 && (showHe || pane === "en")))}</p>}
+        {showEn && (
+          <p className={enClass}>
+            {second && <span className="sd-en-who">Rabbi Sacks</span>}
+            {en.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, true, i === 0 && (showHe || pane === "en")))}
+          </p>
+        )}
+        {showEn && second && (
+          <p className="sd-en under sd-en-metsudah sd-en-second">
+            <span className="sd-en-who">Metsudah</span>
+            {second.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, true, false))}
+          </p>
+        )}
+        {pane !== "he" && prefs.depth !== "prayers" && it.chunk.notes?.[l.ref] && sacksNote(l.ref, it.chunk.notes[l.ref])}
+        {hebrewOnly && l.he.length > 0 && l.en.length > 0 && (
+          <button
+            type="button"
+            className="link sd-en-toggle"
+            aria-expanded={showEn}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenBits((b) => toggle(b, enOpenKey));
+            }}
+          >
+            {showEn ? "Hide the English" : "English"}
+          </button>
+        )}
         {pane !== "en" && studyButton(l, it)}
+      </div>
+    );
+  };
+
+  /** Rabbi Sacks's commentary on a line (Koren), folded to a link until it is opened. */
+  const sacksNote = (ref: string, text: string) => {
+    const k = `sacks:${ref}`;
+    const open = openBits.has(k);
+    return (
+      <div className={`sd-sacks${open ? " open" : ""}`}>
+        <button
+          type="button"
+          className="link sd-sacks-btn"
+          aria-expanded={open}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenBits((b) => toggle(b, k));
+          }}
+        >
+          {open ? "Close Rabbi Sacks's note" : "Rabbi Sacks's note"}
+        </button>
+        {open && (
+          <div className="sd-sacks-text">
+            {text.split(/\n+/).map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
+            <p className="fine-left">From Rabbi Sacks&apos;s commentary in the Koren siddur, in RabbAI&apos;s testing library: not yet approved by the rabbinic board.</p>
+          </div>
+        )}
       </div>
     );
   };
@@ -1335,7 +1463,7 @@ export default function Siddur({
         const showHe = prefs.lang !== "en";
         const showEn = prefs.lang !== "he";
         return (
-          <div key={it.key} className="sd-para">
+          <div key={it.key} className={`sd-para${focusLine && it.lines.some((l) => l.ref === focusLine) ? " sd-focus" : ""}`} data-l={it.lines.map((l) => l.ref).join("|")}>
             {showHe && (
               <p className="sd-he" lang="he" dir="rtl" data-prayer={it.prayer}>
                 {it.lines.flatMap((l) => l.he.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, false, i === 0)))}
@@ -1422,6 +1550,14 @@ export default function Siddur({
     <>
       <button type="button" className="menu-scrim sd-scrim" aria-label="Close the settings" onClick={() => setMenuOpen(false)} />
       <div className="sd-menu" role="dialog" aria-label="Siddur settings">
+        <div className="sd-preview" aria-label="How the text will look">
+          {layout !== "hebrew" && prefs.lang === "en" ? null : (
+            <p className="sd-he" lang="he" dir="rtl">
+              {prefs.vowels ? PREVIEW_HE : withoutVowels(PREVIEW_HE)}
+            </p>
+          )}
+          {layout !== "hebrew" && prefs.lang !== "he" && <p className="sd-en under">{PREVIEW_EN}</p>}
+        </div>
         <h4 className="sd-menu-h">Reading</h4>
         {seg("Layout", layout, LAYOUTS.map((l) => [l.id, l.label] as [Layout, string]), (v) => setPref("layout", v))}
         <p className="fine-left sd-menu-note">{LAYOUTS.find((l) => l.id === layout)?.about}</p>
@@ -1433,12 +1569,15 @@ export default function Siddur({
             [
               ["own", "Rabbi Sacks (Koren)"],
               ["metsudah", "Metsudah (word for word)"],
+              ["both", "Both"],
             ],
             (v) => setPref("english", v),
           )}
         {/koren/i.test(book) && (
           <p className="fine-left sd-menu-note">
-            {prefs.english === "metsudah"
+            {prefs.english === "both"
+              ? "Rabbi Sacks's English, and under it the Metsudah's, on the lines where the Metsudah siddur has the same words (marked with a green edge), so you can compare them. In the paragraph layout, Rabbi Sacks's alone."
+              : prefs.english === "metsudah"
               ? "The Metsudah Linear Siddur (Rabbi Avrohom Davis) translates phrase by phrase, staying close to the Hebrew. Its English is shown on the lines where its siddur has the same words, marked with a green edge; the other lines keep Rabbi Sacks's English."
               : "Rabbi Jonathan Sacks's translation, printed in the Koren siddur: faithful and flowing, chosen for how it reads in English. For a closer, word-for-word English, choose Metsudah, or the word-by-word layout."}
           </p>
@@ -1527,6 +1666,12 @@ export default function Siddur({
               ? "Everything, plus a few words on each prayer and a “?” beside each line: explain it, open its commentaries, or see it word by word."
               : "The prayers with the siddur's own instructions, and RabbAI's notes where a siddur prints none."}
         </p>
+        {prefs.depth !== "prayers" && (
+          <label className="sd-menu-check">
+            <input type="checkbox" checked={prefs.instructionsOpen} onChange={(e) => setPref("instructionsOpen", e.target.checked)} /> Keep every instruction open
+            <span className="fine-left"> (otherwise a long one shows its first lines and “Read all”)</span>
+          </label>
+        )}
         {seg("Where men and women say different words", prefs.wording, [["both", "Show both"], ["men", "Men's"], ["women", "Women's"]], (v) => setPref("wording", v))}
         <h4 className="sd-menu-h">This siddur</h4>
         <div className="sd-menu-row">
@@ -1955,7 +2100,18 @@ export default function Siddur({
         </div>
       )}
       {layout === "panes" ? (
-        <div className="sd-panes" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        <div
+          className="sd-panes"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          onClickCapture={(e) => {
+            // Tapping a line marks it in both columns; tapping it again clears the mark.
+            const t = e.target as HTMLElement;
+            if (t.closest("button, a, input, select")) return;
+            const key = t.closest<HTMLElement>(".sd-line[data-i]")?.dataset.i ?? null;
+            if (key) setMarked((m) => (m === key ? null : key));
+          }}
+        >
           <div className={`sd-scroll sd-body sd-pane he lang-he`} ref={bodyRef} onClick={onBodyClick}>
             {bodyTop}
             {items.map((it) => renderItem(it, "he"))}
@@ -1966,7 +2122,7 @@ export default function Siddur({
           </div>
         </div>
       ) : (
-        <div className={`sd-scroll sd-body lang-${prefs.lang}`} ref={bodyRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onClick={onBodyClick}>
+        <div className={`sd-scroll sd-body lang-${layout === "hebrew" ? "both" : prefs.lang}`} ref={bodyRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onClick={onBodyClick}>
           {bodyTop}
           {layout === "words" && (
             <p className="sd-label">
@@ -2089,6 +2245,9 @@ export default function Siddur({
               Close
             </button>
           </div>
+          <div>
+            {reports && <TextReport key={word.word} refName={`${book}, ${word.prayer}`} text={word.word} word={word.word} />}
+          </div>
         </div>
       )}
       {linePop && (
@@ -2134,9 +2293,28 @@ export default function Siddur({
                 Word by word
               </button>
             )}
+            <button
+              type="button"
+              className="btn quiet"
+              onClick={() => {
+                const l = linePop;
+                void navigator.clipboard
+                  ?.writeText(copiedLine(l.he, l.en, l.ref, testing))
+                  .then(() => {
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 2000);
+                  })
+                  .catch(() => {});
+              }}
+            >
+              {copied ? "Copied" : "Copy with its reference"}
+            </button>
             <button type="button" className="btn quiet" onClick={() => setLinePop(null)}>
               Close
             </button>
+          </div>
+          <div>
+            {reports && <TextReport key={linePop.ref} refName={linePop.ref} text={[linePop.he, linePop.en].filter(Boolean).join("\n")} />}
           </div>
           <p className="fine-left">An explanation is RabbAI&apos;s, answered in the chat and checked against the texts like any answer.</p>
         </div>

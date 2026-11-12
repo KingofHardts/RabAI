@@ -8,8 +8,8 @@ import { DEFAULT_CUSTOMS, type DavenCustoms } from "./today";
 import type { Pronunciation } from "./translit";
 import type { TorahBlessingsPlace } from "./outline";
 
-/** lines: Hebrew then its translation, line by line; paragraph: each prayer's Hebrew, then its translation; words: English under each Hebrew word; panes: Hebrew above, English below. */
-export type Layout = "lines" | "paragraph" | "words" | "panes";
+/** lines: Hebrew then its translation, line by line; paragraph: each prayer's Hebrew, then its translation; hebrew: the Hebrew alone, larger, each line's English a tap away; words: English under each Hebrew word; panes: Hebrew above, English below. */
+export type Layout = "lines" | "paragraph" | "hebrew" | "words" | "panes";
 export type DavenLang = "he" | "both" | "en";
 export type Wording = "both" | "men" | "women";
 /**
@@ -23,8 +23,8 @@ export type DavenDepth = "prayers" | "guide" | "study";
 export type DavenSize = "small" | "usual" | "large" | "larger";
 export const SIZE_SCALE: Record<DavenSize, number> = { small: 0.9, usual: 1, large: 1.18, larger: 1.38 };
 
-/** Whose English: the siddur's own, or the Metsudah Linear Siddur's where the words match (Koren only). */
-export type DavenEnglish = "own" | "metsudah";
+/** Whose English: the siddur's own, the Metsudah Linear Siddur's where the words match, or both one under the other (Koren only). */
+export type DavenEnglish = "own" | "metsudah" | "both";
 /** The Hebrew typeface. */
 export type HebrewFont = "frank" | "noto" | "david" | "sans" | "device";
 /** The English typeface. */
@@ -71,6 +71,8 @@ export interface DavenPrefs {
   vowels: boolean;
   enSize: EnglishSize;
   spacing: Spacing;
+  /** Keep every instruction open instead of folding a long one to its first lines. */
+  instructionsOpen: boolean;
 }
 
 export const DEFAULT_PREFS: DavenPrefs = {
@@ -90,6 +92,7 @@ export const DEFAULT_PREFS: DavenPrefs = {
   vowels: true,
   enSize: "smaller",
   spacing: "comfortable",
+  instructionsOpen: false,
 };
 
 const KEY = "rabai_daven_prefs";
@@ -100,7 +103,7 @@ export function parsePrefs(raw: unknown): DavenPrefs {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const c = r.customs && typeof r.customs === "object" ? (r.customs as Record<string, unknown>) : {};
   return {
-    layout: one(r.layout, ["lines", "paragraph", "words", "panes"] as const, DEFAULT_PREFS.layout),
+    layout: one(r.layout, ["lines", "paragraph", "hebrew", "words", "panes"] as const, DEFAULT_PREFS.layout),
     lang: one(r.lang, ["he", "both", "en"] as const, DEFAULT_PREFS.lang),
     today: typeof r.today === "boolean" ? r.today : DEFAULT_PREFS.today,
     wording: one(r.wording, ["both", "men", "women"] as const, DEFAULT_PREFS.wording),
@@ -108,12 +111,13 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     wordTap: typeof r.wordTap === "boolean" ? r.wordTap : DEFAULT_PREFS.wordTap,
     depth: one(r.depth, ["prayers", "guide", "study"] as const, DEFAULT_PREFS.depth),
     size: one(r.size, ["small", "usual", "large", "larger"] as const, DEFAULT_PREFS.size),
-    english: one(r.english, ["own", "metsudah"] as const, DEFAULT_PREFS.english),
+    english: one(r.english, ["own", "metsudah", "both"] as const, DEFAULT_PREFS.english),
     heFont: one(r.heFont, ["frank", "noto", "david", "sans", "device"] as const, DEFAULT_PREFS.heFont),
     enFont: one(r.enFont, ["serif", "sans", "classic"] as const, DEFAULT_PREFS.enFont),
     vowels: typeof r.vowels === "boolean" ? r.vowels : DEFAULT_PREFS.vowels,
     enSize: one(r.enSize, ["smaller", "same", "larger"] as const, DEFAULT_PREFS.enSize),
     spacing: one(r.spacing, ["compact", "comfortable", "roomy"] as const, DEFAULT_PREFS.spacing),
+    instructionsOpen: typeof r.instructionsOpen === "boolean" ? r.instructionsOpen : DEFAULT_PREFS.instructionsOpen,
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

@@ -1,6 +1,6 @@
 /*
- * Pairs the lines of the Koren siddur with the lines of Siddur Ashkenaz that hold the same Hebrew
- * words, so the Daven tab can show the Metsudah Linear Siddur's English (Rabbi Avrohom Davis,
+ * Pairs the lines of the Koren siddur with the lines of Siddur Ashkenaz (and, for what it lacks, the
+ * Nusach Sefard linear siddurim) that hold the same Hebrew words, so the Daven tab can show the Metsudah Linear Siddur's English (Rabbi Avrohom Davis,
  * phrase by phrase, literal) beside the Koren Hebrew when the person asks for it. Writes
  * lib/siddur/parallel.generated.json: references only, never any text, so nothing of the library
  * is committed. A line is paired only when the Metsudah lines hold its words in the same order
@@ -16,7 +16,8 @@ import { testingStore } from "../lib/library/testing";
 import { guideIndex, pairWithGuide, type GuideLine } from "../lib/siddur/guide-match";
 
 const KOREN = "The Koren Shalem Siddur; Ashkenaz";
-const GUIDE = "Siddur Ashkenaz";
+/** The Metsudah siddurim to pair with, in order: Siddur Ashkenaz first; the Nusach Sefard linear siddurim only for lines it doesn't pair (Shabbat day, which Siddur Ashkenaz lacks). */
+const GUIDES = ["Siddur Ashkenaz", "Shabbat Siddur Sefard Linear", "Weekday Siddur Sefard Linear"];
 const EDITION = "Metsudah";
 
 async function linesOf(store: NonNullable<ReturnType<typeof testingStore>>, book: string) {
@@ -31,17 +32,27 @@ async function linesOf(store: NonNullable<ReturnType<typeof testingStore>>, book
 async function main() {
   const store = testingStore();
   if (!store) throw new Error("Set RABAI_LIBRARY_DB_URL (and the token) as for translate-here.ts.");
-  const guide = (await linesOf(store, GUIDE)).filter((l) => l.he.trim() && l.en.trim() && l.edition.includes(EDITION));
-  const index = guideIndex(guide);
   const koren = (await linesOf(store, KOREN)).filter((l) => /[א-ת]/.test(l.he));
   const pairs: Record<string, string[]> = {};
-  for (const l of koren) {
-    const got = pairWithGuide(l.he, index);
-    if (got) pairs[l.ref] = got.map((g) => g.ref);
+  const counts: string[] = [];
+  // Each line is paired with one siddur only, the first that holds its words.
+  for (const book of GUIDES) {
+    const guide = (await linesOf(store, book)).filter((l) => l.he.trim() && l.en.trim() && l.edition.includes(EDITION));
+    const index = guideIndex(guide);
+    let n = 0;
+    for (const l of koren) {
+      if (pairs[l.ref]) continue;
+      const got = pairWithGuide(l.he, index);
+      if (got) {
+        pairs[l.ref] = got.map((g) => g.ref);
+        n++;
+      }
+    }
+    counts.push(`${n} with ${book} (${guide.length} lines with ${EDITION} English)`);
   }
   const file = join(resolve(import.meta.dirname, ".."), "lib", "siddur", "parallel.generated.json");
-  writeFileSync(file, JSON.stringify({ made: "scripts/siddur-parallel.ts", from: KOREN, guide: GUIDE, edition: EDITION, pairs }, null, 0) + "\n");
-  console.log(`${KOREN}: ${koren.length} Hebrew lines, ${Object.keys(pairs).length} paired with ${GUIDE}'s ${EDITION} lines (${guide.length} lines with ${EDITION} English).`);
+  writeFileSync(file, JSON.stringify({ made: "scripts/siddur-parallel.ts", from: KOREN, guides: GUIDES, edition: EDITION, pairs }, null, 0) + "\n");
+  console.log(`${KOREN}: ${koren.length} Hebrew lines, ${Object.keys(pairs).length} paired: ${counts.join("; ")}.`);
 }
 
 main().catch((err) => {

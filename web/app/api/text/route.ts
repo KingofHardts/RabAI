@@ -4,6 +4,7 @@ import { studyPassages } from "@/lib/library/word-study";
 import { testingStore } from "@/lib/library/testing";
 import type { Passage, Work } from "@/lib/library/types";
 import { PARALLEL_BOOK, PARALLEL_EDITION, metsudahFor } from "@/lib/siddur/parallel";
+import { KOREN_BOOK, SACKS_BOOK, sacksFor } from "@/lib/siddur/sacks";
 
 export const runtime = "nodejs";
 
@@ -98,16 +99,26 @@ async function testingSection(ref: string, lib: Library, countOnly = false, bare
   };
   if (bare) {
     let alt: Record<string, string> = {};
+    let notes: Record<string, string> = {};
+    const refs = found.lines.map((l) => l.ref);
     if (parallel && s.book === PARALLEL_BOOK) {
-      try {
-        alt = await metsudahFor(store, found.lines.map((l) => l.ref));
-      } catch (err) {
-        console.warn("[rabai] parallel English failed:", err instanceof Error ? err.message : err);
-      }
+      [alt, notes] = await Promise.all([
+        metsudahFor(store, refs).catch((err) => {
+          console.warn("[rabai] parallel English failed:", err instanceof Error ? err.message : err);
+          return {};
+        }),
+        s.book === KOREN_BOOK
+          ? sacksFor(store, refs).catch((err) => {
+              console.warn("[rabai] Rabbi Sacks's notes failed:", err instanceof Error ? err.message : err);
+              return {};
+            })
+          : Promise.resolve({}),
+      ]);
     }
     return NextResponse.json(
       {
         ...(Object.keys(alt).length ? { alt: { edition: PARALLEL_EDITION, en: alt } } : {}),
+        ...(Object.keys(notes).length ? { notes: { book: SACKS_BOOK, en: notes } } : {}),
         libraryMode: lib.mode,
         ...(found.prev ? { prev: found.prev } : {}),
         ...(found.next ? { next: found.next } : {}),
