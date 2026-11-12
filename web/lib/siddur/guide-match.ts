@@ -153,6 +153,11 @@ export function pairWithGuide(he: string, index: GuideIndex, share = 0.9): Guide
     upTo = p.end;
   }
   if (!chosen.length) return null;
+  // Every word of the line must sit inside a matched piece, but one: a line is never given a
+  // translation that leaves out a phrase (a closing "Blessed are You, LORD" that no piece covers).
+  let uncovered = 0;
+  for (let w = 0; w < words.length; w++) if (!chosen.some((c) => w >= c.at && w < c.end)) uncovered++;
+  if (uncovered > 1) return null;
   const theirs = chosen.flatMap((c) => index.lines[c.i].words);
   const common = sharedInOrder(words, theirs);
   if (common < words.length * share || common < theirs.length * share) return null;

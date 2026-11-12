@@ -35,4 +35,9 @@ test("a line is paired with the guide's lines only when they hold the same words
   assert.equal(pairWithGuide("בָּרוּךְ אַתָּה יהוה אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשָׂה לִי כָּל צָרְכִּי", guide), null);
   // Nor is a line that shares only an opening formula.
   assert.equal(pairWithGuide("בָּרוּךְ אַתָּה יהוה הַמְּבָרֵךְ אֶת עַמּוֹ יִשְׂרָאֵל בַּשָּׁלוֹם", guide), null);
+  // A line whose closing words no guide line covers is not paired, even when 9 words in 10 match.
+  const long = "אֲשֶׁר יָצַר אֶת הָאָדָם בְּחָכְמָה וּבָרָא בוֹ נְקָבִים נְקָבִים חֲלוּלִים חֲלוּלִים גָּלוּי וְיָדוּעַ לִפְנֵי כִסֵּא כְבוֹדֶךָ שֶׁאִם יִפָּתֵחַ אֶחָד מֵהֶם אוֹ יִסָּתֵם אֶחָד מֵהֶם אִי אֶפְשָׁר לְהִתְקַיֵּם וְלַעֲמֹד לְפָנֶיךָ";
+  const ay = guideIndex([{ ref: "B 1", he: long, en: "Who formed man…" }]);
+  assert.deepEqual(pairWithGuide(long, ay)?.map((l) => l.ref), ["B 1"]);
+  assert.equal(pairWithGuide(`${long} בָּרוּךְ אַתָּה`, ay), null);
 });
