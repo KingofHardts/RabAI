@@ -42,7 +42,11 @@ async function main() {
     let n = 0;
     for (const l of koren) {
       if (pairs[l.ref]) continue;
-      const got = pairWithGuide(l.he, index);
+      // Siddur Ashkenaz is Koren's own nusach, so 9 words in 10 is enough (a spelling may differ);
+      // the Nusach Sefard siddurim differ from it in single words ("servant" or "joy" in Yedid
+      // Nefesh), so there every word must be the same.
+      const exact = book !== GUIDES[0];
+      const got = exact ? pairWithGuide(l.he, index, 1, 0) : pairWithGuide(l.he, index);
       if (got) {
         pairs[l.ref] = got.map((g) => g.ref);
         n++;

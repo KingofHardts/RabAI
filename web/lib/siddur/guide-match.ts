@@ -128,7 +128,7 @@ function sharedInOrder(a: string[], b: string[]): number {
  * lines matches that closely. Only lines that hold every word in the same order count; a line
  * that shares only an opening formula never does.
  */
-export function pairWithGuide(he: string, index: GuideIndex, share = 0.9): GuideLine[] | null {
+export function pairWithGuide(he: string, index: GuideIndex, share = 0.9, maxUncovered = 1): GuideLine[] | null {
   const words = bareWords(he);
   if (words.length < 2) return null;
   const mine = new Set(pairs(words));
@@ -157,7 +157,7 @@ export function pairWithGuide(he: string, index: GuideIndex, share = 0.9): Guide
   // translation that leaves out a phrase (a closing "Blessed are You, LORD" that no piece covers).
   let uncovered = 0;
   for (let w = 0; w < words.length; w++) if (!chosen.some((c) => w >= c.at && w < c.end)) uncovered++;
-  if (uncovered > 1) return null;
+  if (uncovered > maxUncovered) return null;
   const theirs = chosen.flatMap((c) => index.lines[c.i].words);
   const common = sharedInOrder(words, theirs);
   if (common < words.length * share || common < theirs.length * share) return null;

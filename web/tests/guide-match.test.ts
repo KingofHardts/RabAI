@@ -40,4 +40,9 @@ test("a line is paired with the guide's lines only when they hold the same words
   const ay = guideIndex([{ ref: "B 1", he: long, en: "Who formed man…" }]);
   assert.deepEqual(pairWithGuide(long, ay)?.map((l) => l.ref), ["B 1"]);
   assert.equal(pairWithGuide(`${long} בָּרוּךְ אַתָּה`, ay), null);
+  // Exact: one word different ("servant" for "joy") is enough to refuse.
+  const sefard = guideIndex([{ ref: "C 1", he: "וְהָיְתָה לָהּ שִׂמְחַת עוֹלָם אָז תִּתְחַזֵּק וְתִתְרַפֵּא", en: "…everlasting joy" }]);
+  const korenLine = "וְהָיְתָה לָהּ שִׁפְחַת עוֹלָם אָז תִּתְחַזֵּק וְתִתְרַפֵּא";
+  assert.equal(pairWithGuide(korenLine, sefard, 1, 0), null);
+  assert.deepEqual(pairWithGuide(korenLine.replace("שִׁפְחַת", "שִׂמְחַת"), sefard, 1, 0)?.map((l) => l.ref), ["C 1"]);
 });
