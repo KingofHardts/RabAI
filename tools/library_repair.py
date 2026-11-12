@@ -16,11 +16,17 @@ references only, never a line of text, and masks the token it makes.
   TITLES            the books, separated by |, or * for every book in the plan
   LANGUAGE          optional: only editions in this language (en or he); with TITLES=* it is en
   REPAIR            "write" to update; anything else is a trial.
+  ONLY              "footnotes": change only passages whose difference is the footnote fix alone
+                    (the library holds exactly what the build made before drop_footnotes existed).
+
+Each difference is sorted by its cause, as counts: the footnote fix alone, spacing only, or other
+(the source file changed since the library was built, or another cleaning rule differs).
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 
@@ -38,33 +44,49 @@ def say(line: str) -> None:
             f.write(line + "\n")
 
 
-def expected(item: dict) -> dict:
-    """ref -> cleaned text for one plan item, merged the way the build merges versions."""
+def clean_before_footnote_fix(text: str) -> str:
+    """The build's clean() as it was before drop_footnotes, to tell which differences that fix explains."""
+    saved = B.drop_footnotes
+    B.drop_footnotes = lambda t: t
+    try:
+        return B.clean(text)
+    finally:
+        B.drop_footnotes = saved
+
+
+def expected(item: dict) -> tuple[dict, dict]:
+    """ref -> cleaned text for one plan item, merged the way the build merges versions; and the same
+    text as the build made it before the footnote fix."""
     index = {}
     try:
         index = S.schema(item["title"]) or {}
     except Exception:  # noqa: BLE001 - the build uses the same schema when it has one
         index = {}
     merged: dict = {}
+    before: dict = {}
     for f in item["files"]:
         data = S.download(f["file"])
         for ref, raw in B.passages_of(item["title"], data, index):
             if ref in merged:
                 continue
-            text = B.clean(raw)
-            if text and item.get("strip_brackets") == "angle":
-                text = B.strip_angle(text)
+            text, old = B.clean(raw), clean_before_footnote_fix(raw)
+            if item.get("strip_brackets") == "angle":
+                text = B.strip_angle(text) if text else text
+                old = B.strip_angle(old) if old else old
                 if text is None:
                     continue
             if text:
                 merged[ref] = text
-    return merged
+                if old:
+                    before[ref] = old
+    return merged, before
 
 
 def main() -> int:
     titles = [t.strip() for t in os.environ.get("TITLES", "").split("|") if t.strip()]
     language = os.environ.get("LANGUAGE", "").strip() or ("en" if titles == ["*"] else "")
     write = os.environ.get("REPAIR") == "write"
+    only_footnotes = os.environ.get("ONLY", "").strip() == "footnotes"
     token = os.environ.get("TURSO_API_TOKEN")
     if not titles or not token:
         say("Name the books (TITLES) and give TURSO_API_TOKEN.")
@@ -93,13 +115,14 @@ def main() -> int:
 
     say(f"## Repairing {len(titles)} book(s) {'(writing)' if write else '(trial: nothing is changed)'}")
     total_changed = 0
+    kinds_total = {"footnote": 0, "spacing": 0, "other": 0}
     for title in titles:
         items = [i for i in plan if i.get("title") == title and not i.get("lexicon") and not i.get("vowels_only") and (not language or i.get("language") == language)]
         if not items:
             say(f"- {title}: not in the plan.")
             continue
         for item in items:
-            want = expected(item)
+            want, before = expected(item)
             res = run([{
                 "sql": "SELECT p.id, p.ref, p.text FROM passages p JOIN titles t ON t.id = p.title_id "
                        "JOIN editions e ON e.id = p.edition_id WHERE t.title = ? AND e.name = ?",
@@ -109,10 +132,26 @@ def main() -> int:
             have = {r[1]["value"]: (int(r[0]["value"]), r[2]["value"]) for r in rows}
             changed = [(ref, have[ref][0], have[ref][1], want[ref]) for ref in have if ref in want and want[ref] != have[ref][1]]
             missing = sum(1 for ref in have if ref not in want)
+
+            def kind(ref: str, old: str, new: str) -> str:
+                if before.get(ref) == old:
+                    return "footnote"
+                if re.sub(r"\s+", "", old) == re.sub(r"\s+", "", new):
+                    return "spacing"
+                return "other"
+
+            kinds = {"footnote": 0, "spacing": 0, "other": 0}
+            for ref, _pid, old, new in changed:
+                kinds[kind(ref, old, new)] += 1
+            for k, v in kinds.items():
+                kinds_total[k] += v
+            if only_footnotes:
+                changed = [c for c in changed if kind(c[0], c[2], c[3]) == "footnote"]
             # With every book, only the ones that change are listed.
-            if changed or len(titles) <= 20:
-                say(f"- {title} ({item['edition']}): {len(have)} passages in the library, {len(changed)} differ from the "
-                    f"cleaned source, {missing} not found in the source.")
+            if any(kinds.values()) or len(titles) <= 20:
+                say(f"- {title} ({item['edition']}): {len(have)} passages, {sum(kinds.values())} differ "
+                    f"(footnote fix {kinds['footnote']}, spacing {kinds['spacing']}, other {kinds['other']}), "
+                    f"{missing} not found in the source.")
             total_changed += len(changed)
             if not write or not changed:
                 continue
@@ -126,7 +165,9 @@ def main() -> int:
                 run(stmts)
                 time.sleep(0.2)
             say(f"  - updated {len(changed)}.")
-    say(f"Total: {total_changed} passages {'updated' if write else 'would be updated'}.")
+    say(f"Differences: footnote fix {kinds_total['footnote']}, spacing {kinds_total['spacing']}, other {kinds_total['other']}.")
+    say(f"Total: {total_changed} passages {'updated' if write else 'would be updated'}"
+        f"{' (the footnote fix only)' if only_footnotes else ''}.")
     return 0
 
 

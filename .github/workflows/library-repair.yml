@@ -16,6 +16,10 @@ on:
         description: "Only editions in this language (en or he; blank for both, or en with *)"
         required: false
         default: ""
+      only:
+        description: "footnotes: change only what the footnote fix explains (blank: every difference)"
+        required: false
+        default: "footnotes"
       write:
         description: "Update the library (otherwise a trial)"
         type: boolean
@@ -48,5 +52,6 @@ jobs:
           TURSO_ORG: ${{ secrets.TURSO_ORG }}
           TITLES: ${{ inputs.titles }}
           LANGUAGE: ${{ inputs.language }}
+          ONLY: ${{ inputs.only }}
           REPAIR: ${{ inputs.write && 'write' || 'trial' }}
         run: python3 tools/library_repair.py
