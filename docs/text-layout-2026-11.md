@@ -97,7 +97,11 @@ What was found first:
     Linear Siddur's (Rabbi Avrohom Davis, word for word). **Built.**
 47. The Metsudah English is shown only where its siddur has the same Hebrew words, in the same
     order (at least 9 words in 10 shared, both ways). 678 of Koren's 3,384 lines pair this
-    closely; the rest keep Rabbi Sacks's. **Built.**
+    closely; the rest keep Rabbi Sacks's. **Built.** (Tightened on 2026-11-12: every word must be
+    the same, and every word of the Koren line must sit inside a matched Metsudah line. A single
+    word can change the meaning: Koren's Yedid Nefesh has "her eternal servant" where both
+    Metsudah siddurim have "eternal joy", and the 9-in-10 test had paired it. 184 of the 678 lines
+    were not exact and now keep Rabbi Sacks's English.)
 48. A line given the Metsudah English is marked with a green edge, and the settings say what
     the edge means. **Built.**
 49. A Metsudah speaker label ("Congregation and Chazzan:") is left out of the English; the Koren
@@ -124,8 +128,9 @@ What was found first:
     time). **Later** (held back on 2026-11-12: a line paired by its parts can show a translation
     of some of its words beside all of them, and the rule is never part of a line).
 57. Pair the Koren siddur with the Nusach Sefard linear siddurim too, for the prayers Siddur
-    Ashkenaz doesn't have (Shabbat day). **Built** (2026-11-12, by the same test as before: at
-    least 9 words in 10 shared, in order, both ways).
+    Ashkenaz doesn't have (Shabbat day). **Built** (2026-11-12, only where every word is the
+    same. Now 747 Koren lines have the Metsudah's English: 483 from Siddur Ashkenaz, 231 from the
+    Shabbat Sefard Linear siddur and 33 from the weekday one).
 58. Show both translations at once for a line, on tap. **Built** (2026-11-12, as "English: Both"
     in the settings, see 25).
 59. The footnotes themselves, when wanted: a small marker that opens the translator's note.

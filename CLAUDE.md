@@ -277,7 +277,8 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - The Daven tab's choice of English (`english` in `lib/siddur/prefs.ts`): the Metsudah's English
   is shown beside Koren's Hebrew only on lines `web/lib/siddur/parallel.generated.json` pairs
   (references only, never text; remake it with `web/scripts/siddur-parallel.ts` after a library
-  rebuild), whole or not at all, and marked. Never pair by a looser test than `pairWithGuide`.
+  rebuild), whole or not at all, and marked. Pairs are exact: every word the same and every word
+  covered (`pairWithGuide(he, index, 1, 0)`); never pair by a looser test.
 - The library build removes a translator's note whole, with any italics inside it
   (`drop_footnotes` in `tools/library_build.py`). To correct books already in the library after a
   cleaning fix, use the "Repair text in the library" workflow (`tools/library_repair.py`): a trial

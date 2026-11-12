@@ -4,7 +4,7 @@
  * phrase by phrase, literal) beside the Koren Hebrew when the person asks for it. Writes
  * lib/siddur/parallel.generated.json: references only, never any text, so nothing of the library
  * is committed. A line is paired only when the Metsudah lines hold its words in the same order
- * (lib/siddur/guide-match.ts, pairWithGuide), and only Metsudah lines with Metsudah English count.
+ * (lib/siddur/guide-match.ts, pairWithGuide, with every word the same), and only Metsudah lines with Metsudah English count.
  *
  * Run from web/ with the library (as for translate-here.ts):
  *   npx tsx scripts/siddur-parallel.ts
@@ -42,11 +42,9 @@ async function main() {
     let n = 0;
     for (const l of koren) {
       if (pairs[l.ref]) continue;
-      // Siddur Ashkenaz is Koren's own nusach, so 9 words in 10 is enough (a spelling may differ);
-      // the Nusach Sefard siddurim differ from it in single words ("servant" or "joy" in Yedid
-      // Nefesh), so there every word must be the same.
-      const exact = book !== GUIDES[0];
-      const got = exact ? pairWithGuide(l.he, index, 1, 0) : pairWithGuide(l.he, index);
+      // Every word must be the same: a single word can change the meaning (Koren's Yedid Nefesh has
+      // "her eternal servant" where both Metsudah siddurim have "eternal joy").
+      const got = pairWithGuide(l.he, index, 1, 0);
       if (got) {
         pairs[l.ref] = got.map((g) => g.ref);
         n++;

@@ -479,7 +479,9 @@ wording.
     siddur (Rabbi Sacks's and, where it pairs, the Metsudah's, each named); Rabbi Sacks's own
     commentary on a Koren line a tap away (its references follow the Koren siddur's line for
     line); the Metsudah pairing extended to the Nusach Sefard linear siddurim for what Siddur
-    Ashkenaz lacks, by the same test; a sample at the top of the settings; keeping every
+    Ashkenaz lacks, and made exact (every word the same, and none left uncovered, since one word
+    can change the meaning: Koren's Yedid Nefesh has "servant" where the Metsudah siddurim have
+    "joy"), so 747 Koren lines now have it; a sample at the top of the settings; keeping every
     instruction open; page numbers in an instruction named as the printed siddur's; the place kept
     when the layout changes; the same line marked in both columns of Side by side; the arrow keys
     between prayers; a line opened from a chat answer marked in the siddur; copying a line with
