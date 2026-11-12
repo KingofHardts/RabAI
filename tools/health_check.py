@@ -348,9 +348,9 @@ def check_database(label: str, url: str | None, token: str | None, count: str | 
     return None
 
 
-def check_anthropic(key: str | None, model: str) -> None:
+def check_anthropic(key: str | None, model: str, label: str = "Anthropic key") -> None:
     if not key:
-        summary("- Anthropic key: couldn't be read here (it may be marked sensitive), so it wasn't tested directly.")
+        summary(f"- {label}: couldn't be read here (it may be marked sensitive), so it wasn't tested directly.")
         return
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -362,13 +362,15 @@ def check_anthropic(key: str | None, model: str) -> None:
     req.add_header("content-type", "application/json")
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            summary(f"- Anthropic key, model `{model}`: works (HTTP {resp.status}).")
+            summary(f"- {label}, model `{model}`: works (HTTP {resp.status}).")
     except urllib.error.HTTPError as e:
         try:
             err = json.loads(e.read().decode("utf-8", "replace")).get("error", {})
         except ValueError:
             err = {}
-        problem(f"The Anthropic key was refused for `{model}` (HTTP {e.code}, {err.get('type', '?')}): {err.get('message', '')[:200]}")
+        # A rate-limit message names the organization; that id is left out of the public log.
+        msg = re.sub(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "…", str(err.get("message", "")))[:200]
+        problem(f"{label} was refused for `{model}` (HTTP {e.code}, {err.get('type', '?')}): {msg}")
     except Exception as e:  # noqa: BLE001
         problem(f"Anthropic couldn't be reached: {plain(e)}")
 
@@ -626,7 +628,10 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
         if r.get("status") == "answered" and texts_cited and not shown:
             problem(f"{label[0].upper()}{label[1:]} cited texts, but none was shown above it while it was written.")
         if r.get("status") not in ("answered",):
-            problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}")
+            cause = r.get("problem") if isinstance(r.get("problem"), dict) else {}
+            why = ", ".join(str(x) for x in (cause.get("kind"), f"HTTP {cause['status']}" if cause.get("status") else None, cause.get("type")) if x)
+            problem(f"{label[0].upper()}{label[1:]} ended with status {plain(r.get('status'))}: {plain(r.get('notice'))}"
+                    + (f" (the model's error: {plain(why)})" if why else ""))
         # The lookup step plans which texts to open; when its plan can't be used, RabbAI searches the
         # question's words instead, and practical questions lose the online lookup and the rav note.
         fell_back = LOOKUP_FALLBACKS.get(str(r.get("lookupFallback") or ""))
@@ -912,6 +917,11 @@ def main() -> int:
     key = value("ANTHROPIC_API_KEY")
     check_anthropic(key, value("RABAI_MODEL") or "claude-opus-5-5")
     check_anthropic(key, value("RABAI_LOOKUP_MODEL") or "claude-sonnet-5-5")
+    # The repository's own key (for translation batches), which may be the same account as the app's.
+    repo_key = os.environ.get("ANTHROPIC_API_KEY")
+    if repo_key:
+        print(f"::add-mask::{repo_key}", flush=True)
+        check_anthropic(repo_key, "claude-sonnet-5-5", "The repository's Anthropic key (translation batches; may not be the app's)")
 
     code = value("RABAI_ACCESS_CODE")
     expected = "RABAI_COLLECTION_DB_URLS" in by_name

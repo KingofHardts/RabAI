@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { describeProblem, modelProblem, problemNotice, type ModelProblem } from "./model-error";
 import { profileSummary, type LearnerProfile } from "../learner-profile";
 import type { BetaMessage, MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { CORE_PREMISES } from "./core-premises.generated";
@@ -137,6 +138,8 @@ export interface AskResult {
   model?: string;
   /** A short message for the person when there is no answer. */
   notice?: string;
+  /** When the model couldn't be reached: why (its status and kind of error, never its message). */
+  problem?: ModelProblem;
   /** In the testing library: the places the lookup step chose to open. */
   lookedUp?: string[];
   /**
@@ -900,11 +903,13 @@ export async function ask(
     message = await client.create(plan.params, onText, { ...(hooks.signal ? { signal: hooks.signal } : {}), onCitation });
     reads.flush();
   } catch (err) {
-    console.error("[rabai] model call failed:", err instanceof Error ? err.message : err);
+    const problem = modelProblem(err);
+    console.error(`[rabai] model call failed: ${describeProblem(problem)}:`, err instanceof Error ? err.message : err);
     return {
       ...base,
       status: "error",
-      notice: "Something went wrong reaching RabbAI. Please try again in a moment.",
+      problem,
+      notice: problemNotice(problem),
     };
   }
 
