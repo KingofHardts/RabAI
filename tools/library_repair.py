@@ -13,7 +13,8 @@ references only, never a line of text, and masks the token it makes.
 
   TURSO_API_TOKEN   required. A Turso Platform API token (repo secret).
   TURSO_ORG         optional.
-  TITLES            the books, separated by |
+  TITLES            the books, separated by |, or * for every book in the plan
+  LANGUAGE          optional: only editions in this language (en or he); with TITLES=* it is en
   REPAIR            "write" to update; anything else is a trial.
 """
 from __future__ import annotations
@@ -62,12 +63,15 @@ def expected(item: dict) -> dict:
 
 def main() -> int:
     titles = [t.strip() for t in os.environ.get("TITLES", "").split("|") if t.strip()]
+    language = os.environ.get("LANGUAGE", "").strip() or ("en" if titles == ["*"] else "")
     write = os.environ.get("REPAIR") == "write"
     token = os.environ.get("TURSO_API_TOKEN")
     if not titles or not token:
         say("Name the books (TITLES) and give TURSO_API_TOKEN.")
         return 1
     plan = json.loads((S.ROOT / "library" / "plan.json").read_text())
+    if titles == ["*"]:
+        titles = sorted({i["title"] for i in plan if i.get("title") and not i.get("lexicon") and (not language or i.get("language") == language)})
     org = os.environ.get("TURSO_ORG") or U.turso_org(token)
     info = U.call("GET", f"{U.TURSO_API}/organizations/{org}/databases/{U.DB_NAME}", token)
     host = info["database"]["Hostname"]
@@ -90,7 +94,7 @@ def main() -> int:
     say(f"## Repairing {len(titles)} book(s) {'(writing)' if write else '(trial: nothing is changed)'}")
     total_changed = 0
     for title in titles:
-        items = [i for i in plan if i.get("title") == title and not i.get("lexicon") and not i.get("vowels_only")]
+        items = [i for i in plan if i.get("title") == title and not i.get("lexicon") and not i.get("vowels_only") and (not language or i.get("language") == language)]
         if not items:
             say(f"- {title}: not in the plan.")
             continue
@@ -105,8 +109,10 @@ def main() -> int:
             have = {r[1]["value"]: (int(r[0]["value"]), r[2]["value"]) for r in rows}
             changed = [(ref, have[ref][0], have[ref][1], want[ref]) for ref in have if ref in want and want[ref] != have[ref][1]]
             missing = sum(1 for ref in have if ref not in want)
-            say(f"- {title} ({item['edition']}): {len(have)} passages in the library, {len(changed)} differ from the "
-                f"cleaned source, {missing} not found in the source.")
+            # With every book, only the ones that change are listed.
+            if changed or len(titles) <= 20:
+                say(f"- {title} ({item['edition']}): {len(have)} passages in the library, {len(changed)} differ from the "
+                    f"cleaned source, {missing} not found in the source.")
             total_changed += len(changed)
             if not write or not changed:
                 continue

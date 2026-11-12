@@ -9,9 +9,13 @@ on:
   workflow_dispatch:
     inputs:
       titles:
-        description: "Books to repair, separated by |"
+        description: "Books to repair, separated by |, or * for every English book"
         required: true
         default: "Siddur Ashkenaz|Siddur Sefard|Weekday Siddur Sefard Linear|Shabbat Siddur Sefard Linear"
+      language:
+        description: "Only editions in this language (en or he; blank for both, or en with *)"
+        required: false
+        default: ""
       write:
         description: "Update the library (otherwise a trial)"
         type: boolean
@@ -27,7 +31,7 @@ concurrency:
 jobs:
   repair:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,5 +47,6 @@ jobs:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_ORG: ${{ secrets.TURSO_ORG }}
           TITLES: ${{ inputs.titles }}
+          LANGUAGE: ${{ inputs.language }}
           REPAIR: ${{ inputs.write && 'write' || 'trial' }}
         run: python3 tools/library_repair.py
