@@ -8,6 +8,7 @@ import { jobCheck, jobShape, jobStore, noJobStore, runAnswer, type LiveEvent } f
 import { PICTURE_LIMITS, picturesSize, questionForPictures, readPictures, type QuestionPicture } from "@/lib/pictures";
 import { whenForRequest } from "@/lib/calendar/place";
 import { parseChavrusa } from "@/lib/chavrusa";
+import { keepable, keptKey, keptStore } from "@/lib/kept-answers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,9 +85,19 @@ function parse(body: unknown): AskInput | string {
     ...(profile ? { profile } : {}),
     ...(chavrusa ? { chavrusa } : {}),
     ...(!action && b.talking === true ? { talking: true } : {}),
+    ...(b.forChild === true ? { forChild: true } : {}),
     ...(lastRefs.length ? { lastRefs } : {}),
     ...(!action && b.talking === true && interrupted ? { interrupted } : {}),
   };
+}
+
+/** Today's date where the person is (YYYY-MM-DD), for a kept answer that depends on the day. */
+function dayIn(tz: string | undefined): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: tz ?? "UTC" }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
 }
 
 function failedAnswer(): AskResult {
@@ -114,14 +125,20 @@ const KEEP_ALIVE_MS = 15_000;
  * With a job id (lib/answer-jobs.ts), the answer keeps being written when the page goes away, and
  * the page can pick it up later from /api/ask/job. Without one, nothing is kept.
  */
-function liveAnswer(input: AskInput, jobId: string | null): Response {
+function liveAnswer(input: AskInput, jobId: string | null, keepAs?: string): Response {
   const check = jobId ? jobCheck(jobId) : `once-${randomBytes(12).toString("hex")}`;
   const answer = runAnswer(check, (hooks) => ask(input, anthropicClient(), undefined, undefined, hooks), {
     store: jobId ? jobStore() : noJobStore(),
     failed: failedAnswer,
   });
-  // Keep this server writing the answer until it is done, even after the page has gone.
-  after(() => answer.done);
+  // Keep this server writing the answer until it is done, even after the page has gone; a suggested
+  // question's answer is then kept for the next person who taps it (lib/kept-answers.ts).
+  after(() =>
+    answer.done.then(async () => {
+      const r = answer.view().result;
+      if (keepAs && keepable(r)) await keptStore().put(keepAs, r).catch((err) => console.warn("[rabai] keeping a suggested answer failed:", err instanceof Error ? err.message : err));
+    }),
+  );
 
   const encoder = new TextEncoder();
   let unlisten: (() => void) | null = null;
@@ -185,7 +202,20 @@ export async function POST(request: Request) {
   if (!profile) delete input.profile;
   if (b.stream === true) {
     if (b.job !== undefined && !jobShape(b.job)) return NextResponse.json({ error: "That answer id isn't valid." }, { status: 422 });
-    return liveAnswer(input, jobShape(b.job) ? b.job : null);
+    // A suggested question in a fresh chat: an answer kept from the last week is given at once.
+    const suggested =
+      b.suggested === true && !input.action && !input.history?.length && !input.pictures?.length && !input.chavrusa && !input.talking && !input.forChild && !input.lastRefs?.length;
+    const key = suggested ? keptKey(input.question, libraryMode(), dayIn(when.tz)) : undefined;
+    if (key) {
+      const kept = await keptStore()
+        .get(key)
+        .catch(() => null);
+      if (kept) {
+        const line = JSON.stringify({ type: "done", result: { ...kept.result, kept: { madeAt: kept.madeAt } } }) + "\n";
+        return new Response(line, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
+      }
+    }
+    return liveAnswer(input, jobShape(b.job) ? b.job : null, key);
   }
 
   const result = await ask(input, anthropicClient());

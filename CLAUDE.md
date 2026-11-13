@@ -293,6 +293,20 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   `text-wrong` (`textReport` in `lib/account/feedback.ts`): only the line, its reference and the
   note, never who sent it, and it changes nothing by itself. Keep it out of the reasons offered
   under an answer (`ANSWER_REASONS`).
+- Kept answers (`web/lib/kept-answers.ts`): only a suggested question, in a fresh chat, with no
+  pictures, chavrusa, Talk or children's mode, keeps its checked answer for a week (people
+  database table `kept_answers`, under a hash of the question, the library, the core premises and,
+  for a question about the day, the date). Never a practical halacha answer, never the person's
+  profile or anything about them. A kept answer is given exactly as kept and marked with its day
+  and "Ask again".
+- "Learning with a child" (`forChild`, `CHILD_SETTING`) only tells RabbAI a child is learning; how
+  it answers is the core premises' "Teaching a child" (open question 28).
+- A picture of an answer and a source sheet (`components/answer-share.ts`) are made on the device;
+  a source sheet holds only the library's own words for the passages the answer cited
+  (`result.card`), and a testing-library text says so on both.
+- The daily cycles' "Open" (`cycleRef` in `lib/calendar/calendar.ts`) is offered only when the
+  library has the exact line it starts at (`/api/calendar` checks). Names and terms the yeshiva or
+  the Israeli way: `ISRAELI` in `lib/voice/lexicon.ts`.
 - For siddurim that don't print instructions, the only notes on how to daven come from
   `canon/davening-notes.yaml` (status `proposed`; each labeled as RabbAI's, not yet reviewed, with
   its suggested sources). A note that could match a line in another prayer is limited with `in` /
@@ -393,6 +407,15 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-13, at Josh's request (his answers to the open decisions): pronunciation of names
+and terms the yeshiva or the Israeli way; the "Delete old Vercel deploys" workflow (every
+Sunday); the daily learning cycles each person follows, opening in the library; kept answers to the
+suggested questions; "Learning with a child" (open question 28); an answer as a picture, and a
+source sheet; more ideas in `docs/ideas-2026-11.md`. Also: the app now says why the model can't be
+reached (`lib/engine/model-error.ts`; the outage of 2026-11-12 was the Anthropic account's
+credit, which Josh raised). To ask Josh: which licence (ArtScroll or Koren), what it covers, and
+how the text will be delivered.
 
 Done 2026-11-12, at Josh's request ("fix all of these things that haven't been done yet, and
 build whatever you think is safe to build next"): 20 of the 21 text-layout items marked Next

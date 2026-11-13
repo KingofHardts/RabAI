@@ -88,7 +88,8 @@ export interface DaySummary {
   /** Today's times at the place, when a place is known (the Learn search shows them for "zmanim"). */
   zmanim?: { day: string; items: Array<{ id?: string; label: string; time: string; note?: string }> };
   /** Today's other daily learning (Mishnah Yomit, the Rambam…), as each schedule names it. */
-  learning?: Array<{ id: string; label: string; text: string }>;
+  /** Each cycle's portion today, with where it starts in the library when that is certain (and found there). */
+  learning?: Array<{ id: string; label: string; text: string; ref?: string }>;
   /** What changes in the davening today. */
   davening?: DaySummaryDavening;
 }

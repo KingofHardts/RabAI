@@ -455,6 +455,20 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **Josh's answers of 2026-11-13.** (1) God's name in the siddur is shown as each siddur prints
+  it; no setting. (2) Names and terms read aloud: both ways, as a choice in Settings ("Yeshiva",
+  geh-MAH-rah, the usual; or "Israeli", g'mah-RAH). (3) Old Vercel deploys are deleted by a
+  workflow, every Sunday, keeping the newest ten built production deploys. (4) The daily learning
+  cycles: each person chooses the ones they follow, and today's portion of each shows on the Learn
+  tab with "Open" (to the library's own text, only when the library has the line it starts at) and
+  "Learn it"; no summaries of a daf are shown (RabbAI's own is not a source). (5) Answers to the
+  suggested questions are kept for a week and given again, marked as kept with "Ask again"
+  (practical halacha always fresh; nothing about the person kept). (6) A children's mode,
+  "Learning with a child" (open question 28). (7) Answers can be shared as a picture and the texts
+  an answer cited printed as a source sheet, both made on the device. More ideas are in
+  `docs/ideas-2026-11.md`. Josh reported having a licence for the more literal siddur translation
+  (ArtScroll or Koren); what it covers is to be confirmed before anything is recorded in
+  `canon/permissions.yaml`.
 - **The text and its layout, and a choice of English.** **Decided (Josh, 2026-11-11):** the
   siddur's text should read well in every layout, with a choice of letters and spacing, and a more
   exact English than the Koren siddur's for those who want it. Built (`docs/text-layout-2026-11.md`,
@@ -846,3 +860,9 @@ These need a decision before launch. Each one changes behavior.
     count. (e) Four more lines added the same day: answering in the language the person writes in,
     being glad to be learning, teaching a prayer over several days, and helping someone daven for
     the first time (which leaves what and how much to say to a rav).
+28. **Teaching a child.** Josh asked (2026-11-13) for a children's mode: a switch in Settings,
+    "Learning with a child", that tells RabbAI a child of about eight to twelve is learning. The
+    core premises gain "Teaching a child" (a draft): short sentences, a story or something from a
+    child's day first, the Torah's stories without frightening or graphic detail, the simple
+    practice in halacha with a parent or rav for their own case, and never asking a child about
+    themselves. Is the section right, and is eight to twelve the right age?

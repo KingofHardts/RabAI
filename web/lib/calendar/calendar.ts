@@ -216,7 +216,64 @@ const LEARNING: Array<{ id: string; label: string }> = [
   { id: "shemiratHaLashon", label: "Shemirat HaLashon, daily" },
   { id: "tanyaYomi", label: "Tanya Yomi" },
   { id: "dirshuAmudYomi", label: "Dirshu Amud Yomi" },
+  { id: "dirshuDafHalacha", label: "Daf HaYomi B'Halacha (Mishnah Berurah)" },
+  { id: "perekYomi", label: "Mishnah, a chapter a day" },
+  { id: "dafWeekly", label: "A daf a week" },
+  { id: "tanakhYomi", label: "Tanakh Yomi" },
+  { id: "seferHaMitzvot", label: "Sefer HaMitzvot, daily" },
+  { id: "pirkeiAvotSummer", label: "Pirkei Avot (Shabbat afternoons, summer)" },
+  { id: "psalms", label: "Tehillim, monthly" },
 ];
+
+/** A tractate's name as the library spells it. */
+const tractate = (name: string) => TRACTATE_NAMES[name.trim()] ?? name.trim();
+
+/**
+ * Where today's portion of a cycle starts in the library, or nothing when it can't be named for
+ * certain (the Yerushalmi's printed dafim, Chofetz Chaim, Shemirat HaLashon, Tanya, Sefer
+ * HaMitzvot). Only the start: the reader opens there and the person goes on.
+ */
+export function cycleRef(id: string, text: string): string | undefined {
+  const t = text.trim();
+  const first = (s: string) => s.split(/\s*-\s*(?=[A-Za-z])/)[0];
+  let m: RegExpExecArray | null;
+  switch (id) {
+    case "dafYomi":
+      return dafRef(t);
+    case "dafWeekly": {
+      const r = dafRef(t);
+      return r && !r.startsWith("Jerusalem") ? `${r}:1` : undefined;
+    }
+    case "dirshuAmudYomi":
+      return (m = /^(.+?)\s+(\d+[ab])$/.exec(t)) ? `${tractate(m[1])} ${m[2]}:1` : undefined;
+    case "mishnaYomi":
+      if (!(m = /^(.+?)\s+(\d+):(\d+)/.exec(first(t)))) return undefined;
+      return m[1] === "Avot" ? `Pirkei Avot ${m[2]}:${m[3]}` : `Mishnah ${tractate(m[1])} ${m[2]}:${m[3]}`;
+    case "perekYomi":
+      if (!(m = /^(.+?)\s+(\d+)$/.exec(first(t)))) return undefined;
+      return m[1] === "Avot" ? `Pirkei Avot ${m[2]}:1` : `Mishnah ${tractate(m[1])} ${m[2]}:1`;
+    case "pirkeiAvotSummer":
+      return (m = /^Pirkei Avot\s+(\d+)/.exec(t)) ? `Pirkei Avot ${m[1]}:1` : undefined;
+    case "nachYomi":
+      return (m = /^(.+?)\s+(\d+)$/.exec(t)) ? `${m[1]} ${m[2]}:1` : undefined;
+    case "psalms":
+      return (m = /^Psalms\s+(\d+)/.exec(t)) ? `Psalms ${m[1]}:1` : undefined;
+    case "tanakhYomi":
+      return (m = /\(([^()]+?\s\d+:\d+)/.exec(t)) ? m[1] : undefined;
+    case "rambam1":
+    case "rambam3":
+      return (m = /^(.+?)\s+(\d+)(?:-\d+)?$/.exec(first(t))) ? `Mishneh Torah, ${m[1]} ${m[2]}:1` : undefined;
+    case "kitzurShulchanAruch":
+      return (m = /^Kitzur Shulchan Arukh\s+(\d+):(\d+)/.exec(t)) ? `Kitzur Shulchan Arukh ${m[1]}:${m[2]}` : undefined;
+    case "arukhHaShulchanYomi":
+      return (m = /^(Orach Chaim|Yoreh De'ah|Even HaEzer|Choshen Mishpat)\s+(\d+):(\d+)/.exec(t)) ? `Arukh HaShulchan, ${m[1]} ${m[2]}:${m[3]}` : undefined;
+    case "dirshuDafHalacha":
+      if ((m = /Mishnah Berurah\s+(\d+):(\d+)/.exec(t))) return `Mishnah Berurah ${m[1]}:${m[2]}`;
+      return (m = /Mishnah Berurah\s+(\d+)/.exec(t)) ? `Mishnah Berurah ${m[1]}:1` : undefined;
+    default:
+      return undefined;
+  }
+}
 
 /** Tractate names as the library spells them, where Hebcal spells them differently. */
 const TRACTATE_NAMES: Record<string, string> = {
@@ -327,7 +384,8 @@ export function calendarInfo(opts: CalendarOptions = {}): CalendarInfo {
       if (!ev) continue;
       // The daf schedules' own names come with a prefix the label already says ("Daf Yomi: ...").
       const text = s.id === "dafYomi" || s.id === "dirshuAmudYomi" ? (ev as Event & { renderBrief(l?: string): string }).renderBrief("en") : ev.render("en");
-      info.learning.push({ id: s.id, label: s.label, text, ...(s.id === "dafYomi" ? { ref: dafRef(text) } : {}) });
+      const ref = cycleRef(s.id, text);
+      info.learning.push({ id: s.id, label: s.label, text, ...(ref ? { ref } : {}) });
     } catch {
       // A schedule that doesn't cover today simply isn't listed.
     }
@@ -584,7 +642,7 @@ export function daySummary(info: CalendarInfo): DaySummary {
       ? { zmanim: { day: info.zmanim.day, items: info.zmanim.items.map((z) => ({ id: z.id, label: z.label, time: z.time, ...(z.note ? { note: z.note } : {}) })) } }
       : {}),
     ...(info.learning.some((l) => l.id !== "dafYomi")
-      ? { learning: info.learning.filter((l) => l.id !== "dafYomi").map((l) => ({ id: l.id, label: l.label, text: l.text })) }
+      ? { learning: info.learning.filter((l) => l.id !== "dafYomi").map((l) => ({ id: l.id, label: l.label, text: l.text, ...(l.ref ? { ref: l.ref } : {}) })) }
       : {}),
     ...(info.davening ? { davening: { ...info.davening, notes: daveningNotes(info.davening) } } : {}),
     ...(soonItem

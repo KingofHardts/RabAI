@@ -1191,6 +1191,47 @@ function CopyAnswer({ text }: { text: string }) {
   );
 }
 
+/** A picture of the answer to share, and a printable source sheet of the texts it cited (components/answer-share.ts). */
+function AnswerExtras({ question, result, testing }: { question: string; result: AskResult; testing: boolean }) {
+  const [state, setState] = useState<"" | "making" | "saved">("");
+  const refs: string[] = [];
+  for (const b of result.blocks) for (const c of b.citations) if (!c.article && !c.online && !refs.includes(c.ref)) refs.push(c.ref);
+  const passages = (result.card ?? []).filter((p) => p.he || p.en);
+  return (
+    <>
+      <button
+        type="button"
+        className="btn quiet"
+        disabled={state === "making"}
+        title="A picture of this answer and its sources, to send"
+        onClick={async () => {
+          setState("making");
+          const { answerPicture, sharePicture } = await import("./answer-share");
+          const blob = await answerPicture(question, plainAnswer(result).trim(), refs, testing);
+          const done = blob ? await sharePicture(blob) : "failed";
+          setState(done === "saved" ? "saved" : "");
+          if (done === "saved") window.setTimeout(() => setState(""), 2500);
+        }}
+      >
+        {state === "making" ? "Making…" : state === "saved" ? "Saved" : "Picture"}
+      </button>
+      {passages.length > 0 && (
+        <button
+          type="button"
+          className="btn quiet"
+          title="The texts this answer cited, in Hebrew and English, on a page to print"
+          onClick={async () => {
+            const { openSourceSheet, sourceSheetHtml } = await import("./answer-share");
+            openSourceSheet(sourceSheetHtml(question, passages, testing));
+          }}
+        >
+          Source sheet
+        </button>
+      )}
+    </>
+  );
+}
+
 /** On a phone, the share sheet (messages, WhatsApp, email); elsewhere Copy does the job. */
 function ShareAnswer({ text }: { text: string }) {
   const [can, setCan] = useState(false);
@@ -1601,6 +1642,12 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   /** Hebrew in a pane above, the English in a pane below, scrolling together (use-linked-scroll.ts). */
   const [split, setSplit] = useState(false);
   const [letters, setLetters] = useState<ReaderLetters>(DEFAULT_LETTERS);
+  /** The daily learning cycles the person follows (Learn tab), kept on the device. */
+  const [cycles, setCycles] = useState<string[]>([]);
+  /** A child is learning (Settings): RabbAI answers for a child. Kept on the device. */
+  const [forChild, setForChild] = useState(false);
+  const forChildRef = useRef(false);
+  forChildRef.current = forChild;
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   /** A section to open in the Daven tab (its siddur), asked for from elsewhere in the app. */
   const [davenRequest, setDavenRequest] = useState<{ section: string; n: number } | null>(null);
@@ -1853,6 +1900,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
     setSplit(readStored("rabai_split", ["on", "off"] as const, "off") === "on");
     try {
       setLetters(parseLetters(JSON.parse(window.localStorage.getItem(LETTERS_KEY) ?? "null")));
+    } catch {
+      /* nothing kept */
+    }
+    setForChild(readStored("rabai_for_child", ["on", "off"] as const, "off") === "on");
+    try {
+      const kept = JSON.parse(window.localStorage.getItem("rabai_cycles") ?? "[]");
+      if (Array.isArray(kept)) setCycles(kept.filter((x): x is string => typeof x === "string" && /^[\w-]{1,40}$/.test(x)).slice(0, 20));
     } catch {
       /* nothing kept */
     }
@@ -2846,7 +2900,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const send = useCallback(
     (
       question: string,
-      opts: { deep?: boolean; spoken?: boolean; talk?: boolean; interrupted?: string; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[] } = {},
+      opts: { deep?: boolean; spoken?: boolean; talk?: boolean; interrupted?: string; pictures?: Attached[]; fresh?: boolean; base?: ChatMessage[]; suggested?: boolean; child?: boolean } = {},
     ): boolean => {
       const q = question.trim();
       const pics = opts.pictures ?? [];
@@ -2921,7 +2975,10 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         ...(chavrusaRef.current ? { chavrusa: chavrusaRef.current } : {}),
         ...(opts.talk ? { talking: true } : {}),
         ...(opts.talk && opts.interrupted ? { interrupted: opts.interrupted } : {}),
+        ...(forChildRef.current || opts.child ? { forChild: true } : {}),
         ...(lastRefs.length ? { lastRefs } : {}),
+        // One of the welcome's suggested questions, in a fresh chat: a kept answer may be given (lib/kept-answers.ts).
+        ...(opts.suggested && !base.length && !pics.length && !opts.talk && !chavrusaRef.current && !forChildRef.current ? { suggested: true } : {}),
       });
       return true;
     },
@@ -3322,6 +3379,18 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         : [HEBREW_FONTS[letters.heFont].load, ENGLISH_FONTS[letters.enFont].load],
     );
   }, [readerMenu, letters.heFont, letters.enFont]);
+
+  const toggleCycle = (id: string) => {
+    setCycles((prev) => {
+      const next = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      store("rabai_cycles", JSON.stringify(next));
+      return next;
+    });
+  };
+  const learnCycle = (l: { label: string; text: string }) => {
+    chooseMode("chat");
+    void send(`Let's learn today's ${l.label} together: ${l.text}. Start at the beginning, a piece at a time.`, { fresh: true });
+  };
 
   const chooseLetters = <K extends keyof ReaderLetters>(k: K, v: ReaderLetters[K]) => {
     setLetters((prev) => {
@@ -5050,6 +5119,20 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
               <div className="settings-menu" role="dialog" aria-label="Settings">
                 <p className="settings-group">Your learning</p>
                 <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={forChild}
+                    onChange={(e) => {
+                      setForChild(e.target.checked);
+                      store("rabai_for_child", e.target.checked ? "on" : "off");
+                    }}
+                  />
+                  <span>
+                    <strong>Learning with a child</strong>
+                    <span className="muted">RabbAI answers for a child of about eight to twelve: short, warm, a story first, and the texts read together.</span>
+                  </span>
+                </label>
+                <label className="switch">
                   <input type="checkbox" checked={growth} onChange={(e) => toggleGrowth(e.target.checked)} />
                   <span>
                     <strong>Help me grow closer to HaShem</strong>
@@ -5627,7 +5710,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                             <div key={g.label} className={`starters${g.label === "For this week" ? " starters-today" : ""}`} role="tabpanel" aria-label={g.label}>
                               <div className="starter-grid">
                                 {g.items.map((q) => (
-                                  <button key={q.label} type="button" className="starter" onClick={() => void send(q.ask)}>
+                                  <button key={q.label} type="button" className="starter" onClick={() => void send(q.ask, { suggested: true })}>
                                     {q.label}
                                   </button>
                                 ))}
@@ -5774,6 +5857,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                           )}
                           <CopyAnswer text={answerToShare(m.result, libraryMode === "testing")} />
                           <ShareAnswer text={answerToShare(m.result, libraryMode === "testing")} />
+                          <AnswerExtras question={questionBefore(messages, m.id)} result={m.result} testing={libraryMode === "testing"} />
                           {i === messages.length - 1 && (
                             <span className="follow-more">
                               <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "deeper" }); void send("Tell me more.", { deep: true }); }}>
@@ -5782,6 +5866,17 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                               <button type="button" className="btn quiet" disabled={pending} onClick={() => { notice({ kind: "simpler" }); void send("Can you say that more simply?"); }}>
                                 Say it more simply
                               </button>
+                              {!forChild && (
+                                <button
+                                  type="button"
+                                  className="btn quiet"
+                                  disabled={pending}
+                                  title="The same answer, told for a child of about eight to twelve"
+                                  onClick={() => void send("Explain that again for a child.", { child: true })}
+                                >
+                                  Explain it for a child
+                                </button>
+                              )}
                               {(() => {
                                 // A text the answer rests on, to read inside together (unless it already read it).
                                 const text = m.result.sources.find((x) => !x.article && !x.online)?.ref;
@@ -5824,6 +5919,14 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                             </span>
                           )}
                         </div>
+                      )}
+                      {m.result?.kept && (
+                        <p className="kept-note">
+                          An answer RabbAI wrote for this suggested question on {new Date(m.result.kept.madeAt).toLocaleDateString(undefined, { month: "long", day: "numeric" })}.{" "}
+                          <button type="button" className="link" onClick={() => void send(questionBefore(messages, m.id), { fresh: true })}>
+                            Ask again for a fresh one
+                          </button>
+                        </p>
                       )}
                       {m.result?.status === "answered" && account.state.feedback && (
                         <AnswerFeedback
@@ -5968,6 +6071,24 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       <span className="muted">Read it with the commentaries</span>
                     </button>
                   )}
+                  {(day.learning ?? [])
+                    .filter((l) => cycles.includes(l.id))
+                    .map((l) => (
+                      <div key={l.id} className="learn-today-item cycle">
+                        <span className="label-sm">{l.label}</span>
+                        <strong>{l.text}</strong>
+                        <span className="cycle-actions">
+                          {l.ref && (
+                            <button type="button" className="link" onClick={() => (siddurOf(l.ref!) ? openDaven(l.ref!) : void openReader(l.ref!))}>
+                              Open
+                            </button>
+                          )}
+                          <button type="button" className="link" onClick={() => learnCycle(l)}>
+                            Learn it
+                          </button>
+                        </span>
+                      </div>
+                    ))}
                     <button type="button" className="learn-today-item chav" onClick={() => openChavrusaSetup()}>
                       <span className="label-sm">With RabbAI</span>
                       <strong>Learn with a chavrusa</strong>
@@ -5976,25 +6097,46 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                 </div>
                   {day.learning && day.learning.length > 0 && (
                     <details className="learn-cycles">
-                      <summary>More of today&apos;s learning ({day.learning.length})</summary>
+                      <summary>
+                        {cycles.length ? "Other daily learning" : "Daily learning cycles"} ({day.learning.filter((l) => !cycles.includes(l.id)).length})
+                      </summary>
+                      <p className="fine-left">Follow the ones you learn, and today&apos;s portion of each shows above every day.</p>
                       <ul>
-                        {day.learning.map((l) => (
-                          <li key={l.id}>
-                            <span className="lc-label">{l.label}</span>
-                            <span className="lc-text">{l.text}</span>
-                            <button
-                              type="button"
-                              className="link"
-                              onClick={() => {
-                                chooseMode("chat");
-                                void send(`Let's learn today's ${l.label} together: ${l.text}. Start at the beginning, a piece at a time.`, { fresh: true });
-                              }}
-                            >
-                              Learn it
-                            </button>
-                          </li>
-                        ))}
+                        {day.learning
+                          .filter((l) => !cycles.includes(l.id))
+                          .map((l) => (
+                            <li key={l.id}>
+                              <span className="lc-label">{l.label}</span>
+                              <span className="lc-text">{l.text}</span>
+                              <span className="lc-actions">
+                                {l.ref && (
+                                  <button type="button" className="link" onClick={() => void openReader(l.ref!)}>
+                                    Open
+                                  </button>
+                                )}
+                                <button type="button" className="link" onClick={() => learnCycle(l)}>
+                                  Learn it
+                                </button>
+                                <button type="button" className="link" onClick={() => toggleCycle(l.id)}>
+                                  Follow
+                                </button>
+                              </span>
+                            </li>
+                          ))}
                       </ul>
+                      {cycles.length > 0 && (
+                        <p className="fine-left">
+                          Following: {day.learning.filter((l) => cycles.includes(l.id)).map((l, i) => (
+                            <span key={l.id}>
+                              {i > 0 && ", "}
+                              {l.label}{" "}
+                              <button type="button" className="link" onClick={() => toggleCycle(l.id)} aria-label={`Stop following ${l.label}`}>
+                                (stop)
+                              </button>
+                            </span>
+                          ))}
+                        </p>
+                      )}
                     </details>
                   )}
                 </section>
@@ -6259,6 +6401,21 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             {composerNote && !listening && (
               <p className="voice-note" role="status">
                 {composerNote}
+              </p>
+            )}
+            {forChild && (
+              <p className="child-note">
+                Answering for a child.{" "}
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    setForChild(false);
+                    store("rabai_for_child", "off");
+                  }}
+                >
+                  Turn off
+                </button>
               </p>
             )}
             {!talkOn && (dictation.error || listening) && (

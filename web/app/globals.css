@@ -1981,3 +1981,11 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 .text-report textarea { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
 .text-report-actions { display: flex; gap: 8px; }
 .wc-foot .wc-copy { display: block; margin-bottom: 4px; }
+/* Daily learning cycles the person follows (Learn tab): a card each, with Open and Learn it. */
+.learn-today-item.cycle .cycle-actions { display: flex; gap: 14px; margin-top: 2px; }
+.learn-cycles li .lc-actions { grid-column: 2; grid-row: 1 / span 2; align-self: center; display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.learn-cycles li .lc-actions .link { grid-column: auto; grid-row: auto; }
+/* A kept answer to a suggested question: when it was written, and a way to ask afresh. */
+.kept-note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+/* The children's mode is on: said beside the question box. */
+.child-note { font-family: var(--font-ui); font-size: 12.5px; color: var(--muted); margin: 4px 2px 0; }

@@ -55,6 +55,8 @@ export interface AskInput {
   chavrusa?: ChavrusaSession;
   /** The person is talking out loud (Talk): their words came from speech recognition, and the answer is read aloud. */
   talking?: boolean;
+  /** A child is learning (Settings, "Learning with a child"; core premises "Teaching a child"). */
+  forChild?: boolean;
   /**
    * The sources of the answer just before this question (its cited texts first), so a short
    * follow-up in a conversation can go straight to them (lookup.ts, quickFollowUp).
@@ -87,6 +89,9 @@ export function interruptedSetting(heard: string): string {
 }
 
 /** What RabbAI is told when the person is talking out loud; "Talking out loud" in the core premises says how to answer. */
+/** What RabbAI is told when a child is learning; "Teaching a child" in the core premises says how. */
+export const CHILD_SETTING = 'A child is learning (see "Teaching a child"): answer for a child of about eight to twelve.';
+
 export const TALKING_SETTING =
   'The person is talking with you out loud (see "Talking out loud"): their words came from their device\'s speech recognition, and your answer will be read aloud.';
 
@@ -140,6 +145,8 @@ export interface AskResult {
   notice?: string;
   /** When the model couldn't be reached: why (its status and kind of error, never its message). */
   problem?: ModelProblem;
+  /** A kept answer to a suggested question (lib/kept-answers.ts): when it was written. */
+  kept?: { madeAt: number };
   /** In the testing library: the places the lookup step chose to open. */
   lookedUp?: string[];
   /**
@@ -643,6 +650,7 @@ export function planRequest(
     notes.calendar ? calendarSettings(notes.calendar.info, { times: notes.calendar.times, year: notes.calendar.year }) : "",
     input.chavrusa ? chavrusaSettings(input.chavrusa) : "",
     input.talking ? TALKING_SETTING : "",
+    input.forChild ? CHILD_SETTING : "",
     input.talking && input.interrupted ? interruptedSetting(input.interrupted) : "",
     conversationTurn(input) ? CONVERSATION_SETTING : "",
     safety.concern ? safetyInstruction(safety.concern) : "",
