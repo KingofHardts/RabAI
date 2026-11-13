@@ -328,6 +328,119 @@ export const SAY_AS: SayAs[] = [
   w(["Rivka", "Rivkah"], "RIV-kah", "ˈɹɪvkɑ", N),
 ];
 
+
+/**
+ * The Israeli way, for the words written the same way in both: the stress mostly on the last
+ * syllable ("g'mah-RAH", "rahm-BAHM"), and a few vowels as in Hebrew ("SEH-fer"). Chosen in Settings
+ * (Pronunciation, "Names and terms"); the yeshiva way above is the usual. A word written the
+ * Ashkenazi way ("Shabbos", "Tosfos") is said that way in both. Keyed by the entry's first spelling.
+ */
+export const ISRAELI: Record<string, [say: string, ipa: string]> = {
+  halacha: ["hah-lah-KHAH", "hɑlɑˈxɑ"],
+  chavruta: ["khahv-roo-TAH", "xɑvɹuˈtɑ"],
+  Chumash: ["khoo-MAHSH", "xuˈmɑʃ"],
+  Gemara: ["g'mah-RAH", "ɡəmɑˈɹɑ"],
+  Mishnah: ["meesh-NAH", "miʃˈnɑ"],
+  Bavli: ["bahv-LEE", "bɑvˈli"],
+  Yerushalmi: ["y'roo-shahl-MEE", "jəɹuʃɑlˈmi"],
+  sefer: ["SEH-fer", "ˈsɛfɛɹ"],
+  mitzvah: ["meets-VAH", "mitsˈvɑ"],
+  bracha: ["b'rah-KHAH", "bəɹɑˈxɑ"],
+  tefillah: ["t'fee-LAH", "təfiˈlɑ"],
+  tefillin: ["t'fee-LEEN", "təfiˈlin"],
+  teshuvah: ["t'shoo-VAH", "təʃuˈvɑ"],
+  kavanah: ["kah-vah-NAH", "kɑvɑˈnɑ"],
+  Amidah: ["ah-mee-DAH", "ɑmiˈdɑ"],
+  Kaddish: ["kah-DEESH", "kɑˈdiʃ"],
+  Kedushah: ["k'doo-SHAH", "kəduˈʃɑ"],
+  Tachanun: ["tah-khah-NOON", "tɑxɑˈnun"],
+  Shacharit: ["shah-khah-REET", "ʃɑxɑˈɹit"],
+  Mincha: ["meen-KHAH", "minˈxɑ"],
+  Maariv: ["mah-ah-REEV", "mɑɑˈɹiv"],
+  Musaf: ["moo-SAHF", "muˈsɑf"],
+  Havdalah: ["hahv-dah-LAH", "hɑvdɑˈlɑ"],
+  siddur: ["see-DOOR", "siˈduɹ"],
+  Pesach: ["PEH-sakh", "ˈpɛsɑx"],
+  Chanukah: ["khah-noo-KAH", "xɑnuˈkɑ"],
+  "Rosh Hashanah": ["rosh hah-shah-NAH", "ɹoʊʃ hɑʃɑˈnɑ"],
+  Zohar: ["zoh-HAR", "zoʊˈhɑɹ"],
+  parsha: ["pah-rah-SHAH", "pɑɹɑˈʃɑ"],
+  sugya: ["soog-YAH", "suɡˈjɑ"],
+  posek: ["poh-SEK", "poʊˈsɛk"],
+  chiddush: ["khee-DOOSH", "xiˈduʃ"],
+  shiur: ["shee-OOR", "ʃiˈuɹ"],
+  svara: ["s'vah-RAH", "səvɑˈɹɑ"],
+  kashya: ["kahsh-YAH", "kɑʃˈjɑ"],
+  teiku: ["teh-KOO", "tɛˈku"],
+  mussar: ["moo-SAR", "muˈsɑɹ"],
+  emunah: ["eh-moo-NAH", "ɛmuˈnɑ"],
+  tzedakah: ["ts'dah-KAH", "tsədɑˈkɑ"],
+  muktzeh: ["mook-TSEH", "mukˈtsɛ"],
+  melacha: ["m'lah-KHAH", "məlɑˈxɑ"],
+  eruv: ["eh-ROOV", "ɛˈɹuv"],
+  tzitzit: ["tsee-TSEET", "tsiˈtsit"],
+  Shechinah: ["sh'khee-NAH", "ʃəxiˈnɑ"],
+  Tehillim: ["t'hee-LEEM", "təhiˈlim"],
+  Vayikra: ["vah-yeek-RAH", "vɑjikˈɹɑ"],
+  Bamidbar: ["bah-meed-BAR", "bɑmidˈbɑɹ"],
+  Mishlei: ["meesh-LAY", "miʃˈleɪ"],
+  Yoma: ["yoh-MAH", "joʊˈmɑ"],
+  Sukkah: ["soo-KAH", "suˈkɑ"],
+  Beitzah: ["bay-TSAH", "beɪˈtsɑ"],
+  Megillah: ["m'gee-LAH", "məɡiˈlɑ"],
+  Chagigah: ["khah-gee-GAH", "xɑɡiˈɡɑ"],
+  Sotah: ["soh-TAH", "soʊˈtɑ"],
+  Gittin: ["gee-TEEN", "ɡiˈtin"],
+  "Avodah Zarah": ["ah-voh-DAH zah-RAH", "ɑvoʊˈdɑ zɑˈɹɑ"],
+  Niddah: ["nee-DAH", "niˈdɑ"],
+  Rambam: ["rahm-BAHM", "ɹɑmˈbɑm"],
+  Ramban: ["rahm-BAHN", "ɹɑmˈbɑn"],
+  Rashba: ["rahsh-BAH", "ɹɑʃˈbɑ"],
+  Rashbam: ["rahsh-BAHM", "ɹɑʃˈbɑm"],
+  Ritva: ["reet-VAH", "ɹitˈvɑ"],
+  Raavad: ["rah-ah-VAHD", "ɹɑɑˈvɑd"],
+  Mordechai: ["mor-deh-KHAI", "mɔɹdəˈxaɪ"],
+  Sforno: ["sfor-NOH", "sfɔɹˈnoʊ"],
+  Radak: ["rah-DAHK", "ɹɑˈdɑk"],
+  Ralbag: ["rahl-BAHG", "ɹɑlˈbɑɡ"],
+  Malbim: ["mahl-BEEM", "mɑlˈbim"],
+  Maharsha: ["mah-har-SHAH", "mɑhɑɹˈʃɑ"],
+  Maharshal: ["mah-har-SHAHL", "mɑhɑɹˈʃɑl"],
+  "Shulchan Aruch": ["shool-KHAHN ah-ROOKH", "ʃulˈxɑn ɑˈɹux"],
+  Kitzur: ["kee-TSOOR", "kiˈtsuɹ"],
+  Rema: ["reh-MAH", "ɹɛˈmɑ"],
+  "Mishnah Berurah": ["meesh-NAH b'roo-RAH", "miʃˈnɑ bəɹuˈɹɑ"],
+  "Mishneh Torah": ["meesh-NEH toh-RAH", "miʃˈnɛ toʊˈɹɑ"],
+  Tanya: ["tahn-YAH", "tɑnˈjɑ"],
+  Ramchal: ["rahm-KHAHL", "ɹɑmˈxɑl"],
+  "Sefer HaChinuch": ["SEH-fer hah-khee-NOOKH", "ˈsɛfɛɹ hɑxiˈnux"],
+  Abaye: ["ah-bah-YEH", "ɑbɑˈjɛ"],
+  Rava: ["rah-VAH", "ɹɑˈvɑ"],
+  Rabba: ["rah-BAH", "ɹɑˈbɑ"],
+  "Rav Ashi": ["rahv ah-SHEE", "ɹɑv ɑˈʃi"],
+  "Rav Huna": ["rahv hoo-NAH", "ɹɑv huˈnɑ"],
+  "Rav Chisda": ["rahv kheez-DAH", "ɹɑv xizˈdɑ"],
+  "Rav Nachman": ["rahv nahkh-MAHN", "ɹɑv nɑxˈmɑn"],
+  "Rav Papa": ["rahv pah-PAH", "ɹɑv pɑˈpɑ"],
+  Zeira: ["zay-RAH", "zeɪˈɹɑ"],
+  Shmuel: ["sh'moo-EL", "ʃəmuˈɛl"],
+  Yochanan: ["yoh-khah-NAHN", "joʊxɑˈnɑn"],
+  Shammai: ["shah-MAI", "ʃɑˈmaɪ"],
+  Moshe: ["moh-SHEH", "moʊˈʃɛ"],
+  "Moshe Rabbeinu": ["moh-SHEH rah-BAY-noo", "moʊˈʃɛ ɹɑˈbeɪnu"],
+  Yaakov: ["yah-ah-KOVE", "jɑɑˈkoʊv"],
+  Yitzchak: ["yeets-KHAHK", "jitsˈxɑk"],
+  Yehudah: ["y'hoo-DAH", "jəhuˈdɑ"],
+  Yosef: ["yoh-SEF", "joʊˈsɛf"],
+  Shlomo: ["shloh-MOH", "ʃloʊˈmoʊ"],
+  Chava: ["khah-VAH", "xɑˈvɑ"],
+  Chana: ["khah-NAH", "xɑˈnɑ"],
+  Rivka: ["reev-KAH", "ɹivˈkɑ"],
+};
+
+/** Yeshiva: the usual English of people who learn ("geh-MAH-rah"). Israeli: as said in Israel ("g'mah-RAH"). */
+export type Accent = "yeshiva" | "israeli";
+
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Whether a natural voice needs this entry too. */
@@ -336,14 +449,19 @@ const forNatural = (e: SayAs) => !!e.natural || !!e.exact || e.written.some((x) 
 interface Entry {
   say: string;
   ipa?: string;
+  /** The Israeli way, when it differs. */
+  il?: [string, string];
   written: string;
   exact: boolean;
   natural: boolean;
   literal: boolean;
 }
-const ENTRIES = SAY_AS.flatMap((e) => e.written.map((x) => ({ w: x, say: e.say, ipa: e.ipa, exact: !!e.exact, natural: forNatural(e), literal: !!e.literal })));
+const ENTRIES = SAY_AS.flatMap((e) =>
+  e.written.map((x) => ({ w: x, say: e.say, ipa: e.ipa, il: ISRAELI[e.written[0]], exact: !!e.exact, natural: forNatural(e), literal: !!e.literal })),
+);
 const BY_SPELLING = new Map<string, Entry>();
-for (const e of ENTRIES) BY_SPELLING.set(e.w.toLowerCase().replace(/\s+/g, " "), { say: e.say, ipa: e.ipa, written: e.w, exact: e.exact, natural: e.natural, literal: e.literal });
+for (const e of ENTRIES)
+  BY_SPELLING.set(e.w.toLowerCase().replace(/\s+/g, " "), { say: e.say, ipa: e.ipa, ...(e.il ? { il: e.il } : {}), written: e.w, exact: e.exact, natural: e.natural, literal: e.literal });
 
 /**
  * Spellings in one pattern, longest first so "Moshe Rabbeinu" wins over "Moshe". A word counts
@@ -380,6 +498,8 @@ function styled(e: Entry, word: string, style: SayStyle): string {
 export interface RespellOptions {
   /** How the stress is shown (the device's voices always get "plain"). */
   style?: SayStyle;
+  /** Yeshiva (the usual) or Israeli, for the words said differently in each. */
+  accent?: Accent;
   /** The person's own fixes, which come first and are used exactly as written. */
   mine?: MyWord[];
 }
@@ -409,8 +529,10 @@ export function respell(text: string, voice: RespellFor = "device", opts: Respel
   t = t.replace(PATTERN, (all: string, before: string, word: string) => {
     const e = BY_SPELLING.get(word.toLowerCase().replace(/\s+/g, " "));
     if (!e || (e.exact && word.replace(/\s+/g, " ") !== e.written)) return all;
-    if (voice === "natural" && !e.natural) return all;
-    return before + hold(styled(e, word, style));
+    const israeli = opts.accent === "israeli" && e.il;
+    // A natural voice would say a word its own way; with the Israeli way chosen, it is told.
+    if (voice === "natural" && !e.natural && !israeli) return all;
+    return before + hold(styled(israeli ? { ...e, say: e.il![0], ipa: e.il![1] } : e, word, style));
   });
   return t.replace(new RegExp(`${HOLD_OPEN}(\\d+)${HOLD_CLOSE}`, "g"), (_, n: string) => held[Number(n)] ?? "");
 }

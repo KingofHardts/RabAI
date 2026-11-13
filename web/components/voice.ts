@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cleanForSpeech, namesForLearning, sayOptions, speechChunks, speechText, type SayMode } from "@/lib/voice/speech-text";
-import { respell, type MyWord } from "@/lib/voice/lexicon";
+import { respell, type Accent, type MyWord } from "@/lib/voice/lexicon";
 import type { Pronunciation } from "@/lib/siddur/translit";
 
 /*
@@ -233,8 +233,13 @@ export function setHebrewPronunciation(p: Pronunciation): void {
 /** How the voice is told to say Hebrew words and names (Settings), and the person's own fixes. */
 let sayMode: SayMode = "auto";
 let myWords: MyWord[] = [];
+let sayAccent: Accent = "yeshiva";
 export function setSayMode(m: SayMode): void {
   sayMode = m;
+}
+/** Names and terms the yeshiva way or the Israeli way (Settings, Pronunciation). */
+export function setSayAccent(a: Accent): void {
+  sayAccent = a;
 }
 export function setMyWords(list: MyWord[]): void {
   myWords = list;
@@ -245,7 +250,7 @@ export function setMyWords(list: MyWord[]): void {
  * `sounds` says whether the voice reads sounds written between slashes.
  */
 export function saidAs(text: string, own: boolean, sounds: boolean): string {
-  return own ? speechText(text, hebrewSay, "natural", sayOptions(sayMode, sounds, myWords)) : speechText(text, hebrewSay, "device", { mine: myWords });
+  return own ? speechText(text, hebrewSay, "natural", sayOptions(sayMode, sounds, myWords, sayAccent)) : speechText(text, hebrewSay, "device", { mine: myWords, accent: sayAccent });
 }
 
 /** One of RabbAI's own voices, as the server lists them. */
@@ -433,7 +438,7 @@ async function speakOwn(text: string, mine: number, finish: () => void, voice: s
   // Natural voices need fewer words respelled, and flow better in longer pieces. The text is cut
   // into pieces first and each piece prepared for the voice, so if the voice can't be reached
   // the device's voice can read the rest from the words as they were.
-  const say = sayOptions(sayMode, sounds, myWords);
+  const say = sayOptions(sayMode, sounds, myWords, sayAccent);
   const cut = speechChunks(cleanForSpeech(text), 220, 900)
     .map((raw) => ({ raw, said: speechText(raw, hebrewSay, "natural", say) }))
     .filter((c) => /[\p{L}\p{N}]/u.test(c.said));
@@ -508,14 +513,14 @@ function speakDevice(text: string, mine: number, finish: () => void): void {
   const english = bestVoice("en");
   const hebrew = bestVoice("he");
   const pieces = speechPieces(namesForLearning(text))
-    .map((p) => (p.lang === "he" && !hebrew ? { text: speechText(p.text, hebrewSay, "device", { mine: myWords }), lang: "en" as const } : p))
+    .map((p) => (p.lang === "he" && !hebrew ? { text: speechText(p.text, hebrewSay, "device", { mine: myWords, accent: sayAccent }), lang: "en" as const } : p))
     .filter((p) => p.lang === "en" ? !/[\u0590-\u05FF]/.test(p.text) || !!hebrew : !!hebrew);
   if (!pieces.length || mine !== speakingToken) {
     finish();
     return;
   }
   pieces.forEach((p, i) => {
-    const u = new SpeechSynthesisUtterance(p.lang === "en" ? respell(p.text, "device", { mine: myWords }) : p.text);
+    const u = new SpeechSynthesisUtterance(p.lang === "en" ? respell(p.text, "device", { mine: myWords, accent: sayAccent }) : p.text);
     const voice = p.lang === "he" ? hebrew : english;
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? (p.lang === "he" ? "he-IL" : "en-US");
@@ -681,7 +686,7 @@ export function speakLive(onEnd: () => void, onPiece?: (start: number, end: numb
     const fetchPiece = (i: number) => {
       if (audio.has(i)) return audio.get(i)!;
       // Talk's quick voice doesn't read sounds between slashes; the usual one may.
-      const say = sayOptions(sayMode, own.sounds && !opts.fast, myWords);
+      const say = sayOptions(sayMode, own.sounds && !opts.fast, myWords, sayAccent);
       const said = speechText(pieces[i], hebrewSay, "natural", say);
       const p = fetch("/api/speak", {
         method: "POST",

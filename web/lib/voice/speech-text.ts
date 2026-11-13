@@ -6,7 +6,7 @@
  */
 
 import { sayHebrew, type Pronunciation } from "../siddur/translit";
-import { respell, type MyWord, type RespellFor, type SayStyle } from "./lexicon";
+import { respell, type Accent, type MyWord, type RespellFor, type SayStyle } from "./lexicon";
 
 const POINTS = /[ְ-ׇּׁׂ]/;
 /** A run of Hebrew script, with the spaces and punctuation inside it. */
@@ -56,17 +56,19 @@ export interface SayOptions {
   hebrew?: SayStyle;
   /** The person's own fixes. */
   mine?: MyWord[];
+  /** Names and terms the yeshiva way (the usual) or the Israeli way. */
+  accent?: Accent;
 }
 
 /**
  * The styles for a choice. `sounds` says whether the voice that will read reads sounds written
  * between slashes (RabbAI's newest voices do; the quick voice in Talk and the device's don't).
  */
-export function sayOptions(mode: SayMode, sounds: boolean, mine: MyWord[] = []): SayOptions {
-  if (mode === "plain") return { names: "plain", hebrew: "plain", mine };
-  if (mode === "capitals") return { names: "caps", hebrew: "caps", mine };
-  if (mode === "sounds") return { names: sounds ? "ipa" : "caps", hebrew: sounds ? "ipa" : "caps", mine };
-  return { names: sounds ? "ipa" : "caps", hebrew: "caps", mine };
+export function sayOptions(mode: SayMode, sounds: boolean, mine: MyWord[] = [], accent: Accent = "yeshiva"): SayOptions {
+  if (mode === "plain") return { names: "plain", hebrew: "plain", mine, accent };
+  if (mode === "capitals") return { names: "caps", hebrew: "caps", mine, accent };
+  if (mode === "sounds") return { names: sounds ? "ipa" : "caps", hebrew: sounds ? "ipa" : "caps", mine, accent };
+  return { names: sounds ? "ipa" : "caps", hebrew: "caps", mine, accent };
 }
 
 /** An answer without what is never read aloud: links, source numbers, and marks. */
@@ -88,7 +90,7 @@ export function speechText(text: string, hebrew: Pronunciation = "sephardi", voi
   let t = cleanForSpeech(text);
   // God's names first, then the English words and names, then the Hebrew itself, so a word's
   // respelling is never respelled again.
-  t = respell(namesForLearning(t), voice, { style: names, mine: say.mine });
+  t = respell(namesForLearning(t), voice, { style: names, mine: say.mine, ...(say.accent ? { accent: say.accent } : {}) });
   t = t.replace(HEBREW_RUN, (run) => (POINTS.test(run) ? ` ${sayHebrew(run, hebrew, hebrewStyle)} ` : run));
   return t
     .replace(/[ \t]+/g, " ")

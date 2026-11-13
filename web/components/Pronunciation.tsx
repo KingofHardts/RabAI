@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { parseMyWords, type MyWord } from "@/lib/voice/lexicon";
+import { parseMyWords, type Accent, type MyWord } from "@/lib/voice/lexicon";
 import { SAY_MODES, type SayMode } from "@/lib/voice/speech-text";
-import { saidAs, setMyWords, setSayMode, type OwnVoices } from "./voice";
+import { saidAs, setMyWords, setSayAccent, setSayMode, type OwnVoices } from "./voice";
 
 /*
  * Settings: how RabbAI's voice says words. The person can hear any word or sentence and see what
@@ -14,21 +14,25 @@ import { saidAs, setMyWords, setSayMode, type OwnVoices } from "./voice";
 
 const MODE_KEY = "rabai_say_mode";
 const WORDS_KEY = "rabai_my_words";
+const ACCENT_KEY = "rabai_say_accent";
 
 /** The stored choices, set for the voice; called once when the app opens. */
-export function loadPronunciation(): { mode: SayMode; words: MyWord[] } {
+export function loadPronunciation(): { mode: SayMode; words: MyWord[]; accent: Accent } {
   let mode: SayMode = "auto";
   let words: MyWord[] = [];
+  let accent: Accent = "yeshiva";
   try {
     const m = window.localStorage.getItem(MODE_KEY);
     if (m && (SAY_MODES as string[]).includes(m)) mode = m as SayMode;
+    if (window.localStorage.getItem(ACCENT_KEY) === "israeli") accent = "israeli";
     words = parseMyWords(JSON.parse(window.localStorage.getItem(WORDS_KEY) ?? "[]"));
   } catch {
     /* storage is unavailable */
   }
   setSayMode(mode);
   setMyWords(words);
-  return { mode, words };
+  setSayAccent(accent);
+  return { mode, words, accent };
 }
 
 const MODE_LABEL: Record<SayMode, string> = { auto: "Auto", sounds: "Sounds", capitals: "Capitals", plain: "Plain" };
@@ -49,6 +53,7 @@ const store = (key: string, value: string) => {
 
 export default function Pronunciation({ own, onHear }: { own: OwnVoices | null; onHear: (text: string) => void }) {
   const [mode, setMode] = useState<SayMode>("auto");
+  const [accent, setAccent] = useState<Accent>("yeshiva");
   const [words, setWords] = useState<MyWord[]>([]);
   const [sample, setSample] = useState("RabbAI: Rashi and Tosafot on the Gemara, and the Shulchan Aruch.");
   const [written, setWritten] = useState("");
@@ -58,6 +63,7 @@ export default function Pronunciation({ own, onHear }: { own: OwnVoices | null; 
     const kept = loadPronunciation();
     setMode(kept.mode);
     setWords(kept.words);
+    setAccent(kept.accent);
   }, []);
   const ownOn = !!own?.available;
   const sounds = !!own?.sounds;
@@ -66,6 +72,11 @@ export default function Pronunciation({ own, onHear }: { own: OwnVoices | null; 
     setMode(m);
     setSayMode(m);
     store(MODE_KEY, m);
+  };
+  const chooseAccent = (a: Accent) => {
+    setAccent(a);
+    setSayAccent(a);
+    store(ACCENT_KEY, a);
   };
   const keep = (list: MyWord[]) => {
     const clean = parseMyWords(list);
@@ -96,6 +107,7 @@ export default function Pronunciation({ own, onHear }: { own: OwnVoices | null; 
   // `mode` and `words` are read through the voice's own copies; naming them here keeps the line fresh.
   void mode;
   void words;
+  void accent;
 
   return (
     <details className="pron">
@@ -115,6 +127,28 @@ export default function Pronunciation({ own, onHear }: { own: OwnVoices | null; 
             <span className="pron-k">The voice is given:</span> <span className="pron-said">{given}</span>
           </p>
         )}
+
+        <span className="pron-label" id="pron-accent-label">
+          Names and terms
+        </span>
+        <div className="seg" role="radiogroup" aria-labelledby="pron-accent-label">
+          {(
+            [
+              ["yeshiva", "Yeshiva"],
+              ["israeli", "Israeli"],
+            ] as const
+          ).map(([a, label]) => (
+            <button key={a} type="button" role="radio" aria-checked={accent === a} className={accent === a ? "on" : ""} onClick={() => chooseAccent(a)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="fine-left">
+          {accent === "israeli"
+            ? "As said in Israel, the stress mostly at the end: g'mah-RAH, rahm-BAHM, b'rah-KHAH."
+            : "As usually said in English by people who learn: geh-MAH-rah, RAHM-bahm, BRAH-khah."}{" "}
+          A word written the Ashkenazi way (Shabbos, Tosfos) is said that way in both. How Hebrew text itself is read is the choice above.
+        </p>
 
         {ownOn && (
           <>
