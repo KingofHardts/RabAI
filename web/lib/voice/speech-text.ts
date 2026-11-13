@@ -65,10 +65,11 @@ export interface SayOptions {
  * between slashes (RabbAI's newest voices do; the quick voice in Talk and the device's don't).
  */
 export function sayOptions(mode: SayMode, sounds: boolean, mine: MyWord[] = [], accent: Accent = "yeshiva"): SayOptions {
-  if (mode === "plain") return { names: "plain", hebrew: "plain", mine, accent };
-  if (mode === "capitals") return { names: "caps", hebrew: "caps", mine, accent };
-  if (mode === "sounds") return { names: sounds ? "ipa" : "caps", hebrew: sounds ? "ipa" : "caps", mine, accent };
-  return { names: sounds ? "ipa" : "caps", hebrew: "caps", mine, accent };
+  const a = accent === "israeli" ? { accent } : {};
+  if (mode === "plain") return { names: "plain", hebrew: "plain", mine, ...a };
+  if (mode === "capitals") return { names: "caps", hebrew: "caps", mine, ...a };
+  if (mode === "sounds") return { names: sounds ? "ipa" : "caps", hebrew: sounds ? "ipa" : "caps", mine, ...a };
+  return { names: sounds ? "ipa" : "caps", hebrew: "caps", mine, ...a };
 }
 
 /** An answer without what is never read aloud: links, source numbers, and marks. */
