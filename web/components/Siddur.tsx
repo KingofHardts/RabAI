@@ -1,5 +1,6 @@
 "use client";
 
+import { minyanFolds, minyanWhole } from "@/lib/siddur/minyan";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
@@ -101,6 +102,17 @@ function keep(key: string, value: string) {
   } catch {
     /* storage unavailable */
   }
+}
+
+/** Folds in order, without overlaps: a fold that starts inside another is left to it (the longer at the same line). */
+function mergeFolds<F extends { from: number; to: number }>(folds: F[]): F[] {
+  const out: F[] = [];
+  for (const f of [...folds].sort((a, b) => a.from - b.from || b.to - a.to)) {
+    const last = out[out.length - 1];
+    if (last && f.from < last.to) continue;
+    out.push(f);
+  }
+  return out;
 }
 
 /** The siddur a section belongs to. */
@@ -343,6 +355,8 @@ export default function Siddur({
   /** A line the person asked to understand (the study level): what can be done with it. */
   const [linePop, setLinePop] = useState<{ ref: string; prayer: string; he: string; en: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  /** The prayer the person opened themselves: shown even when it isn't said today. */
+  const [openedSection, setOpenedSection] = useState<string | null>(null);
   /** A line asked for from elsewhere (a citation in a chat answer): scrolled to and marked. */
   const [focusLine, setFocusLine] = useState<string | null>(null);
   /** Side by side: the line tapped, marked in both columns. */
@@ -562,6 +576,7 @@ export default function Siddur({
         const c = await fetchSection(section);
         if (c) {
           setChunks([c]);
+          setOpenedSection(c.section);
           // A single line was asked for: it is brought into view and marked once it is drawn.
           if (section !== c.section && c.lines.some((l) => l.ref === section)) setFocusLine(section);
           const where = { book: owner ?? book, section: c.section };
@@ -664,16 +679,35 @@ export default function Siddur({
 
   // ---------------------------------------------------------------- today's view and the items shown
 
-  const items = useMemo(() => {
+  // What isn't said today is hidden (or folded, by the person's choice); `hidden` counts what was
+  // hidden, for the line at the top that offers to show it.
+  const hide = prefs.today && prefs.notToday === "hide";
+  const built = useMemo(() => {
     const out: Item[] = [];
+    let hidden = 0;
     for (const c of chunks) {
       const n = names(book, c.section);
       const he = c.sectionHe?.split(/,\s*/).pop();
       const show = shown(book, c.section);
       out.push({ kind: "section", key: `s:${c.section}`, chunk: c, short: show.short, crumb: show.crumb, he: he && /[א-ת]/.test(he) ? he : undefined });
-      const plan = prefs.today ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs) : { folds: [] };
+      const plan: { whole?: string; folds: Array<{ from: number; to: number; reason: string }> } = prefs.today
+        ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs)
+        : { folds: [] };
+      // Davening alone: what is said only with a minyan joins what isn't said today.
+      if (prefs.today && prefs.minyan === "alone" && !plan.whole) {
+        const whole = minyanWhole(n.short);
+        if (whole) plan.whole = whole;
+        else plan.folds = mergeFolds([...plan.folds, ...minyanFolds(c.lines)]);
+      }
       if (plan.whole) {
         const key = `${c.section}#whole`;
+        // A prayer not said today is passed over in the flow; one the person opened themselves is
+        // shown, with the reason in its folded line.
+        if (hide && c.section !== openedSection) {
+          hidden++;
+          out.pop();
+          continue;
+        }
         const open = openFolds.has(key);
         out.push({ kind: "fold", key, chunk: c, reason: plan.whole, count: c.lines.length, open, whole: true });
         if (!open) continue;
@@ -682,6 +716,11 @@ export default function Siddur({
       for (let i = 0; i < c.lines.length; i++) {
         const f = starts.get(i);
         if (f) {
+          if (hide) {
+            hidden++;
+            i = f.to - 1;
+            continue;
+          }
           const key = `${c.section}#${f.from}`;
           const open = openFolds.has(key);
           out.push({ kind: "fold", key, chunk: c, reason: f.reason, count: f.to - f.from, open });
@@ -698,7 +737,7 @@ export default function Siddur({
         out.push({ kind: "line", key: line.ref, chunk: c, line, prayer: n.short });
       }
     }
-    if (layout !== "paragraph") return out;
+    if (layout !== "paragraph") return { out, hidden };
     // Paragraph: the prayer lines between headings and instructions, each language together.
     const grouped: Item[] = [];
     for (const it of out) {
@@ -708,8 +747,10 @@ export default function Siddur({
         else grouped.push({ kind: "para", key: `p:${it.key}`, chunk: it.chunk, lines: [it.line], prayer: it.prayer });
       } else grouped.push(it);
     }
-    return grouped;
-  }, [chunks, book, prefs.today, prefs.customs, davening, openFolds, instructions, layout, shown]);
+    return { out: grouped, hidden };
+  }, [chunks, book, prefs.today, prefs.customs, prefs.minyan, davening, openFolds, instructions, layout, shown, hide, openedSection]);
+  const items = built.out;
+  const hiddenToday = built.hidden;
 
   // A line asked for from elsewhere is scrolled to the middle of the screen once it is drawn.
   const focusDone = useRef<string | null>(null);
@@ -1647,8 +1688,42 @@ export default function Siddur({
         {seg("Transliteration", prefs.translit, [["off", "Off"], ["sephardi", "Sephardi"], ["ashkenazi", "Ashkenazi"]], (v) => setPref("translit", v))}
         {prefs.translit !== "off" && <p className="fine-left sd-menu-note">RabbAI&apos;s transliteration from the siddur&apos;s vowels: it may have small mistakes, and isn&apos;t yet reviewed by the rabbinic board.</p>}
         <h4 className="sd-menu-h">What is shown</h4>
-        {seg("Show", prefs.today ? "today" : "all", [["today", "Today's davening"], ["all", "Everything"]], (v) => setPref("today", v === "today"))}
-        <p className="fine-left sd-menu-note">Today&apos;s davening folds what isn&apos;t said today, and shows today&apos;s additions. RabbAI&apos;s reading of the calendar, not yet reviewed by the rabbinic board. A folded part opens with a tap.</p>
+        {seg(
+          "Show",
+          !prefs.today ? "all" : prefs.notToday === "hide" ? "today" : "folded",
+          [
+            ["today", "Only today's"],
+            ["folded", "Today's, others folded"],
+            ["all", "Everything"],
+          ],
+          (v) => {
+            setPref("today", v !== "all");
+            if (v !== "all") setPref("notToday", v === "today" ? "hide" : "fold");
+          },
+        )}
+        <p className="fine-left sd-menu-note">
+          {!prefs.today
+            ? "Every line of the siddur, as printed: for learning a prayer."
+            : prefs.notToday === "hide"
+              ? "Only what is said today: what isn't (Tachanun on Rosh Chodesh, other days' psalms, Al HaNissim when it isn't Chanukah…) is left out, and a prayer not said today is passed over. A prayer you open yourself is always shown."
+              : "What isn't said today is folded into a line that opens with a tap."}{" "}
+          RabbAI&apos;s reading of the calendar, not yet reviewed by the rabbinic board.
+        </p>
+        {seg(
+          "Davening",
+          prefs.minyan,
+          [
+            ["minyan", "With a minyan"],
+            ["alone", "Alone"],
+          ],
+          (v) => setPref("minyan", v),
+        )}
+        {prefs.minyan === "alone" && (
+          <p className="fine-left sd-menu-note">
+            Alone: what the siddur says is only with a minyan (Kaddish, Barchu, Kedushah and the rest of the Leader&apos;s Repetition, the Torah reading) is left
+            out{prefs.today ? "" : " in today's davening"}. From the siddur&apos;s own instructions; RabbAI&apos;s reading, not yet reviewed by the rabbinic board.
+          </p>
+        )}
         {seg(
           "How much to show",
           prefs.depth,
@@ -1988,6 +2063,22 @@ export default function Siddur({
         </button>
       )}
       {todayOpen && todayCard}
+      {hide && hiddenToday > 0 && (
+        <p className="sd-hidden-note">
+          Only what you say today is shown ({hiddenToday} {hiddenToday === 1 ? "part" : "parts"} not said today{prefs.minyan === "alone" ? " or only with a minyan" : ""} left out here).{" "}
+          <button type="button" className="link" onClick={() => setPref("notToday", "fold")}>
+            Show them folded
+          </button>
+        </p>
+      )}
+      {prefs.today && prefs.notToday === "fold" && (
+        <p className="sd-hidden-note">
+          What isn&apos;t said today is folded.{" "}
+          <button type="button" className="link" onClick={() => setPref("notToday", "hide")}>
+            Hide it again
+          </button>
+        </p>
+      )}
       {loading === "first" && (
         <p className="reader-state">
           Opening the siddur<span className="dots" />

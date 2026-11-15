@@ -255,8 +255,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   siddur's own (`web/lib/siddur/lines.ts` only finds them; never add an instruction of our own). Its
   "today" notes and today/not-today marks (`web/lib/calendar/davening.ts`) are RabbAI's reading of
   the calendar, always labeled as not yet reviewed by the board (open question 23). "Today's
-  davening" (`web/lib/siddur/today.ts`) folds what isn't said today into a labeled line that opens
-  with a tap; it never removes a line (Josh's decision; the board confirms, open question 23).
+  davening" (`web/lib/siddur/today.ts`) by default leaves out what isn't said today, with a note
+  that says how many parts were left out and brings them back with a tap; "Today's, others folded"
+  keeps them as labeled lines, "Everything" shows all (Josh's decision, 2026-11-15; the board
+  confirms, open question 23). Only the day-to-day flow is shortened: a prayer the person opens
+  directly is always shown, and the text itself is never changed. "Davening alone" leaves out what
+  the siddur's own instructions say needs a minyan (`web/lib/siddur/minyan.ts`, open question 29).
   "Ask about this" goes through the usual checked path (`send`).
 - On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
   the day's times as the calendar gives them, naming both opinions where it gives two; never pick

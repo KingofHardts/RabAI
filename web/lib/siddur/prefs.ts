@@ -73,6 +73,13 @@ export interface DavenPrefs {
   spacing: Spacing;
   /** Keep every instruction open instead of folding a long one to its first lines. */
   instructionsOpen: boolean;
+  /**
+   * In today's davening, what isn't said today: hidden (Josh's decision, 2026-11-15: only what is
+   * said today is shown) or folded into a line that opens it. "Everything" (today: false) shows all.
+   */
+  notToday: "hide" | "fold";
+  /** With a minyan (everything), or alone: what is said only with a minyan is left out (lib/siddur/minyan.ts). */
+  minyan: "minyan" | "alone";
 }
 
 export const DEFAULT_PREFS: DavenPrefs = {
@@ -93,6 +100,8 @@ export const DEFAULT_PREFS: DavenPrefs = {
   enSize: "smaller",
   spacing: "comfortable",
   instructionsOpen: false,
+  notToday: "hide",
+  minyan: "minyan",
 };
 
 const KEY = "rabai_daven_prefs";
@@ -118,6 +127,8 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     enSize: one(r.enSize, ["smaller", "same", "larger"] as const, DEFAULT_PREFS.enSize),
     spacing: one(r.spacing, ["compact", "comfortable", "roomy"] as const, DEFAULT_PREFS.spacing),
     instructionsOpen: typeof r.instructionsOpen === "boolean" ? r.instructionsOpen : DEFAULT_PREFS.instructionsOpen,
+    notToday: one(r.notToday, ["hide", "fold"] as const, DEFAULT_PREFS.notToday),
+    minyan: one(r.minyan, ["minyan", "alone"] as const, DEFAULT_PREFS.minyan),
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

@@ -455,6 +455,16 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **Only what is said today (Josh, 2026-11-15).** Josh asked that in day-to-day davening the parts
+  not said today should not be there at all ("on days that we don't have Tachanun, Tachanun
+  shouldn't be there"), while learning a passage still shows the whole text. This replaces the
+  earlier decision to fold them. "Today's davening" now leaves them out by default, and a short
+  note at the top says how many parts were left out, with "Show them folded" to bring them back.
+  The Show setting has three choices: "Only today's" (the default), "Today's, others folded", and
+  "Everything". A prayer opened directly (from the outline, Learn or a search) is always shown, so
+  nothing becomes unreachable. A new setting, "Davening: With a minyan / Alone", leaves out what
+  the siddur's own instructions mark as said only with a minyan (Kaddish, Barchu, Kedushah, the
+  leader's repetition, the Torah reading) when davening alone (open question 29).
 - **RabbAI's memory, and measuring the cache (Josh, 2026-11-15).** Josh asked for the cache to be
   measured and for "our own version": the data kept the way the AI can reach it fastest, well
   compartmentalized, and accurate. Built in layers, each holding one kind of thing:
@@ -884,3 +894,8 @@ These need a decision before launch. Each one changes behavior.
     child's day first, the Torah's stories without frightening or graphic detail, the simple
     practice in halacha with a parent or rav for their own case, and never asking a child about
     themselves. Is the section right, and is eight to twelve the right age?
+29. **Davening alone.** RabbAI decides what needs a minyan only from the siddur's own instructions
+    (for example Koren's "requires the presence of a minyan" and "During the Leader's Repetition")
+    and from Kaddish's opening words, and leaves those parts out when the person chooses "Alone".
+    Is that the right set? In particular: what someone davening alone should say in place of
+    Kedushah or Barchu, and whether any part should stay shown with a note instead.
