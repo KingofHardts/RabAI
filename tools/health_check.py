@@ -122,7 +122,7 @@ problems: list[str] = []
 
 # Counts across the questions asked of the live app: how many were answered, how many of those
 # cited no text from the library, and which steps were slower than their budget. Numbers only.
-TALLY = {"answered": 0, "no_text": 0, "slow": 0}
+TALLY = {"answered": 0, "no_text": 0, "slow": 0, "cache_read": 0, "cache_write": 0, "fresh": 0, "output": 0}
 
 # The most each step should take, in seconds, before the check says so. Generous on purpose: they
 # are set from what the live app measured (docs/faster-rabbai.md), to catch a step that grows slow.
@@ -555,6 +555,15 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
     except ValueError:
         problem(f"The Gemara page answered HTTP {status} with something that isn't JSON.")
 
+    # RabbAI's memory of the library (web/lib/library/memory.ts): the same section read twice; the
+    # second should come from the server's memory, much faster (when the same server answers).
+    times = []
+    for _ in range(2):
+        t0 = time.time()
+        st, _raw = fetch("/api/text?bare=1&ref=" + urllib.parse.quote("Berakhot 3a"))
+        times.append((st, time.time() - t0))
+    summary(f"- The library's memory: the same section read twice, {times[0][1]:.2f} then {times[1][1]:.2f} seconds (HTTP {times[1][0]}).")
+
     status, raw = fetch("/api/word?w=" + urllib.parse.quote("בראשית"))
     summary(f"- A word's meaning: HTTP {status}.")
     if status != 200:
@@ -644,6 +653,17 @@ def check_app(code: str | None, collections_expected: bool = False) -> None:
                 return f"{float(t[k]) / 1000:.1f}" if isinstance(t.get(k), (int, float)) else "-"
             summary(f"  - Timing (seconds): lookup step {sec('plan')}, library {sec('library')}, online {sec('online')}, "
                     f"first words {sec('firstWords')}, whole answer {sec('total')}.")
+        # What the answer's call to the model sent, and how much of it came from the cache (tokens).
+        u = r.get("usage") if isinstance(r.get("usage"), dict) else {}
+        if u:
+            read, write, fresh, out = (int(u.get(k) or 0) for k in ("cacheRead", "cacheWrite", "fresh", "output"))
+            sent = read + write + fresh
+            TALLY["cache_read"] += read
+            TALLY["cache_write"] += write
+            TALLY["fresh"] += fresh
+            TALLY["output"] += out
+            summary(f"  - Tokens: {sent:,} sent ({read:,} from the cache, {write:,} written to it, {fresh:,} fresh), {out:,} written"
+                    + (f"; {100 * read / sent:.0f}% from the cache." if sent else "."))
         if fell_back:
             problem(f"For {label}, the lookup step {fell_back}, so RabbAI searched the question's words instead.")
         if r.get("status") == "answered":
@@ -932,6 +952,10 @@ def main() -> int:
     if TALLY["answered"]:
         summary(f"- Across the questions asked: {TALLY['answered']} answered, {TALLY['no_text']} of them citing no text from the "
                 f"library, {TALLY['slow']} steps over their time budget.")
+        sent = TALLY["cache_read"] + TALLY["cache_write"] + TALLY["fresh"]
+        if sent:
+            summary(f"- The answers' tokens: {sent:,} sent, {100 * TALLY['cache_read'] / sent:.0f}% from the cache "
+                    f"({TALLY['cache_write']:,} written to it, {TALLY['fresh']:,} fresh); {TALLY['output']:,} written.")
     summary("## The live app in a browser")
     check_browser(code, expected)
 

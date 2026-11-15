@@ -1,4 +1,5 @@
 import { abbreviationOf } from "./word-parts";
+import { libraryMemory, withMemory } from "./memory";
 import { createClient as createHttpClient } from "@libsql/client/http";
 import type { Client, InValue } from "@libsql/client";
 import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config";
@@ -1295,7 +1296,10 @@ export function testingStore(env: Record<string, string | undefined> = process.e
     const db = dbFrom(c);
     return { db, store: createTestingStore(db) };
   });
-  const store = sources.length ? combineStores(main, sources) : main;
+  // The library's reads are remembered for half an hour (lib/library/memory.ts): exact copies,
+  // never anything the model wrote. RABAI_LIBRARY_MEMORY=off turns it off.
+  const combined = sources.length ? combineStores(main, sources) : main;
+  const store = env.RABAI_LIBRARY_MEMORY === "off" ? combined : withMemory(combined, libraryMemory());
   storeCache = { key, store };
   return store;
 }

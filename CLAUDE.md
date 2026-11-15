@@ -293,6 +293,13 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   `text-wrong` (`textReport` in `lib/account/feedback.ts`): only the line, its reference and the
   note, never who sent it, and it changes nothing by itself. Keep it out of the reasons offered
   under an answer (`ANSWER_REASONS`).
+- RabbAI's memory of the library (`web/lib/library/memory.ts`, `withMemory` in `testingStore`)
+  keeps exact copies of the library's own reads for half an hour on each server, handed out as
+  fresh copies (`structuredClone`). Never put anything the model wrote, or anything about a
+  person, in it, and never remember a method that writes or whose result depends on more than its
+  arguments (the translation jobs' reads go straight through). `RABAI_LIBRARY_MEMORY=off` turns
+  it off. Each answer records its token use (`usage`: from the cache, written, fresh, output) for
+  the health check only.
 - Kept answers (`web/lib/kept-answers.ts`): only a suggested question, in a fresh chat, with no
   pictures, chavrusa, Talk or children's mode, keeps its checked answer for a week (people
   database table `kept_answers`, under a hash of the question, the library, the core premises and,
@@ -407,6 +414,12 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-15, at Josh's request ("add the cache measurement", "our own version… the best way
+for this AI… brain to run"): each answer records how much came from Anthropic's cache, and the
+health check prints it; RabbAI's memory of the library keeps exact copies of what it read for half
+an hour (a section 2.4 s the first time, 0.02 s the second). Next: decide from the measurement
+whether caching a conversation's earlier turns would pay.
 
 Done 2026-11-13, at Josh's request (his answers to the open decisions): pronunciation of names
 and terms the yeshiva or the Israeli way; the "Delete old Vercel deploys" workflow (every

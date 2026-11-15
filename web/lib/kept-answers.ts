@@ -46,6 +46,7 @@ export function forKeeping(result: AskResult): AskResult {
   const rest = { ...result };
   delete rest.kept;
   delete rest.timings;
+  delete rest.usage;
   return rest;
 }
 

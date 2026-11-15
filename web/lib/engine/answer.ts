@@ -177,6 +177,7 @@ export interface AskResult {
    * shows it to the person.
    */
   timings?: AnswerTimings;
+  usage?: AnswerUsage;
   /** A follow-up answered from the conversation's sources, without the lookup step. */
   quick?: boolean;
   /**
@@ -197,6 +198,18 @@ export interface AnswerTimings {
   firstWords?: number;
   /** From the start until the answer was finished and checked. */
   total: number;
+}
+
+/**
+ * What the answer's call to the model used, in tokens, for the health check (never shown to the
+ * person): what was read from the cache (about a tenth of the price), written to it, sent fresh,
+ * and written as the answer.
+ */
+export interface AnswerUsage {
+  cacheRead: number;
+  cacheWrite: number;
+  fresh: number;
+  output: number;
 }
 
 /** The pages RabbAI looked up online for an answer, shown apart from the texts. */
@@ -946,6 +959,16 @@ export async function ask(
     droppedCitations: mapped.dropped,
     model: message.model,
     timings: timings(),
+    ...(message.usage
+      ? {
+          usage: {
+            cacheRead: message.usage.cache_read_input_tokens ?? 0,
+            cacheWrite: message.usage.cache_creation_input_tokens ?? 0,
+            fresh: message.usage.input_tokens ?? 0,
+            output: message.usage.output_tokens ?? 0,
+          },
+        }
+      : {}),
     ...cardFor(mapped.blocks, byRef),
     ...(notes.online ? { online: onlineReport(notes, plan.documents, mapped.sources) } : {}),
   };

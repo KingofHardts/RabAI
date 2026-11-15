@@ -455,6 +455,24 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **RabbAI's memory, and measuring the cache (Josh, 2026-11-15).** Josh asked for the cache to be
+  measured and for "our own version": the data kept the way the AI can reach it fastest, well
+  compartmentalized, and accurate. Built in layers, each holding one kind of thing:
+  - **The rulebook** (core premises and the app's instructions) is cached by Anthropic for an
+    hour, as before; the answer now records how many of its tokens came from that cache, were
+    written to it, or were sent fresh (`usage`, never shown to the person), and the health check
+    prints it per question and in total.
+  - **The library's text** is remembered on each server for half an hour
+    (`web/lib/library/memory.ts`): exact copies of what the library returned (sections, lines by
+    reference, searches, dictionary entries), handed out as fresh copies, never anything the model
+    wrote and nothing about a person. Measured locally: a section 2.4 seconds the first time,
+    0.02 seconds the second.
+  - **Answers** are kept only for the suggested questions (kept answers, above), and **the person**
+    only in their learner profile, which they see and control.
+  - Not yet: caching a conversation's earlier turns. The instructions specific to each question
+    (the lookup's notes, the calendar, the chavrusa's place) sit before the conversation and change
+    from turn to turn, so a cache there would often be written and not read, which costs more.
+    The new measurement says first whether it would pay.
 - **Josh's answers of 2026-11-13.** (1) God's name in the siddur is shown as each siddur prints
   it; no setting. (2) Names and terms read aloud: both ways, as a choice in Settings ("Yeshiva",
   geh-MAH-rah, the usual; or "Israeli", g'mah-RAH). (3) Old Vercel deploys are deleted by a
