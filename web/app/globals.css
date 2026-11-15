@@ -1989,3 +1989,18 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 .kept-note { font-family: var(--font-ui); font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 /* The children's mode is on: said beside the question box. */
 .child-note { font-family: var(--font-ui); font-size: 12.5px; color: var(--muted); margin: 4px 2px 0; }
+/* The chat home's "For today" (lib/occasions.ts). */
+.for-today { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.today-chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 14px; font-family: var(--font-ui); font-size: 14px; min-height: 40px; }
+.today-chip.review { border-color: color-mix(in srgb, var(--learn, var(--accent)) 40%, var(--line)); }
+.today-chip.small { font-size: 13px; min-height: 36px; padding: 5px 12px; }
+.occasions { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.group-name .group-print { margin-inline-start: 10px; font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.flow-share { font-size: 13px; margin: 2px 0 6px; display: inline-block; }
+/* The person's own note on a line in the reader (on the device). */
+.reader-body .line.has-note { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--learn, var(--accent)) 60%, transparent); }
+.my-note { display: grid; gap: 6px; margin-top: 10px; }
+.my-note textarea { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+.my-note-actions { display: flex; gap: 12px; align-items: center; }
+.learn-notes { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.learn-notes ul { list-style: none; padding: 0; margin: 4px 0 8px; display: grid; gap: 4px; font-size: 14px; }

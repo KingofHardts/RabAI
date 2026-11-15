@@ -311,6 +311,9 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
 - A picture of an answer and a source sheet (`components/answer-share.ts`) are made on the device;
   a source sheet holds only the library's own words for the passages the answer cited
   (`result.card`), and a testing-library text says so on both.
+- The chat home's "For today" (`web/lib/occasions.ts`) only sends questions through `send`; a
+  person's notes on lines (`rabai_line_notes`) stay on the device and reach RabbAI only when they
+  tap "Quiz me on them".
 - The daily cycles' "Open" (`cycleRef` in `lib/calendar/calendar.ts`) is offered only when the
   library has the exact line it starts at (`/api/calendar` checks). Names and terms the yeshiva or
   the Israeli way: `ISRAELI` in `lib/voice/lexicon.ts`.
@@ -414,6 +417,12 @@ commentary" in the davening):
 - "List a book's sections" (`.github/workflows/book-sections.yml`) prints a book's sections in the
   live app's order, headings only, and can list the library's books; it is how the siddur's real
   order was read.
+
+Done 2026-11-15 (second round), at Josh's request ("do all of the next things that are good and
+won't break the app"): eight of the nine "Next" ideas in `docs/ideas-2026-11.md` (the chat home's
+"For today": the Shabbat table, a parsha question tonight, before an occasion, reviews; a booklet
+from a category of saved chats; the flow as a picture; notes on lines with a quiz). Learning while
+walking waits for a native app.
 
 Done 2026-11-15, at Josh's request ("add the cache measurement", "our own version… the best way
 for this AI… brain to run"): each answer records how much came from Anthropic's cache, and the

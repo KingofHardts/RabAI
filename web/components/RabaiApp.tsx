@@ -69,6 +69,7 @@ import { amudOf, openingMessage, quickReplies, reachedLine, sessionLabel, STYLE_
 import { deviceWhen, loadPlaceSettings, savePlaceSettings, type PlaceSettings } from "@/lib/calendar/device";
 import type { DaySummary } from "@/lib/calendar/place";
 import { pickStarters, type StarterGroup } from "@/lib/starters";
+import { dueReview, OCCASIONS, occasionPrompt, parshaQuestionPrompt, reviewPrompt, shabbatTablePrompt, weekItems, weekReviewPrompt } from "@/lib/occasions";
 import { shabbatLine, soonLine, todayLine } from "@/lib/calendar/day-lines";
 import dynamic from "next/dynamic";
 
@@ -1646,6 +1647,13 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
   const [cycles, setCycles] = useState<string[]>([]);
   /** A child is learning (Settings): RabbAI answers for a child. Kept on the device. */
   const [forChild, setForChild] = useState(false);
+  /** The person's own notes on lines in the reader, on the device: ref → note. */
+  const [lineNotes, setLineNotes] = useState<Record<string, { note: string; at: number }>>({});
+  const [noteDraft, setNoteDraft] = useState<{ ref: string; text: string } | null>(null);
+  /** "Before an occasion…" is open on the chat home. */
+  const [occasionsOpen, setOccasionsOpen] = useState(false);
+  /** What was reviewed, and when (the chat home's review), on the device. */
+  const [reviewed, setReviewed] = useState<Record<string, number>>({});
   const forChildRef = useRef(false);
   forChildRef.current = forChild;
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
@@ -1904,6 +1912,27 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       /* nothing kept */
     }
     setForChild(readStored("rabai_for_child", ["on", "off"] as const, "off") === "on");
+    try {
+      const n = JSON.parse(window.localStorage.getItem("rabai_line_notes") ?? "{}");
+      if (n && typeof n === "object" && !Array.isArray(n))
+        setLineNotes(
+          Object.fromEntries(
+            Object.entries(n as Record<string, { note?: unknown; at?: unknown }>)
+              .filter(([k, v]) => k.length <= 160 && v && typeof v.note === "string" && typeof v.at === "number")
+              .slice(0, 500)
+              .map(([k, v]) => [k, { note: String(v.note).slice(0, 1000), at: Number(v.at) }]),
+          ),
+        );
+    } catch {
+      /* nothing kept */
+    }
+    try {
+      const r = JSON.parse(window.localStorage.getItem("rabai_reviewed") ?? "{}");
+      if (r && typeof r === "object" && !Array.isArray(r))
+        setReviewed(Object.fromEntries(Object.entries(r as Record<string, unknown>).filter((e): e is [string, number] => typeof e[1] === "number").slice(0, 200)));
+    } catch {
+      /* nothing kept */
+    }
     try {
       const kept = JSON.parse(window.localStorage.getItem("rabai_cycles") ?? "[]");
       if (Array.isArray(kept)) setCycles(kept.filter((x): x is string => typeof x === "string" && /^[\w-]{1,40}$/.test(x)).slice(0, 20));
@@ -3387,6 +3416,16 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
       return next;
     });
   };
+  const keepNote = (ref: string, text: string) => {
+    setLineNotes((prev) => {
+      const next = { ...prev };
+      const t = text.trim().slice(0, 1000);
+      if (t) next[ref] = { note: t, at: Date.now() };
+      else delete next[ref];
+      store("rabai_line_notes", JSON.stringify(next));
+      return next;
+    });
+  };
   const learnCycle = (l: { label: string; text: string }) => {
     chooseMode("chat");
     void send(`Let's learn today's ${l.label} together: ${l.text}. Start at the beginning, a piece at a time.`, { fresh: true });
@@ -4031,6 +4070,42 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
             <button type="button" className="link wc-copy" onClick={() => void copyLine(p.ref, p.he ?? "", p.en)}>
               {copiedRef === p.ref ? "Copied" : `Copy this ${partName} with its reference`}
             </button>
+            <div className="my-note">
+              {noteDraft?.ref === p.ref ? (
+                <>
+                  <label className="fine-left" htmlFor={`note-${p.ref}`}>
+                    Your note on this {partName} (kept on this device)
+                  </label>
+                  <textarea id={`note-${p.ref}`} rows={2} maxLength={1000} value={noteDraft.text} onChange={(e) => setNoteDraft({ ref: p.ref, text: e.target.value })} />
+                  <span className="my-note-actions">
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        keepNote(p.ref, noteDraft.text);
+                        setNoteDraft(null);
+                      }}
+                    >
+                      Save
+                    </button>
+                    <button type="button" className="btn quiet" onClick={() => setNoteDraft(null)}>
+                      Cancel
+                    </button>
+                  </span>
+                </>
+              ) : lineNotes[p.ref] ? (
+                <p className="fine-left">
+                  <strong>Your note:</strong> {lineNotes[p.ref].note}{" "}
+                  <button type="button" className="link" onClick={() => setNoteDraft({ ref: p.ref, text: lineNotes[p.ref].note })}>
+                    Edit
+                  </button>
+                </p>
+              ) : (
+                <button type="button" className="link" onClick={() => setNoteDraft({ ref: p.ref, text: "" })}>
+                  Add a note
+                </button>
+              )}
+            </div>
             {account.state.feedback && <TextReport key={`${p.ref}:${word}`} refName={p.ref} text={[p.he ?? "", p.en].filter(Boolean).join("\n")} word={token ? heading : undefined} />}
           </>
         }
@@ -4190,7 +4265,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
 
   const renderLine = (p: Passage & { tokens: Token[] }, isCommentary: boolean, author?: string, opts?: { noAnswer?: boolean }) => {
     const isSelected = selected === p.ref;
-    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}${p.source?.article ? " article" : ""}`;
+    const lineClass = `line${reader?.focus === p.ref ? " cited" : ""}${isSelected ? " selected" : ""}${p.source?.article ? " article" : ""}${lineNotes[p.ref] ? " has-note" : ""}`;
     return (
       <div key={p.ref} className={isCommentary ? "comm" : undefined}>
         {/* A div rather than a button, so the words can be highlighted and asked about. */}
@@ -4426,7 +4501,28 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         ) : (
           groupByCategory(shown).map((g) => (
             <section key={g.category || "_none"} className="chat-group">
-              <h3 className={`group-name ${categoryTone(g.category)}`}>{g.category || "Not sorted"}</h3>
+              <h3 className={`group-name ${categoryTone(g.category)}`}>
+                {g.category || "Not sorted"}
+                {g.chats.length > 0 && (
+                  <button
+                    type="button"
+                    className="link group-print"
+                    title="These conversations as a booklet to print"
+                    onClick={async () => {
+                      const { bookletHtml, openSourceSheet } = await import("./answer-share");
+                      openSourceSheet(
+                        bookletHtml(
+                          g.category || "My questions",
+                          g.chats.map((c) => ({ title: c.title, text: chatToShare(c, libraryMode === "testing").replace(/\n*From RabbAI, an AI Torah teacher, not a rav\.$/, "") })),
+                          libraryMode === "testing",
+                        ),
+                      );
+                    }}
+                  >
+                    Print as a booklet
+                  </button>
+                )}
+              </h3>
               <ul>
                 {g.chats.map((c, ci) => {
                   const questions = c.messages.filter((m) => m.role === "user").length;
@@ -4760,7 +4856,25 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
         )}
         {outlineState?.error && <p className="daf-alert">{outlineState.error}</p>}
         {shownOutline && (
-          <FlowLegend counts={kindCounts(shownOutline.lines)} only={flowOnly} onOnly={chooseFlowOnly} stepping={!!flowStep} onStep={toggleSteps} />
+          <>
+            <FlowLegend counts={kindCounts(shownOutline.lines)} only={flowOnly} onOnly={chooseFlowOnly} stepping={!!flowStep} onStep={toggleSteps} />
+            <button
+              type="button"
+              className="link flow-share"
+              onClick={async () => {
+                // The flow as a picture to send: each line's step, RabbAI's outline, labeled as such.
+                const { flowPicture, sharePicture } = await import("./answer-share");
+                const color: Record<string, string> = { mishnah: "#b8a77a", question: "#d99a1c", answer: "#3f9a5a", statement: "#4f7cc0", proof: "#8a5ac0", challenge: "#c8504a", resolution: "#2f9a94", story: "#b8844a" };
+                const blob = await flowPicture(
+                  daf?.section ?? "",
+                  shownOutline.lines.map((l) => ({ label: OUTLINE_LABELS[l.kind] ?? l.kind, note: l.note, color: color[l.kind] ?? "#888" })),
+                );
+                if (blob) await sharePicture(blob, "rabbai-flow.png");
+              }}
+            >
+              Share the flow as a picture
+            </button>
+          </>
         )}
         <div className={`daf-body${picked ? " with-panel" : ""}`}>
           <div className="daf-main" ref={dafMainRef}>
@@ -5680,6 +5794,73 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                         <span className="way-sub">A page of a sefer, or your notes</span>
                       </button>
                     </div>
+                    {(() => {
+                      // For today: the Shabbat table on Thursday and Friday, a parsha question in the
+                      // evening, learning before an occasion, and a review when one is due (lib/occasions.ts).
+                      const parsha = day?.parsha && !day.parsha.holiday ? day.parsha.name : undefined;
+                      const table = clock && (clock.weekday === 4 || clock.weekday === 5);
+                      const evening = clock && clock.hour >= 16 && clock.weekday !== 5 && clock.weekday !== 6;
+                      const due = profile.remember ? dueReview(profile.observed.learning, reviewed) : null;
+                      const week = profile.remember ? weekItems(profile.observed.learning, profile.observed.topics) : [];
+                      const markReviewed = (text: string) => {
+                        setReviewed((prev) => {
+                          const next = { ...prev, [text]: Date.now() };
+                          store("rabai_reviewed", JSON.stringify(next));
+                          return next;
+                        });
+                      };
+                      return (
+                        <div className="for-today" role="group" aria-label="For today">
+                          {table && (
+                            <button type="button" className="today-chip" onClick={() => void send(shabbatTablePrompt(parsha), { fresh: true })}>
+                              For the Shabbat table
+                            </button>
+                          )}
+                          {evening && (
+                            <button type="button" className="today-chip" onClick={() => void send(parshaQuestionPrompt(parsha), { fresh: true })}>
+                              A parsha question for tonight
+                            </button>
+                          )}
+                          {due && (
+                            <button
+                              type="button"
+                              className="today-chip review"
+                              onClick={() => {
+                                markReviewed(due.text);
+                                void send(reviewPrompt(due), { fresh: true });
+                              }}
+                            >
+                              Review {due.text}
+                            </button>
+                          )}
+                          {week.length >= 2 && (
+                            <button type="button" className="today-chip review" onClick={() => void send(weekReviewPrompt(week), { fresh: true })}>
+                              Review this week
+                            </button>
+                          )}
+                          <button type="button" className="today-chip" aria-expanded={occasionsOpen} onClick={() => setOccasionsOpen((o) => !o)}>
+                            Before an occasion…
+                          </button>
+                          {occasionsOpen && (
+                            <div className="occasions" role="group" aria-label="Learn before an occasion">
+                              {OCCASIONS.map((o) => (
+                                <button
+                                  key={o.id}
+                                  type="button"
+                                  className="today-chip small"
+                                  onClick={() => {
+                                    setOccasionsOpen(false);
+                                    void send(occasionPrompt(o), { fresh: true });
+                                  }}
+                                >
+                                  {o.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {profile.remember && profile.observed.learning[0] && (
                       <button
                         type="button"
@@ -6139,6 +6320,40 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       )}
                     </details>
                   )}
+                  {Object.keys(lineNotes).length > 0 && (() => {
+                    const notes = Object.entries(lineNotes).sort((a, b) => b[1].at - a[1].at);
+                    return (
+                      <div className="learn-notes">
+                        <p className="label-sm">Your notes on {notes.length === 1 ? "one line" : `${notes.length} lines`}</p>
+                        <ul>
+                          {notes.slice(0, 5).map(([ref, n]) => (
+                            <li key={ref}>
+                              <button type="button" className="link" onClick={() => void openReader(ref)}>
+                                {shortRef(ref)}
+                              </button>{" "}
+                              <span className="muted">{n.note.length > 80 ? `${n.note.slice(0, 80)}…` : n.note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <button
+                          type="button"
+                          className="btn quiet"
+                          onClick={() => {
+                            chooseMode("chat");
+                            void send(
+                              `Quiz me on these lines I marked, one question at a time, and tell me how I did after each: ${notes
+                                .slice(0, 8)
+                                .map(([ref, n]) => `${ref} (my note: ${n.note.slice(0, 200)})`)
+                                .join("; ")}.`,
+                              { fresh: true },
+                            );
+                          }}
+                        >
+                          Quiz me on them
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </section>
               )}
                   onPlace={() => setPlaceOpen(true)}

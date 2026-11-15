@@ -164,3 +164,73 @@ export function openSourceSheet(html: string): boolean {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return !!w;
 }
+
+/**
+ * A category of saved chats as a booklet to print: each chat's questions and answers, with the
+ * texts each answer cited (docs/ideas-2026-11.md, 9).
+ */
+export function bookletHtml(title: string, chats: Array<{ title: string; text: string }>, testing: boolean): string {
+  const items = chats
+    .map(
+      (c) =>
+        `<section><h2>${esc(c.title)}</h2>${c.text
+          .split(/\n{2,}/)
+          .map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`)
+          .join("")}</section>`,
+    )
+    .join("");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title>
+<style>
+body{font-family:Georgia,serif;max-width:760px;margin:32px auto;padding:0 20px;color:#1d1a16;line-height:1.55}
+h1{font-size:28px;font-weight:600;margin:0 0 4px}.sub{color:#6b6157;font-family:system-ui,sans-serif;font-size:14px;margin:0 0 28px}
+section{break-before:page;padding-top:8px}section:first-of-type{break-before:auto}h2{font-size:19px;margin:0 0 10px;color:#24476b}
+footer{border-top:1px solid #ddd;margin-top:20px;padding-top:10px;font-family:system-ui,sans-serif;font-size:12px;color:#6b6157}
+@media print{button{display:none}}
+</style></head><body><h1>${esc(title)}</h1><p class="sub">${chats.length} ${chats.length === 1 ? "conversation" : "conversations"} with RabbAI</p>${items}<footer>${
+    testing ? "Texts from RabbAI's testing library, not yet approved by the rabbinic board. " : ""
+  }RabbAI is an AI Torah teacher, not a rav.</footer><p><button onclick="print()">Print</button></p></body></html>`;
+}
+
+/**
+ * RabbAI's outline of a page as a picture: each line's step of the argument, in order, labeled as
+ * RabbAI's outline, not yet reviewed by the rabbinic board (docs/ideas-2026-11.md, 12).
+ */
+export async function flowPicture(section: string, lines: Array<{ label: string; note: string; color: string }>): Promise<Blob | null> {
+  if (typeof document === "undefined") return null;
+  const W = 1080;
+  const pad = 64;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const sans = '"IBM Plex Sans", system-ui, sans-serif';
+  const serif = '"Source Serif 4", Georgia, serif';
+  ctx.font = `28px ${serif}`;
+  const rows = lines.map((l) => ({ ...l, wrapped: wrap(ctx, l.note, W - pad * 2 - 200) }));
+  const H = pad + 110 + rows.reduce((n, r) => n + Math.max(1, r.wrapped.length) * 38 + 18, 0) + 70 + pad;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.fillStyle = "#fbf8f1";
+  ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = "top";
+  ctx.fillStyle = "#1d1a16";
+  ctx.font = `600 40px ${serif}`;
+  ctx.fillText(section, pad, pad);
+  ctx.fillStyle = "#6b6157";
+  ctx.font = `24px ${sans}`;
+  ctx.fillText("The flow of the argument", pad, pad + 54);
+  let y = pad + 110;
+  for (const r of rows) {
+    ctx.fillStyle = r.color;
+    ctx.fillRect(pad, y + 4, 10, Math.max(1, r.wrapped.length) * 38 - 8);
+    ctx.font = `600 22px ${sans}`;
+    ctx.fillText(r.label, pad + 24, y + 6);
+    ctx.fillStyle = "#2a2621";
+    ctx.font = `28px ${serif}`;
+    r.wrapped.forEach((t, i) => ctx.fillText(t, pad + 200, y + i * 38));
+    y += Math.max(1, r.wrapped.length) * 38 + 18;
+  }
+  ctx.fillStyle = "#6b6157";
+  ctx.font = `22px ${sans}`;
+  ctx.fillText("RabbAI's outline, not yet reviewed by the rabbinic board. An AI Torah teacher, not a rav.", pad, y + 24);
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
+}
