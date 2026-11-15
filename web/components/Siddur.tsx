@@ -1,6 +1,7 @@
 "use client";
 
 import { minyanFolds, minyanWhole } from "@/lib/siddur/minyan";
+import { isMournersKaddish, kaddishHeading, lineRole, SHUL_REASONS, withShulToday, zimunFolds, zimunWhole, type ShulReason } from "@/lib/siddur/situations";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
@@ -407,8 +408,15 @@ export default function Siddur({
   const pendingStop = useRef<number | null>(null);
   const rawCache = useRef(new Map<string, Promise<Array<{ ref: string; he: string; en: string }>>>());
   chunksRef.current = chunks;
-  const davening = day?.davening;
+  // The person's "no Tachanun in shul today" (a groom, a bris, a house of mourning) applies to today only.
+  const davening = useMemo(() => withShulToday(day?.davening, day?.date, prefs.shul), [day?.davening, day?.date, prefs.shul]);
   const layout = prefs.layout;
+  /** A line the person says themselves when leading or saying Kaddish, by the siddur's role label. */
+  const mine = (tag: { text: string; kind: string } | undefined) => {
+    if (tag?.kind !== "role") return false;
+    const r = lineRole(tag.text);
+    return (r === "leader" && prefs.leading) || (r === "mourner" && prefs.kaddish);
+  };
 
   // A typeface that isn't loaded with the app is fetched the first time it is chosen, and all of
   // them while the settings are open, so each sample is shown in its own letters.
@@ -699,6 +707,12 @@ export default function Siddur({
         if (whole) plan.whole = whole;
         else plan.folds = mergeFolds([...plan.folds, ...minyanFolds(c.lines)]);
       }
+      // Bentching after eating alone: the zimmun is set aside.
+      if (prefs.today && prefs.meal === "alone" && !plan.whole) {
+        const whole = zimunWhole(n.short);
+        if (whole) plan.whole = whole;
+        else plan.folds = mergeFolds([...plan.folds, ...zimunFolds(c.lines)]);
+      }
       if (plan.whole) {
         const key = `${c.section}#whole`;
         // A prayer not said today is passed over in the flow; one the person opened themselves is
@@ -748,7 +762,7 @@ export default function Siddur({
       } else grouped.push(it);
     }
     return { out: grouped, hidden };
-  }, [chunks, book, prefs.today, prefs.customs, prefs.minyan, davening, openFolds, instructions, layout, shown, hide, openedSection]);
+  }, [chunks, book, prefs.today, prefs.customs, prefs.minyan, prefs.meal, davening, openFolds, instructions, layout, shown, hide, openedSection]);
   const items = built.out;
   const hiddenToday = built.hidden;
 
@@ -1194,7 +1208,7 @@ export default function Siddur({
       );
     const segs = english && first && prefs.lang === "both" ? withoutHebrewOpening(p.segs) : p.segs;
     return (
-      <span key={i} className={`sd-ph${today === false ? " sd-not-today" : ""}${today === true ? " sd-today-line" : ""}${p.tag?.kind === "role" && /^(cong|congregation|all|קהל)/i.test(p.tag.text) ? " sd-cong" : ""}`}>
+      <span key={i} className={`sd-ph${today === false ? " sd-not-today" : ""}${today === true ? " sd-today-line" : ""}${p.tag?.kind === "role" && /^(cong|congregation|all|קהל)/i.test(p.tag.text) ? " sd-cong" : ""}${mine(p.tag) ? " sd-mine" : ""}`}>
         {p.tag && (
           <span className={`sd-tag ${p.tag.kind}`}>
             {p.tag.text}
@@ -1287,9 +1301,11 @@ export default function Siddur({
     const l = it.line;
     const key = keyLine(l);
     if (l.kind === "heading" && l.heading) {
+      const yours = prefs.kaddish && kaddishHeading(l);
       return (
-        <h3 key={l.ref} className="sd-h" data-l={l.ref} data-i={pane ? it.key : undefined} {...(pane !== "en" ? { "data-stop": l.heading.en, "data-section": it.chunk.section } : {})}>
+        <h3 key={l.ref} className={`sd-h${yours ? " sd-h-mine" : ""}`} data-l={l.ref} data-i={pane ? it.key : undefined} {...(pane !== "en" ? { "data-stop": l.heading.en, "data-section": it.chunk.section } : {})}>
           <span>{l.heading.en}</span>
+          {yours && <span className="sd-mine-badge">You say this</span>}
           <span className="he" lang="he" dir="rtl">
             {l.heading.he}
           </span>
@@ -1724,6 +1740,46 @@ export default function Siddur({
             out{prefs.today ? "" : " in today's davening"}. From the siddur&apos;s own instructions; RabbAI&apos;s reading, not yet reviewed by the rabbinic board.
           </p>
         )}
+        <fieldset className="sd-customs sd-situation">
+          <legend>You, today</legend>
+          <label>
+            <input type="checkbox" checked={prefs.leading} onChange={(e) => setPref("leading", e.target.checked)} /> I&apos;m leading the service
+            <span className="fine-left"> (the Leader&apos;s lines are marked)</span>
+          </label>
+          <label>
+            <input type="checkbox" checked={prefs.kaddish} onChange={(e) => setPref("kaddish", e.target.checked)} /> I&apos;m saying Kaddish
+            <span className="fine-left"> (each Mourner&apos;s and Rabbis&apos; Kaddish is marked and starred in “Jump to”)</span>
+          </label>
+          <label className="sd-shul">
+            No Tachanun in my shul today:{" "}
+            <select
+              value={prefs.shul && prefs.shul.date === day?.date ? prefs.shul.reason : ""}
+              onChange={(e) => setPref("shul", e.target.value && day?.date ? { date: day.date, reason: e.target.value as ShulReason } : null)}
+              disabled={!day?.date}
+            >
+              <option value="">No, the usual</option>
+              {(Object.keys(SHUL_REASONS) as ShulReason[]).map((r) => (
+                <option key={r} value={r}>
+                  {SHUL_REASONS[r].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="fine-left sd-menu-note">
+            For today only; tomorrow it goes back to the usual by itself. In a house of mourning, the Koren siddur&apos;s own instructions also leave out Lamenatzeach and
+            the verse “As for Me”. RabbAI&apos;s reading, not yet reviewed by the rabbinic board.
+          </p>
+        </fieldset>
+        {seg(
+          "Bentching after a meal",
+          prefs.meal,
+          [
+            ["three", "Three or more ate"],
+            ["alone", "I ate alone"],
+          ],
+          (v) => setPref("meal", v),
+        )}
+        {prefs.meal === "alone" && <p className="fine-left sd-menu-note">The zimmun (the invitation to bentch together) is left out{prefs.today ? "" : " in today's davening"}.</p>}
         {seg(
           "How much to show",
           prefs.depth,
@@ -1881,6 +1937,21 @@ export default function Siddur({
             </p>
           )}
 
+          {prefs.pinned.length > 0 && (
+            <section className="sd-block" aria-labelledby="sd-h-pinned">
+              <h3 id="sd-h-pinned" className="sd-block-h">
+                Pinned
+              </h3>
+              <div className="sd-tiles">
+                {prefs.pinned.map((section) => (
+                  <button key={section} type="button" className="sd-tile" onClick={() => void openAt(section)}>
+                    <span className="sd-tile-title">{shown(bookOf(section, siddurs) ?? book, section).short}</span>
+                    <span className="sd-tile-note">{shown(bookOf(section, siddurs) ?? book, section).crumb}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           {shabbatGroup.length > 0 && (
             <section className="sd-block sd-shabbat-coming" aria-labelledby="sd-h-shabbat">
               <h3 id="sd-h-shabbat" className="sd-block-h">
@@ -2240,12 +2311,29 @@ export default function Siddur({
         <>
           <button type="button" className="menu-scrim sd-scrim" aria-label="Close" onClick={() => setJumpOpen(false)} />
           <div className="sd-jump" role="dialog" aria-label="Jump to">
+            {(() => {
+              const here = stops[current]?.section ?? chunks[0]?.section;
+              if (!here) return null;
+              const pinnedHere = prefs.pinned.includes(here);
+              const name = shown(bookOf(here, siddurs) ?? book, here).short;
+              return (
+                <button
+                  type="button"
+                  className="sd-pin"
+                  aria-pressed={pinnedHere}
+                  disabled={!pinnedHere && prefs.pinned.length >= 12}
+                  onClick={() => setPref("pinned", pinnedHere ? prefs.pinned.filter((x) => x !== here) : [...prefs.pinned, here])}
+                >
+                  {pinnedHere ? `Unpin ${name}` : `Pin ${name} to the Daven home`}
+                </button>
+              );
+            })()}
             <p className="sd-jump-h">On this page</p>
             <ul>
               {stops.map((s, i) => (
                 <li key={`${s.section}-${i}`}>
-                  <button type="button" className={`sd-jump-item${i === current ? " on" : ""}${KEY_LINES.some((k) => k.label === s.label) ? " key" : ""}`} onClick={() => jumpTo(i)}>
-                    {KEY_LINES.some((k) => k.label === s.label) ? "★ " : ""}
+                  <button type="button" className={`sd-jump-item${i === current ? " on" : ""}${KEY_LINES.some((k) => k.label === s.label) || (prefs.kaddish && isMournersKaddish(s.label)) ? " key" : ""}`} onClick={() => jumpTo(i)}>
+                    {KEY_LINES.some((k) => k.label === s.label) || (prefs.kaddish && isMournersKaddish(s.label)) ? "★ " : ""}
                     {s.label}
                   </button>
                 </li>

@@ -4,6 +4,7 @@
  * different words, transliteration, and the community's customs. Safe on the device.
  */
 
+import { parseShulToday, type ShulToday } from "./situations";
 import { DEFAULT_CUSTOMS, type DavenCustoms } from "./today";
 import type { Pronunciation } from "./translit";
 import type { TorahBlessingsPlace } from "./outline";
@@ -80,6 +81,16 @@ export interface DavenPrefs {
   notToday: "hide" | "fold";
   /** With a minyan (everything), or alone: what is said only with a minyan is left out (lib/siddur/minyan.ts). */
   minyan: "minyan" | "alone";
+  /** Bentching after eating alone (the zimmun set aside) or with three or more. */
+  meal: "three" | "alone";
+  /** Saying Kaddish (a mourner, or for a yahrzeit): the mourner's lines are marked. */
+  kaddish: boolean;
+  /** Leading the service: the leader's lines are marked. */
+  leading: boolean;
+  /** "No Tachanun in shul today" (a groom, a bris, a house of mourning), for one date. */
+  shul: ShulToday | null;
+  /** Prayers pinned to the Daven home, by section reference (at most 12). */
+  pinned: string[];
 }
 
 export const DEFAULT_PREFS: DavenPrefs = {
@@ -102,6 +113,11 @@ export const DEFAULT_PREFS: DavenPrefs = {
   instructionsOpen: false,
   notToday: "hide",
   minyan: "minyan",
+  meal: "three",
+  kaddish: false,
+  leading: false,
+  shul: null,
+  pinned: [],
 };
 
 const KEY = "rabai_daven_prefs";
@@ -129,6 +145,11 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     instructionsOpen: typeof r.instructionsOpen === "boolean" ? r.instructionsOpen : DEFAULT_PREFS.instructionsOpen,
     notToday: one(r.notToday, ["hide", "fold"] as const, DEFAULT_PREFS.notToday),
     minyan: one(r.minyan, ["minyan", "alone"] as const, DEFAULT_PREFS.minyan),
+    meal: one(r.meal, ["three", "alone"] as const, DEFAULT_PREFS.meal),
+    kaddish: typeof r.kaddish === "boolean" ? r.kaddish : DEFAULT_PREFS.kaddish,
+    leading: typeof r.leading === "boolean" ? r.leading : DEFAULT_PREFS.leading,
+    shul: parseShulToday(r.shul),
+    pinned: Array.isArray(r.pinned) ? [...new Set(r.pinned.filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 300))].slice(0, 12) : [],
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,

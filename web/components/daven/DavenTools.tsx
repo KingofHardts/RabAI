@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DaySummary, Place } from "@/lib/calendar/place";
 import { deviceWhen } from "@/lib/calendar/device";
 import { calendarFile, downloadCalendar, type CalendarEvent } from "@/lib/calendar/ics";
@@ -448,6 +448,8 @@ export default function DavenTools({
           )}
         </details>
 
+        <TefillinMirror />
+
         <details className="sd-tool" aria-label="Which bracha">
           <summary>
             <span className="sd-tool-title">Which bracha?</span>
@@ -486,5 +488,68 @@ export default function DavenTools({
         </details>
       </div>
     </div>
+  );
+}
+
+/**
+ * A mirror for putting on tefillin straight: the front camera, shown flipped like a mirror. The
+ * picture stays on the screen: nothing is recorded, kept or sent, and the camera turns off when the
+ * mirror is closed.
+ */
+function TefillinMirror() {
+  const video = useRef<HTMLVideoElement>(null);
+  const stream = useRef<MediaStream | null>(null);
+  const [on, setOn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const stop = () => {
+    stream.current?.getTracks().forEach((t) => t.stop());
+    stream.current = null;
+    setOn(false);
+  };
+  useEffect(() => stop, []);
+
+  const start = async () => {
+    setError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("This browser can't use the camera here.");
+      return;
+    }
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      stream.current = s;
+      setOn(true);
+      requestAnimationFrame(() => {
+        if (video.current) {
+          video.current.srcObject = s;
+          void video.current.play().catch(() => {});
+        }
+      });
+    } catch {
+      setError("The mirror needs permission to use the front camera.");
+    }
+  };
+
+  return (
+    <details className="sd-tool" aria-label="Tefillin mirror" onToggle={(e) => !(e.currentTarget as HTMLDetailsElement).open && stop()}>
+      <summary>
+        <span className="sd-tool-title">Tefillin mirror</span>
+        <span className="sd-tool-sub">Check the head tefillin is centered</span>
+      </summary>
+      {on ? (
+        <>
+          <video ref={video} className="sd-mirror" muted playsInline aria-label="The front camera, shown as a mirror" />
+          <button type="button" className="btn quiet" onClick={stop}>
+            Turn off the camera
+          </button>
+        </>
+      ) : (
+        <button type="button" className="btn quiet" onClick={() => void start()}>
+          Open the mirror
+        </button>
+      )}
+      {error && <p className="muted">{error}</p>}
+      <p className="fine-left">The picture stays on your screen: nothing is recorded or sent.</p>
+    </details>
   );
 }

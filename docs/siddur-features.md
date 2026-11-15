@@ -69,7 +69,7 @@ second round").
 14. **The Omer**: tonight's count on the today card. **Built.**
 15. **An Omer screen** with the blessing, the count in Hebrew and English, and a nightly reminder.
     **Built** (2026-11-04): an Omer card on the Daven home opens tonight's count, and a nightly reminder can be added to the calendar.
-16. **Hide what isn't said today** (a "today only" view beside the full one). **Built** (2026-11-04, Josh's direction): "Today's davening" folds what isn't said today into a labeled line that opens with a tap; nothing is removed. Customs are settings. RabbAI's reading of the calendar, for the board (open question 23).
+16. **Hide what isn't said today** (a "today only" view beside the full one). **Built** (2026-11-04 as folds; 2026-11-15, Josh's decision: left out, with a note that brings them back; see `docs/siddur-apps-2026-11.md`). Customs are settings. RabbAI's reading of the calendar, for the board (open question 23).
 17. **Israel or outside Israel** from the place set in RabbAI. **Built.**
 18. **Festival services** chosen automatically on Yom Tov and Chol HaMoed. **Built** (2026-11-04): on Yom Tov, Chol HaMoed and Rosh Chodesh the Daven home offers the right services (Hallel, Musaf).
 19. **Reminders**: the Omer each night, the time for Kiddush Levana, Mincha before sunset.

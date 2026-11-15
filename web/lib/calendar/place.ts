@@ -54,6 +54,10 @@ export interface WhenAndWhere {
 /** What changes in the davening today (lib/calendar/davening.ts), with today's notes in plain words. */
 export interface DaySummaryDavening extends DaveningDay {
   notes: string[];
+  /** Set on the device only: why there is no Tachanun in the person's shul today (lib/siddur/situations.ts). */
+  shulNoTachanun?: string;
+  /** Set on the device only: the person is davening in a house of mourning today. */
+  houseOfMourning?: boolean;
 }
 
 /** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */

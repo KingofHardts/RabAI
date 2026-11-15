@@ -404,9 +404,14 @@ export function phrases(text: string, menWomen = false): Phrase[] {
     });
 }
 
-/** "PATRIARCHS" -> "Patriarchs", "DIVINE MIGHT" -> "Divine Might". */
+/** Short words a title keeps small, except at its start: "Blessing of God's Goodness". */
+const SMALL_WORDS = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"]);
+
+/** "PATRIARCHS" -> "Patriarchs", "MOURNER'S KADDISH" -> "Mourner's Kaddish", "BLESSING OF LAND" -> "Blessing of Land". */
 function ordinaryCase(s: string): string {
-  return s.toLowerCase().replace(/(^|[\s\-'’(])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
+  return s
+    .toLowerCase()
+    .replace(/(^|[\s\-(/])([a-z]+)/g, (m: string, a: string, w: string, at: number) => (at > 0 && a !== "(" && SMALL_WORDS.has(w) ? a + w : a + w[0].toUpperCase() + w.slice(1)));
 }
 
 /** A heading: short capital English ("PATRIARCHS") with a short Hebrew ("אבות"). */

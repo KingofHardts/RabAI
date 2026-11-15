@@ -455,6 +455,14 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **The person's situation while davening (2026-11-15).** From a second look at the other siddur
+  apps (`docs/siddur-apps-2026-11.md`), the Daven settings gained "You, today": "I'm leading"
+  (the Leader's lines marked), "I'm saying Kaddish" (each Mourner's and Rabbis' Kaddish marked and
+  starred), "No Tachanun in my shul today" (a groom, a bris, a house of mourning; for that date
+  only), and "Bentching after a meal: three or more / I ate alone" (alone, the zimmun is left out).
+  In a house of mourning the Koren siddur's own instructions are applied too (Lamenatzeach, and the
+  verse "As for Me"). Also: prayers can be pinned to the Daven home, and a tefillin mirror shows the
+  front camera as a mirror, with nothing recorded or sent (open question 30).
 - **Only what is said today (Josh, 2026-11-15).** Josh asked that in day-to-day davening the parts
   not said today should not be there at all ("on days that we don't have Tachanun, Tachanun
   shouldn't be there"), while learning a passage still shows the whole text. This replaces the
@@ -899,3 +907,8 @@ These need a decision before launch. Each one changes behavior.
     and from Kaddish's opening words, and leaves those parts out when the person chooses "Alone".
     Is that the right set? In particular: what someone davening alone should say in place of
     Kedushah or Barchu, and whether any part should stay shown with a note instead.
+30. **The person's situation while davening.** "No Tachanun in my shul today" for a groom, a bris
+    or a house of mourning, and what else changes in a house of mourning (today only what the Koren
+    siddur's own instructions name: Lamenatzeach and the verse "As for Me"). Is the list of reasons
+    right, should a house of mourning change more (Hallel on Rosh Chodesh, for example), and should
+    bentching after sunset ask when the meal began?

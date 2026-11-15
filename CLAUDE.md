@@ -261,6 +261,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   confirms, open question 23). Only the day-to-day flow is shortened: a prayer the person opens
   directly is always shown, and the text itself is never changed. "Davening alone" leaves out what
   the siddur's own instructions say needs a minyan (`web/lib/siddur/minyan.ts`, open question 29).
+  The person's situation (`web/lib/siddur/situations.ts`: leading, saying Kaddish, bentching alone,
+  "no Tachanun in my shul today") only marks the siddur's own lines or sets aside what the siddur
+  itself names; "no Tachanun today" is kept for one date and never carried to the next (open
+  question 30). The tefillin mirror shows the camera on the screen only: never record or send it.
   "Ask about this" goes through the usual checked path (`send`).
 - On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
   the day's times as the calendar gives them, naming both opinions where it gives two; never pick

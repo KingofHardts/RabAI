@@ -59,6 +59,7 @@ export function tachanunToday(d: DaySummaryDavening, customs: DavenCustoms, serv
 /** Why there's no Tachanun today, as far as the calendar says. */
 function noTachanunWhy(d: DaySummaryDavening): string {
   const named = [
+    d.shulNoTachanun,
     d.roshChodesh && "Rosh Chodesh",
     d.chanukah && "Chanukah",
     d.adar1415 && (d.purim ? "Purim" : "the 14th and 15th of Adar"),
@@ -69,7 +70,7 @@ function noTachanunWhy(d: DaySummaryDavening): string {
     d.yomHaatzmaut && "Yom HaAtzma'ut",
     d.yomYerushalayim && "Yom Yerushalayim",
   ].filter(Boolean);
-  return named.length ? ` (${named[0]})` : "";
+  return named.length ? ` (${named[0]})` : d.houseOfMourning ? " (a house of mourning)" : "";
 }
 
 /** The Torah is read on Mondays and Thursdays, Rosh Chodesh, Chol HaMoed, Chanukah, Purim and fast days. */
@@ -100,6 +101,7 @@ export function lamenatzeachToday(d: DaySummaryDavening, customs: DavenCustoms):
     d.chanukah ||
     d.adar1415 ||
     d.tishaBav ||
+    d.houseOfMourning ||
     (d.israel && d.isruChag) ||
     (customs.modernDays && modernDay(d))
   );
@@ -207,6 +209,15 @@ export function planToday(part: string, short: string, lines: SiddurLine[], d: D
       i = j - 1;
       continue;
     }
+    // "In a house of mourning and on Tisha B'Av omit the verse beginning 'As for Me'": that one verse,
+    // a few lines further on.
+    if (l.kind === "instruction" && l.instruction && /omit the verse beginning .As for Me/i.test(l.instruction)) {
+      if (d.tishaBav || d.houseOfMourning) {
+        const at = lines.findIndex((x, k) => k > i && k <= i + 6 && x.kind === "prayer" && /^ואני זאת בריתי/.test(plainHe(x)));
+        if (at > 0) folds.push({ from: at, to: at + 1, reason: d.tishaBav ? "Left out on Tisha B'Av" : "Left out in a house of mourning" });
+      }
+      continue;
+    }
     if (l.kind === "instruction" && l.instruction) {
       const rule = instructionToday(l.instruction, d, customs, service);
       if (rule && !rule.said) {
@@ -230,6 +241,17 @@ export function planToday(part: string, short: string, lines: SiddurLine[], d: D
     if (cond && appliesToday(cond, d) === false) folds.push({ from: i, to: i + 1, reason: `Said ${whenWords(cond)}` });
   }
   return { folds };
+}
+
+/** A line's Hebrew without vowels or marks. */
+function plainHe(l: SiddurLine): string {
+  return l.he
+    .map((p) => p.segs.map((x) => ("text" in x ? x.text : "")).join(""))
+    .join(" ")
+    .replace(/[֑-ׇ]/g, "")
+    .replace(/[^א-ת ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** The night of the Omer a line of the count is for ("16 Nisan 1. Today is the first day…"). */
