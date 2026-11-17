@@ -265,6 +265,10 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   "no Tachanun in my shul today") only marks the siddur's own lines or sets aside what the siddur
   itself names; "no Tachanun today" is kept for one date and never carried to the next (open
   question 30). The tefillin mirror shows the camera on the screen only: never record or send it.
+  Commentary in the Daven tab (Rabbi Sacks's notes, RabbAI's notes) is drawn as commentary, never
+  as more davening: its own card (`.sd-comm`), labeled with whose it is. A rule for when a line is
+  said goes in `today.ts` (`instructionToday` with its `span`, or `prayerLineToday`) with a test,
+  and a change is checked across days against the real siddur, not one day.
   "Ask about this" goes through the usual checked path (`send`).
 - On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
   the day's times as the calendar gives them, naming both opinions where it gives two; never pick

@@ -99,3 +99,20 @@ These change what is said, so the halacha should be the board's before they are 
 - **A screen-reader pass** over the Daven tab.
 - **Watch and home-screen widgets.** Only with a native app.
 - **Audio** of the prayers: waiting for recordings (`docs/siddur-audio-and-transliteration.md`).
+
+## Second round (2026-11-17)
+
+Josh's notes: commentary read like more davening; some parts showed when not said, and some hid
+when said; Al HaMichya couldn't be found; it should feel more polished.
+
+- **Commentary is its own thing.** A purple card in a sans-serif face, labeled "Commentary · Rabbi
+  Jonathan Sacks" (or "How to daven · RabbAI's note"), the words it explains in bold, opened from
+  a small chip. The prayer text stays in the siddur's serif.
+- **What is said today, checked line by line.** Every conditional instruction and line in the
+  weekday services and bentching was listed and run through the rules on seven kinds of day; 17
+  mistakes fixed (founding spec, "Commentary looks like commentary"). Each fix has a test.
+- **Search finds prayers inside prayers.** Al HaMichya, Borei Nefashot, Kedushah and the other
+  headings inside a section are found, by any common spelling (Al Hamikhya, Me'ein Shalosh…).
+- **Polish.** On a phone the reading bar keeps only icons, so the prayer's name fits; Back and Next
+  say which way above the prayer's name; "Earlier" and "Continue" skip prayers not said today;
+  headings read "Blessing After Food – Al HaMichya", not "-- AL HAMIḤYA".

@@ -31,6 +31,13 @@ export interface DaveningDay {
   yomYerushalayim: boolean;
   /** The day after a festival, in Israel. */
   isruChag: boolean;
+  /** Hoshana Raba (21 Tishrei). */
+  hoshanaRaba: boolean;
+  /**
+   * Tonight's Ma'ariv follows Shabbat or a festival (Motza'ei Shabbat / Yom Tov): "You have graced
+   * us" (Atah Chonantanu) is added. Before sunset, tonight's; after sunset, this evening's.
+   */
+  motzaei: boolean;
   /** "LeDavid HaShem Ori" (Psalm 27): from Rosh Chodesh Elul through Shemini Atzeret (in Israel, Hoshana Raba). */
   ledavid: boolean;
   /** Tonight's count of the Omer (1–49), when counting goes on tonight. */
@@ -105,6 +112,12 @@ export function hallelOf(hd: HDate, israel: boolean, roshChodesh: boolean, chanu
   return 0;
 }
 
+/** Shabbat or a festival day (not Chol HaMoed). */
+function restDay(hd: HDate, israel: boolean): boolean {
+  if (hd.getDay() === 6) return true;
+  return (HebrewCalendar.getHolidaysOnDate(hd, israel) ?? []).some((e) => (e.getFlags() & flags.CHAG) !== 0);
+}
+
 /**
  * The day's facts. `afterSunset`: the Hebrew day has begun this evening, so tonight belongs to `hd`.
  */
@@ -144,6 +157,8 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
     yomHaatzmaut: desc.some((d) => /^Yom HaAtzma/.test(d)),
     yomYerushalayim: desc.some((d) => /^Yom Yerushalayim/.test(d)),
     isruChag: isru,
+    hoshanaRaba: month === months.TISHREI && day === 21,
+    motzaei: restDay(afterSunset ? hd.prev() : hd, israel) && !restDay(afterSunset ? hd : hd.next(), israel) ? true : false,
     ledavid: month === months.ELUL || (month === months.TISHREI && day <= (israel ? 21 : 22)),
     ...(tonight >= 1 && tonight <= 49 ? { omerTonight: tonight } : {}),
     tachanun: { shacharit: t.shacharit, mincha: t.mincha, allCongs: t.allCongs },

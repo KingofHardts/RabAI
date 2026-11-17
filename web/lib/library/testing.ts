@@ -6,6 +6,7 @@ import { collectionDbUrls, TESTING_LABEL, testingDbUrl } from "./testing-config"
 import { combineStores } from "./collections";
 import { codeOf, commentaryBase, commentaryPrefixes, isCommentaryOn, orderLinked, type LinkPair } from "./link-order";
 import { compareLines, mergeOrders } from "./merge-order";
+import { isHeading } from "../siddur/lines";
 import type { ArticleListing, ArticleShelf, Passage, PassageSource } from "./types";
 
 export type { ArticleListing, ArticleShelf };
@@ -326,6 +327,11 @@ export interface TestingStore {
   section(ref: string, opts?: { bare?: boolean }): Promise<{ lines: Passage[]; commentaries: Map<string, Passage[]>; prev?: string; next?: string } | null>;
   /** A book's sections in order ("Berakhot 2a", "Berakhot 2b", ...), for its table of contents. */
   contents(title: string): Promise<string[]>;
+  /**
+   * The headings printed inside a siddur's sections ("BLESSING AFTER FOOD -- AL HAMIḤYA" inside
+   * Birkat HaMazon), by line ref, so a prayer that is not a section of its own can be found.
+   */
+  headings(title: string): Promise<Array<{ ref: string; en: string; he: string }>>;
   /**
    * One amud of the Bavli as printed: its Gemara, and the Rashi and Tosafot written on it, each
    * in full and in order. Null when the library has no Gemara at this ref.
@@ -1057,6 +1063,25 @@ export function createTestingStore(db: Db): TestingStore {
 
     async contents(title) {
       return contentsOf(title);
+    },
+
+    async headings(title) {
+      const rows = await db.all(
+        `SELECT p.ref AS ref, e.language AS lang, p.text AS text
+         FROM passages p JOIN titles t ON t.id = p.title_id JOIN editions e ON e.id = p.edition_id
+         WHERE t.title = ? AND length(p.text) <= 160 ORDER BY p.seq LIMIT 20000`,
+        [title],
+      );
+      const byRef = new Map<string, { he: string; en: string }>();
+      for (const r of rows) {
+        const ref = String(r.ref);
+        const text = String(r.text ?? "").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+        const at = byRef.get(ref) ?? { he: "", en: "" };
+        if (r.lang === "en") at.en ||= text;
+        else at.he ||= text;
+        byRef.set(ref, at);
+      }
+      return [...byRef].flatMap(([ref, t]) => (t.en && isHeading(t.he, t.en) ? [{ ref, en: t.en, he: t.he }] : []));
     },
 
     async daf(section) {

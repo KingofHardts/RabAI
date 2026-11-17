@@ -904,8 +904,8 @@ The Oral Torah: the Mishnah and Tosefta, the Talmud Bavli and Yerushalmi, the Mi
   - Reads: The William Davidson Talmud (Koren Noé, Rabbi Adin Even-Israel Steinsaltz) [English]. Hosted on Sefaria under a non-commercial license. Commercial use needs a separate agreement.
 - **Talmud Yerushalmi** (תלמוד ירושלמי). core. `talmud-yerushalmi`
   - Reads: Hebrew/Aramaic text of the first printing (Venice, 1523). The Bomberg printing, the basis of every later edition. Public domain by age. Sefaria's digital copy lists its license as unknown, so it enters the testing library on the age of the printing alone (founding spec, "Testing library").
-  - Reads: Koren Talmud Yerushalmi, Hebrew/Aramaic (William Davidson digital edition). Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the plan skips it until that is confirmed.
-  - Reads: Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz). Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the plan skips it until that is confirmed. Until then RabbAI translates the Yerushalmi itself and says so.
+  - Reads: Koren Talmud Yerushalmi, Hebrew/Aramaic (William Davidson digital edition). Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far; its file lists the license as unknown, so it enters under Koren's licence (canon/permissions.yaml, reported 2026-11-17).
+  - Reads: Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz). Only Shekalim is on Sefaria so far; its file lists the license as unknown, so it enters under Koren's licence (canon/permissions.yaml, reported 2026-11-17). Elsewhere RabbAI translates the Yerushalmi itself and says so.
   - Waiting for your decision: The Jerusalem Talmud, translated by Heinrich W. Guggenheimer (Part 2).
   - Waiting for your decision: Hebrew/Aramaic text edited by Heinrich W. Guggenheimer (Part 2).
 - **Midrash (Midrash Rabbah, Tanchuma, Mechilta, Sifra, Sifrei)** (מדרש). core. `midrash`

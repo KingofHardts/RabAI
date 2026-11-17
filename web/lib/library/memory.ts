@@ -105,7 +105,7 @@ export function memoryKey(method: string, args: unknown[]): string {
 }
 
 /** The store's reads that may be remembered: they only read the library, and depend only on their arguments. */
-export const REMEMBERED = ["lookup", "search", "articles", "linked", "dictionary", "wordEntries", "section", "contents", "daf", "exact", "dafLayout", "vowels", "catalog", "books", "articleShelves"] as const;
+export const REMEMBERED = ["lookup", "search", "articles", "linked", "dictionary", "wordEntries", "section", "contents", "headings", "daf", "exact", "dafLayout", "vowels", "catalog", "books", "articleShelves"] as const;
 
 /** The same store, with its library reads remembered. Anything else (the translation jobs' reads) goes straight through. */
 export function withMemory<S extends object>(store: S, memory: LibraryMemory): S {

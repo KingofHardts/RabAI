@@ -631,11 +631,13 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far, and its
-          file lists the license as unknown, so the plan skips it until that is confirmed.
+          Steinsaltz's vowelled and punctuated text. Only Shekalim is on Sefaria so far; its file
+          lists the license as unknown, so it enters under Koren's licence (canon/permissions.yaml,
+          reported 2026-11-17).
         sefaria_versions:
           - version: "William Davidson Edition - Hebrew"
             license: "CC-BY-NC"
+            permission: koren
       - name: "Koren Talmud Yerushalmi, English (William Davidson digital edition, Rabbi Adin Even-Israel Steinsaltz)"
         language: en
         publisher: Koren
@@ -643,12 +645,13 @@ works:
         status: proposed
         license: verify
         notes: >-
-          Only Shekalim is on Sefaria so far, and its file lists the license as unknown, so the
-          plan skips it until that is confirmed. Until then RabbAI translates the Yerushalmi
-          itself and says so.
+          Only Shekalim is on Sefaria so far; its file lists the license as unknown, so it enters
+          under Koren's licence (canon/permissions.yaml, reported 2026-11-17). Elsewhere RabbAI
+          translates the Yerushalmi itself and says so.
         sefaria_versions:
           - version: "William Davidson Edition - English"
             license: "CC-BY-NC"
+            permission: koren
       - name: The Jerusalem Talmud, translated by Heinrich W. Guggenheimer
         language: en
         publisher: De Gruyter

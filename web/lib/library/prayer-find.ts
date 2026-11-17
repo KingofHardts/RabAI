@@ -48,8 +48,28 @@ const PRAYERS: string[][] = [
   ["Modeh Ani", "modah ani", "mode ani"],
   ["Asher Yatzar", "asher yatzar", "asher yotzar"],
   ["Tefillat HaDerech", "tefilat haderech", "tefilas haderech", "tefillas haderech", "travelers prayer", "wayfarers prayer", "prayer for travel"],
-  ["Al HaMichya", "al hamichya", "meein shalosh", "mein shalosh", "beracha achrona", "bracha achrona"],
-  ["Borei Nefashot", "borei nefashos", "bore nefashot"],
+  ["Al HaMichya", "al hamichya", "al hamichyah", "al hamihya", "al hamiya", "al hamechya", "meein shalosh", "mein shalosh", "meen shalosh", "brocha meein shalosh", "beracha achrona", "bracha achrona", "brocha achrona"],
+  ["Borei Nefashot", "borei nefashos", "bore nefashot", "boreh nefashot", "borei nefoshos"],
+  ["Birkat HaGomel", "birkas hagomel", "hagomel", "gomel", "benching gomel"],
+  ["Birkat Kohanim", "birkas kohanim", "duchening", "duchenen", "priestly blessing"],
+  ["Sheva Berakhot", "sheva brachot", "sheva brachos", "sheva berachot", "seven blessings"],
+  ["Shehecheyanu", "shehechiyanu", "shehecheyanu", "shecheyanu"],
+  ["Kaddish", "kadish", "mourners kaddish", "kaddish yatom"],
+  ["Barchu", "borchu", "barechu"],
+  ["Kedushah", "kedusha", "kedushe", "kdusha"],
+  ["The Daily Psalm", "shir shel yom", "shir shel yom", "daily psalm", "song of the day", "psalm of the day"],
+  ["Uva LeTzion", "uva letzion", "uva ltzion", "u va letzion"],
+  ["Lamenatze'ach", "lamenatzeach", "lamnatzeach", "lamenatzeiach"],
+  ["Viduy", "vidui", "viduy", "ashamnu"],
+  ["Avinu Malkenu", "avinu malkeinu", "avinu malkenu"],
+  ["Al HaNissim", "al hanisim", "al hanissim"],
+  ["Ya'aleh VeYavo", "yaaleh veyavo", "yaale vyavo", "yaaleh vyavo"],
+  ["Anim Zemirot", "anim zmirot", "anim zemiros", "shir hakavod"],
+  ["Pitum HaKetoret", "pitum haketores", "pitum haketoret", "ketoret"],
+  ["Tefillin", "tefilin", "tfillin", "putting on tefillin"],
+  ["Tallit", "talis", "tallis", "tallit"],
+  ["Shir HaMa'alot", "shir hamaalos", "shir hamaalot"],
+  ["Hatarat Nedarim", "hataras nedarim", "annulment of vows"],
   ["Sefirat HaOmer", "sefiras haomer", "counting the omer", "omer"],
   ["Kiddush Levana", "kiddush levanah", "kidush levana", "blessing of the moon", "blessing the new moon", "blessing of the new moon"],
   ["Birkat HaChodesh", "birkas hachodesh", "blessing the new month"],
@@ -93,6 +113,13 @@ function prayerNameSets(query: string): { exact: string[]; loose: string[] } {
 export function prayerNames(query: string): string[] {
   const { exact, loose } = prayerNameSets(query);
   return [...exact, ...loose];
+}
+
+/** The usual name of a prayer a heading or title names ("Blessing After Food -- Al Hamiḥya" → "Al HaMichya"), if any. */
+export function usualPrayerName(text: string): string | null {
+  const hay = ` ${foldPrayer(text)} `;
+  for (let i = 0; i < PRAYER_GROUPS.length; i++) if (PRAYER_GROUPS[i].some((n) => n.length >= 4 && hay.includes(` ${n} `))) return PRAYERS[i][0];
+  return null;
 }
 
 /** Whether what was typed is a prayer's own name ("Mincha", "bentching"), not just a word a prayer shares. */

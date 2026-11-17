@@ -93,3 +93,43 @@ permissions:
       each shiur (title, speaker, date, series, and a description or transcript where there is
       one); the audio and video play from TorahAnytime itself. Transcripts may need each speaker's
       permission before any public use.
+
+  - id: koren
+    holder: "Koren Publishers Jerusalem"
+    sites: [korenpub.com, korenpub.co.il]
+    received: 2026-11-17
+    how: >-
+      Reported by the maintainer in a working session on 2026-11-17 ("I got the ArtScroll and
+      the Koren. It covers everything... they gave us the license"). The licence itself is not
+      yet in this repo; copy its words into docs/permissions-plan.md, so its exact terms (and
+      whether it allows public use) are on file.
+    public: false
+    scope: >-
+      Everything Koren publishes, by the maintainer's account (2026-11-17). Koren sends no files:
+      the texts come from where they are already published with Koren's name on them (Sefaria's
+      Koren editions). Recorded as private use until the licence's own words say otherwise.
+    also:
+      - version: "William Davidson Edition - Hebrew"
+        why: >-
+          Koren's Talmud Yerushalmi (Steinsaltz), on Sefaria. Sefaria's Shekalim file lists its
+          license as unknown, which kept it out of the testing library until Koren's licence.
+      - version: "William Davidson Edition - English"
+        why: >-
+          Koren's English Yerushalmi (Steinsaltz), on Sefaria, left out for the same reason as
+          its Hebrew.
+
+  - id: artscroll
+    holder: "ArtScroll / Mesorah Publications"
+    sites: [artscroll.com]
+    received: 2026-11-17
+    how: >-
+      Reported by the maintainer in a working session on 2026-11-17 ("I got the ArtScroll and
+      the Koren. It covers everything"). The licence itself is not yet in this repo; copy its
+      words into docs/permissions-plan.md.
+    public: false
+    scope: >-
+      Everything ArtScroll publishes, by the maintainer's account (2026-11-17). No ArtScroll text
+      is published openly online: the only digital copies are ArtScroll's own Digital Library
+      app, which is locked, and copies others posted without ArtScroll's leave. Neither is taken
+      from (CLAUDE.md: never get around a site's protections). The texts wait for files from
+      ArtScroll itself (docs/outreach/artscroll-files.md).

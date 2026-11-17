@@ -7,7 +7,7 @@ const today: DaySummaryDavening = {
   dow: 3, israel: false, roshChodesh: false, chanukah: false, purim: false, fast: false, tishaBav: false, tenDays: false,
   shabbatShuva: false, cholHamoed: false, yomTov: false, tachanun: { shacharit: true, mincha: true, allCongs: true }, hallel: 0,
   mashivHaruach: true, talUmatar: false, notes: [], festival: null, erevPesach: false, erevYomKippur: false, adar1415: false,
-  yomHaatzmaut: false, yomYerushalayim: false, isruChag: false, ledavid: false,
+  yomHaatzmaut: false, yomYerushalayim: false, isruChag: false, ledavid: false, hoshanaRaba: false, motzaei: false,
 };
 
 test("headings, instructions and prayers", () => {

@@ -408,8 +408,9 @@ export function phrases(text: string, menWomen = false): Phrase[] {
 const SMALL_WORDS = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"]);
 
 /** "PATRIARCHS" -> "Patriarchs", "MOURNER'S KADDISH" -> "Mourner's Kaddish", "BLESSING OF LAND" -> "Blessing of Land". */
-function ordinaryCase(s: string): string {
+export function ordinaryCase(s: string): string {
   return s
+    .replace(/\s+-{2,}\s+/g, " – ")
     .toLowerCase()
     .replace(/(^|[\s\-(/])([a-z]+)/g, (m: string, a: string, w: string, at: number) => (at > 0 && a !== "(" && SMALL_WORDS.has(w) ? a + w : a + w[0].toUpperCase() + w.slice(1)));
 }

@@ -455,6 +455,27 @@ wording.
   - **A quicker voice in Talk.** A conversation's turns are read with the speech service's quick
     model, streamed; "Listen" on an answer keeps the fuller voice. Only the text being read is
     sent, as before.
+- **Commentary looks like commentary; today's davening checked line by line (Josh, 2026-11-17).**
+  Josh: "the commentary… reads like more davening… the davening should be the davening, the
+  commentary should be the commentary", "there are still things that show when we don't say them
+  and don't show when we do", and Al HaMichya couldn't be found.
+  - Commentary (Rabbi Sacks's notes, RabbAI's notes on how to daven) is drawn in its own card, in
+    the Learn tab's purple, a sans-serif face, labeled with whose it is, with the words it explains
+    in bold; it opens from a small "Commentary" chip. The siddur's own instructions keep their
+    warm italic block.
+  - An audit ran every line of the Koren siddur's weekday services and bentching through the
+    today rules on a plain weekday, Chanukah, Rosh Chodesh, a fast, the Ten Days, Chol HaMoed and
+    in Israel. Fixed: Ein Keloheinu and Pitum HaKetoret after the daily psalm (Koren prints
+    Israel's weekday custom; outside Israel they are left out), Shir HaMa'alot Mima'amakim (Ten
+    Days and Hoshana Raba only), Retzei and Ya'aleh VeYavo in bentching, its opening psalm by
+    the day, the Ten Days and fast-day lines of Avinu Malkenu, half Hallel's omitted verses, the
+    drought, Tisha B'Av, personal-fast and Ten-Days-ending lines in the Amidah, Aneinu at Mincha,
+    Birkat Kohanim at Mincha on fast days, Atah Chonantanu after Shabbat (a new "motzaei" fact
+    from the calendar), Baruch Hashem LeOlam in Israel, the offerings for Shabbat and Rosh Chodesh,
+    and "Earlier"/"Continue" naming a prayer not said today. Still RabbAI's reading (open question
+    23).
+  - The Daven search finds headings inside prayers (Al HaMichya and Borei Nefashot are inside
+    Koren's Birkat HaMazon), by any common spelling.
 - **The person's situation while davening (2026-11-15).** From a second look at the other siddur
   apps (`docs/siddur-apps-2026-11.md`), the Daven settings gained "You, today": "I'm leading"
   (the Leader's lines marked), "I'm saying Kaddish" (each Mourner's and Rabbis' Kaddish marked and

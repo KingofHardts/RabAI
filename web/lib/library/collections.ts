@@ -117,6 +117,9 @@ export function combineStores(main: TestingStore, sources: Array<{ db: Db; store
     async contents(title) {
       return ownerOf(await collections(), title).contents(title);
     },
+    async headings(title) {
+      return ownerOf(await collections(), title).headings(title);
+    },
     daf: (section) => main.daf(section),
     exact: (refs) => spread(refs, (store, mine) => store.exact(mine)),
     dafLayout: (section) => main.dafLayout(section),

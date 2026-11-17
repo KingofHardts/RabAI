@@ -410,6 +410,15 @@ export default function Siddur({
   chunksRef.current = chunks;
   // The person's "no Tachanun in shul today" (a groom, a bris, a house of mourning) applies to today only.
   const davening = useMemo(() => withShulToday(day?.davening, day?.date, prefs.shul), [day?.davening, day?.date, prefs.shul]);
+  // Whether today's davening passes over a whole prayer (only when what isn't said today is hidden).
+  const skipRef = useRef<(section: string) => boolean>(() => false);
+  skipRef.current = (section: string) => {
+    if (!prefs.today || prefs.notToday !== "hide" || !davening) return false;
+    const { short } = names(book, section);
+    if (planToday(partOf(book, section), short, [], davening, prefs.customs).whole) return true;
+    if (prefs.minyan === "alone" && minyanWhole(short)) return true;
+    return prefs.meal === "alone" && Boolean(zimunWhole(short));
+  };
   const layout = prefs.layout;
   /** A line the person says themselves when leading or saying Kaddish, by the siddur's role label. */
   const mine = (tag: { text: string; kind: string } | undefined) => {
@@ -552,12 +561,20 @@ export default function Siddur({
     const alt = data.alt?.en ? Object.fromEntries(Object.entries(data.alt.en).map(([ref, en]) => [ref, phrases(en)])) : undefined;
     const koren = /koren/i.test(data.book ?? "");
     // The prayers before and after, in the order they are davened (which may differ from the print).
-    const at = orderRef.current.indexOf(data.section);
+    // In today's davening a prayer not said today is passed over, so "Earlier" and "Continue" never
+    // name one (the Counting of the Omer in Kislev).
+    const order = orderRef.current;
+    const at = order.indexOf(data.section);
+    const step = (dir: 1 | -1) => {
+      let k = at + dir;
+      while (k >= 0 && k < order.length && skipRef.current(order[k])) k += dir;
+      return order[k];
+    };
     return {
       section: data.section,
       sectionHe: data.sectionHe,
-      prev: at >= 0 ? orderRef.current[at - 1] : data.prev,
-      next: at >= 0 ? orderRef.current[at + 1] : data.next,
+      prev: at >= 0 ? step(-1) : data.prev,
+      next: at >= 0 ? step(1) : data.next,
       lines: data.lines.map((l) => readLine(l.ref, l.he ?? "", l.en ?? "", koren)),
       ...(alt && Object.keys(alt).length ? { alt } : {}),
       ...(data.notes?.en && Object.keys(data.notes.en).length ? { notes: data.notes.en } : {}),
@@ -1408,30 +1425,52 @@ export default function Siddur({
     );
   };
 
-  /** Rabbi Sacks's commentary on a line (Koren), folded to a link until it is opened. */
+  /**
+   * Rabbi Sacks's commentary on a line (Koren), folded to a small "Commentary" chip until it is
+   * opened. Commentary is drawn as commentary, never as more davening: its own card, a sans-serif
+   * face a size smaller, a label saying whose it is, and the words it explains set off in bold.
+   */
   const sacksNote = (ref: string, text: string) => {
     const k = `sacks:${ref}`;
     const open = openBits.has(k);
+    const paras = text.split(/\n+/).filter((p) => p.trim());
     return (
-      <div className={`sd-sacks${open ? " open" : ""}`}>
+      <div className={`sd-comm-wrap${open ? " open" : ""}`}>
         <button
           type="button"
-          className="link sd-sacks-btn"
+          className="sd-comm-chip"
           aria-expanded={open}
           onClick={(e) => {
             e.stopPropagation();
             setOpenBits((b) => toggle(b, k));
           }}
         >
-          {open ? "Close Rabbi Sacks's note" : "Rabbi Sacks's note"}
+          <span className="sd-comm-chip-mark" aria-hidden="true">
+            ❝
+          </span>
+          {open ? "Hide commentary" : <>Commentary <span className="sd-comm-chip-who">· Rabbi Sacks</span></>}
+          <span className="sd-comm-chip-chev" aria-hidden="true">
+            {open ? "▴" : "▾"}
+          </span>
         </button>
         {open && (
-          <div className="sd-sacks-text">
-            {text.split(/\n+/).map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
-            <p className="fine-left">From Rabbi Sacks&apos;s commentary in the Koren siddur, in RabbAI&apos;s testing library: not yet approved by the rabbinic board.</p>
-          </div>
+          <aside className="sd-comm" aria-label="Rabbi Sacks's commentary">
+            <p className="sd-comm-label">Commentary · Rabbi Jonathan Sacks</p>
+            <div className="sd-comm-body">
+              {paras.map((para, i) => {
+                // The words it explains come first ("הַמַּעֲבִיר Who removes sleep from my eyes: …").
+                const m = i === 0 ? para.match(/^(.{2,90}?:)\s+(.*)$/s) : null;
+                return m ? (
+                  <p key={i}>
+                    <b className="sd-comm-lemma">{m[1]}</b> {m[2]}
+                  </p>
+                ) : (
+                  <p key={i}>{para}</p>
+                );
+              })}
+            </div>
+            <p className="sd-comm-fine">From the Koren siddur, in RabbAI&apos;s testing library: not yet approved by the rabbinic board.</p>
+          </aside>
         )}
       </div>
     );
@@ -1506,15 +1545,16 @@ export default function Siddur({
       case "note":
         if (pane === "he" || prefs.depth === "prayers") return <div key={it.key} data-i={pane ? it.key : undefined} className="sd-pane-gap" />;
         return (
-          <div key={it.key} className="sd-instr sd-note" {...di}>
-            <p>{it.note.say}</p>
-            <p className="fine-left">
-              RabbAI&apos;s note, not yet reviewed by the rabbinic board. Suggested sources, for review: {it.note.sources.join("; ")}.
-            </p>
+          <aside key={it.key} className="sd-comm sd-comm-rabai" aria-label="RabbAI's note" {...di}>
+            <p className="sd-comm-label">How to daven · RabbAI&apos;s note</p>
+            <div className="sd-comm-body">
+              <p>{it.note.say}</p>
+            </div>
+            <p className="sd-comm-fine">Not yet reviewed by the rabbinic board. Suggested sources, for review: {it.note.sources.join("; ")}.</p>
             <button type="button" className="link sd-ask" onClick={() => onAsk(`At ${it.prayer}: “${it.note.say}” Why do we do this, and what is the halacha?`)}>
               Ask about this
             </button>
-          </div>
+          </aside>
         );
       case "para": {
         const showHe = prefs.lang !== "en";
@@ -2077,7 +2117,7 @@ export default function Siddur({
               <h3 id="sd-h-all" className="sd-block-h">
                 The whole siddur
               </h3>
-              <SiddurOutline outline={outline} onOpen={(sec) => void openAt(sec)} search />
+              <SiddurOutline outline={outline} onOpen={(sec) => void openAt(sec)} search book={book} />
             </section>
           )}
 
@@ -2212,8 +2252,11 @@ export default function Siddur({
           Aa
         </button>
         {nowChunk && (
-          <button type="button" className="rb-btn sd-learn" onClick={() => onLearn(nowChunk.section)} title="Learn this prayer, with its words and commentaries">
-            Learn
+          <button type="button" className="rb-btn sd-learn" onClick={() => onLearn(nowChunk.section)} title="Learn this prayer, with its words and commentaries" aria-label="Learn this prayer">
+            <svg className="sd-learn-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5-.7 1.5-1.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+            </svg>
+            <span className="sd-learn-label">Learn</span>
           </button>
         )}
       </div>
@@ -2298,13 +2341,21 @@ export default function Siddur({
       )}
       <nav className="sd-nav" aria-label="Move through the davening">
         <button type="button" className="sd-step" disabled={!prevStop && !chunks[0]?.prev} onClick={() => step(-1)} aria-label={prevStop ? `Back: ${prevStop.label}` : "Back"}>
-          <span aria-hidden="true">‹</span> <span className="sd-step-label">{prevStop?.label ?? (chunks[0]?.prev ? "Earlier" : "")}</span>
+          <span aria-hidden="true">‹</span>
+          <span className="sd-step-text">
+            <span className="sd-step-kicker">Back</span>
+            <span className="sd-step-label">{prevStop?.label ?? (chunks[0]?.prev ? "Earlier" : "")}</span>
+          </span>
         </button>
         <button type="button" className="sd-where" aria-live="polite" aria-expanded={jumpOpen} onClick={() => setJumpOpen(!jumpOpen)} title="Jump to a place in the davening">
           {stop?.label ?? "Jump to…"} <span aria-hidden="true">▴</span>
         </button>
         <button type="button" className="sd-step next" disabled={!nextStop} onClick={() => step(1)} aria-label={nextStop ? `Next: ${nextStop.label}` : "Next"}>
-          <span className="sd-step-label">{nextStop?.label ?? ""}</span> <span aria-hidden="true">›</span>
+          <span className="sd-step-text">
+            <span className="sd-step-kicker">Next</span>
+            <span className="sd-step-label">{nextStop?.label ?? ""}</span>
+          </span>
+          <span aria-hidden="true">›</span>
         </button>
       </nav>
       {jumpOpen && (
