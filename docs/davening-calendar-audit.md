@@ -12,6 +12,9 @@ to run the check again. It is still RabbAI's reading of the siddur and the calen
 (`.github/workflows/davening-audit.yml`, by hand, after any change to `web/lib/siddur/today.ts` or
 `web/lib/calendar/`):
 
+- **Festivals, the night and Vihi No'am** (second round, below): every festival service at each
+  service, the one-day festival prayers, Ma'ariv before sunset with tonight's day, and Vihi No'am
+  for Ashkenaz and Sephardi custom.
 - **Every day of two Hebrew years** (5787 and 5788), **outside Israel and in Israel**, through the
   same code the Daven tab uses, for **four siddurim**: Koren, and Sefaria's Siddur Ashkenaz, Sefard
   and Edot HaMizrach. 5,752 siddur-days in all.
@@ -125,13 +128,106 @@ insertions without labels. Found and fixed:
   lines show, with the siddur's own instruction, instead of the wrong one before Musaf.
 - **Bentching's "Migdol / Magdil"** follows Shabbat, festivals, Chol HaMoed and Rosh Chodesh.
 
+## Second round (2026-11-17): festivals, the night, Vihi No'am, and traditions
+
+Josh asked for the festival services, an early Ma'ariv and Vihi No'am, "according to different
+traditions", with settings the person can change, or tell RabbAI to change, and a siddur that
+learns what they keep.
+
+### Which day a service belongs to
+
+- **Ma'ariv belongs to the coming night.** Before sunset the app gives the Daven tab tonight's day
+  as well (`daveningTonight`), and Ma'ariv, the Omer, Kabbalat Shabbat, the Shema before sleep and
+  the evening Kiddush read it: an early Ma'ariv on the afternoon before Rosh Chodesh shows Ya'aleh
+  VeYavo. Shulchan Aruch HaRav treats an early Ma'ariv as already the next day (once it is said,
+  Ya'aleh VeYavo and Al HaNissim are no longer added in bentching for the day before:
+  [Birkat HaMazon on Rosh Chodesh](https://shulchanaruchharav.com/halacha/birchas-hamazon-on-rosh-chodesh/)).
+- **Mincha belongs to the day that is ending:** after sunset the app also gives that day
+  (`daveningEarlier`), so a late Mincha on Erev Rosh Chodesh has no Ya'aleh VeYavo
+  ([Torah Musings, Mincha after sunset](https://www.torahmusings.com/2018/04/minchah-after-sunset/)).
+- The Omer after an early Ma'ariv: the custom is to wait for nightfall and count with a blessing
+  (Shulchan Aruch 489:3, Mishnah Berurah 489:34; [OU Torah](https://outorah.org/p/122717),
+  [Shulchan Aruch HaRav](https://shulchanaruchharav.com/?p=2082)). Ma'ariv of Motza'ei Shabbat is
+  not said before Shabbat ends by custom ([Torah Musings](https://www.torahmusings.com/2025/01/davening-maariv-early-on-motzaei-shabbat/)).
+- The festival Amidah is printed once for Ma'ariv, Shacharit and Mincha: it follows the service the
+  person came from, or the time of day, and a switch above it ("Showing it for: Ma'ariv ·
+  Shacharit · Mincha") changes it.
+
+### The festivals
+
+Checked every day of Pesach, Shavuot, Sukkot and Shemini Atzeret in 5787 and 5788, in and outside
+Israel, at each service, for Koren and Sefaria's Siddur Sefard and Edot HaMizrach (480 services):
+- the festival's own name only (Matzot, Shavuot, Sukkot, Shemini Atzeret) in "You have given us"
+  and Ya'aleh VeYavo;
+- the rain phrase by service on the day it changes: from Musaf of Shemini Atzeret and until Musaf
+  of the first day of Pesach; "He causes the dew to fall" in Israel, and outside it by Sefard,
+  Chabad and Sephardi custom (Rema 114:3, [Shulchan Aruch HaRav 114](https://shulchanaruchharav.com/?p=9964));
+- Vatodienu in Ma'ariv after Shabbat; Sim Shalom in Shacharit (in Israel also at Shabbat Mincha),
+  Shalom Rav in Mincha and Ma'ariv; the Kedusha for the service;
+- Musaf's offering for the day: the first or last days of Pesach, Shavuot, the first days of
+  Sukkot, each day of Chol HaMoed Sukkot (outside Israel the day's and the next, in Israel one),
+  Hoshana Raba and Shemini Atzeret; the festive Kedusha on Yom Tov, Shabbat and Hoshana Raba;
+- the prayers of one day: Yizkor (the last day of Pesach, Shavuot's second day, Yom Kippur and
+  Shemini Atzeret), Tal (the first day of Pesach), Geshem (Shemini Atzeret), Akdamut, Hakafot, the
+  lulav (not on Shabbat), Hoshanot by day.
+- On Yom Tov, the Shabbat Amidah and Musaf are put away for the festival's own.
+
+The day's Hoshana (which of the six is said each day) depends on the day of the week Sukkot began
+and on custom, and is not yet chosen for the person.
+
+### Vihi No'am
+
+Left out (with Ve'atah Kadosh) on Motza'ei Shabbat when a full Yom Tov falls from Sunday through
+Friday of the coming week (Rema 295; Friday counts, a Yom Tov on the next Shabbat doesn't; Purim,
+Chanukah and Erev Pesach don't count). On Tisha B'Av Ve'atah Kadosh is said after Eicha instead.
+Sephardim say it every week (Birkei Yosef, Kaf HaChaim). Sources:
+[OU Torah](https://outorah.org/p/4896/), [Torah Musings](https://www.torahmusings.com/2018/06/vayehi-noam/),
+[Shulchan Aruch HaRav](https://shulchanaruchharav.com/halacha/vayehi-noam/),
+[Halacha Moment (Sephardi)](https://www.halachamoment.com/post/arvit-of-motzaei-shabbat-vihi-noam),
+[Jewish Press](https://www.jewishpress.com/judaism/halacha-hashkafa/the-vihi-noam-prayer/2021/12/08/).
+Checked every Motza'ei Shabbat of two years, for Ashkenaz and for Sephardi custom.
+
+### Traditions (lib/siddur/tradition.ts)
+
+Four traditions start from their own customs; every custom can be changed by the person. The
+defaults, with the sources found (A = Ashkenaz, S = Sefard, C = Chabad, E = Sephardi):
+
+| Custom | A | S | C | E | Sources |
+|---|---|---|---|---|---|
+| "He causes the dew to fall" outside Israel | no | yes | yes | yes | Rema 114:3; [Shulchan Aruch HaRav](https://shulchanaruchharav.com/?p=9964) |
+| Viduy before Tachanun every day | no | yes | yes | yes | [Etzion](https://www.etzion.org.il/en/node/31157) |
+| No Tachanun on Pesach Sheni | yes (Koren) | yes | yes | yes | [Ohr Somayach](https://ohr.edu/12103) |
+| No Tachanun 9–12 Sivan, and to the end of Tishrei (outside Israel) | no (Koren prints it) | yes | yes | yes | [Shulchan Aruch HaRav](https://shulchanaruchharav.com/article/tachanun-during-sivan); [OU, Sephardic practice](https://www.ou.org/holidays/halacha-according-to-the-sephardic-practice-aseret-yemei-teshuvah/) |
+| No Tachanun on 10 and 19–20 Kislev, 12–13 Tammuz | no | no | yes | no | [Sefer HaMinhagim](https://sichos-in-english.org/books/sefer-haminhagim/16.htm) |
+| Ein Keloheinu and Pitum HaKetoret every day | no (outside Israel) | yes | yes | yes | [Peninei Halakha](https://ph.yhb.org.il/en/02-23-05/) |
+| LeDavid HaShem Ori until | Shemini Atzeret | Hoshana Raba | Hoshana Raba | all year | [Shulchan Aruch HaRav](https://shulchanaruchharav.com/?p=2203) |
+| Lamenatze'ach left out on every day without Tachanun | no | no | no | yes | Kaf HaChaim 131; [Peninei Halakha](https://ph.yhb.org.il/en/02-23-01) |
+| Mizmor LeToda on Erev Pesach, Pesach and Erev Yom Kippur | no | no | no | yes | [Shulchan Aruch HaRav](https://shulchanaruchharav.com/?p=91123) |
+| Av HaRachamim | yes | yes | yes | no (Hashkavah) | [Wikipedia summary](https://en.wikipedia.org/wiki/Av_HaRachamim) |
+| Pirkei Avot | to Rosh HaShana | to Rosh HaShana | to Rosh HaShana | to Shavuot | [OU Torah](https://outorah.org/p/50778) |
+| Barekhi Nafshi in winter | yes | yes | no | no | Rema 292:2 |
+| Vihi No'am before a festival week | no | no | no | yes | above |
+| Yizkor | yes | yes | yes | no (Hashkavah) | [Jewish Virtual Library](https://www.jewishvirtuallibrary.org/hazkarat-neshamot) |
+| Akdamut | yes | yes | no | no | [Chabad.org](https://www.chabad.org/library/article_cdo/aid/2836587/jewish/Akdamot.htm) |
+| Hoshanot on Shabbat | yes | yes | no | no | [OU, Sephardic practice](https://www.ou.org/holidays/halacha-according-to-the-sephardic-practice-tefillot-of-sukkot/); [Chabad.org](https://www.chabad.org/library/article_cdo/aid/2337565/jewish/All-About-Hoshanot.htm) |
+| Hallel in shul on the Seder night | no | yes | yes | yes | Shulchan Aruch 487:4; [Jewish Link](https://jewishlink.news/hallel-in-shul-the-first-night-of-pesach-ashkenazim-adopt-sephardic-practice/) |
+| A blessing over half Hallel | yes | yes | yes | no | Shulchan Aruch 422:2; [Kol Torah](https://koltorah.org/halachah/chatzi-hallel-by-rabbi-chaim-jachter) |
+| Avinu Malkeinu on fast days | yes | yes | yes | no | low confidence, a setting |
+
+The person chooses a tradition the first time they open the Daven tab ("How do you daven?"), or
+"Not sure: start with Ashkenaz and learn as I go"; it opens that tradition's siddur (Chabad: Siddur
+Sefard, the closest in the library). The siddur learns: when the person opens something a custom
+left out, it asks ("Do you say Tachanun on Pesach Sheni?") and remembers only on "Yes, remember
+it". In the chat, RabbAI may offer a change ([[daven KEY=VALUE]], checked against the real settings)
+as a "Change it" button, with Undo; nothing changes until the person taps it. Still to do: the
+Hallel blessing and the Seder-night Hallel are settings without lines to fold yet, and Teimani
+(Baladi and Shami) is left out until a Tiklal is in hand.
+
 ## Not covered yet (said plainly)
 
-- **Festival services** (Yom Tov, Rosh HaShana, Yom Kippur, Chol HaMoed Musaf) are not in the audit:
-  the app sends people to a machzor for Rosh HaShana and Yom Kippur, and the festival Amidah's own
-  insertions are not yet checked day by day.
-- **Erev Rosh Chodesh Ma'ariv before sunset** (an early Ma'ariv) reads the day as still the day
-  before, so Ya'aleh VeYavo would be hidden; after sunset it is right.
-- **Vihi Noam** on Motza'ei Shabbat when a festival falls in the coming week.
+- **Rosh HaShana and Yom Kippur** themselves: the app sends people to a machzor (the Amidot, Musaf
+  and Ne'ila are entirely different), as the sources advise. The Ten Days' additions in the
+  daily siddur are covered.
+- **The day's Hoshana** on each day of Sukkot (above), and the Torah reading sections by day.
 - The customs that differ (Pesach Sheni, 9–12 Sivan, the end of Tishrei, Yom HaAtzma'ut) follow Koren
   unless the person changes them; a rav or the board may want a different default.

@@ -691,6 +691,22 @@ wording.
     it isn't said. The passes, fixes and sources are in
     [`docs/davening-calendar-audit.md`](davening-calendar-audit.md). Still for the board (open
     question 23).
+  - **Decided (Josh, 2026-11-17, second round):** the festival services, an early Ma'ariv and Vihi
+    No'am are covered, "according to different traditions". Ma'ariv belongs to the coming night
+    (an early Ma'ariv reads tonight's day) and a late Mincha to the day that is ending; the festival
+    Amidah, said at three services, follows the service the person came from, with a switch. The
+    person's tradition (Ashkenaz, Sefard, Chabad, Sephardi) sets the starting customs, and each can
+    be changed: in the settings, by answering the siddur when they open something a custom left
+    out, or by telling RabbAI in the chat, which offers the change as a button they tap; nothing
+    changes without them. The siddur starts by asking "How do you daven?" (or starts with Ashkenaz
+    and learns). Each tradition's defaults and their sources are in
+    [`docs/davening-calendar-audit.md`](davening-calendar-audit.md), "Traditions"; the board
+    confirms them (open question 23).
+  - **Decided (Josh, 2026-11-17):** features like RustyBrick's Siddur, while making RabbAI's the
+    best it can be: the Daven tab has four sections (Siddur, Times with "Up next", a Calendar with
+    Hebrew dates, Tools), a floating reading bar, a double tap for just the text, pinching to change
+    the size, a draggable divider between the panes, and optional personal prayers shaded as the
+    siddur marks them ([`docs/siddur-apps-2026-11.md`](siddur-apps-2026-11.md)).
 - **RabbAI's voice.** **Decided (Josh, 2026-11-04):** answers are read aloud in a natural voice that
   sounds like an older, wise teacher, and Hebrew words and rabbis' names are said correctly.
   - RabbAI's own voice comes from a speech service (ElevenLabs or OpenAI) when one is set up in the
@@ -895,7 +911,9 @@ These need a decision before launch. Each one changes behavior.
     and the wording of each note? Josh decided (2026-11-04) that the Daven tab folds what isn't
     said today, never removing it; is that right, and are the rules for what folds right? Are the
     notes on how to daven in `canon/davening-notes.yaml` right, with their sources and the prayers
-    each is limited to?
+    each is limited to? Are the defaults for each tradition (Ashkenaz, Sefard, Chabad, Sephardi)
+    and the festival rules in `docs/davening-calendar-audit.md` right, and is it right that RabbAI
+    may offer to change the siddur's settings when the person describes their custom?
 24. **RabbAI's voice.** When an answer is read aloud, the voice says the Name as "Hashem" and Elohim
     as "Elokim", since reading an answer is learning, not prayer (see "RabbAI's voice"). Is that
     right, including for a verse or blessing quoted in an answer, and for the Name written out as

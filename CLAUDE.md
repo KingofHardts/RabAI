@@ -272,7 +272,12 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Koren siddur's printed list (`web/lib/calendar/tachanun.ts`), not Hebcal's `tachanun()`. After a
   change to `today.ts` or `web/lib/calendar/`, run the "Check today's davening" workflow
   (`web/scripts/audit-davening.ts`: two years, in and outside Israel, four siddurim; it prints no
-  text) and add each new rule's check to it (`docs/davening-calendar-audit.md`).
+  text) and add each new rule's check to it (`docs/davening-calendar-audit.md`). Festival rules
+  live in `web/lib/siddur/festivals.ts`. A prayer's day comes from its service
+  (`lib/siddur/service-day.ts`): Ma'ariv reads tonight's day, a late Mincha the day that is ending;
+  never read the clock's day for them. Customs come only from the person's tradition and their own
+  changes (`lib/siddur/tradition.ts`); RabbAI may only offer a change ([[daven KEY=VALUE]], checked
+  by `parseSettingChange`), shown as a button the person taps; never change a setting without them.
   "Ask about this" goes through the usual checked path (`send`).
 - On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
   the day's times as the calendar gives them, naming both opinions where it gives two; never pick
@@ -408,6 +413,20 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   the checks run right away.
 
 ## Where things stand (2026-11-10)
+
+Done 2026-11-17, at Josh's request ("a good number of passes… verified sources", "all of the
+festival services", "the early Ma'ariv and the Vihi Noam", "different traditions… it should try to
+get to learn to know you", "more features like" RustyBrick's Siddur):
+- Tachanun follows the Koren siddur's printed list, each difference from Hebcal checked against
+  the Shulchan Aruch and Orthodox sources; dozens of lines that showed on the wrong days fixed; the
+  "Check today's davening" workflow audits two years, four siddurim, in and outside Israel, every
+  festival service at each service, early Ma'ariv and Vihi No'am (`docs/davening-calendar-audit.md`).
+- Traditions with 23 customs, a first-time "How do you daven?", the siddur asking when you open
+  something a custom left out, and RabbAI offering a settings change in the chat.
+- The Daven tab's Siddur / Times / Calendar / Tools, the floating reading bar, double tap for just
+  the text, pinch for size, a draggable pane divider, shaded optional prayers.
+- Turso: the 12.43 GB of deleted library copies is still counted (checked 2026-11-17); Josh is to
+  send `docs/outreach/turso-storage-support.md`. No library rebuild was needed this round.
 
 Done 2026-11-10, at Josh's request ("the blessings over the Torah… should be in between
 preparation for prayer and morning blessings", "rework the titles… a lot more organized", "100 ways"

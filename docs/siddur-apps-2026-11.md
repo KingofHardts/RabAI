@@ -116,3 +116,45 @@ when said; Al HaMichya couldn't be found; it should feel more polished.
 - **Polish.** On a phone the reading bar keeps only icons, so the prayer's name fits; Back and Next
   say which way above the prayer's name; "Earlier" and "Continue" skip prayers not said today;
   headings read "Blessing After Food – Al HaMichya", not "-- AL HAMIḤYA".
+
+## RustyBrick's Siddur, looked at closely (2026-11-17, third round)
+
+Josh sent screenshots of RustyBrick's "Siddur Zmanim Luach Minyanim" and asked for features like
+it. What its listings, version history, blog and reviews say (the App Store and RustyBrick's site
+couldn't be opened from the session, so this comes from search results; weak points are marked):
+
+- **Reading:** a double tap hides the bars; a swipe moves to the next prayer; pinching changes the
+  text size and re-wraps it (it doesn't zoom); a slide-out list of contents. Dark mode since 2021.
+  English is a paid upgrade; no transliteration found.
+- **What's said today:** it "shows only the prayers you need for that day"; in 2017 what wasn't
+  said was greyed out. Israel or outside it from the location. The Omer in Ma'ariv and Shacharit and
+  on the calendar. Kiddush Levana hides itself by nusach.
+- **Nusach:** Ashkenaz, Sefard, Edot HaMizrach and Chabad (a paid upgrade), unevenly covered (the
+  Chabad version was weekday only; an iPad reviewer couldn't pick Edot HaMizrach).
+- **Times:** from the location, with a manual override and saved places; a paid add-on sends a
+  notification for a chosen time. Users asked for "the next few zmanim" at a glance.
+- **Calendar, minyanim, tools:** a Jewish calendar with the Omer; a database of shuls; Mizrach, a
+  tefillin mirror, a Mi Sheberach list. Tehillim is a separate app. Apple Watch, Siri shortcuts.
+- **What reviewers dislike:** crashes after updates, upsells, a sign-in prompt at every launch,
+  breaking when location is denied, uneven coverage between nusachot.
+- **Not found at all:** Yizkor, Tal and Geshem, how it handles an early Ma'ariv.
+
+Built from this (the Daven tab):
+- **Four sections:** Siddur, Times, Calendar and Tools, as a bar under "Daven" (remembered).
+- **Times:** a strip of seven days, "Up next" with how long until it, the day's times grouped
+  (Dawn, Morning, Midday, Evening, Night), both opinions where the calendar gives two, and this
+  Shabbat's times. Any day's times come from `/api/daven/day`.
+- **Calendar (the Luach):** a month with each day's Hebrew date and a colored mark for a festival,
+  Rosh Chodesh, a fast or an Israeli day; Shabbat shaded; tapping a day shows what it is, what
+  changes in the davening, its times and the daf (`/api/daven/month`, `lib/calendar/luach.ts`).
+- **Reading:** the bottom bar floats as a rounded pill over the text; a double tap shows just the
+  text (and "Show controls" brings the bars back); pinching changes the text size; in two panes,
+  a divider can be dragged (or moved with the arrow keys) to give either language more room.
+- **Optional prayers shaded:** where the siddur says a prayer may be added ("The following prayer
+  for a sick person may be said here"), the line is shaded and labeled as optional
+  (`lib/siddur/personal.ts`). Only the siddur's own words decide.
+
+Where RabbAI's siddur now goes further than RustyBrick's: every tradition is treated alike and
+learns the person's customs (below); it explains why each thing is or isn't said; festival
+services, Yizkor, Tal and Geshem are covered; Ma'ariv follows the coming night openly; English and
+transliteration are free; it works without location (it asks for a place) and without a sign-in.

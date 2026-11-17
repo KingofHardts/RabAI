@@ -2,11 +2,13 @@
 
 import { minyanFolds, minyanWhole } from "@/lib/siddur/minyan";
 import { isMournersKaddish, kaddishHeading, lineRole, SHUL_REASONS, withShulToday, zimunFolds, zimunWhole, type ShulReason } from "@/lib/siddur/situations";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type ReactNode, type TouchEvent } from "react";
 import ContentsGrid, { listBook } from "./ContentsGrid";
 import { DictRows } from "./WordCard";
 import TextReport from "./TextReport";
 import DavenTools from "./daven/DavenTools";
+import DavenTimes from "./daven/DavenTimes";
+import DavenLuach from "./daven/DavenLuach";
 import SiddurOutline from "./daven/SiddurOutline";
 import { useLinkedScroll } from "./use-linked-scroll";
 import { isOnline, keepAppCode, keepAppPage, keepOnDevice } from "@/lib/offline";
@@ -22,6 +24,7 @@ import { hallelToday, NOTE_FOR_ANOTHER_DAY, planToday, serviceOf, whenWords, typ
 import { dayForService, serviceByClock, serviceOfSection, SERVICE_NAMES } from "@/lib/siddur/service-day";
 import { customsFor, siddurFor, type Nusach } from "@/lib/siddur/tradition";
 import { customBehind } from "@/lib/siddur/tradition-learn";
+import { personalInsert } from "@/lib/siddur/personal";
 import TraditionSettings, { TraditionWelcome } from "./daven/TraditionSettings";
 import { transliterate } from "@/lib/siddur/translit";
 import { noteFor, bareLetters } from "@/lib/siddur/notes";
@@ -40,6 +43,7 @@ import {
   type EnglishFont,
   type HebrewFont,
   type Layout,
+  type DavenSize,
 } from "@/lib/siddur/prefs";
 import { copiedLine, loadFonts, withoutVowels } from "@/lib/reading-letters";
 import { davenOrder, glossFor, isOneLevel, movesTorahBlessings, siddurOutline, type OutlineCategory } from "@/lib/siddur/outline";
@@ -60,6 +64,15 @@ const SIDDUR_KEY = "rabai_siddur";
 const LAST_KEY = "rabai_daven_last";
 /** Set once the person has said how they daven (or chosen to let the siddur learn). */
 const KNOWN_KEY = "rabai_daven_known";
+/** Which of the Daven home's sections was open last. */
+const HOME_TAB_KEY = "rabai_daven_tab";
+type HomeTab = "siddur" | "times" | "calendar" | "tools";
+const HOME_TABS: Array<{ id: HomeTab; label: string }> = [
+  { id: "siddur", label: "Siddur" },
+  { id: "times", label: "Times" },
+  { id: "calendar", label: "Calendar" },
+  { id: "tools", label: "Tools" },
+];
 const MARKS_KEY = "rabai_daven_marks";
 /** The Koren siddur first: Rabbi Sacks's translation, and its instructions printed in place. */
 const PREFERRED = "The Koren Shalem Siddur; Ashkenaz";
@@ -447,6 +460,62 @@ export default function Siddur({
   );
   /** The service the festival Amidah is said at, when the person chose one; otherwise the service they came from, or the clock's. */
   const [sharedSvc, setSharedSvc] = useState<Service | null>(null);
+  /** Just the text: a double tap puts the bars away, and another (or the "Show controls" chip) brings them back. */
+  const [quiet, setQuiet] = useState(false);
+  /** How much of the screen the Hebrew pane takes in two panes (the divider can be dragged). */
+  const [split, setSplit] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem("rabai_daven_split"));
+      return v >= 0.2 && v <= 0.8 ? v : 0.5;
+    } catch {
+      return 0.5;
+    }
+  });
+  const panesRef = useRef<HTMLDivElement>(null);
+  const onDividerDown = (e: PointerEvent<HTMLDivElement>) => {
+    const box = panesRef.current?.getBoundingClientRect();
+    if (!box) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const move = (ev: globalThis.PointerEvent) => setSplit(Math.min(0.8, Math.max(0.2, (ev.clientY - box.top) / box.height)));
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setSplit((v) => {
+        keep("rabai_daven_split", String(Math.round(v * 100) / 100));
+        return v;
+      });
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+  // Just the text also puts the app's own top bar away.
+  useEffect(() => {
+    const app = document.querySelector(".app");
+    if (quiet) app?.classList.add("daven-reading");
+    else app?.classList.remove("daven-reading");
+  }, [quiet]);
+  /** A double tap on the page (not on a word whose meaning a tap shows) toggles just the text. */
+  const onBodyDouble = (e: MouseEvent) => {
+    const t = e.target as HTMLElement;
+    if (t.closest("button, a, input, select")) return;
+    if (prefs.wordTap && t.closest(".sd-he")) return;
+    // The double tap selects a word in most browsers; that isn't what the person meant.
+    window.getSelection()?.removeAllRanges();
+    setQuiet((q) => !q);
+  };
+  /** The Daven home's section: the siddur, the day's times, the calendar, or the tools. */
+  const [homeTab, setHomeTab] = useState<HomeTab>(() => {
+    try {
+      const t = localStorage.getItem(HOME_TAB_KEY);
+      return t === "times" || t === "calendar" || t === "tools" ? t : "siddur";
+    } catch {
+      return "siddur";
+    }
+  });
+  const pickHomeTab = (t: HomeTab) => {
+    setHomeTab(t);
+    keep(HOME_TAB_KEY, t);
+  };
   /** Whether the person has said how they daven; until then the home asks (TraditionWelcome). */
   const [known, setKnown] = useState(true);
   /** Questions about a custom the person answered "just today", so they aren't asked again. */
@@ -1070,11 +1139,34 @@ export default function Siddur({
     setJumpOpen(false);
   };
 
+  const pinch = useRef<{ start: number; last: number } | null>(null);
+  const spread = (e: TouchEvent) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
   const onTouchStart = (e: TouchEvent) => {
+    // Two fingers: a pinch changes the text size (and the text re-wraps), instead of zooming the page.
+    if (e.touches.length === 2) {
+      const d = spread(e);
+      pinch.current = { start: d, last: d };
+      touch.current = null;
+      return;
+    }
     const t = e.touches[0];
     touch.current = { x: t.clientX, y: t.clientY, t: Date.now() };
   };
+  const onTouchMove = (e: TouchEvent) => {
+    if (pinch.current && e.touches.length === 2) pinch.current.last = spread(e);
+  };
   const onTouchEnd = (e: TouchEvent) => {
+    if (pinch.current) {
+      if (e.touches.length > 0) return;
+      const { start, last } = pinch.current;
+      pinch.current = null;
+      const sizes: DavenSize[] = ["small", "usual", "large", "larger"];
+      const at = sizes.indexOf(prefs.size);
+      const ratio = last / Math.max(1, start);
+      if (ratio > 1.18 && at < sizes.length - 1) setPref("size", sizes[at + 1]);
+      else if (ratio < 0.85 && at > 0) setPref("size", sizes[at - 1]);
+      return;
+    }
     const start = touch.current;
     touch.current = null;
     const t = e.changedTouches[0];
@@ -1479,8 +1571,11 @@ export default function Siddur({
           {studyButton(l, it)}
         </div>
       );
+    // A prayer one may add for one's own need (the siddur says so): shaded, and named as optional.
+    const optional = personalInsert(l);
     return (
-      <div key={l.ref} className={`sd-line${pane && marked === it.key ? " sd-marked" : ""}${focusLine === l.ref ? " sd-focus" : ""}`} data-l={l.ref} data-i={pane ? it.key : undefined} {...stopAttrs}>
+      <div key={l.ref} className={`sd-line${optional ? " sd-optional" : ""}${pane && marked === it.key ? " sd-marked" : ""}${focusLine === l.ref ? " sd-focus" : ""}`} data-l={l.ref} data-i={pane ? it.key : undefined} {...stopAttrs}>
+        {optional && pane !== "en" && <p className="sd-optional-label">{optional} · may be added</p>}
         {showHe && (
           <p className="sd-he" lang="he" dir="rtl" data-prayer={it.prayer}>
             {l.he.map((p, i) => renderPhrase(p, i, l.ref, it.prayer, false, i === 0))}
@@ -2058,6 +2153,18 @@ export default function Siddur({
             </button>
           </div>
           {menu}
+          <nav className="sd-hometabs" role="tablist" aria-label="Daven">
+            {HOME_TABS.map((t) => (
+              <button key={t.id} type="button" role="tab" aria-selected={homeTab === t.id} className={homeTab === t.id ? "on" : ""} onClick={() => pickHomeTab(t.id)}>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          {homeTab === "times" && <DavenTimes day={day} place={place} onPlace={onPlace} />}
+          {homeTab === "calendar" && <DavenLuach day={day} />}
+          {homeTab === "tools" && <DavenTools day={day} place={place} onAsk={onAsk} onLearn={onLearn} onOpen={openNamed} onPlace={onPlace} />}
+          {homeTab === "siddur" && (
+          <>
           {!online && <p className="note sd-offline" role="status">No connection: showing what is kept on this device. Today&apos;s changes come back with the connection.</p>}
           {!known && <TraditionWelcome onPick={(n) => startTradition(n)} onSkip={() => startTradition(null)} />}
           {davening?.festival === "rosh-hashana" || davening?.festival === "yom-kippur" ? (
@@ -2221,8 +2328,6 @@ export default function Siddur({
             </section>
           ))}
 
-          <DavenTools day={day} place={place} onAsk={onAsk} onLearn={onLearn} onOpen={openNamed} onPlace={onPlace} />
-
           {outline.length > 0 && (
             <section className="sd-block" aria-labelledby="sd-h-all">
               <h3 id="sd-h-all" className="sd-block-h">
@@ -2245,6 +2350,8 @@ export default function Siddur({
             </label>
           </div>
           {testing && <p className="fine-left">From the testing library: not yet approved by the rabbinic board.</p>}
+          </>
+          )}
         </div>
       </div>
     );
@@ -2336,7 +2443,12 @@ export default function Siddur({
   );
 
   return (
-    <div className={`siddur reading layout-${layout}`} style={readingStyle}>
+    <div className={`siddur reading layout-${layout}${quiet ? " sd-quiet" : ""}`} style={readingStyle}>
+      {quiet && (
+        <button type="button" className="sd-unquiet" onClick={() => setQuiet(false)}>
+          Show controls
+        </button>
+      )}
       <div className="sd-bar">
         <button type="button" className="rb-back" onClick={() => setView("home")} aria-label="Back to the siddur's home">
           <span aria-hidden="true">←</span>
@@ -2418,8 +2530,12 @@ export default function Siddur({
       {layout === "panes" ? (
         <div
           className="sd-panes"
+          ref={panesRef}
+          style={{ gridTemplateRows: `${split}fr auto ${1 - split}fr` }}
           onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
+          onDoubleClick={onBodyDouble}
           onClickCapture={(e) => {
             // Tapping a line marks it in both columns; tapping it again clears the mark.
             const t = e.target as HTMLElement;
@@ -2433,12 +2549,39 @@ export default function Siddur({
             {items.map((it) => renderItem(it, "he"))}
             {endBlock}
           </div>
+          <div
+            className="sd-divider"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Drag to give the Hebrew or the English more room"
+            aria-valuenow={Math.round(split * 100)}
+            aria-valuemin={20}
+            aria-valuemax={80}
+            tabIndex={0}
+            onPointerDown={onDividerDown}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                e.preventDefault();
+                setSplit((v) => Math.min(0.8, Math.max(0.2, v + (e.key === "ArrowUp" ? -0.05 : 0.05))));
+              }
+            }}
+          >
+            <span aria-hidden="true" />
+          </div>
           <div className="sd-scroll sd-pane en" ref={enRef}>
             {items.map((it) => renderItem(it, "en"))}
           </div>
         </div>
       ) : (
-        <div className={`sd-scroll sd-body lang-${layout === "hebrew" ? "both" : prefs.lang}`} ref={bodyRef} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onClick={onBodyClick}>
+        <div
+          className={`sd-scroll sd-body lang-${layout === "hebrew" ? "both" : prefs.lang}`}
+          ref={bodyRef}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onClick={onBodyClick}
+          onDoubleClick={onBodyDouble}
+        >
           {bodyTop}
           {layout === "words" && (
             <p className="sd-label">

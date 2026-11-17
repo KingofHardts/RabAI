@@ -2075,3 +2075,77 @@ html:has(.siddur.reading), body:has(.siddur.reading) { overscroll-behavior-x: no
 .settings-offer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .settings-offer-row > span:first-child { flex: 1 1 220px; }
 .settings-offer-done { color: var(--accent); font-weight: 600; }
+
+/* A prayer the siddur says one may add for one's own need: shaded, as printed siddurim set it apart. */
+.sd-line.sd-optional { background: var(--tint); border-radius: 12px; padding: 8px 12px; margin: 6px 0; }
+.sd-optional-label { margin: 0 0 4px; font-family: var(--font-ui); font-size: 12.5px; font-weight: 600; color: var(--muted); }
+
+/* The Daven home's sections (Siddur, Times, Calendar, Tools), as a segmented bar. */
+.sd-hometabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; margin: 0 0 16px; background: var(--tint); border-radius: 999px; }
+.sd-hometabs button { min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-family: var(--font-ui); font-size: 14.5px; font-weight: 600; }
+.sd-hometabs button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+
+/* Times: a strip of days, what comes next, and the day's times by the part of the day. */
+.dt { display: grid; gap: 12px; }
+.dt-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dt-day { display: grid; justify-items: center; gap: 2px; padding: 6px 0; min-height: 52px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font-family: var(--font-ui); }
+.dt-day.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dt-dow { font-size: 11.5px; font-weight: 600; }
+.dt-num { font-size: 16px; font-weight: 600; }
+.dt-date { margin: 0; font-family: var(--font-ui); font-size: 14px; color: var(--muted); }
+.dt-is { margin: -6px 0 0; font-family: var(--font-ui); font-size: 14px; font-weight: 600; }
+.dt-next { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--tint); font-family: var(--font-ui); }
+.dt-next-k { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+.dt-next-name { font-size: 17px; font-weight: 600; }
+.dt-next-time { font-size: 15px; }
+.dt-next-note, .dt-note { display: block; font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.dt-group h4 { margin: 4px 0 6px; font-family: var(--font-ui); font-size: 13px; font-weight: 700; color: var(--muted); }
+.dt-group ul, .dl-times ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dt-group li, .dl-times li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 12px; border-top: 1px solid var(--line); font-family: var(--font-ui); font-size: 14.5px; }
+.dt-group li:first-child, .dl-times li:first-child { border-top: 0; }
+.dt-group li.past { color: var(--muted); }
+.dt-group li.next { background: var(--tint); font-weight: 600; }
+.dt-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dt-shabbat { margin: 0; font-family: var(--font-ui); font-size: 14px; }
+.dt-empty { display: grid; gap: 10px; justify-items: start; font-family: var(--font-ui); }
+
+/* Calendar (the Luach): a month with Hebrew dates and marks. */
+.dl { display: grid; gap: 12px; }
+.dl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dl-title { display: grid; justify-items: center; font-family: var(--font-ui); font-weight: 600; font-size: 16px; }
+.dl-heb { font-size: 13px; font-weight: 500; color: var(--muted); }
+.dl-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.dl-dow { text-align: center; font-family: var(--font-ui); font-size: 11.5px; font-weight: 700; color: var(--muted); padding: 2px 0; }
+.dl-day { display: grid; justify-items: center; align-content: start; gap: 1px; min-height: 54px; padding: 4px 0 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-family: var(--font-ui); }
+.dl-day.shabbat { background: var(--tint); }
+.dl-day.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.dl-day.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.dl-num { font-size: 14.5px; font-weight: 600; }
+.dl-he { font-size: 12px; color: inherit; opacity: 0.75; font-family: var(--font-hebrew, serif); }
+.dl-dots { display: flex; gap: 2px; }
+.dl-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.dl-dot.holiday { background: #C0841A; }
+.dl-dot.roshChodesh { background: #2F7D5B; }
+.dl-dot.fast { background: #9B3B3B; }
+.dl-dot.modern { background: #3F67A6; }
+.dl-dot.special, .dl-dot.parsha { background: #7A6A9A; }
+.dl-key { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; margin: 0; padding: 0; font-family: var(--font-ui); font-size: 12.5px; color: var(--muted); }
+.dl-detail { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; font-family: var(--font-ui); font-size: 14.5px; }
+.dl-detail h4 { margin: 0; font-size: 15.5px; }
+.dl-events, .dl-notes { margin: 0; padding-inline-start: 18px; }
+.dl-events { list-style: none; padding: 0; }
+.dl-daf { margin: 0; }
+
+/* Reading: the bar at the bottom floats as a rounded pill over the text, as in RustyBrick's Siddur. */
+.siddur.reading .sd-nav { left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin-inline: auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14); }
+.siddur.reading .sd-nav .sd-step { border-radius: 999px; }
+/* Just the text: a double tap puts the bars away. */
+.siddur.sd-quiet .sd-nav, .siddur.sd-quiet .sd-bar, .siddur.sd-quiet .sd-progress { display: none; }
+.sd-unquiet { position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); right: 10px; z-index: 6; min-height: 36px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+/* Two panes: a divider the person can drag to give either language more room. */
+.sd-divider { height: 14px; display: grid; place-items: center; cursor: row-resize; touch-action: none; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.sd-divider span { width: 44px; height: 4px; border-radius: 2px; background: var(--muted); opacity: 0.5; }
+.sd-divider:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sd-panes .sd-pane.en { border-top: 0; }
+/* Pinching resizes the text, not the page. */
+.siddur.reading .sd-scroll { touch-action: pan-x pan-y; }
