@@ -7,6 +7,8 @@
  */
 
 import { HDate, HebrewCalendar, flags, months } from "@hebcal/core";
+import { korenTachanun } from "./tachanun";
+import { pirkeiAvot } from "@hebcal/learning";
 
 export interface DaveningDay {
   /** 0 Sunday … 6 Shabbat, of the Hebrew day (after sunset, tomorrow's). */
@@ -31,6 +33,27 @@ export interface DaveningDay {
   yomYerushalayim: boolean;
   /** The day after a festival, in Israel. */
   isruChag: boolean;
+  /** A walled city (Jerusalem): Purim is kept on the 15th of Adar (Shushan Purim). */
+  jerusalem: boolean;
+  /**
+   * The rain phrase changes during the day: from Musaf of Shemini Atzeret ("starts", the earlier
+   * prayers that day don't say it) and at Musaf of the first day of Pesach ("stops"). The siddur's
+   * own instruction says which; both lines are shown on these days.
+   */
+  rainChange?: "starts" | "stops";
+  /** On Shabbat: the Shabbat before Rosh Chodesh (not before Tishrei), when the new month is blessed. */
+  mevarchim: boolean;
+  /**
+   * On Shabbat: Av HaRachamim before Musaf (Koren: omitted on days without Tachanun, on Shabbat
+   * Mevarchim except before Iyar and Sivan, and on the four special Shabbatot).
+   */
+  avHarachamim: boolean;
+  /** On Shabbat: Tzidkatcha at Minha (omitted when Tachanun wouldn't be said at a weekday Minha). */
+  tzidkatcha: boolean;
+  /** On a summer Shabbat: the chapter(s) of Pirkei Avot read this week (Hebcal's schedule). */
+  pirkeiAvot?: number[];
+  /** On Shabbat: Barekhi Nafshi at Minha (from the Shabbat after Simchat Torah until before Shabbat HaGadol). */
+  barchiNafshi: boolean;
   /** Hoshana Raba (21 Tishrei). */
   hoshanaRaba: boolean;
   /**
@@ -42,7 +65,8 @@ export interface DaveningDay {
   ledavid: boolean;
   /** Tonight's count of the Omer (1–49), when counting goes on tonight. */
   omerTonight?: number;
-  tachanun: { shacharit: boolean; mincha: boolean; allCongs: boolean };
+  /** From the Koren siddur's printed list (lib/calendar/tachanun.ts). `modern`: left out only for Yom HaAtzma'ut or Yom Yerushalayim. */
+  tachanun: { shacharit: boolean; mincha: boolean; allCongs: boolean; modern?: { shacharit: boolean; mincha: boolean }; why?: string; customWindow?: "sivan" | "tishrei" };
   /** 0 none, 1 half Hallel, 2 whole Hallel. */
   hallel: 0 | 1 | 2;
   /** "He makes the wind blow and the rain fall" (from Shemini Atzeret until Pesach). */
@@ -112,6 +136,34 @@ export function hallelOf(hd: HDate, israel: boolean, roshChodesh: boolean, chanu
   return 0;
 }
 
+/** The facts that matter only on Shabbat: blessing the month, Av HaRachamim, Tzidkatcha, Pirkei Avot, Barekhi Nafshi. */
+function shabbatFacts(hd: HDate, israel: boolean): Pick<DaveningDay, "mevarchim" | "avHarachamim" | "tzidkatcha" | "pirkeiAvot" | "barchiNafshi"> {
+  if (hd.getDay() !== 6) return { mevarchim: false, avHarachamim: false, tzidkatcha: false, barchiNafshi: false };
+  // Rosh Chodesh in the coming week (Sunday to Shabbat), except Tishrei, which isn't blessed.
+  let mevarchimBefore: number | null = null;
+  for (let k = 1; k <= 7; k++) {
+    const day = new HDate(hd.abs() + k);
+    if ((day.getDate() === 1 || day.getDate() === 30) && (HebrewCalendar.getHolidaysOnDate(day, israel) ?? []).some((e) => e.getFlags() & flags.ROSH_CHODESH)) {
+      const month = day.getDate() === 30 ? day.next().getMonth() : day.getMonth();
+      if (month !== months.TISHREI) mevarchimBefore = month;
+      break;
+    }
+  }
+  // A Shabbat that is itself Rosh Chodesh isn't Shabbat Mevarchim (the month was blessed the week before).
+  const todayRoshChodesh = (HebrewCalendar.getHolidaysOnDate(hd, israel) ?? []).some((e) => e.getFlags() & flags.ROSH_CHODESH);
+  const mevarchim = mevarchimBefore !== null && !todayRoshChodesh;
+  const special = (HebrewCalendar.getHolidaysOnDate(hd, israel) ?? []).some((e) => e.getFlags() & flags.SPECIAL_SHABBAT && /^Shabbat (Shekalim|Zachor|Parah|HaChodesh)/.test(e.getDesc()));
+  const weekday = korenTachanun(hd, israel, true);
+  const avHarachamim = weekday.shacharit && !special && !(mevarchim && mevarchimBefore !== months.IYYAR && mevarchimBefore !== months.SIVAN);
+  const avot = pirkeiAvot(hd, israel);
+  // Barekhi Nafshi: from the Shabbat after Simchat Torah until (not including) Shabbat HaGadol.
+  const y = hd.getFullYear();
+  const afterSimchatTorah = new HDate(israel ? 22 : 23, months.TISHREI, y).abs();
+  const shabbatHagadol = new HDate(15, months.NISAN, y).before(6).abs();
+  const barchiNafshi = hd.abs() > afterSimchatTorah && hd.abs() < shabbatHagadol;
+  return { mevarchim, avHarachamim, tzidkatcha: weekday.mincha, ...(avot ? { pirkeiAvot: avot } : {}), barchiNafshi };
+}
+
 /** Shabbat or a festival day (not Chol HaMoed). */
 function restDay(hd: HDate, israel: boolean): boolean {
   if (hd.getDay() === 6) return true;
@@ -121,7 +173,7 @@ function restDay(hd: HDate, israel: boolean): boolean {
 /**
  * The day's facts. `afterSunset`: the Hebrew day has begun this evening, so tonight belongs to `hd`.
  */
-export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): DaveningDay {
+export function daveningDay(hd: HDate, israel: boolean, afterSunset = false, jerusalem = false): DaveningDay {
   const events = HebrewCalendar.getHolidaysOnDate(hd, israel) ?? [];
   const has = (mask: number) => events.some((e) => (e.getFlags() & mask) !== 0);
   const desc = events.map((e) => e.getDesc());
@@ -133,7 +185,7 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
   // The Omer is counted at night, from the night after the first day of Pesach. Tonight's count is
   // the Hebrew day that begins this evening: after sunset that is `hd` itself.
   const tonight = hd.abs() + (afterSunset ? 0 : 1) - pesachOf(hd).abs();
-  const t = HebrewCalendar.tachanun(hd, israel);
+  const t = korenTachanun(hd, israel);
   const adarMonth: number[] = HDate.isLeapYear(hd.getFullYear()) ? [months.ADAR_I, months.ADAR_II] : [months.ADAR_I];
   // Isru Chag in Israel: the day after Pesach, Shavuot and Sukkot (Shemini Atzeret).
   const isru =
@@ -143,7 +195,10 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
     israel,
     roshChodesh: has(flags.ROSH_CHODESH),
     chanukah: desc.some((d) => /^Chanukah/.test(d)),
-    purim: month === purimMonth && day === 14,
+    // In Jerusalem Purim is the 15th (Shushan Purim); elsewhere the 14th.
+    purim: month === purimMonth && day === (jerusalem ? 15 : 14),
+    jerusalem,
+    ...(month === months.TISHREI && day === 22 ? { rainChange: "starts" as const } : month === months.NISAN && day === 15 ? { rainChange: "stops" as const } : {}),
     fast: (has(flags.MINOR_FAST) || has(flags.MAJOR_FAST)) && !has(flags.CHAG),
     tishaBav: desc.some((d) => /^Tish'a B'Av/.test(d)),
     tenDays,
@@ -158,10 +213,11 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false): Da
     yomYerushalayim: desc.some((d) => /^Yom Yerushalayim/.test(d)),
     isruChag: isru,
     hoshanaRaba: month === months.TISHREI && day === 21,
+    ...shabbatFacts(hd, israel),
     motzaei: restDay(afterSunset ? hd.prev() : hd, israel) && !restDay(afterSunset ? hd : hd.next(), israel) ? true : false,
     ledavid: month === months.ELUL || (month === months.TISHREI && day <= (israel ? 21 : 22)),
     ...(tonight >= 1 && tonight <= 49 ? { omerTonight: tonight } : {}),
-    tachanun: { shacharit: t.shacharit, mincha: t.mincha, allCongs: t.allCongs },
+    tachanun: { shacharit: t.shacharit, mincha: t.mincha, allCongs: t.allCongs, modern: t.modern, ...(t.why ? { why: t.why } : {}), ...(t.customWindow ? { customWindow: t.customWindow } : {}) },
     hallel: hallelOf(hd, israel, has(flags.ROSH_CHODESH), desc.some((d) => /^Chanukah/.test(d))),
     mashivHaruach: mashivSeason(hd),
     talUmatar: talUmatarSeason(hd, israel),

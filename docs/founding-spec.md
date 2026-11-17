@@ -680,6 +680,17 @@ wording.
       for Tehillim and yahrzeits are kept only on the device; the server is given only a place or a
       date, never a name. For a passing in Adar, the yahrzeit in a leap year shows both Adars and
       says customs differ.
+  - **Decided (Josh, 2026-11-17):** the calendar behind "today's davening" is checked against
+    established Orthodox sources, not only left for the board, and audited across whole years.
+    Tachanun follows the list the Koren siddur prints (`web/lib/calendar/tachanun.ts`), not
+    Hebcal's, where they differ; each difference was checked against the Shulchan Aruch and its
+    commentaries. Customs that differ between communities outside Israel (no Tachanun through 12
+    Sivan, or through the end of Tishrei) are settings, off by default as Koren prints them. The
+    audit (`web/scripts/audit-davening.ts`, the "Check today's davening" workflow) runs every day
+    of two years, in and outside Israel, for four siddurim, and fails on any line shown on a day
+    it isn't said. The passes, fixes and sources are in
+    [`docs/davening-calendar-audit.md`](davening-calendar-audit.md). Still for the board (open
+    question 23).
 - **RabbAI's voice.** **Decided (Josh, 2026-11-04):** answers are read aloud in a natural voice that
   sounds like an older, wise teacher, and Hebrew words and rabbis' names are said correctly.
   - RabbAI's own voice comes from a speech service (ElevenLabs or OpenAI) when one is set up in the
@@ -878,7 +889,8 @@ These need a decision before launch. Each one changes behavior.
 23. **Today's changes in the Daven tab.** The Daven tab tells the person what changes in the
     davening today and marks the siddur's lines as said or not said today, from the Hebrew
     calendar (see "Finding prayers, and the siddur as a siddur"). Are its rules right: Tachanun
-    and Hallel as Hebcal computes them, Mashiv HaRuach from Shemini Atzeret, VeTen Tal UMatar from
+    by the Koren siddur's printed list and Hallel as Hebcal computes them (the 2026-11-17 audit,
+    `docs/davening-calendar-audit.md`, lists each rule, its sources and the customs left as settings), Mashiv HaRuach from Shemini Atzeret, VeTen Tal UMatar from
     December 5th outside Israel (6th before a civil leap year) and the 7th of Cheshvan in Israel,
     and the wording of each note? Josh decided (2026-11-04) that the Daven tab folds what isn't
     said today, never removing it; is that right, and are the rules for what folds right? Are the

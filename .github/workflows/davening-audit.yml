@@ -1,0 +1,39 @@
+name: Check today's davening
+
+# The davening calendar audit (docs/davening-calendar-audit.md). It reads the four siddurim from the
+# live app (access code from Vercel, masked; tools/davening_dump.py) onto the runner's own disk,
+# then runs every weekday and Shabbat of two years, outside Israel and in Israel, through "today's
+# davening" (web/scripts/audit-davening.ts). The log holds only section names, line numbers, dates
+# and counts, never a line of the siddurs' text; the copies are never uploaded. It asks nothing of
+# the model. Run it after any change to web/lib/siddur/today.ts or web/lib/calendar/.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the app's packages
+        working-directory: web
+        run: npm ci
+      - name: Read the siddurim from the live app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: python3 tools/davening_dump.py "$RUNNER_TEMP/davening"
+      - name: Check two years of days
+        working-directory: web
+        run: npx tsx scripts/audit-davening.ts "$RUNNER_TEMP/davening"

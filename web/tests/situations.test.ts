@@ -53,7 +53,8 @@ test("in a house of mourning, Lamenatzeach and the verse 'As for Me' are left ou
     readLine("K, Weekdays, C 10", "וְאַתָּה קָדוֹשׁ", "You are the Holy One", true),
   ];
   assert.deepEqual(planToday("Weekdays", "Conclusion of the Service", lines, mourning, DEFAULT_CUSTOMS).folds.map((f) => [f.from, f.to]), [[2, 3]]);
-  assert.deepEqual(planToday("Weekdays", "Conclusion of the Service", lines, weekday, DEFAULT_CUSTOMS).folds, []);
+  // On other days only the note itself is folded.
+  assert.deepEqual(planToday("Weekdays", "Conclusion of the Service", lines, weekday, DEFAULT_CUSTOMS).folds.map((f) => [f.from, f.to]), [[0, 1]]);
 });
 
 test("the mourner's and leader's lines are found by the siddur's own labels", () => {

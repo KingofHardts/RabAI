@@ -41,6 +41,8 @@ export type ConditionKey =
   | "pesach"
   | "sukkot"
   | "yomTov"
+  | "musafDay"
+  | "shabbatRoshChodesh"
   | "sunday"
   | "monday"
   | "tuesday"
@@ -66,6 +68,8 @@ export const CONDITION_NAMES: Record<ConditionKey, string> = {
   talUmatar: "Winter",
   beracha: "Summer",
   jerusalem: "Shushan Purim in Jerusalem",
+  musafDay: "Shabbat, festivals and Rosh Chodesh",
+  shabbatRoshChodesh: "Shabbat Rosh Chodesh",
   pesach: "Pesach",
   sukkot: "Sukkot",
   yomTov: "Yom Tov",
@@ -167,6 +171,7 @@ export function conditionOf(prefix: string, rest: string): ConditionKey | null |
   if (/^(between rosh hashana (and|&) yom kippur(,.*)?|בעשרת ימי תשובה)$/.test(p)) return "tenDays";
   if (/^(on shabbat shuva(,.*)?|בשבת שובה)$/.test(p)) return "shabbatShuva";
   if (/^(on rosh hodesh|בראש חודש)$/.test(p)) return "roshChodesh";
+  if (/^(on shabbat rosh hodesh|בשבת ראש חודש)$/.test(p)) return "shabbatRoshChodesh";
   if (/^on (rosh hodesh|ראש חודש) and (hol hamo'ed|חול המועד)(, say)?$/.test(p)) return "roshChodeshOrCholHamoed";
   if (/^(on hanukka|בחנוכה)$/.test(p)) return "chanukah";
   if (/^(on purim|בפורים)$/.test(p)) return "purim";
@@ -175,8 +180,13 @@ export function conditionOf(prefix: string, rest: string): ConditionKey | null |
   if (/^(on pesah|בפסח)$/.test(p)) return "pesach";
   if (/^(on sukkot|בסוכות)$/.test(p)) return "sukkot";
   if (/^(on yom tov|ביום טוב)$/.test(p)) return "yomTov";
-  const weekday = WEEKDAYS.find((w) => w === p);
+  // "Migdol" in Birkat HaMazon: on days with a Musaf (Shabbat, festivals, Ḥol HaMo'ed, Rosh Ḥodesh).
+  if (/^(on shabbat, festivals,? and rosh hodesh|בשבת ויום טוב וראש חודש|בימים שאומרים מוסף)$/.test(p)) return "musafDay";
+  const weekday = WEEKDAYS.find((w) => w === p || `on ${w}` === p);
   if (weekday) return weekday;
+  // Sefaria's siddurim: "בראשון בשבת" … "בששי בשבת".
+  const heDay = ["בראשון בשבת", "בשני בשבת", "בשלישי בשבת", "ברביעי בשבת", "בחמישי בשבת", "בששי בשבת"].indexOf(p.replace(/[֑-ׇ]/g, ""));
+  if (heDay >= 0) return WEEKDAYS[heDay];
   if (/^(on shushan purim in jerusalem|בשושן פורים בירושלים)$/.test(p)) return "jerusalem";
   if (/^(in israel, in spring and summer|בארץ ישראל בקיץ)$/.test(p)) return "moridHatal";
   if (/^(in israel|בארץ ישראל)$/.test(p)) return "israel";
@@ -215,21 +225,26 @@ export function appliesToday(key: ConditionKey, d: DaySummaryDavening | undefine
     case "israel":
       return d.israel;
     case "mashiv":
-      return d.mashivHaruach;
+      // On the day the phrase changes (at Musaf), the siddur's own instruction says which to say.
+      return d.rainChange ? undefined : d.mashivHaruach;
     case "moridHatal":
-      return d.israel && !d.mashivHaruach;
+      return d.rainChange ? undefined : d.israel && !d.mashivHaruach;
     case "talUmatar":
       return d.talUmatar;
     case "beracha":
       return !d.talUmatar;
     case "jerusalem":
-      return undefined;
+      return d.jerusalem ? d.purim : false;
     case "pesach":
       return d.festival === "pesach";
     case "sukkot":
       return d.festival === "sukkot";
     case "yomTov":
       return d.yomTov;
+    case "shabbatRoshChodesh":
+      return d.dow === 6 && d.roshChodesh;
+    case "musafDay":
+      return d.dow === 6 || d.yomTov || d.roshChodesh || d.cholHamoed;
     default:
       return d.dow === WEEKDAYS.indexOf(key);
   }

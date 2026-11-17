@@ -345,7 +345,8 @@ export function calendarInfo(opts: CalendarOptions = {}): CalendarInfo {
     ...(saturday && !shabbatOver ? { parshaNext: parshaFor(new HDate(addDays(day, 1)), il) } : {}),
     upcoming: [],
     learning: [],
-    davening: daveningDay(hd, il, afterSunset),
+    // Jerusalem (a walled city) keeps Purim on the 15th of Adar: within about 8 km of the Old City.
+    davening: daveningDay(hd, il, afterSunset, Boolean(place && il && Math.hypot((place.lat - 31.778) * 111, (place.lon - 35.235) * 94.6) < 8)),
   };
 
   // This week's Shabbat and the coming days, from today through the number of days asked for.

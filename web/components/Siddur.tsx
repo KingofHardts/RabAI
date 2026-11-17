@@ -18,7 +18,7 @@ import type { WordEntry } from "@/lib/library/word-parts";
 import type { GlossRow, Translation } from "@/lib/engine/gloss";
 import type { DaySummary, Place } from "@/lib/calendar/place";
 import { appliesToday, CONDITION_NAMES, MARK_WORDS, phrases, readLine, withoutHebrewOpening, type MarkKind, type Phrase, type Seg, type SiddurLine } from "@/lib/siddur/lines";
-import { hallelToday, planToday, serviceOf, whenWords } from "@/lib/siddur/today";
+import { hallelToday, NOTE_FOR_ANOTHER_DAY, planToday, serviceOf, whenWords } from "@/lib/siddur/today";
 import { transliterate } from "@/lib/siddur/translit";
 import { noteFor, bareLetters } from "@/lib/siddur/notes";
 import { lawNumbersIn, lawRanges, prayerLinks, type LawRange } from "@/lib/siddur/links";
@@ -415,7 +415,7 @@ export default function Siddur({
   skipRef.current = (section: string) => {
     if (!prefs.today || prefs.notToday !== "hide" || !davening) return false;
     const { short } = names(book, section);
-    if (planToday(partOf(book, section), short, [], davening, prefs.customs).whole) return true;
+    if (planToday(partOf(book, section), short, [], davening, prefs.customs, section).whole) return true;
     if (prefs.minyan === "alone" && minyanWhole(short)) return true;
     return prefs.meal === "alone" && Boolean(zimunWhole(short));
   };
@@ -716,7 +716,7 @@ export default function Siddur({
       const show = shown(book, c.section);
       out.push({ kind: "section", key: `s:${c.section}`, chunk: c, short: show.short, crumb: show.crumb, he: he && /[א-ת]/.test(he) ? he : undefined });
       const plan: { whole?: string; folds: Array<{ from: number; to: number; reason: string }> } = prefs.today
-        ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs)
+        ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs, c.section)
         : { folds: [] };
       // Davening alone: what is said only with a minyan joins what isn't said today.
       if (prefs.today && prefs.minyan === "alone" && !plan.whole) {
@@ -748,7 +748,8 @@ export default function Siddur({
         const f = starts.get(i);
         if (f) {
           if (hide) {
-            hidden++;
+            // A direction for another day isn't counted as a prayer left out.
+            if (f.reason !== NOTE_FOR_ANOTHER_DAY) hidden++;
             i = f.to - 1;
             continue;
           }
@@ -1878,6 +1879,18 @@ export default function Siddur({
             <input type="checkbox" checked={prefs.customs.modernDays} onChange={(e) => setPref("customs", { ...prefs.customs, modernDays: e.target.checked })} /> Yom HaAtzma&apos;ut and Yom
             Yerushalayim: Hallel, and no Tachanun
           </label>
+          {!davening?.israel && (
+            <>
+              <label>
+                <input type="checkbox" checked={!!prefs.customs.sivan12} onChange={(e) => setPref("customs", { ...prefs.customs, sivan12: e.target.checked })} /> No Tachanun
+                through 12 Sivan
+              </label>
+              <label>
+                <input type="checkbox" checked={!!prefs.customs.tishreiEnd} onChange={(e) => setPref("customs", { ...prefs.customs, tishreiEnd: e.target.checked })} /> No Tachanun
+                through the end of Tishrei
+              </label>
+            </>
+          )}
           {davening?.israel && (
             <label>
               <input type="checkbox" checked={prefs.customs.viduyIsrael} onChange={(e) => setPref("customs", { ...prefs.customs, viduyIsrael: e.target.checked })} /> Viduy and the Thirteen

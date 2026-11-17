@@ -154,6 +154,8 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     customs: {
       modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,
       viduyIsrael: typeof c.viduyIsrael === "boolean" ? c.viduyIsrael : DEFAULT_CUSTOMS.viduyIsrael,
+      sivan12: typeof c.sivan12 === "boolean" ? c.sivan12 : DEFAULT_CUSTOMS.sivan12,
+      tishreiEnd: typeof c.tishreiEnd === "boolean" ? c.tishreiEnd : DEFAULT_CUSTOMS.tishreiEnd,
     },
   };
 }

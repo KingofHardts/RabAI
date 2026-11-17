@@ -268,7 +268,11 @@ A Torah learning assistant that answers from inside the Orthodox mesorah. Read
   Commentary in the Daven tab (Rabbi Sacks's notes, RabbAI's notes) is drawn as commentary, never
   as more davening: its own card (`.sd-comm`), labeled with whose it is. A rule for when a line is
   said goes in `today.ts` (`instructionToday` with its `span`, or `prayerLineToday`) with a test,
-  and a change is checked across days against the real siddur, not one day.
+  and a change is checked across days against the real siddur, not one day. Tachanun follows the
+  Koren siddur's printed list (`web/lib/calendar/tachanun.ts`), not Hebcal's `tachanun()`. After a
+  change to `today.ts` or `web/lib/calendar/`, run the "Check today's davening" workflow
+  (`web/scripts/audit-davening.ts`: two years, in and outside Israel, four siddurim; it prints no
+  text) and add each new rule's check to it (`docs/davening-calendar-audit.md`).
   "Ask about this" goes through the usual checked path (`send`).
 - On the Daven home, when a service may be said (`web/lib/siddur/service-times.ts`) comes only from
   the day's times as the calendar gives them, naming both opinions where it gives two; never pick
