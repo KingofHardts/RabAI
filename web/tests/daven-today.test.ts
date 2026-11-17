@@ -9,7 +9,7 @@ const plain: DaySummaryDavening = {
   dow: 3, israel: false, roshChodesh: false, chanukah: false, purim: false, fast: false, tishaBav: false, tenDays: false,
   shabbatShuva: false, cholHamoed: false, yomTov: false, tachanun: { shacharit: true, mincha: true, allCongs: true }, hallel: 0,
   mashivHaruach: true, talUmatar: true, notes: [], festival: null, erevPesach: false, erevYomKippur: false, adar1415: false,
-  yomHaatzmaut: false, yomYerushalayim: false, isruChag: false, ledavid: false, hoshanaRaba: false, motzaei: false, jerusalem: false, mevarchim: false, avHarachamim: false, tzidkatcha: false, barchiNafshi: false,
+  yomHaatzmaut: false, yomYerushalayim: false, isruChag: false, ledavid: false, hoshanaRaba: false, motzaei: false, jerusalem: false, mevarchim: false, avHarachamim: false, tzidkatcha: false, barchiNafshi: false, hebDate: { day: 20, month: 8, leap: false }, yomTovAhead: [],
 };
 const roshChodesh: DaySummaryDavening = { ...plain, roshChodesh: true, hallel: 1, tachanun: { shacharit: false, mincha: false, allCongs: false } };
 

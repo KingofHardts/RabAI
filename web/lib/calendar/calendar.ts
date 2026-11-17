@@ -86,6 +86,9 @@ export interface CalendarInfo {
   tomorrow?: { day: string; items: Zman[] };
   /** What changes in the davening today (davening.ts). */
   davening?: DaveningDay;
+  /** Before sunset: tonight's facts (for Ma'ariv). After sunset: the day that is ending (for a late Mincha). */
+  daveningTonight?: DaveningDay;
+  daveningEarlier?: DaveningDay;
   /** This week's Shabbat at the place: when to light candles and when it ends. */
   shabbat?: { candles?: string; candlesDay?: string; candleMins?: number; ends?: string; endsDay?: string; endsNote?: string; rabbeinuTam?: string };
 }
@@ -326,6 +329,7 @@ export function calendarInfo(opts: CalendarOptions = {}): CalendarInfo {
     afterSunset = !Number.isNaN(sunset.getTime()) && now.getTime() >= sunset.getTime();
   }
   const hd = afterSunset ? new HDate(day).next() : new HDate(day);
+  const jerusalem = Boolean(place && il && Math.hypot((place.lat - 31.778) * 111, (place.lon - 35.235) * 94.6) < 8);
   // Once Shabbat is over on Saturday night, "this week" is the coming week.
   const saturday = day.getDay() === 6;
   const shabbatOver = Boolean(saturday && loc && now.getTime() >= shabbatEndAt(loc, day, prefs).getTime());
@@ -346,7 +350,9 @@ export function calendarInfo(opts: CalendarOptions = {}): CalendarInfo {
     upcoming: [],
     learning: [],
     // Jerusalem (a walled city) keeps Purim on the 15th of Adar: within about 8 km of the Old City.
-    davening: daveningDay(hd, il, afterSunset, Boolean(place && il && Math.hypot((place.lat - 31.778) * 111, (place.lon - 35.235) * 94.6) < 8)),
+    davening: daveningDay(hd, il, afterSunset, jerusalem),
+    // The other half of the day: tonight's before sunset, the day that is ending after it.
+    ...(afterSunset ? { daveningEarlier: daveningDay(hd.prev(), il, false, jerusalem) } : { daveningTonight: daveningDay(hd.next(), il, true, jerusalem) }),
   };
 
   // This week's Shabbat and the coming days, from today through the number of days asked for.
@@ -646,6 +652,8 @@ export function daySummary(info: CalendarInfo): DaySummary {
       ? { learning: info.learning.filter((l) => l.id !== "dafYomi").map((l) => ({ id: l.id, label: l.label, text: l.text, ...(l.ref ? { ref: l.ref } : {}) })) }
       : {}),
     ...(info.davening ? { davening: { ...info.davening, notes: daveningNotes(info.davening) } } : {}),
+    ...(info.daveningTonight ? { daveningTonight: { ...info.daveningTonight, notes: daveningNotes(info.daveningTonight) } } : {}),
+    ...(info.daveningEarlier ? { daveningEarlier: { ...info.daveningEarlier, notes: daveningNotes(info.daveningEarlier) } } : {}),
     ...(soonItem
       ? {
           soon: {

@@ -58,6 +58,8 @@ export interface DaySummaryDavening extends DaveningDay {
   shulNoTachanun?: string;
   /** Set on the device only: the person is davening in a house of mourning today. */
   houseOfMourning?: boolean;
+  /** Set on the device only: the person's tradition says "He causes the dew to fall" in summer outside Israel (Sefard, Chabad, Sephardi). */
+  dewOutsideIsrael?: boolean;
 }
 
 /** A short view of the day for the app's welcome screen and its suggested questions (POST /api/calendar). */
@@ -96,6 +98,13 @@ export interface DaySummary {
   learning?: Array<{ id: string; label: string; text: string; ref?: string }>;
   /** What changes in the davening today. */
   davening?: DaySummaryDavening;
+  /**
+   * The other half of the day for the davening (lib/siddur/service-day.ts): before sunset, tonight's
+   * (an early Ma'ariv belongs to the coming night); after sunset, the day that is ending (a late
+   * Mincha belongs to it).
+   */
+  daveningTonight?: DaySummaryDavening;
+  daveningEarlier?: DaySummaryDavening;
 }
 
 export const CANDLE_MINUTES = [15, 18, 20, 22, 24, 30, 40] as const;

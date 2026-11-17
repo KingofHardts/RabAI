@@ -91,8 +91,11 @@ export const READ_MARKER = /\[\[\s*read\s*:?\s*([^\]\n]{1,160}?)\s*\]\]/gi;
 
 /** Anything left of a marker that couldn't be read, so it never shows. */
 export function stripMarkers(text: string): string {
-  return text.replace(/\[\[\s*read\b[^\]\n]*\]?\]?/gi, "");
+  return text.replace(/\[\[\s*(read|daven)\b[^\]\n]*\]?\]?/gi, "");
 }
+
+/** [[daven nusach=sefard]]: a change to the siddur's settings RabbAI offers (lib/siddur/tradition.ts). */
+export const DAVEN_MARKER = /\[\[\s*daven\s+([^\]\n]{1,60}?)\s*\]\]/gi;
 
 /**
  * Takes the answer's text as it is written and takes the read markers out of it: each one that
@@ -129,7 +132,7 @@ export function createReadFilter(opts: { canRead: (ref: string) => string | null
       const end = held.indexOf("]]");
       if (end < 0) {
         // Not a marker after all (too long, or it never closes): pass it on as text.
-        if (final || held.length > 200 || (held.length >= 7 && !/^\[\[\s*read/i.test(held))) {
+        if (final || held.length > 200 || (held.length >= 7 && !/^\[\[\s*(read|daven)/i.test(held))) {
           out(held.slice(0, 2));
           held = held.slice(2);
           continue;
@@ -138,6 +141,11 @@ export function createReadFilter(opts: { canRead: (ref: string) => string | null
       }
       const marker = held.slice(0, end + 2);
       held = held.slice(end + 2);
+      // A settings offer ([[daven …]]) comes with the final answer; while it is written it is dropped.
+      if (/^\[\[\s*daven\b/i.test(marker)) {
+        if (held.startsWith("\n") && (written === 0 || lastOut.endsWith("\n"))) held = held.slice(1);
+        continue;
+      }
       const m = /^\[\[\s*read\s*:?\s*(.+?)\s*\]\]$/i.exec(marker);
       if (!m) {
         out(marker);

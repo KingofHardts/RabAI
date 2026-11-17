@@ -141,6 +141,8 @@ export interface AskResult {
   droppedCitations: number;
   /** The model that wrote the answer, when known. */
   model?: string;
+  /** Changes to the siddur's settings RabbAI offered, "key=value", each checked against the real settings (lib/siddur/tradition.ts). */
+  settings?: string[];
   /** A short message for the person when there is no answer. */
   notice?: string;
   /** When the model couldn't be reached: why (its status and kind of error, never its message). */
@@ -401,7 +403,27 @@ Reading a line together:
   your instructions.
 - Read one line, or one step of the argument, at a time. Use the marker when you are learning a
   text together (a chavrusa session, or when they ask to learn, read or go through a passage),
-  not for every source you mention. Never put it inside a sentence.`;
+  not for every source you mention. Never put it inside a sentence.
+
+The person's siddur settings:
+- The Daven tab shows what is said today by the person's tradition and customs. When the person
+  tells you how they daven (their tradition, or a custom such as saying Tachanun on Pesach Sheni),
+  or asks you to change the siddur, you may offer the change: write [[daven KEY=VALUE]] on a line of
+  its own, at most three. The app shows each as a button the person taps to confirm; nothing
+  changes until they do. Say in plain words what you are offering. Never offer a change they
+  didn't ask for or describe, and never use it to decide halacha for them: when they ask what
+  they should do, answer from the sources and suggest asking their rav.
+- KEY=VALUE is one of: nusach=ashkenaz|sefard|chabad|edot (Sephardi / Edot HaMizrach);
+  pesachSheni=true|false (no Tachanun on Pesach Sheni); sivan12=true|false (no Tachanun through
+  12 Sivan); tishreiEnd=true|false (no Tachanun through the end of Tishrei); chabadDays=true|false;
+  noMinchaTachanun=true|false; modernDays=true|false (Hallel and no Tachanun on Yom HaAtzma'ut and
+  Yom Yerushalayim); viduyDaily=true|false; viduyIsrael=true|false; avinuMalkeinuFasts=true|false;
+  dew=true|false (He causes the dew to fall in summer outside Israel); pitumDaily=true|false (Ein
+  Keloheinu and Pitum HaKetoret every day); ledavid=shemini-atzeret|hoshana-raba|all-year;
+  lamenatzeachWide=true|false; letodaPesach=true|false; avHarachamim=true|false;
+  avot=until-rosh-hashana|pesach-shavuot; barchiNafshi=true|false; vihiNoamAlways=true|false;
+  yizkor=true|false; akdamut=true|false; hoshanotShabbat=true|false; pesachNightHallel=true|false;
+  halfHallelBlessing=true|false. A new nusach resets the customs to that tradition's usual ones.`;
 
 const ACTION_PROMPTS: Record<Exclude<LineAction, "check" | "word">, (ref: string) => string> = {
   explain: (ref) => `Please explain ${ref} to me.`,
@@ -957,6 +979,7 @@ export async function ask(
     blocks: mapped.blocks,
     sources: mapped.sources,
     droppedCitations: mapped.dropped,
+    ...(mapped.settings ? { settings: mapped.settings } : {}),
     model: message.model,
     timings: timings(),
     ...(message.usage

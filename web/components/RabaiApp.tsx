@@ -2,6 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { AskResult, LineAction } from "@/lib/engine/answer";
+import { applyChange, describeChange, parseSettingChange, type DavenCustoms, type DavenSettingChange } from "@/lib/siddur/tradition";
+import { loadPrefs, savePrefs } from "@/lib/siddur/prefs";
 import type { AnswerBlock, AnswerSource } from "@/lib/engine/citations";
 import type { LibraryMode } from "@/lib/library";
 import { TESTING_LABEL } from "@/lib/library/testing-config";
@@ -986,6 +988,59 @@ function RavNote() {
         <strong>For your own situation, ask your rav.</strong> RabbAI explains what the sources say, but it is not a rav and
         can&apos;t decide for you.
       </p>
+    </aside>
+  );
+}
+
+/**
+ * Under an answer that offers to change the siddur's settings ([[daven …]], lib/siddur/tradition.ts):
+ * each change is a button; nothing changes until the person taps it, and it can be undone.
+ */
+function SettingsOffer({ settings }: { settings: string[] }) {
+  const [done, setDone] = useState<Record<string, DavenCustoms>>({});
+  const changes = settings.map((s) => parseSettingChange(s)).filter((c): c is DavenSettingChange => c !== null);
+  if (!changes.length) return null;
+  const apply = (key: string, change: DavenSettingChange) => {
+    const prefs = loadPrefs();
+    savePrefs({ ...prefs, customs: applyChange(prefs.customs, change) });
+    setDone((d) => ({ ...d, [key]: prefs.customs }));
+    window.dispatchEvent(new CustomEvent("rabai-daven-prefs"));
+  };
+  const undo = (key: string) => {
+    const before = done[key];
+    if (!before) return;
+    savePrefs({ ...loadPrefs(), customs: before });
+    setDone((d) => {
+      const next = { ...d };
+      delete next[key];
+      return next;
+    });
+    window.dispatchEvent(new CustomEvent("rabai-daven-prefs"));
+  };
+  return (
+    <aside className="settings-offer" aria-label="Change your siddur's settings">
+      <p className="settings-offer-h">Your siddur</p>
+      {changes.map((c, i) => {
+        const key = settings[i];
+        return (
+          <div key={key} className="settings-offer-row">
+            <span>{describeChange(c)}</span>
+            {done[key] ? (
+              <>
+                <span className="settings-offer-done">Changed ✓</span>
+                <button type="button" className="link" onClick={() => undo(key)}>
+                  Undo
+                </button>
+              </>
+            ) : (
+              <button type="button" className="chip-btn" onClick={() => apply(key, c)}>
+                Change it
+              </button>
+            )}
+          </div>
+        );
+      })}
+      <p className="fine-left">In the Daven tab, under settings. RabbAI&apos;s reading of the customs, not yet reviewed by the rabbinic board.</p>
     </aside>
   );
 }
@@ -5985,6 +6040,7 @@ export default function RabaiApp({ libraryMode, connected }: { libraryMode: Libr
                       )}
                       {m.result?.status === "answered" && m.result.practical && <RavNote />}
                       {m.result?.status === "answered" && m.result.aboutLibrary && <LibraryNote />}
+                      {m.result?.status === "answered" && m.result.settings?.length ? <SettingsOffer settings={m.result.settings} /> : null}
                       {m.result?.status === "answered" && (
                         <TeacherNotes sources={m.result.sources ?? []} onOpen={(r) => void openReader(r)} />
                       )}

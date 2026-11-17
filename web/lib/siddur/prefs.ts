@@ -5,7 +5,7 @@
  */
 
 import { parseShulToday, type ShulToday } from "./situations";
-import { DEFAULT_CUSTOMS, type DavenCustoms } from "./today";
+import { DEFAULT_CUSTOMS, parseCustoms, type DavenCustoms } from "./tradition";
 import type { Pronunciation } from "./translit";
 import type { TorahBlessingsPlace } from "./outline";
 
@@ -126,7 +126,6 @@ const one = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): 
 /** The settings from stored text, each checked; anything unknown falls back to the default. */
 export function parsePrefs(raw: unknown): DavenPrefs {
   const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const c = r.customs && typeof r.customs === "object" ? (r.customs as Record<string, unknown>) : {};
   return {
     layout: one(r.layout, ["lines", "paragraph", "hebrew", "words", "panes"] as const, DEFAULT_PREFS.layout),
     lang: one(r.lang, ["he", "both", "en"] as const, DEFAULT_PREFS.lang),
@@ -151,12 +150,7 @@ export function parsePrefs(raw: unknown): DavenPrefs {
     shul: parseShulToday(r.shul),
     pinned: Array.isArray(r.pinned) ? [...new Set(r.pinned.filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 300))].slice(0, 12) : [],
     torahBlessings: one(r.torahBlessings, ["before-morning-blessings", "as-printed"] as const, DEFAULT_PREFS.torahBlessings),
-    customs: {
-      modernDays: typeof c.modernDays === "boolean" ? c.modernDays : DEFAULT_CUSTOMS.modernDays,
-      viduyIsrael: typeof c.viduyIsrael === "boolean" ? c.viduyIsrael : DEFAULT_CUSTOMS.viduyIsrael,
-      sivan12: typeof c.sivan12 === "boolean" ? c.sivan12 : DEFAULT_CUSTOMS.sivan12,
-      tishreiEnd: typeof c.tishreiEnd === "boolean" ? c.tishreiEnd : DEFAULT_CUSTOMS.tishreiEnd,
-    },
+    customs: parseCustoms(r.customs),
   };
 }
 

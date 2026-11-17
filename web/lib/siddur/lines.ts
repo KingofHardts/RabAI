@@ -40,6 +40,9 @@ export type ConditionKey =
   | "jerusalem"
   | "pesach"
   | "sukkot"
+  | "shavuot"
+  | "sheminiAtzeret"
+  | "dew"
   | "yomTov"
   | "musafDay"
   | "shabbatRoshChodesh"
@@ -72,6 +75,9 @@ export const CONDITION_NAMES: Record<ConditionKey, string> = {
   shabbatRoshChodesh: "Shabbat Rosh Chodesh",
   pesach: "Pesach",
   sukkot: "Sukkot",
+  shavuot: "Shavuot",
+  sheminiAtzeret: "Shemini Atzeret and Simchat Torah",
+  dew: "Summer",
   yomTov: "Yom Tov",
   sunday: "Sunday",
   monday: "Monday",
@@ -179,6 +185,9 @@ export function conditionOf(prefix: string, rest: string): ConditionKey | null |
   if (/^(on shabbat|בשבת)$/.test(p)) return "shabbat";
   if (/^(on pesah|בפסח)$/.test(p)) return "pesach";
   if (/^(on sukkot|בסוכות)$/.test(p)) return "sukkot";
+  if (/^(on shavuot|בשבועות)$/.test(p)) return "shavuot";
+  // "On Shemini Atzeret & Simḥat Torah", "בשמיני עצרת ושמחת תורה", "בשמ"ע וש"ת", "בש"ע".
+  if (/^(on shemini atzeret( (&|and) simhat torah)?|בשמיני עצרת( ו?ב?שמחת תורה)?|בשמ"ע( ו?ב?ש"ת)?|בש"ע)$/.test(p)) return "sheminiAtzeret";
   if (/^(on yom tov|ביום טוב)$/.test(p)) return "yomTov";
   // "Migdol" in Birkat HaMazon: on days with a Musaf (Shabbat, festivals, Ḥol HaMo'ed, Rosh Ḥodesh).
   if (/^(on shabbat, festivals,? and rosh hodesh|בשבת ויום טוב וראש חודש|בימים שאומרים מוסף)$/.test(p)) return "musafDay";
@@ -191,12 +200,14 @@ export function conditionOf(prefix: string, rest: string): ConditionKey | null |
   if (/^(in israel, in spring and summer|בארץ ישראל בקיץ)$/.test(p)) return "moridHatal";
   if (/^(in israel|בארץ ישראל)$/.test(p)) return "israel";
   if (/^(in fall (and|&) winter|in winter|בחורף)$/.test(p)) {
-    if (/wind|משיב|הרוח/.test(r)) return "mashiv";
+    if (/wind|משיב|הרוח|shemini atzere/.test(r)) return "mashiv";
     if (/rain and dew|dew and rain|טל ומטר/.test(r)) return "talUmatar";
     return null;
   }
   if (/^(in other seasons|in spring and summer|בקיץ)$/.test(p)) {
     if (/blessing|ברכה/.test(r)) return "beracha";
+    // "בקיץ: מוריד הטל" (Sefaria's siddurim), or the English note over it ("From the Musaf of the first day of Pesach…").
+    if (/dew|מוריד הטל|first day of pesach/.test(r)) return "dew";
     return null;
   }
   return undefined;
@@ -228,7 +239,9 @@ export function appliesToday(key: ConditionKey, d: DaySummaryDavening | undefine
       // On the day the phrase changes (at Musaf), the siddur's own instruction says which to say.
       return d.rainChange ? undefined : d.mashivHaruach;
     case "moridHatal":
-      return d.rainChange ? undefined : d.israel && !d.mashivHaruach;
+    case "dew":
+      // "He causes the dew to fall" in summer: in Israel, and outside it where the person's tradition says it (DaySummaryDavening.dewOutsideIsrael).
+      return d.rainChange ? undefined : (d.israel || !!d.dewOutsideIsrael) && !d.mashivHaruach;
     case "talUmatar":
       return d.talUmatar;
     case "beracha":
@@ -239,6 +252,10 @@ export function appliesToday(key: ConditionKey, d: DaySummaryDavening | undefine
       return d.festival === "pesach";
     case "sukkot":
       return d.festival === "sukkot";
+    case "shavuot":
+      return d.festival === "shavuot";
+    case "sheminiAtzeret":
+      return d.festival === "shemini-atzeret";
     case "yomTov":
       return d.yomTov;
     case "shabbatRoshChodesh":
@@ -349,7 +366,7 @@ export function menAndWomen(en: string): boolean {
 /** "Leader:", "קהל:", "On Rosh Ḥodesh:": a speaker or a time at the start of a printed line. */
 const PREFIX_RE = /^\s*(\/?[^:\n֑-ׇ]{1,64}?):\s*(.*)$/s;
 /** " / בארץ ישראל בקיץ: ": where the next time begins, inside the same line. */
-const NEXT_WHEN_RE = /\s*\/\s*([^/:\n֑-ׇ]{2,64}?):\s*/g;
+const NEXT_WHEN_RE = /\s*(?:\/|(?<=\.))\s*([^/:.\n֑-ׇ]{2,64}?):\s*/g;
 
 /** A line beginning with a time ("בחורף: … / בקיץ: …"), split where each next time begins. */
 function whenPhrases(line: string): Phrase[] | null {
@@ -387,6 +404,8 @@ export function phrases(text: string, menWomen = false): Phrase[] {
   const clean = text.replace(/((?:Leader|Cong\.|All|Reader):)(?:\s*\1)+/g, "$1");
   return clean
     .split("\n")
+    // "את יום (השבת הזה ואת יום) בפסח: חג המצות…": a festival's label inside a line starts a new phrase.
+    .flatMap((l) => l.split(/(?<!\s\/)\s+(?=(?:בפסח|בסוכות|בשבועות|בשמיני עצרת[^:\n]{0,24}):\s)/))
     .filter((l) => l.trim())
     .flatMap((line): Phrase[] => {
       const when = whenPhrases(line);

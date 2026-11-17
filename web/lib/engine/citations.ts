@@ -1,5 +1,6 @@
 import type { Passage } from "../library/types";
-import { READ_MARKER, refKey, stripMarkers } from "./live-sources";
+import { DAVEN_MARKER, READ_MARKER, refKey, stripMarkers } from "./live-sources";
+import { parseSettingChange } from "../siddur/tradition";
 
 /**
  * Turning the model's answer into what the app shows, and checking every citation.
@@ -73,6 +74,8 @@ export interface MappedAnswer {
   sources: AnswerSource[];
   /** Citations removed because they failed a check. Should always be 0. */
   dropped: number;
+  /** Changes to the siddur's settings RabbAI offered ([[daven key=value]]), each a real setting; the person confirms. */
+  settings?: string[];
 }
 
 function squash(s: string): string {
@@ -128,8 +131,14 @@ export function mapAnswer(
   const seen = new Set<string>();
   let dropped = 0;
 
+  const settings: string[] = [];
   for (const block of content) {
     if (block.type !== "text" || typeof block.text !== "string") continue;
+    for (const m of block.text.matchAll(DAVEN_MARKER)) {
+      const change = parseSettingChange(m[1]);
+      const key = change ? `${change.key}=${String(change.value)}` : "";
+      if (change && !settings.includes(key) && settings.length < 3) settings.push(key);
+    }
 
     const citations: AnswerCitation[] = [];
     for (const c of block.citations ?? []) {
@@ -180,7 +189,7 @@ export function mapAnswer(
   }
   // Text right after a line read aloud starts fresh, without the marker's leftover line breaks.
   for (let i = 1; i < blocks.length; i++) if (blocks[i - 1].read) blocks[i].text = blocks[i].text.replace(/^\s+/, "");
-  return { blocks: blocks.filter((b) => b.read || b.text.length > 0 || b.citations.length > 0), sources, dropped };
+  return { blocks: blocks.filter((b) => b.read || b.text.length > 0 || b.citations.length > 0), sources, dropped, ...(settings.length ? { settings } : {}) };
 }
 
 /** The answer is plain prose; remove Markdown emphasis or heading marks if the model adds them. */

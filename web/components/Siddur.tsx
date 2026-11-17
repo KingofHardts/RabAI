@@ -16,9 +16,13 @@ import { findPrayers, firstSection } from "@/lib/library/prayer-find";
 import { leadPrayer, serviceTimes } from "@/lib/siddur/service-times";
 import type { WordEntry } from "@/lib/library/word-parts";
 import type { GlossRow, Translation } from "@/lib/engine/gloss";
-import type { DaySummary, Place } from "@/lib/calendar/place";
+import type { DaySummary, DaySummaryDavening, Place } from "@/lib/calendar/place";
 import { appliesToday, CONDITION_NAMES, MARK_WORDS, phrases, readLine, withoutHebrewOpening, type MarkKind, type Phrase, type Seg, type SiddurLine } from "@/lib/siddur/lines";
-import { hallelToday, NOTE_FOR_ANOTHER_DAY, planToday, serviceOf, whenWords } from "@/lib/siddur/today";
+import { hallelToday, NOTE_FOR_ANOTHER_DAY, planToday, serviceOf, whenWords, type Service } from "@/lib/siddur/today";
+import { dayForService, serviceByClock, serviceOfSection, SERVICE_NAMES } from "@/lib/siddur/service-day";
+import { customsFor, siddurFor, type Nusach } from "@/lib/siddur/tradition";
+import { customBehind } from "@/lib/siddur/tradition-learn";
+import TraditionSettings, { TraditionWelcome } from "./daven/TraditionSettings";
 import { transliterate } from "@/lib/siddur/translit";
 import { noteFor, bareLetters } from "@/lib/siddur/notes";
 import { lawNumbersIn, lawRanges, prayerLinks, type LawRange } from "@/lib/siddur/links";
@@ -54,6 +58,8 @@ import { davenOrder, glossFor, isOneLevel, movesTorahBlessings, siddurOutline, t
 
 const SIDDUR_KEY = "rabai_siddur";
 const LAST_KEY = "rabai_daven_last";
+/** Set once the person has said how they daven (or chosen to let the siddur learn). */
+const KNOWN_KEY = "rabai_daven_known";
 const MARKS_KEY = "rabai_daven_marks";
 /** The Koren siddur first: Rabbi Sacks's translation, and its instructions printed in place. */
 const PREFERRED = "The Koren Shalem Siddur; Ashkenaz";
@@ -89,7 +95,7 @@ interface Stop {
 }
 
 type Item =
-  | { kind: "section"; key: string; chunk: Chunk; short: string; crumb: string; he?: string }
+  | { kind: "section"; key: string; chunk: Chunk; short: string; crumb: string; he?: string; svc?: Service; shared?: boolean; tonight?: boolean }
   | { kind: "fold"; key: string; chunk: Chunk; reason: string; count: number; open: boolean; whole?: boolean }
   | { kind: "line"; key: string; chunk: Chunk; line: SiddurLine; prayer: string }
   | { kind: "note"; key: string; note: DaveningNote; prayer: string }
@@ -154,6 +160,21 @@ function sectionByName(nodes: ContentsNode[], name: string): string | undefined 
   }
   return loose;
 }
+
+/** The first section whose full name matches (for prayers whose short name is shared, like the festival "Amidah"). */
+function sectionMatching(nodes: ContentsNode[], re: RegExp): string | undefined {
+  const stack = [...nodes];
+  while (stack.length) {
+    const n = stack.shift()!;
+    if (n.section && re.test(n.section)) return n.section;
+    stack.push(...n.children);
+  }
+  return undefined;
+}
+
+/** The festival Amidah and Musaf in each siddur (Koren; Sefaria's Siddur Sefard and Edot HaMizrach). */
+const FESTIVAL_AMIDAH = /Festivals, Amida for Yom Tov$|Holidays, Maariv, Shacharit & Mincha Amidah$|Three Festivals, Amidah$/;
+const FESTIVAL_MUSAF = /Festivals, Musaf for Festivals$|Holidays, Yom Tov Musaf Amidah$|Three Festivals, Mussaf$/;
 
 /** Where a service begins in a siddur: weekday or Shabbat, by the siddur's own headings. */
 function serviceStart(book: string, nodes: ContentsNode[], service: string, shabbat: boolean): string | undefined {
@@ -409,13 +430,35 @@ export default function Siddur({
   const rawCache = useRef(new Map<string, Promise<Array<{ ref: string; he: string; en: string }>>>());
   chunksRef.current = chunks;
   // The person's "no Tachanun in shul today" (a groom, a bris, a house of mourning) applies to today only.
-  const davening = useMemo(() => withShulToday(day?.davening, day?.date, prefs.shul), [day?.davening, day?.date, prefs.shul]);
+  const davening = useMemo(() => {
+    const d = withShulToday(day?.davening, day?.date, prefs.shul);
+    return d ? { ...d, dewOutsideIsrael: prefs.customs.dew } : d;
+  }, [day?.davening, day?.date, prefs.shul, prefs.customs.dew]);
+  /** The day a service is said on (lib/siddur/service-day.ts): tonight's for Ma'ariv, the day that is ending for a late Mincha. */
+  const dayFor = useCallback(
+    (svc: Service | null) => {
+      if (!svc || (svc !== "maariv" && svc !== "mincha")) return davening;
+      const d = dayForService(day, svc);
+      if (!d || d === day?.davening) return davening;
+      const shul = svc === "mincha" ? withShulToday(d, day?.date, prefs.shul) : d;
+      return shul ? { ...shul, dewOutsideIsrael: prefs.customs.dew } : shul;
+    },
+    [day, davening, prefs.shul, prefs.customs.dew],
+  );
+  /** The service the festival Amidah is said at, when the person chose one; otherwise the service they came from, or the clock's. */
+  const [sharedSvc, setSharedSvc] = useState<Service | null>(null);
+  /** Whether the person has said how they daven; until then the home asks (TraditionWelcome). */
+  const [known, setKnown] = useState(true);
+  /** Questions about a custom the person answered "just today", so they aren't asked again. */
+  const [notAsked, setNotAsked] = useState<Set<string>>(() => new Set());
   // Whether today's davening passes over a whole prayer (only when what isn't said today is hidden).
   const skipRef = useRef<(section: string) => boolean>(() => false);
   skipRef.current = (section: string) => {
     if (!prefs.today || prefs.notToday !== "hide" || !davening) return false;
     const { short } = names(book, section);
-    if (planToday(partOf(book, section), short, [], davening, prefs.customs, section).whole) return true;
+    const k = serviceOfSection(section);
+    const svc = k === "shared" ? sharedSvc ?? serviceByClock(!!day?.afterSunset, new Date().getHours()) : k;
+    if (planToday(partOf(book, section), short, [], dayFor(svc), prefs.customs, section, svc ?? undefined).whole) return true;
     if (prefs.minyan === "alone" && minyanWhole(short)) return true;
     return prefs.meal === "alone" && Boolean(zimunWhole(short));
   };
@@ -482,8 +525,15 @@ export default function Siddur({
     } catch {
       /* none */
     }
-    setBook(siddurs.includes(saved) ? saved : siddurs.includes(PREFERRED) ? PREFERRED : (siddurs[0] ?? ""));
-    setPrefs(loadPrefs());
+    const loaded = loadPrefs();
+    const theirs = siddurFor(loaded.customs.nusach);
+    setBook(siddurs.includes(saved) ? saved : siddurs.includes(theirs) ? theirs : siddurs.includes(PREFERRED) ? PREFERRED : (siddurs[0] ?? ""));
+    setPrefs(loaded);
+    try {
+      setKnown(!!localStorage.getItem(KNOWN_KEY));
+    } catch {
+      setKnown(true);
+    }
     try {
       const l = JSON.parse(localStorage.getItem(LAST_KEY) ?? "null") as { book?: string; section?: string } | null;
       if (l?.book && l.section && siddurs.includes(l.book)) setLast({ book: l.book, section: l.section });
@@ -493,6 +543,13 @@ export default function Siddur({
       /* nothing saved */
     }
   }, [siddurs]);
+
+  // Settings changed elsewhere (RabbAI's "Change it" in the chat) are read again.
+  useEffect(() => {
+    const reload = () => setPrefs(loadPrefs());
+    window.addEventListener("rabai-daven-prefs", reload);
+    return () => window.removeEventListener("rabai-daven-prefs", reload);
+  }, []);
 
   // The siddur's outline, to find its services and show its contents.
   useEffect(() => {
@@ -710,13 +767,31 @@ export default function Siddur({
   const built = useMemo(() => {
     const out: Item[] = [];
     let hidden = 0;
+    const days = new Map<string, DaySummaryDavening | undefined>();
+    // The service of the prayer before: the festival Amidah follows the service it was reached from.
+    let ctx: Service = sharedSvc ?? serviceByClock(!!day?.afterSunset, new Date().getHours());
     for (const c of chunks) {
       const n = names(book, c.section);
       const he = c.sectionHe?.split(/,\s*/).pop();
       const show = shown(book, c.section);
-      out.push({ kind: "section", key: `s:${c.section}`, chunk: c, short: show.short, crumb: show.crumb, he: he && /[א-ת]/.test(he) ? he : undefined });
+      const k = serviceOfSection(c.section);
+      if (k && k !== "shared" && !sharedSvc) ctx = k === "musaf" ? "shacharit" : k;
+      const svc = k === "shared" ? sharedSvc ?? ctx : k;
+      const cd = dayFor(svc);
+      days.set(c.section, cd);
+      out.push({
+        kind: "section",
+        key: `s:${c.section}`,
+        chunk: c,
+        short: show.short,
+        crumb: show.crumb,
+        he: he && /[א-ת]/.test(he) ? he : undefined,
+        ...(svc ? { svc } : {}),
+        ...(k === "shared" ? { shared: true } : {}),
+        ...(svc === "maariv" && !day?.afterSunset && day?.daveningTonight ? { tonight: true } : {}),
+      });
       const plan: { whole?: string; folds: Array<{ from: number; to: number; reason: string }> } = prefs.today
-        ? planToday(partOf(book, c.section), n.short, c.lines, davening, prefs.customs, c.section)
+        ? planToday(partOf(book, c.section), n.short, c.lines, cd, prefs.customs, c.section, svc ?? undefined)
         : { folds: [] };
       // Davening alone: what is said only with a minyan joins what isn't said today.
       if (prefs.today && prefs.minyan === "alone" && !plan.whole) {
@@ -769,7 +844,7 @@ export default function Siddur({
         out.push({ kind: "line", key: line.ref, chunk: c, line, prayer: n.short });
       }
     }
-    if (layout !== "paragraph") return { out, hidden };
+    if (layout !== "paragraph") return { out, hidden, days };
     // Paragraph: the prayer lines between headings and instructions, each language together.
     const grouped: Item[] = [];
     for (const it of out) {
@@ -779,9 +854,11 @@ export default function Siddur({
         else grouped.push({ kind: "para", key: `p:${it.key}`, chunk: it.chunk, lines: [it.line], prayer: it.prayer });
       } else grouped.push(it);
     }
-    return { out: grouped, hidden };
-  }, [chunks, book, prefs.today, prefs.customs, prefs.minyan, prefs.meal, davening, openFolds, instructions, layout, shown, hide, openedSection]);
+    return { out: grouped, hidden, days };
+  }, [chunks, book, prefs.today, prefs.customs, prefs.minyan, prefs.meal, davening, dayFor, sharedSvc, day?.afterSunset, day?.daveningTonight, openFolds, instructions, layout, shown, hide, openedSection]);
   const items = built.out;
+  /** The day the item being drawn is said on (set by renderItem for each prayer). */
+  let lineDay: DaySummaryDavening | undefined = davening;
   const hiddenToday = built.hidden;
 
   // A line asked for from elsewhere is scrolled to the middle of the screen once it is drawn.
@@ -1081,6 +1158,17 @@ export default function Siddur({
     keep(SIDDUR_KEY, b);
   };
 
+  /** The person said how they daven: their tradition's customs, and its siddur when the library has it. */
+  const startTradition = (n: Nusach | null) => {
+    if (n) {
+      setPref("customs", customsFor(n));
+      const b = siddurFor(n);
+      if (siddurs.includes(b)) chooseBook(b);
+    }
+    keep(KNOWN_KEY, n ?? "learn");
+    setKnown(true);
+  };
+
   const toggle = (set: Set<string>, key: string) => {
     const next = new Set(set);
     if (next.has(key)) next.delete(key);
@@ -1097,15 +1185,19 @@ export default function Siddur({
     const named = (name: string, label: string, kind = label) => ({ name: kind, label, section: sectionByName(tree, name) });
     const general = (name: string, label = name) => ({ name, label, section: serviceStart(book, tree, name, shabbat) });
     let list: Array<{ name: string; label: string; section?: string }>;
-    if (davening?.yomTov && !shabbat) {
-      list = [
-        named("Ma'ariv for Shabbat and Yom Tov", "Maariv"),
-        named("Shaharit for Shabbat and Yom Tov", "Shacharit"),
-        named("Amida for Yom Tov", "Amidah for Yom Tov", "Amidah"),
-        named("Hallel", "Hallel"),
-        named("Musaf for Festivals", "Musaf"),
-        named("Minha for Shabbat and Yom Tov", "Mincha"),
-      ];
+    const matching = (re: RegExp, label: string, kind = label) => ({ name: kind, label, section: sectionMatching(tree, re) });
+    if (davening?.yomTov && !shabbat && davening.festival !== "rosh-hashana" && davening.festival !== "yom-kippur") {
+      const koren = !!sectionByName(tree, "Ma'ariv for Shabbat and Yom Tov");
+      list = koren
+        ? [
+            named("Ma'ariv for Shabbat and Yom Tov", "Maariv"),
+            named("Shaharit for Shabbat and Yom Tov", "Shacharit"),
+            matching(FESTIVAL_AMIDAH, "Amidah for Yom Tov", "Amidah"),
+            named("Hallel", "Hallel"),
+            matching(FESTIVAL_MUSAF, "Musaf"),
+            named("Minha for Shabbat and Yom Tov", "Mincha"),
+          ]
+        : [general("Maariv"), general("Shacharit"), matching(FESTIVAL_AMIDAH, "Amidah for Yom Tov", "Amidah"), named("Hallel", "Hallel"), matching(FESTIVAL_MUSAF, "Musaf"), general("Mincha")];
     } else if (shabbat) {
       list = [general("Kabbalat Shabbat"), general("Maariv"), general("Shacharit"), general("Musaf"), general("Mincha")];
       if (davening && hallelToday(davening, prefs.customs)) list.splice(3, 0, named("Hallel", "Hallel"));
@@ -1113,7 +1205,7 @@ export default function Siddur({
       list = [general("Shacharit")];
       if (davening && hallelToday(davening, prefs.customs)) list.push(named("Hallel", davening.hallel === 1 ? "Half Hallel" : "Hallel"));
       if (davening?.roshChodesh) list.push(named("Musaf for Rosh Hodesh", "Musaf"));
-      else if (davening?.cholHamoed) list.push(named("Musaf for Festivals", "Musaf"));
+      else if (davening?.cholHamoed) list.push(matching(FESTIVAL_MUSAF, "Musaf"));
       list.push(general("Mincha"), general("Maariv"));
     }
     return list.filter((s) => s.section);
@@ -1178,7 +1270,7 @@ export default function Siddur({
         );
       }
       if (s.alt === "when") {
-        const today = s.condition ? appliesToday(s.condition, davening) : undefined;
+        const today = s.condition ? appliesToday(s.condition, lineDay) : undefined;
         const key = `${bitKey}:${i}`;
         const name = s.condition ? CONDITION_NAMES[s.condition] : s.label;
         if (prefs.today && today === false && !openBits.has(key))
@@ -1210,12 +1302,12 @@ export default function Siddur({
   /** Whether a phrase is folded away in today's view (said only on another day). */
   const phraseFolded = (p: Phrase, key: string) => {
     if (!prefs.today || !p.tag?.condition) return false;
-    return appliesToday(p.tag.condition, davening) === false && !openBits.has(key);
+    return appliesToday(p.tag.condition, lineDay) === false && !openBits.has(key);
   };
 
   const renderPhrase = (p: Phrase, i: number, ref: string, prayer: string, english: boolean, first: boolean) => {
     const key = `${ref}:${english ? "en" : "he"}:${i}`;
-    const today = p.tag?.condition ? appliesToday(p.tag.condition, davening) : undefined;
+    const today = p.tag?.condition ? appliesToday(p.tag.condition, lineDay) : undefined;
     if (phraseFolded(p, key))
       return (
         <span key={i} className="sd-ph sd-ph-folded">
@@ -1496,6 +1588,8 @@ export default function Siddur({
 
   const renderItem = (it: Item, pane?: "he" | "en"): ReactNode => {
     const di = pane ? { "data-i": it.key } : {};
+    // The day this prayer is said on (tonight's for Ma'ariv): the marks inside it read it.
+    lineDay = "chunk" in it ? built.days.get(it.chunk.section) ?? davening : davening;
     switch (it.kind) {
       case "section": {
         const stop = pane !== "en" ? { "data-stop": it.short, "data-section": it.chunk.section } : {};
@@ -1511,6 +1605,17 @@ export default function Siddur({
                 </span>
               )}
             </h2>
+            {it.shared && pane !== "en" && (
+              <div className="sd-svc" role="group" aria-label="Which service">
+                <span className="sd-svc-label">Showing it for</span>
+                {(["maariv", "shacharit", "mincha"] as const).map((v) => (
+                  <button key={v} type="button" className="chip-btn small" aria-pressed={it.svc === v} onClick={() => setSharedSvc(v)}>
+                    {SERVICE_NAMES[v]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {it.tonight && pane !== "en" && prefs.today && <p className="sd-tonight">For tonight: Ma&apos;ariv belongs to the coming night, even said early.</p>}
             {prefs.depth === "study" && pane !== "en" && (
               <div className="sd-about">
                 {glossFor(it.short) && <span className="sd-about-gloss">{glossFor(it.short)}.</span>}
@@ -1541,6 +1646,22 @@ export default function Siddur({
               <span className="sd-fold-why">{it.reason}</span>
               <span className="sd-fold-act">{it.open ? "Hide" : "Show"}</span>
             </button>
+            {it.open && pane !== "en" && (() => {
+              // Opened something a custom left out: ask whether they say it, and remember only on "yes".
+              const q = customBehind(it.reason, built.days.get(it.chunk.section) ?? davening, prefs.customs);
+              if (!q || notAsked.has(q.key)) return null;
+              return (
+                <div className="sd-learn" role="group" aria-label="Your custom">
+                  <span>{q.ask}</span>
+                  <button type="button" className="chip-btn small" onClick={() => setPref("customs", { ...prefs.customs, [q.key]: q.value })}>
+                    Yes, remember it
+                  </button>
+                  <button type="button" className="chip-btn small" onClick={() => setNotAsked((x) => new Set(x).add(q.key))}>
+                    Just today
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         );
       case "note":
@@ -1873,31 +1994,7 @@ export default function Siddur({
             the order here unless you change it. The words are the same. Not yet reviewed by the rabbinic board.
           </p>
         )}
-        <fieldset className="sd-customs">
-          <legend>Your community&apos;s customs</legend>
-          <label>
-            <input type="checkbox" checked={prefs.customs.modernDays} onChange={(e) => setPref("customs", { ...prefs.customs, modernDays: e.target.checked })} /> Yom HaAtzma&apos;ut and Yom
-            Yerushalayim: Hallel, and no Tachanun
-          </label>
-          {!davening?.israel && (
-            <>
-              <label>
-                <input type="checkbox" checked={!!prefs.customs.sivan12} onChange={(e) => setPref("customs", { ...prefs.customs, sivan12: e.target.checked })} /> No Tachanun
-                through 12 Sivan
-              </label>
-              <label>
-                <input type="checkbox" checked={!!prefs.customs.tishreiEnd} onChange={(e) => setPref("customs", { ...prefs.customs, tishreiEnd: e.target.checked })} /> No Tachanun
-                through the end of Tishrei
-              </label>
-            </>
-          )}
-          {davening?.israel && (
-            <label>
-              <input type="checkbox" checked={prefs.customs.viduyIsrael} onChange={(e) => setPref("customs", { ...prefs.customs, viduyIsrael: e.target.checked })} /> Viduy and the Thirteen
-              Attributes before Tachanun
-            </label>
-          )}
-        </fieldset>
+        <TraditionSettings customs={prefs.customs} israel={!!davening?.israel} onChange={(c) => setPref("customs", c)} />
         <h4 className="sd-menu-h">On this device</h4>
         <label className="sd-menu-check">
           <input type="checkbox" checked={prefs.wordTap} onChange={(e) => setPref("wordTap", e.target.checked)} /> Tap a Hebrew word to see its meaning
@@ -1962,6 +2059,7 @@ export default function Siddur({
           </div>
           {menu}
           {!online && <p className="note sd-offline" role="status">No connection: showing what is kept on this device. Today&apos;s changes come back with the connection.</p>}
+          {!known && <TraditionWelcome onPick={(n) => startTradition(n)} onSkip={() => startTradition(null)} />}
           {davening?.festival === "rosh-hashana" || davening?.festival === "yom-kippur" ? (
             <p className="note">On {davening.festival === "rosh-hashana" ? "Rosh HaShana" : "Yom Kippur"}, daven from a machzor; this siddur has the daily and Shabbat prayers.</p>
           ) : null}

@@ -13,6 +13,13 @@ import { pirkeiAvot } from "@hebcal/learning";
 export interface DaveningDay {
   /** 0 Sunday … 6 Shabbat, of the Hebrew day (after sunset, tomorrow's). */
   dow: number;
+  /** The Hebrew date (Hebcal's month numbers: Nisan 1 … Adar II 13), for rules that name a day of a festival. */
+  hebDate: { day: number; month: number; leap: boolean };
+  /**
+   * The days of the coming week, from this day (0) through Shabbat (6 - dow), that are a festival
+   * (Yom Tov): Vihi No'am on Motza'ei Shabbat is left out when one falls in the week.
+   */
+  yomTovAhead: number[];
   israel: boolean;
   roshChodesh: boolean;
   chanukah: boolean;
@@ -190,8 +197,12 @@ export function daveningDay(hd: HDate, israel: boolean, afterSunset = false, jer
   // Isru Chag in Israel: the day after Pesach, Shavuot and Sukkot (Shemini Atzeret).
   const isru =
     israel && ((month === months.NISAN && day === 22) || (month === months.SIVAN && day === 7) || (month === months.TISHREI && day === 23));
+  const yomTovAhead: number[] = [];
+  for (let k = 0; k <= 6 - dow; k++) if ((HebrewCalendar.getHolidaysOnDate(new HDate(hd.abs() + k), israel) ?? []).some((e) => (e.getFlags() & flags.CHAG) !== 0)) yomTovAhead.push(k);
   return {
     dow,
+    hebDate: { day, month, leap: HDate.isLeapYear(hd.getFullYear()) },
+    yomTovAhead,
     israel,
     roshChodesh: has(flags.ROSH_CHODESH),
     chanukah: desc.some((d) => /^Chanukah/.test(d)),
